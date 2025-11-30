@@ -29,6 +29,12 @@ export const colors = {
     light: '#F3F4F6',
   },
 
+  // Accent colors
+  orange: {
+    core: '#F97316',
+  },
+  purple: '#8B5CF6',
+
   // Status colors
   success: '#22C55E',
   warning: '#F59E0B',
