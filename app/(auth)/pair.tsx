@@ -1,0 +1,306 @@
+/**
+ * Pairing screen - QR code scanner or manual entry
+ */
+import { useState } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  Pressable,
+  StyleSheet,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+} from 'react-native';
+import { CameraView, useCameraPermissions } from 'expo-camera';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useAuthStore } from '@/lib/authStore';
+import { colors, spacing, borderRadius, typography } from '@/lib/theme';
+
+export default function PairScreen() {
+  const [permission, requestPermission] = useCameraPermissions();
+  const [manualMode, setManualMode] = useState(false);
+  const [serverUrl, setServerUrl] = useState('');
+  const [token, setToken] = useState('');
+  const [scanned, setScanned] = useState(false);
+
+  const { pair, isLoading, error, clearError } = useAuthStore();
+
+  const handleBarCodeScanned = async ({ data }: { data: string }) => {
+    if (scanned || isLoading) return;
+    setScanned(true);
+
+    try {
+      // Parse tracearr://pair?data=<base64>
+      const url = new URL(data);
+      if (url.protocol !== 'tracearr:' || !url.pathname.includes('pair')) {
+        Alert.alert('Invalid QR Code', 'Please scan a valid Tracearr QR code');
+        setScanned(false);
+        return;
+      }
+
+      const base64Data = url.searchParams.get('data');
+      if (!base64Data) {
+        throw new Error('Missing data in QR code');
+      }
+
+      const payload = JSON.parse(atob(base64Data));
+      await pair(payload.url, payload.token);
+    } catch (err) {
+      Alert.alert('Pairing Failed', err instanceof Error ? err.message : 'Invalid QR code');
+      setScanned(false);
+    }
+  };
+
+  const handleManualPair = async () => {
+    if (!serverUrl.trim() || !token.trim()) {
+      Alert.alert('Missing Fields', 'Please enter both server URL and token');
+      return;
+    }
+
+    clearError();
+    try {
+      await pair(serverUrl.trim(), token.trim());
+    } catch {
+      // Error is handled by the store
+    }
+  };
+
+  if (manualMode) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.keyboardView}
+        >
+          <ScrollView contentContainerStyle={styles.scrollContent}>
+            <View style={styles.header}>
+              <Text style={styles.title}>Connect to Server</Text>
+              <Text style={styles.subtitle}>
+                Enter your Tracearr server URL and mobile access token
+              </Text>
+            </View>
+
+            <View style={styles.form}>
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Server URL</Text>
+                <TextInput
+                  style={styles.input}
+                  value={serverUrl}
+                  onChangeText={setServerUrl}
+                  placeholder="https://tracearr.example.com"
+                  placeholderTextColor={colors.text.muted.dark}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  keyboardType="url"
+                  editable={!isLoading}
+                />
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Access Token</Text>
+                <TextInput
+                  style={styles.input}
+                  value={token}
+                  onChangeText={setToken}
+                  placeholder="trr_mob_..."
+                  placeholderTextColor={colors.text.muted.dark}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  secureTextEntry
+                  editable={!isLoading}
+                />
+              </View>
+
+              {error && <Text style={styles.errorText}>{error}</Text>}
+
+              <Pressable
+                style={[styles.button, isLoading && styles.buttonDisabled]}
+                onPress={handleManualPair}
+                disabled={isLoading}
+              >
+                <Text style={styles.buttonText}>
+                  {isLoading ? 'Connecting...' : 'Connect'}
+                </Text>
+              </Pressable>
+
+              <Pressable
+                style={styles.linkButton}
+                onPress={() => setManualMode(false)}
+                disabled={isLoading}
+              >
+                <Text style={styles.linkText}>Scan QR Code Instead</Text>
+              </Pressable>
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      <View style={styles.header}>
+        <Text style={styles.title}>Welcome to Tracearr</Text>
+        <Text style={styles.subtitle}>
+          Open Settings → Mobile App in your Tracearr dashboard and scan the QR code
+        </Text>
+      </View>
+
+      <View style={styles.cameraContainer}>
+        {permission?.granted ? (
+          <CameraView
+            style={styles.camera}
+            barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
+            onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
+          >
+            <View style={styles.overlay}>
+              <View style={styles.scanFrame} />
+            </View>
+          </CameraView>
+        ) : (
+          <View style={styles.permissionContainer}>
+            <Text style={styles.permissionText}>
+              Camera permission is required to scan QR codes
+            </Text>
+            <Pressable style={styles.button} onPress={requestPermission}>
+              <Text style={styles.buttonText}>Grant Permission</Text>
+            </Pressable>
+          </View>
+        )}
+      </View>
+
+      <View style={styles.footer}>
+        <Pressable style={styles.linkButton} onPress={() => setManualMode(true)}>
+          <Text style={styles.linkText}>Enter URL and Token Manually</Text>
+        </Pressable>
+      </View>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background.dark,
+  },
+  keyboardView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    padding: spacing.lg,
+  },
+  header: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xl,
+    paddingBottom: spacing.lg,
+    alignItems: 'center',
+  },
+  title: {
+    fontSize: typography.fontSize['2xl'],
+    fontWeight: 'bold',
+    color: colors.text.primary.dark,
+    marginBottom: spacing.sm,
+    textAlign: 'center',
+  },
+  subtitle: {
+    fontSize: typography.fontSize.base,
+    color: colors.text.secondary.dark,
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  cameraContainer: {
+    flex: 1,
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.lg,
+    borderRadius: borderRadius.xl,
+    overflow: 'hidden',
+    backgroundColor: colors.card.dark,
+  },
+  camera: {
+    flex: 1,
+  },
+  overlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.3)',
+  },
+  scanFrame: {
+    width: 250,
+    height: 250,
+    borderWidth: 2,
+    borderColor: colors.cyan.core,
+    borderRadius: borderRadius.lg,
+    backgroundColor: 'transparent',
+  },
+  permissionContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.lg,
+  },
+  permissionText: {
+    fontSize: typography.fontSize.base,
+    color: colors.text.secondary.dark,
+    textAlign: 'center',
+    marginBottom: spacing.lg,
+  },
+  footer: {
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.lg,
+    alignItems: 'center',
+  },
+  form: {
+    flex: 1,
+    gap: spacing.md,
+  },
+  inputGroup: {
+    gap: spacing.xs,
+  },
+  label: {
+    fontSize: typography.fontSize.sm,
+    fontWeight: '500',
+    color: colors.text.secondary.dark,
+  },
+  input: {
+    backgroundColor: colors.card.dark,
+    borderWidth: 1,
+    borderColor: colors.border.dark,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    fontSize: typography.fontSize.base,
+    color: colors.text.primary.dark,
+  },
+  button: {
+    backgroundColor: colors.cyan.core,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    borderRadius: borderRadius.md,
+    alignItems: 'center',
+    marginTop: spacing.sm,
+  },
+  buttonDisabled: {
+    opacity: 0.6,
+  },
+  buttonText: {
+    fontSize: typography.fontSize.base,
+    fontWeight: '600',
+    color: colors.blue.core,
+  },
+  linkButton: {
+    paddingVertical: spacing.md,
+    alignItems: 'center',
+  },
+  linkText: {
+    fontSize: typography.fontSize.base,
+    color: colors.cyan.core,
+  },
+  errorText: {
+    fontSize: typography.fontSize.sm,
+    color: colors.error,
+    textAlign: 'center',
+  },
+});
