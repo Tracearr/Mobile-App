@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/lib/authStore';
+import { StreamMap } from '@/components/map/StreamMap';
 import { colors, spacing, borderRadius, typography } from '@/lib/theme';
 
 function StatCard({ title, value, subtitle }: { title: string; value: string | number; subtitle?: string }) {
@@ -72,6 +73,14 @@ export default function DashboardScreen() {
             )}
           </View>
         </View>
+
+        {/* Stream Map */}
+        {activeSessions && activeSessions.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Stream Locations</Text>
+            <StreamMap sessions={activeSessions} height={200} />
+          </View>
+        )}
 
         {/* Stats Grid */}
         {stats && (

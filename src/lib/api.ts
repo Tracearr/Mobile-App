@@ -2,7 +2,8 @@
  * API client for Tracearr mobile app
  * Uses axios with automatic token refresh
  */
-import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
+import axios from 'axios';
+import type { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { storage } from './storage';
 import type {
   ActiveSession,
@@ -56,7 +57,7 @@ export function createApiClient(baseURL: string): AxiosInstance {
       }
       return config;
     },
-    (error) => Promise.reject(error)
+    (error: unknown) => Promise.reject(error instanceof Error ? error : new Error(String(error)))
   );
 
   // Response interceptor - handle token refresh
@@ -84,8 +85,8 @@ export function createApiClient(baseURL: string): AxiosInstance {
 
           // Retry original request with new token
           originalRequest.headers.Authorization = `Bearer ${response.data.accessToken}`;
-          return client(originalRequest);
-        } catch (refreshError) {
+          return await client(originalRequest);
+        } catch {
           // Refresh failed - clear credentials and throw
           await storage.clearCredentials();
           throw new Error('Session expired');
@@ -134,6 +135,21 @@ export const api = {
     dashboard: async (): Promise<DashboardStats> => {
       const client = await getApiClient();
       const response = await client.get<DashboardStats>('/stats/dashboard');
+      return response.data;
+    },
+    plays: async (params?: { days?: number }): Promise<{ data: { date: string; plays: number }[] }> => {
+      const client = await getApiClient();
+      const response = await client.get<{ data: { date: string; plays: number }[] }>('/stats/plays', { params });
+      return response.data;
+    },
+    platforms: async (params?: { days?: number }): Promise<{ data: { platform: string; plays: number }[] }> => {
+      const client = await getApiClient();
+      const response = await client.get<{ data: { platform: string; plays: number }[] }>('/stats/platforms', { params });
+      return response.data;
+    },
+    locations: async (params?: { serverId?: string; userId?: string }): Promise<{ data: { latitude: number; longitude: number; city: string; country: string; playCount: number }[] }> => {
+      const client = await getApiClient();
+      const response = await client.get<{ data: { latitude: number; longitude: number; city: string; country: string; playCount: number }[] }>('/stats/locations', { params });
       return response.data;
     },
   },
