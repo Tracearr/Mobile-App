@@ -53,7 +53,7 @@ export function usePushNotifications() {
     // Get Expo push token
     try {
       const tokenData = await Notifications.getExpoPushTokenAsync({
-        projectId: process.env.EXPO_PUBLIC_PROJECT_ID as string | undefined,
+        projectId: process.env.EXPO_PUBLIC_PROJECT_ID,
       });
       return tokenData.data;
     } catch (error) {

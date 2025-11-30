@@ -68,7 +68,7 @@ export default function UsersScreen() {
         renderItem={({ item }) => (
           <UserCard
             user={item}
-            onPress={() => router.push(`/user/${item.id}`)}
+            onPress={() => router.push(`/user/${item.id}` as never)}
           />
         )}
         contentContainerStyle={styles.listContent}
