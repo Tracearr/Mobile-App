@@ -64,7 +64,6 @@ export default function ActivityScreen() {
 
   const {
     data: activeSessions,
-    isLoading,
     refetch,
     isRefetching,
   } = useQuery({

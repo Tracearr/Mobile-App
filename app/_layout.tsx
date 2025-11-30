@@ -23,7 +23,7 @@ function RootLayoutNav() {
 
   // Initialize auth state on mount
   useEffect(() => {
-    initialize();
+    void initialize();
   }, [initialize]);
 
   // Handle navigation based on auth state

@@ -2,7 +2,7 @@
  * Authentication state store using Zustand
  */
 import { create } from 'zustand';
-import { storage, StoredCredentials } from './storage';
+import { storage } from './storage';
 import { api, resetApiClient } from './api';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
@@ -21,7 +21,7 @@ interface AuthState {
   clearError: () => void;
 }
 
-export const useAuthStore = create<AuthState>((set, get) => ({
+export const useAuthStore = create<AuthState>((set) => ({
   isAuthenticated: false,
   isLoading: true,
   serverUrl: null,

@@ -2,8 +2,10 @@
  * Socket.io provider for real-time updates
  */
 import React, { createContext, useContext, useEffect, useRef, useState, useCallback } from 'react';
-import { io, Socket } from 'socket.io-client';
-import { AppState, AppStateStatus } from 'react-native';
+import { io } from 'socket.io-client';
+import type { Socket } from 'socket.io-client';
+import { AppState } from 'react-native';
+import type { AppStateStatus } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
 import { storage } from '../lib/storage';
 import { useAuthStore } from '../lib/authStore';
@@ -86,7 +88,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
         return [...old, session];
       });
       // Invalidate dashboard stats
-      queryClient.invalidateQueries({ queryKey: ['dashboard', 'stats'] });
+      void queryClient.invalidateQueries({ queryKey: ['dashboard', 'stats'] });
     });
 
     newSocket.on('session:stopped', (sessionId: string) => {
@@ -94,7 +96,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
         if (!old) return [];
         return old.filter((s) => s.sessionKey !== sessionId && s.id !== sessionId);
       });
-      queryClient.invalidateQueries({ queryKey: ['dashboard', 'stats'] });
+      void queryClient.invalidateQueries({ queryKey: ['dashboard', 'stats'] });
     });
 
     newSocket.on('session:updated', (session: ActiveSession) => {
@@ -106,10 +108,10 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       });
     });
 
-    newSocket.on('violation:new', (violation: ViolationWithDetails) => {
+    newSocket.on('violation:new', (_violation: ViolationWithDetails) => {
       // Invalidate violations list
-      queryClient.invalidateQueries({ queryKey: ['violations'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard', 'stats'] });
+      void queryClient.invalidateQueries({ queryKey: ['violations'] });
+      void queryClient.invalidateQueries({ queryKey: ['dashboard', 'stats'] });
     });
 
     newSocket.on('stats:updated', (stats: DashboardStats) => {
@@ -122,7 +124,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
   // Connect/disconnect based on auth state
   useEffect(() => {
     if (isAuthenticated && serverUrl) {
-      connectSocket();
+      void connectSocket();
     } else if (socketRef.current) {
       socketRef.current.disconnect();
       socketRef.current = null;
@@ -142,7 +144,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     const handleAppStateChange = (nextState: AppStateStatus) => {
       if (nextState === 'active' && isAuthenticated && !isConnected) {
         // Reconnect when app comes to foreground
-        connectSocket();
+        void connectSocket();
       } else if (nextState === 'background' && socketRef.current) {
         // Optionally disconnect when backgrounded to save battery
         // socketRef.current.disconnect();

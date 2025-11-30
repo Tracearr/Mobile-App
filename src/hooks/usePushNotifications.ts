@@ -23,8 +23,8 @@ Notifications.setNotificationHandler({
 export function usePushNotifications() {
   const [expoPushToken, setExpoPushToken] = useState<string | null>(null);
   const [notification, setNotification] = useState<Notifications.Notification | null>(null);
-  const notificationListener = useRef<Notifications.Subscription | null>(null);
-  const responseListener = useRef<Notifications.Subscription | null>(null);
+  const notificationListener = useRef<Notifications.EventSubscription | null>(null);
+  const responseListener = useRef<Notifications.EventSubscription | null>(null);
   const router = useRouter();
   const { socket } = useSocket();
 
@@ -40,12 +40,12 @@ export function usePushNotifications() {
     let finalStatus = existingStatus;
 
     // Request permissions if not granted
-    if (existingStatus !== 'granted') {
+    if (existingStatus !== Notifications.PermissionStatus.GRANTED) {
       const { status } = await Notifications.requestPermissionsAsync();
       finalStatus = status;
     }
 
-    if (finalStatus !== 'granted') {
+    if (finalStatus !== Notifications.PermissionStatus.GRANTED) {
       console.log('Push notification permission not granted');
       return null;
     }
@@ -53,7 +53,7 @@ export function usePushNotifications() {
     // Get Expo push token
     try {
       const tokenData = await Notifications.getExpoPushTokenAsync({
-        projectId: process.env.EXPO_PUBLIC_PROJECT_ID,
+        projectId: process.env.EXPO_PUBLIC_PROJECT_ID as string | undefined,
       });
       return tokenData.data;
     } catch (error) {
@@ -99,7 +99,7 @@ export function usePushNotifications() {
 
   // Initialize push notifications
   useEffect(() => {
-    registerForPushNotifications().then(setExpoPushToken);
+    void registerForPushNotifications().then(setExpoPushToken);
 
     // Listen for notifications received while app is foregrounded
     notificationListener.current = Notifications.addNotificationReceivedListener(
@@ -135,7 +135,7 @@ export function usePushNotifications() {
     if (!socket) return;
 
     const handleViolation = (violation: ViolationWithDetails) => {
-      showViolationNotification(violation);
+      void showViolationNotification(violation);
     };
 
     socket.on('violation:new', handleViolation);
@@ -148,7 +148,7 @@ export function usePushNotifications() {
   // Configure Android notification channel
   useEffect(() => {
     if (Platform.OS === 'android') {
-      Notifications.setNotificationChannelAsync('violations', {
+      void Notifications.setNotificationChannelAsync('violations', {
         name: 'Violation Alerts',
         importance: Notifications.AndroidImportance.HIGH,
         vibrationPattern: [0, 250, 250, 250],

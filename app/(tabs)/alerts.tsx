@@ -80,7 +80,6 @@ export default function AlertsScreen() {
 
   const {
     data: violationsData,
-    isLoading,
     refetch,
     isRefetching,
   } = useQuery({
@@ -91,7 +90,7 @@ export default function AlertsScreen() {
   const acknowledgeMutation = useMutation({
     mutationFn: api.violations.acknowledge,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['violations'] });
+      void queryClient.invalidateQueries({ queryKey: ['violations'] });
     },
   });
 

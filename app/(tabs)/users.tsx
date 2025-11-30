@@ -51,7 +51,6 @@ export default function UsersScreen() {
 
   const {
     data: usersData,
-    isLoading,
     refetch,
     isRefetching,
   } = useQuery({

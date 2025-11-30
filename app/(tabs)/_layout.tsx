@@ -6,14 +6,7 @@ import { View, StyleSheet } from 'react-native';
 import { colors } from '@/lib/theme';
 
 // Simple icon components (will be replaced with proper icons)
-function TabIcon({ name, focused }: { name: string; focused: boolean }) {
-  const icons: Record<string, string> = {
-    dashboard: '📊',
-    activity: '▶️',
-    users: '👥',
-    alerts: '🔔',
-  };
-
+function TabIcon({ focused }: { focused: boolean }) {
   return (
     <View style={[styles.iconContainer, focused && styles.iconFocused]}>
       <View style={styles.icon}>
@@ -61,7 +54,7 @@ export default function TabLayout() {
         options={{
           title: 'Dashboard',
           tabBarLabel: 'Dashboard',
-          tabBarIcon: ({ focused }) => <TabIcon name="dashboard" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon focused={focused} />,
         }}
       />
       <Tabs.Screen
@@ -69,7 +62,7 @@ export default function TabLayout() {
         options={{
           title: 'Activity',
           tabBarLabel: 'Activity',
-          tabBarIcon: ({ focused }) => <TabIcon name="activity" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon focused={focused} />,
         }}
       />
       <Tabs.Screen
@@ -77,7 +70,7 @@ export default function TabLayout() {
         options={{
           title: 'Users',
           tabBarLabel: 'Users',
-          tabBarIcon: ({ focused }) => <TabIcon name="users" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon focused={focused} />,
         }}
       />
       <Tabs.Screen
@@ -85,7 +78,7 @@ export default function TabLayout() {
         options={{
           title: 'Alerts',
           tabBarLabel: 'Alerts',
-          tabBarIcon: ({ focused }) => <TabIcon name="alerts" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon focused={focused} />,
         }}
       />
     </Tabs>
