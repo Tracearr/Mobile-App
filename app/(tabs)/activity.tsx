@@ -1,10 +1,11 @@
 /**
  * Activity tab - active sessions and history
  */
-import { View, Text, StyleSheet, ScrollView, RefreshControl, FlatList } from 'react-native';
+import { View, Text, StyleSheet, RefreshControl, FlatList } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
+import { useSocket } from '@/providers/SocketProvider';
 import { colors, spacing, borderRadius, typography } from '@/lib/theme';
 import type { ActiveSession } from '@tracearr/shared';
 
@@ -28,7 +29,7 @@ function SessionCard({ session }: { session: ActiveSession }) {
           </View>
         </View>
         <View style={[styles.statusBadge, session.isTranscode ? styles.transcodeBadge : styles.directBadge]}>
-          <Text style={styles.statusText}>
+          <Text style={styles.badgeText}>
             {session.isTranscode ? 'Transcode' : 'Direct'}
           </Text>
         </View>
@@ -59,6 +60,8 @@ function SessionCard({ session }: { session: ActiveSession }) {
 }
 
 export default function ActivityScreen() {
+  const { isConnected } = useSocket();
+
   const {
     data: activeSessions,
     isLoading,
@@ -85,7 +88,13 @@ export default function ActivityScreen() {
         }
         ListHeaderComponent={
           <View style={styles.header}>
-            <Text style={styles.headerTitle}>Active Streams</Text>
+            <View style={styles.headerLeft}>
+              <Text style={styles.headerTitle}>Active Streams</Text>
+              <View style={styles.connectionStatus}>
+                <View style={[styles.statusDot, isConnected ? styles.statusConnected : styles.statusDisconnected]} />
+                <Text style={styles.statusText}>{isConnected ? 'Live' : 'Offline'}</Text>
+              </View>
+            </View>
             <Text style={styles.headerCount}>
               {activeSessions?.length || 0} {(activeSessions?.length || 0) === 1 ? 'stream' : 'streams'}
             </Text>
@@ -117,13 +126,36 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     marginBottom: spacing.md,
+  },
+  headerLeft: {
+    gap: spacing.xs,
   },
   headerTitle: {
     fontSize: typography.fontSize.lg,
     fontWeight: '600',
     color: colors.text.primary.dark,
+  },
+  connectionStatus: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  statusConnected: {
+    backgroundColor: colors.success,
+  },
+  statusDisconnected: {
+    backgroundColor: colors.text.muted.dark,
+  },
+  statusText: {
+    fontSize: typography.fontSize.xs,
+    color: colors.text.muted.dark,
   },
   headerCount: {
     fontSize: typography.fontSize.sm,
@@ -181,7 +213,7 @@ const styles = StyleSheet.create({
   transcodeBadge: {
     backgroundColor: colors.warning + '20',
   },
-  statusText: {
+  badgeText: {
     fontSize: typography.fontSize.xs,
     fontWeight: '500',
     color: colors.text.primary.dark,

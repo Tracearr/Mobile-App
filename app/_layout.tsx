@@ -8,13 +8,18 @@ import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { QueryProvider } from '@/providers/QueryProvider';
+import { SocketProvider } from '@/providers/SocketProvider';
 import { useAuthStore } from '@/lib/authStore';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { colors } from '@/lib/theme';
 
 function RootLayoutNav() {
   const { isAuthenticated, isLoading, initialize } = useAuthStore();
   const segments = useSegments();
   const router = useRouter();
+
+  // Initialize push notifications (only when authenticated)
+  usePushNotifications();
 
   // Initialize auth state on mount
   useEffect(() => {
@@ -68,7 +73,9 @@ export default function RootLayout() {
     <GestureHandlerRootView style={styles.container}>
       <SafeAreaProvider>
         <QueryProvider>
-          <RootLayoutNav />
+          <SocketProvider>
+            <RootLayoutNav />
+          </SocketProvider>
         </QueryProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
