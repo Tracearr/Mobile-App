@@ -18,11 +18,14 @@
       "bundleIdentifier": "com.tracearr.app",
       "infoPlist": {
         "UIBackgroundModes": [
-          "remote-notification",
           "remote-notification"
         ],
         "NSCameraUsageDescription": "Tracearr needs camera access to scan QR codes for server pairing.",
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSAppTransportSecurity": {
+          "NSAllowsLocalNetworking": true
+        },
+        "NSLocalNetworkUsageDescription": "Tracearr needs local network access to connect to your self-hosted server."
       }
     },
     "android": {

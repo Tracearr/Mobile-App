@@ -45,7 +45,7 @@
     "production": {
       "ios": {
         "appleId": "connor.gallopo@me.com",
-        "ascAppId": "YOUR_APP_STORE_CONNECT_APP_ID",
+        "ascAppId": "6755941553",
         "appleTeamId": "6DA3FJF5G5"
       },
       "android": {
