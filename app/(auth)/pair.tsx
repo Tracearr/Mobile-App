@@ -33,13 +33,14 @@ export default function PairScreen() {
 
     try {
       // Parse tracearr://pair?data=<base64>
-      const url = new URL(data);
-      if (url.protocol !== 'tracearr:' || !url.pathname.includes('pair')) {
-        Alert.alert('Invalid QR Code', 'Please scan a valid Tracearr QR code');
-        setScanned(false);
+      // First check if it even looks like our URL format
+      if (!data.startsWith('tracearr://pair')) {
+        // Silently ignore non-Tracearr QR codes (don't spam alerts)
+        setTimeout(() => setScanned(false), 2000); // 2 second cooldown
         return;
       }
 
+      const url = new URL(data);
       const base64Data = url.searchParams.get('data');
       if (!base64Data) {
         throw new Error('Missing data in QR code');
@@ -49,7 +50,8 @@ export default function PairScreen() {
       await pair(payload.url, payload.token);
     } catch (err) {
       Alert.alert('Pairing Failed', err instanceof Error ? err.message : 'Invalid QR code');
-      setScanned(false);
+      // Add cooldown before allowing another scan
+      setTimeout(() => setScanned(false), 3000);
     }
   };
 
