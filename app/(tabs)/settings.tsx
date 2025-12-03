@@ -105,7 +105,7 @@ export default function SettingsScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={['left', 'right']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#09090B' }} edges={['left', 'right']}>
       <ScrollView className="flex-1" contentContainerClassName="py-4">
         {/* Server Info */}
         <SettingsSection title="Connected Server">

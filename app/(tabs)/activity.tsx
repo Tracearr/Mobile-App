@@ -1,130 +1,154 @@
 /**
- * Activity tab - active sessions and history
- * Migrated to NativeWind
+ * Activity tab - streaming statistics and charts
+ * Matches web dashboard Activity page
  */
-import { View, RefreshControl, FlatList } from 'react-native';
+import { useState } from 'react';
+import { View, ScrollView, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
-import { useSocket } from '@/providers/SocketProvider';
 import { Text } from '@/components/ui/text';
 import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
-import type { ActiveSession } from '@tracearr/shared';
+import { PeriodSelector, type StatsPeriod } from '@/components/ui/period-selector';
+import {
+  PlaysChart,
+  PlatformChart,
+  DayOfWeekChart,
+  HourOfDayChart,
+  QualityChart,
+} from '@/components/charts';
 
-function SessionCard({ session }: { session: ActiveSession }) {
-  const progressPercent = session.progressMs && session.totalDurationMs
-    ? Math.round((session.progressMs / session.totalDurationMs) * 100)
-    : 0;
-
+function ChartSection({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
   return (
-    <Card className="mb-3">
-      {/* Header: User + Badge */}
-      <View className="flex-row justify-between items-center mb-2">
-        <View className="flex-row items-center gap-2">
-          <View className="w-10 h-10 rounded-full bg-cyan-dark items-center justify-center">
-            <Text className="text-lg font-bold">
-              {session.user.username.charAt(0).toUpperCase()}
-            </Text>
-          </View>
-          <View>
-            <Text className="text-base font-semibold">{session.user.username}</Text>
-            <Text className="text-xs text-muted">
-              {session.playerName || session.platform || 'Unknown Device'}
-            </Text>
-          </View>
-        </View>
-        <Badge variant={session.isTranscode ? 'warning' : 'success'}>
-          {session.isTranscode ? 'Transcode' : 'Direct'}
-        </Badge>
-      </View>
-
-      {/* Media Info */}
-      <View className="mb-2">
-        <Text className="text-base" numberOfLines={1}>
-          {session.mediaTitle || 'Unknown Media'}
-        </Text>
-        {session.grandparentTitle && (
-          <Text className="text-sm text-muted mt-0.5" numberOfLines={1}>
-            {session.grandparentTitle}
-            {session.seasonNumber !== null && ` • S${session.seasonNumber}E${session.episodeNumber}`}
-          </Text>
-        )}
-      </View>
-
-      {/* Footer: Location + Progress */}
-      <View className="flex-row justify-between items-center pt-2 border-t border-border">
-        <Text className="text-xs text-muted">
-          {session.geoCity || session.ipAddress || 'Unknown Location'}
-        </Text>
-        <Text className="text-sm font-semibold text-cyan-core">
-          {progressPercent}%
-        </Text>
-      </View>
-    </Card>
+    <View className="mb-4">
+      <Text className="text-sm font-semibold text-muted uppercase tracking-wide mb-2">
+        {title}
+      </Text>
+      {children}
+    </View>
   );
 }
 
 export default function ActivityScreen() {
-  const { isConnected } = useSocket();
+  const [period, setPeriod] = useState<StatsPeriod>('month');
 
+  // Fetch all stats data with selected period
   const {
-    data: activeSessions,
-    refetch,
-    isRefetching,
+    data: playsData,
+    refetch: refetchPlays,
+    isRefetching: isRefetchingPlays,
   } = useQuery({
-    queryKey: ['sessions', 'active'],
-    queryFn: api.sessions.active,
+    queryKey: ['stats', 'plays', period],
+    queryFn: () => api.stats.plays({ period }),
   });
 
+  const { data: dayOfWeekData, refetch: refetchDayOfWeek } = useQuery({
+    queryKey: ['stats', 'dayOfWeek', period],
+    queryFn: () => api.stats.playsByDayOfWeek({ period }),
+  });
+
+  const { data: hourOfDayData, refetch: refetchHourOfDay } = useQuery({
+    queryKey: ['stats', 'hourOfDay', period],
+    queryFn: () => api.stats.playsByHourOfDay({ period }),
+  });
+
+  const { data: platformsData, refetch: refetchPlatforms } = useQuery({
+    queryKey: ['stats', 'platforms', period],
+    queryFn: () => api.stats.platforms({ period }),
+  });
+
+  const { data: qualityData, refetch: refetchQuality } = useQuery({
+    queryKey: ['stats', 'quality', period],
+    queryFn: () => api.stats.quality({ period }),
+  });
+
+  const handleRefresh = () => {
+    void refetchPlays();
+    void refetchDayOfWeek();
+    void refetchHourOfDay();
+    void refetchPlatforms();
+    void refetchQuality();
+  };
+
+  // Period labels for display
+  const periodLabels: Record<StatsPeriod, string> = {
+    week: 'Last 7 Days',
+    month: 'Last 30 Days',
+    year: 'Last Year',
+  };
+
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={['left', 'right']}>
-      <FlatList
-        data={activeSessions || []}
-        keyExtractor={(item) => item.sessionKey || item.id}
-        renderItem={({ item }) => <SessionCard session={item} />}
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#09090B' }} edges={['left', 'right']}>
+      <ScrollView
+        className="flex-1"
         contentContainerClassName="p-4 pt-3"
         refreshControl={
           <RefreshControl
-            refreshing={isRefetching}
-            onRefresh={refetch}
+            refreshing={isRefetchingPlays}
+            onRefresh={handleRefresh}
             tintColor="#18D1E7"
           />
         }
-        ListHeaderComponent={
-          <View className="flex-row justify-between items-start mb-3">
-            <View className="gap-1">
-              <Text className="text-lg font-semibold">Active Streams</Text>
-              <View className="flex-row items-center gap-1">
-                <View
-                  className={cn(
-                    'w-2 h-2 rounded-full',
-                    isConnected ? 'bg-success' : 'bg-muted'
-                  )}
-                />
-                <Text className="text-xs text-muted">
-                  {isConnected ? 'Live' : 'Offline'}
-                </Text>
-              </View>
-            </View>
-            <Text className="text-sm text-muted">
-              {activeSessions?.length || 0} {(activeSessions?.length || 0) === 1 ? 'stream' : 'streams'}
-            </Text>
+      >
+        {/* Header with Period Selector */}
+        <View className="flex-row items-center justify-between mb-4">
+          <View>
+            <Text className="text-lg font-semibold">Activity</Text>
+            <Text className="text-sm text-muted">{periodLabels[period]}</Text>
           </View>
-        }
-        ListEmptyComponent={
-          <View className="items-center py-12">
-            <View className="w-16 h-16 rounded-full bg-card border border-border items-center justify-center mb-4">
-              <Text className="text-2xl text-muted">0</Text>
-            </View>
-            <Text className="text-lg font-semibold mb-1">No Active Streams</Text>
-            <Text className="text-sm text-muted text-center">
-              When users start streaming, they&apos;ll appear here
+          <PeriodSelector value={period} onChange={setPeriod} />
+        </View>
+
+        {/* Plays Over Time */}
+        <ChartSection title="Plays Over Time">
+          <PlaysChart data={playsData?.data || []} height={180} />
+        </ChartSection>
+
+        {/* Day of Week & Hour of Day in a row on larger screens */}
+        <View className="flex-row gap-3 mb-4">
+          <View className="flex-1">
+            <Text className="text-sm font-semibold text-muted uppercase tracking-wide mb-2">
+              By Day
             </Text>
+            <DayOfWeekChart data={dayOfWeekData?.data || []} height={160} />
           </View>
-        }
-      />
+        </View>
+
+        <View className="mb-4">
+          <Text className="text-sm font-semibold text-muted uppercase tracking-wide mb-2">
+            By Hour
+          </Text>
+          <HourOfDayChart data={hourOfDayData?.data || []} height={160} />
+        </View>
+
+        {/* Platform Breakdown */}
+        <ChartSection title="Platforms">
+          <PlatformChart data={platformsData?.data || []} />
+        </ChartSection>
+
+        {/* Quality Breakdown */}
+        <ChartSection title="Playback Quality">
+          {qualityData ? (
+            <QualityChart
+              directPlay={qualityData.directPlay}
+              transcode={qualityData.transcode}
+              directPlayPercent={qualityData.directPlayPercent}
+              transcodePercent={qualityData.transcodePercent}
+              height={120}
+            />
+          ) : (
+            <Card className="h-[120px] items-center justify-center">
+              <Text className="text-muted">Loading...</Text>
+            </Card>
+          )}
+        </ChartSection>
+      </ScrollView>
     </SafeAreaView>
   );
 }

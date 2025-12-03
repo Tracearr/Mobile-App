@@ -1,16 +1,19 @@
 /**
- * Users tab - user list and management
- * Migrated to NativeWind
+ * Users tab - user list with infinite scroll
  */
-import { View, FlatList, RefreshControl, Pressable } from 'react-native';
+import { View, FlatList, RefreshControl, Pressable, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { api } from '@/lib/api';
 import { Text } from '@/components/ui/text';
 import { Card } from '@/components/ui/card';
+import { UserAvatar } from '@/components/ui/user-avatar';
 import { cn } from '@/lib/utils';
+import { colors } from '@/lib/theme';
 import type { ServerUserWithIdentity } from '@tracearr/shared';
+
+const PAGE_SIZE = 50;
 
 function TrustScoreBadge({ score }: { score: number }) {
   const variant = score < 50 ? 'destructive' : score < 75 ? 'warning' : 'success';
@@ -43,11 +46,7 @@ function UserCard({ user, onPress }: { user: ServerUserWithIdentity; onPress: ()
     <Pressable onPress={onPress}>
       <Card className="flex-row items-center justify-between mb-2 p-3">
         <View className="flex-row items-center gap-3 flex-1">
-          <View className="w-12 h-12 rounded-full bg-cyan-dark items-center justify-center">
-            <Text className="text-xl font-bold">
-              {user.username.charAt(0).toUpperCase()}
-            </Text>
-          </View>
+          <UserAvatar thumbUrl={user.thumbUrl} username={user.username} size={48} />
           <View className="flex-1">
             <Text className="text-base font-semibold">{user.username}</Text>
             <Text className="text-sm text-muted mt-0.5">
@@ -65,18 +64,36 @@ export default function UsersScreen() {
   const router = useRouter();
 
   const {
-    data: usersData,
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
     refetch,
     isRefetching,
-  } = useQuery({
+  } = useInfiniteQuery({
     queryKey: ['users'],
-    queryFn: () => api.users.list(),
+    queryFn: ({ pageParam = 1 }) => api.users.list({ page: pageParam, pageSize: PAGE_SIZE }),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => {
+      if (lastPage.page < lastPage.totalPages) {
+        return lastPage.page + 1;
+      }
+      return undefined;
+    },
   });
 
-  const users = usersData?.data || [];
+  // Flatten all pages into single array
+  const users = data?.pages.flatMap((page) => page.data) || [];
+  const total = data?.pages[0]?.total || 0;
+
+  const handleEndReached = () => {
+    if (hasNextPage && !isFetchingNextPage) {
+      void fetchNextPage();
+    }
+  };
 
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={['left', 'right']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#09090B' }} edges={['left', 'right']}>
       <FlatList
         data={users}
         keyExtractor={(item) => item.id}
@@ -87,6 +104,8 @@ export default function UsersScreen() {
           />
         )}
         contentContainerClassName="p-4 pt-3"
+        onEndReached={handleEndReached}
+        onEndReachedThreshold={0.5}
         refreshControl={
           <RefreshControl
             refreshing={isRefetching}
@@ -98,9 +117,16 @@ export default function UsersScreen() {
           <View className="flex-row justify-between items-center mb-3">
             <Text className="text-lg font-semibold">Users</Text>
             <Text className="text-sm text-muted">
-              {users.length} {users.length === 1 ? 'user' : 'users'}
+              {total} {total === 1 ? 'user' : 'users'}
             </Text>
           </View>
+        }
+        ListFooterComponent={
+          isFetchingNextPage ? (
+            <View className="py-4 items-center">
+              <ActivityIndicator size="small" color={colors.cyan.core} />
+            </View>
+          ) : null
         }
         ListEmptyComponent={
           <View className="items-center py-12">

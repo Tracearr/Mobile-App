@@ -1,15 +1,18 @@
 /**
- * Alerts tab - violations and alerts
- * Migrated to NativeWind
+ * Alerts tab - violations with infinite scroll
  */
-import { View, FlatList, RefreshControl, Pressable } from 'react-native';
+import { View, FlatList, RefreshControl, Pressable, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { Text } from '@/components/ui/text';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { UserAvatar } from '@/components/ui/user-avatar';
+import { colors } from '@/lib/theme';
 import type { ViolationWithDetails } from '@tracearr/shared';
+
+const PAGE_SIZE = 50;
 
 function SeverityBadge({ severity }: { severity: string }) {
   const variant =
@@ -41,17 +44,24 @@ function ViolationCard({
     geo_restriction: 'Geo Restriction',
   };
 
+  const username = violation.user?.username || 'Unknown User';
+
   return (
     <Card className="mb-3">
       {/* Header: User + Severity */}
       <View className="flex-row justify-between items-start mb-2">
-        <View className="flex-1">
-          <Text className="text-base font-semibold">
-            {violation.user?.username || 'Unknown User'}
-          </Text>
-          <Text className="text-xs text-muted mt-0.5">
-            {new Date(violation.createdAt).toLocaleString()}
-          </Text>
+        <View className="flex-row items-center gap-2 flex-1">
+          <UserAvatar
+            thumbUrl={violation.user?.thumbUrl}
+            username={username}
+            size={36}
+          />
+          <View className="flex-1">
+            <Text className="text-base font-semibold">{username}</Text>
+            <Text className="text-xs text-muted mt-0.5">
+              {new Date(violation.createdAt).toLocaleString()}
+            </Text>
+          </View>
         </View>
         <SeverityBadge severity={violation.severity} />
       </View>
@@ -87,12 +97,22 @@ export default function AlertsScreen() {
   const queryClient = useQueryClient();
 
   const {
-    data: violationsData,
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
     refetch,
     isRefetching,
-  } = useQuery({
+  } = useInfiniteQuery({
     queryKey: ['violations'],
-    queryFn: () => api.violations.list({ pageSize: 50 }),
+    queryFn: ({ pageParam = 1 }) => api.violations.list({ page: pageParam, pageSize: PAGE_SIZE }),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => {
+      if (lastPage.page < lastPage.totalPages) {
+        return lastPage.page + 1;
+      }
+      return undefined;
+    },
   });
 
   const acknowledgeMutation = useMutation({
@@ -102,11 +122,18 @@ export default function AlertsScreen() {
     },
   });
 
-  const violations = violationsData?.data || [];
+  // Flatten all pages into single array
+  const violations = data?.pages.flatMap((page) => page.data) || [];
   const unacknowledgedCount = violations.filter((v) => !v.acknowledgedAt).length;
 
+  const handleEndReached = () => {
+    if (hasNextPage && !isFetchingNextPage) {
+      void fetchNextPage();
+    }
+  };
+
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={['left', 'right']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#09090B' }} edges={['left', 'right']}>
       <FlatList
         data={violations}
         keyExtractor={(item) => item.id}
@@ -117,6 +144,8 @@ export default function AlertsScreen() {
           />
         )}
         contentContainerClassName="p-4 pt-3"
+        onEndReached={handleEndReached}
+        onEndReachedThreshold={0.5}
         refreshControl={
           <RefreshControl
             refreshing={isRefetching}
@@ -135,6 +164,13 @@ export default function AlertsScreen() {
               </View>
             )}
           </View>
+        }
+        ListFooterComponent={
+          isFetchingNextPage ? (
+            <View className="py-4 items-center">
+              <ActivityIndicator size="small" color={colors.cyan.core} />
+            </View>
+          ) : null
         }
         ListEmptyComponent={
           <View className="items-center py-12">

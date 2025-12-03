@@ -5,29 +5,48 @@
 import { View, ScrollView, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
+import { Ionicons } from '@expo/vector-icons';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/lib/authStore';
 import { StreamMap } from '@/components/map/StreamMap';
+import { NowPlayingCard } from '@/components/sessions';
 import { Text } from '@/components/ui/text';
 import { Card } from '@/components/ui/card';
-import { cn } from '@/lib/utils';
+import { colors } from '@/lib/theme';
 
-function StatCard({
-  title,
+/**
+ * Compact stat pill for dashboard summary bar
+ */
+function StatPill({
+  icon,
   value,
-  subtitle,
+  unit,
+  color = colors.text.secondary.dark,
 }: {
-  title: string;
+  icon: keyof typeof Ionicons.glyphMap;
   value: string | number;
-  subtitle?: string;
+  unit?: string;
+  color?: string;
 }) {
   return (
-    <View className="w-1/2 p-1">
-      <Card className="p-3">
-        <Text className="text-xs text-muted uppercase tracking-wide">{title}</Text>
-        <Text className="text-xl font-bold mt-1">{value}</Text>
-        {subtitle && <Text className="text-xs text-muted mt-0.5">{subtitle}</Text>}
-      </Card>
+    <View
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: colors.card.dark,
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 20,
+        gap: 6,
+      }}
+    >
+      <Ionicons name={icon} size={14} color={color} />
+      <Text style={{ fontSize: 13, fontWeight: '600', color: colors.text.primary.dark }}>
+        {value}
+      </Text>
+      {unit && (
+        <Text style={{ fontSize: 11, color: colors.text.muted.dark }}>{unit}</Text>
+      )}
     </View>
   );
 }
@@ -50,7 +69,7 @@ export default function DashboardScreen() {
   });
 
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={['left', 'right']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#09090B' }} edges={['left', 'right']}>
       <ScrollView
         className="flex-1"
         contentContainerClassName="pb-8"
@@ -58,36 +77,89 @@ export default function DashboardScreen() {
           <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor="#18D1E7" />
         }
       >
-        {/* Server Name Header */}
+        {/* Server Name Header with Stats */}
         <View className="p-4 pt-3">
           <Text className="text-2xl font-bold">{serverName || 'Tracearr'}</Text>
-          <Text className="text-sm text-muted mt-1">Stream Monitor</Text>
+          {stats && (
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 8,
+                marginTop: 8,
+              }}
+            >
+              <Text style={{ fontSize: 11, color: colors.text.muted.dark, fontWeight: '600', marginRight: 2 }}>
+                TODAY
+              </Text>
+              <StatPill icon="play-circle-outline" value={stats.todayPlays} unit="plays" />
+              <StatPill icon="time-outline" value={stats.watchTimeHours} unit="hrs" />
+              <StatPill
+                icon="warning-outline"
+                value={stats.alertsLast24h}
+                unit="alerts"
+                color={stats.alertsLast24h > 0 ? colors.warning : colors.text.muted.dark}
+              />
+            </View>
+          )}
         </View>
 
-        {/* Active Streams */}
+        {/* Now Playing - Active Streams */}
         <View className="px-4 mb-4">
-          <Text className="text-sm font-semibold text-muted uppercase tracking-wide mb-3">
-            Now Playing
-          </Text>
-          <Card>
-            {activeSessions && activeSessions.length > 0 ? (
-              <View className="items-center py-4">
-                <Text className="text-4xl font-bold text-cyan-core">{activeSessions.length}</Text>
-                <Text className="text-base text-muted mt-1">
-                  Active {activeSessions.length === 1 ? 'Stream' : 'Streams'}
+          <View className="flex-row items-center justify-between mb-3">
+            <Text className="text-sm font-semibold text-muted uppercase tracking-wide">
+              Now Playing
+            </Text>
+            {activeSessions && activeSessions.length > 0 && (
+              <View
+                style={{
+                  backgroundColor: 'rgba(24, 209, 231, 0.15)',
+                  paddingHorizontal: 8,
+                  paddingVertical: 2,
+                  borderRadius: 12,
+                }}
+              >
+                <Text style={{ color: colors.cyan.core, fontSize: 12, fontWeight: '600' }}>
+                  {activeSessions.length} {activeSessions.length === 1 ? 'stream' : 'streams'}
                 </Text>
               </View>
-            ) : (
-              <View className="items-center py-6">
-                <Text className="text-base text-muted">No active streams</Text>
-              </View>
             )}
-          </Card>
+          </View>
+          {activeSessions && activeSessions.length > 0 ? (
+            <View>
+              {activeSessions.map((session) => (
+                <NowPlayingCard
+                  key={session.id}
+                  session={session}
+                  onPress={() => {
+                    // TODO: Navigate to session detail or show modal
+                  }}
+                />
+              ))}
+            </View>
+          ) : (
+            <Card className="py-8">
+              <View className="items-center">
+                <View
+                  style={{
+                    backgroundColor: colors.surface.dark,
+                    padding: 16,
+                    borderRadius: 999,
+                    marginBottom: 12,
+                  }}
+                >
+                  <Ionicons name="tv-outline" size={32} color={colors.text.muted.dark} />
+                </View>
+                <Text className="text-base font-semibold">No active streams</Text>
+                <Text className="text-sm text-muted mt-1">Streams will appear here when users start watching</Text>
+              </View>
+            </Card>
+          )}
         </View>
 
-        {/* Stream Map */}
+        {/* Stream Map - last component */}
         {activeSessions && activeSessions.length > 0 && (
-          <View className="px-4 mb-4">
+          <View className="px-4">
             <Text className="text-sm font-semibold text-muted uppercase tracking-wide mb-3">
               Stream Locations
             </Text>
@@ -95,45 +167,6 @@ export default function DashboardScreen() {
           </View>
         )}
 
-        {/* Stats Grid */}
-        {stats && (
-          <View className="px-4 mb-4">
-            <Text className="text-sm font-semibold text-muted uppercase tracking-wide mb-3">
-              Today
-            </Text>
-            <View className="flex-row flex-wrap -m-1">
-              <StatCard title="Active Streams" value={stats.activeStreams} />
-              <StatCard title="Plays Today" value={stats.todayPlays} />
-              <StatCard title="Watch Time" value={stats.watchTimeHours} subtitle="hours" />
-              <StatCard title="Alerts (24h)" value={stats.alertsLast24h} />
-            </View>
-          </View>
-        )}
-
-        {/* Quick Stats */}
-        <View className="px-4 mb-4">
-          <Text className="text-sm font-semibold text-muted uppercase tracking-wide mb-3">
-            Activity
-          </Text>
-          <Card className="p-3">
-            <View className="flex-row justify-between items-center py-2">
-              <Text className="text-base text-muted">Alerts Today</Text>
-              <Text
-                className={cn(
-                  'text-lg font-semibold',
-                  stats?.alertsLast24h ? 'text-destructive' : 'text-success'
-                )}
-              >
-                {stats?.alertsLast24h || 0}
-              </Text>
-            </View>
-            <View className="h-px bg-border my-1" />
-            <View className="flex-row justify-between items-center py-2">
-              <Text className="text-base text-muted">Plays Today</Text>
-              <Text className="text-lg font-semibold">{stats?.todayPlays || 0}</Text>
-            </View>
-          </Card>
-        </View>
       </ScrollView>
     </SafeAreaView>
   );
