@@ -118,7 +118,7 @@ export function PlaysChart({ data, height = 200 }: PlaysChartProps) {
               points={points.count}
               y0={chartBounds.bottom}
               color={colors.cyan.core}
-              opacity={0.3}
+              opacity={0.6}
               animate={{ type: 'timing', duration: 500 }}
             />
             {isActive && (
