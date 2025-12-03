@@ -21,6 +21,7 @@
           "remote-notification"
         ],
         "NSCameraUsageDescription": "Tracearr needs camera access to scan QR codes for server pairing.",
+        "NSLocationWhenInUseUsageDescription": "Location permission is not required for this app.",
         "ITSAppUsesNonExemptEncryption": false,
         "NSAppTransportSecurity": {
           "NSAllowsLocalNetworking": true
@@ -38,9 +39,7 @@
       "permissions": [
         "RECEIVE_BOOT_COMPLETED",
         "VIBRATE",
-        "CAMERA",
-        "android.permission.CAMERA",
-        "android.permission.RECORD_AUDIO"
+        "android.permission.CAMERA"
       ]
     },
     "web": {
@@ -60,7 +59,14 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Allow Tracearr to access your camera for QR code scanning."
+          "cameraPermission": "Allow Tracearr to access your camera for QR code scanning.",
+          "recordAudioAndroid": false
+        }
+      ],
+      [
+        "expo-maps",
+        {
+          "requestLocationPermission": false
         }
       ],
       "expo-secure-store"
