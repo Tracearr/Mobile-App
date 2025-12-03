@@ -8,7 +8,8 @@ import { storage } from './storage';
 import type {
   ActiveSession,
   DashboardStats,
-  User,
+  ServerUserWithIdentity,
+  ServerUserDetail,
   Violation,
   ViolationWithDetails,
   Rule,
@@ -176,12 +177,12 @@ export const api = {
   users: {
     list: async (params?: { page?: number; pageSize?: number }) => {
       const client = await getApiClient();
-      const response = await client.get<PaginatedResponse<User>>('/users', { params });
+      const response = await client.get<PaginatedResponse<ServerUserWithIdentity>>('/users', { params });
       return response.data;
     },
-    get: async (id: string): Promise<User> => {
+    get: async (id: string): Promise<ServerUserDetail> => {
       const client = await getApiClient();
-      const response = await client.get<User>(`/users/${id}`);
+      const response = await client.get<ServerUserDetail>(`/users/${id}`);
       return response.data;
     },
   },

@@ -89,7 +89,7 @@ export function usePushNotifications() {
         data: {
           type: 'violation',
           violationId: violation.id,
-          userId: violation.userId,
+          serverUserId: violation.serverUserId,
         },
         sound: true,
       },

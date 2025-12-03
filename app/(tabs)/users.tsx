@@ -7,7 +7,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { api } from '@/lib/api';
 import { colors, spacing, borderRadius, typography } from '@/lib/theme';
-import type { User } from '@tracearr/shared';
+import type { ServerUserWithIdentity } from '@tracearr/shared';
 
 function TrustScoreBadge({ score }: { score: number }) {
   let color = colors.success;
@@ -21,7 +21,7 @@ function TrustScoreBadge({ score }: { score: number }) {
   );
 }
 
-function UserCard({ user, onPress }: { user: User; onPress: () => void }) {
+function UserCard({ user, onPress }: { user: ServerUserWithIdentity; onPress: () => void }) {
   return (
     <Pressable style={styles.userCard} onPress={onPress}>
       <View style={styles.userInfo}>
@@ -37,7 +37,7 @@ function UserCard({ user, onPress }: { user: User; onPress: () => void }) {
         <View style={styles.userDetails}>
           <Text style={styles.username}>{user.username}</Text>
           <Text style={styles.userMeta}>
-            {user.isOwner ? 'Owner' : 'User'}
+            {user.role === 'owner' ? 'Owner' : 'User'}
           </Text>
         </View>
       </View>
