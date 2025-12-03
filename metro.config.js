@@ -17,4 +17,4 @@ config.resolver.nodeModulesPaths = [
   path.resolve(monorepoRoot, 'node_modules'),
 ];
 
-module.exports = withNativewind(config);
+module.exports = withNativewind(config, { input: './global.css' });
