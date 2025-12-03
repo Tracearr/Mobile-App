@@ -9,9 +9,9 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/splash-icon-transparent.png",
       "resizeMode": "contain",
-      "backgroundColor": "#0B1A2E"
+      "backgroundColor": "#051723"
     },
     "ios": {
       "supportsTablet": true,
@@ -30,8 +30,8 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#0B1A2E"
+        "foregroundImage": "./assets/adaptive-icon-transparent.png",
+        "backgroundColor": "#051723"
       },
       "edgeToEdgeEnabled": true,
       "package": "com.tracearr.app",
