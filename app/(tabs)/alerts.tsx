@@ -1,26 +1,28 @@
 /**
  * Alerts tab - violations and alerts
+ * Migrated to NativeWind
  */
-import { View, Text, StyleSheet, FlatList, RefreshControl, Pressable } from 'react-native';
+import { View, FlatList, RefreshControl, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
-import { colors, spacing, borderRadius, typography } from '@/lib/theme';
+import { Text } from '@/components/ui/text';
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import type { ViolationWithDetails } from '@tracearr/shared';
 
 function SeverityBadge({ severity }: { severity: string }) {
-  const severityColors: Record<string, string> = {
-    low: colors.info,
-    warning: colors.warning,
-    high: colors.error,
-    critical: colors.error,
-  };
-  const color = severityColors[severity] || colors.text.muted.dark;
+  const variant =
+    severity === 'critical' || severity === 'high'
+      ? 'destructive'
+      : severity === 'warning'
+        ? 'warning'
+        : 'default';
 
   return (
-    <View style={[styles.severityBadge, { backgroundColor: color + '20' }]}>
-      <Text style={[styles.severityText, { color }]}>{severity}</Text>
-    </View>
+    <Badge variant={variant} className="capitalize">
+      {severity}
+    </Badge>
   );
 }
 
@@ -40,38 +42,44 @@ function ViolationCard({
   };
 
   return (
-    <View style={styles.violationCard}>
-      <View style={styles.violationHeader}>
-        <View style={styles.violationInfo}>
-          <Text style={styles.violationUsername}>{violation.user?.username || 'Unknown User'}</Text>
-          <Text style={styles.violationTime}>
+    <Card className="mb-3">
+      {/* Header: User + Severity */}
+      <View className="flex-row justify-between items-start mb-2">
+        <View className="flex-1">
+          <Text className="text-base font-semibold">
+            {violation.user?.username || 'Unknown User'}
+          </Text>
+          <Text className="text-xs text-muted mt-0.5">
             {new Date(violation.createdAt).toLocaleString()}
           </Text>
         </View>
         <SeverityBadge severity={violation.severity} />
       </View>
 
-      <View style={styles.violationContent}>
-        <Text style={styles.ruleType}>
+      {/* Content: Rule Type + Details */}
+      <View className="mb-2">
+        <Text className="text-sm font-medium text-cyan-core mb-1">
           {ruleTypeLabels[violation.rule?.type || ''] || violation.rule?.type || 'Unknown Rule'}
         </Text>
-        <Text style={styles.violationDetails} numberOfLines={2}>
+        <Text className="text-sm text-muted leading-5" numberOfLines={2}>
           {violation.data ? JSON.stringify(violation.data) : 'No details available'}
         </Text>
       </View>
 
-      {!violation.acknowledgedAt && (
-        <Pressable style={styles.acknowledgeButton} onPress={onAcknowledge}>
-          <Text style={styles.acknowledgeText}>Acknowledge</Text>
+      {/* Action Button */}
+      {!violation.acknowledgedAt ? (
+        <Pressable
+          className="bg-cyan-core/20 py-2 rounded-md items-center active:opacity-70"
+          onPress={onAcknowledge}
+        >
+          <Text className="text-sm font-semibold text-cyan-core">Acknowledge</Text>
         </Pressable>
-      )}
-
-      {violation.acknowledgedAt && (
-        <View style={styles.acknowledgedBadge}>
-          <Text style={styles.acknowledgedText}>Acknowledged</Text>
+      ) : (
+        <View className="bg-success/10 py-2 rounded-md items-center">
+          <Text className="text-sm text-success">Acknowledged</Text>
         </View>
       )}
-    </View>
+    </Card>
   );
 }
 
@@ -98,7 +106,7 @@ export default function AlertsScreen() {
   const unacknowledgedCount = violations.filter((v) => !v.acknowledgedAt).length;
 
   return (
-    <SafeAreaView style={styles.container} edges={['left', 'right']}>
+    <SafeAreaView className="flex-1 bg-background" edges={['left', 'right']}>
       <FlatList
         data={violations}
         keyExtractor={(item) => item.id}
@@ -108,29 +116,33 @@ export default function AlertsScreen() {
             onAcknowledge={() => acknowledgeMutation.mutate(item.id)}
           />
         )}
-        contentContainerStyle={styles.listContent}
+        contentContainerClassName="p-4 pt-3"
         refreshControl={
           <RefreshControl
             refreshing={isRefetching}
             onRefresh={refetch}
-            tintColor={colors.cyan.core}
+            tintColor="#18D1E7"
           />
         }
         ListHeaderComponent={
-          <View style={styles.header}>
-            <Text style={styles.headerTitle}>Alerts</Text>
+          <View className="flex-row justify-between items-center mb-3">
+            <Text className="text-lg font-semibold">Alerts</Text>
             {unacknowledgedCount > 0 && (
-              <View style={styles.countBadge}>
-                <Text style={styles.countText}>{unacknowledgedCount} new</Text>
+              <View className="bg-destructive/20 px-2 py-1 rounded-sm">
+                <Text className="text-sm font-medium text-destructive">
+                  {unacknowledgedCount} new
+                </Text>
               </View>
             )}
           </View>
         }
         ListEmptyComponent={
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyIcon}>✅</Text>
-            <Text style={styles.emptyTitle}>No Alerts</Text>
-            <Text style={styles.emptySubtitle}>
+          <View className="items-center py-12">
+            <View className="w-16 h-16 rounded-full bg-success/10 border border-success/20 items-center justify-center mb-4">
+              <Text className="text-2xl text-success">0</Text>
+            </View>
+            <Text className="text-lg font-semibold mb-1">No Alerts</Text>
+            <Text className="text-sm text-muted text-center px-4">
               Rule violations will appear here when detected
             </Text>
           </View>
@@ -139,128 +151,3 @@ export default function AlertsScreen() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background.dark,
-  },
-  listContent: {
-    padding: spacing.lg,
-    paddingTop: spacing.md,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.md,
-  },
-  headerTitle: {
-    fontSize: typography.fontSize.lg,
-    fontWeight: '600',
-    color: colors.text.primary.dark,
-  },
-  countBadge: {
-    backgroundColor: colors.error + '20',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: borderRadius.sm,
-  },
-  countText: {
-    fontSize: typography.fontSize.sm,
-    fontWeight: '500',
-    color: colors.error,
-  },
-  violationCard: {
-    backgroundColor: colors.card.dark,
-    borderRadius: borderRadius.lg,
-    padding: spacing.md,
-    marginBottom: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.border.dark,
-  },
-  violationHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: spacing.sm,
-  },
-  violationInfo: {
-    flex: 1,
-  },
-  violationUsername: {
-    fontSize: typography.fontSize.base,
-    fontWeight: '600',
-    color: colors.text.primary.dark,
-  },
-  violationTime: {
-    fontSize: typography.fontSize.xs,
-    color: colors.text.muted.dark,
-    marginTop: 2,
-  },
-  severityBadge: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: borderRadius.sm,
-  },
-  severityText: {
-    fontSize: typography.fontSize.xs,
-    fontWeight: '600',
-    textTransform: 'capitalize',
-  },
-  violationContent: {
-    marginBottom: spacing.sm,
-  },
-  ruleType: {
-    fontSize: typography.fontSize.sm,
-    fontWeight: '500',
-    color: colors.cyan.core,
-    marginBottom: spacing.xs,
-  },
-  violationDetails: {
-    fontSize: typography.fontSize.sm,
-    color: colors.text.secondary.dark,
-    lineHeight: 20,
-  },
-  acknowledgeButton: {
-    backgroundColor: colors.cyan.core + '20',
-    paddingVertical: spacing.sm,
-    borderRadius: borderRadius.md,
-    alignItems: 'center',
-  },
-  acknowledgeText: {
-    fontSize: typography.fontSize.sm,
-    fontWeight: '600',
-    color: colors.cyan.core,
-  },
-  acknowledgedBadge: {
-    backgroundColor: colors.success + '10',
-    paddingVertical: spacing.sm,
-    borderRadius: borderRadius.md,
-    alignItems: 'center',
-  },
-  acknowledgedText: {
-    fontSize: typography.fontSize.sm,
-    color: colors.success,
-  },
-  emptyState: {
-    alignItems: 'center',
-    paddingVertical: spacing.xxl,
-  },
-  emptyIcon: {
-    fontSize: 48,
-    marginBottom: spacing.md,
-  },
-  emptyTitle: {
-    fontSize: typography.fontSize.lg,
-    fontWeight: '600',
-    color: colors.text.primary.dark,
-    marginBottom: spacing.xs,
-  },
-  emptySubtitle: {
-    fontSize: typography.fontSize.sm,
-    color: colors.text.muted.dark,
-    textAlign: 'center',
-    paddingHorizontal: spacing.lg,
-  },
-});

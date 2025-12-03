@@ -1,20 +1,14 @@
 /**
  * Settings tab - server info, logout, notification preferences
+ * Migrated to NativeWind
  */
 import { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  Pressable,
-  Switch,
-  Alert,
-  ActivityIndicator,
-} from 'react-native';
+import { View, ScrollView, Pressable, Switch, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuthStore } from '@/lib/authStore';
-import { colors, spacing, borderRadius, typography } from '@/lib/theme';
+import { Text } from '@/components/ui/text';
+import { Card } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
 import Constants from 'expo-constants';
 
 function SettingsRow({
@@ -27,15 +21,15 @@ function SettingsRow({
   onPress?: () => void;
 }) {
   const content = (
-    <View style={styles.settingsRow}>
-      <Text style={styles.rowLabel}>{label}</Text>
-      {value && <Text style={styles.rowValue}>{value}</Text>}
+    <View className="flex-row justify-between items-center px-4 py-3 min-h-[48px]">
+      <Text className="text-base flex-1">{label}</Text>
+      {value && <Text className="text-base text-muted text-right flex-1 ml-4">{value}</Text>}
     </View>
   );
 
   if (onPress) {
     return (
-      <Pressable onPress={onPress} style={({ pressed }) => pressed && styles.pressed}>
+      <Pressable onPress={onPress} className="active:opacity-70 active:bg-background">
         {content}
       </Pressable>
     );
@@ -54,13 +48,13 @@ function SettingsToggle({
   onValueChange: (value: boolean) => void;
 }) {
   return (
-    <View style={styles.settingsRow}>
-      <Text style={styles.rowLabel}>{label}</Text>
+    <View className="flex-row justify-between items-center px-4 py-3 min-h-[48px]">
+      <Text className="text-base flex-1">{label}</Text>
       <Switch
         value={value}
         onValueChange={onValueChange}
-        trackColor={{ false: colors.border.dark, true: colors.cyan.deep }}
-        thumbColor={value ? colors.cyan.core : colors.text.muted.dark}
+        trackColor={{ false: '#27272A', true: '#0EAFC8' }}
+        thumbColor={value ? '#18D1E7' : '#71717A'}
       />
     </View>
   );
@@ -74,11 +68,17 @@ function SettingsSection({
   children: React.ReactNode;
 }) {
   return (
-    <View style={styles.section}>
-      <Text style={styles.sectionTitle}>{title}</Text>
-      <View style={styles.sectionContent}>{children}</View>
+    <View className="mb-6 px-4">
+      <Text className="text-sm font-semibold text-muted uppercase tracking-wide mb-2">
+        {title}
+      </Text>
+      <Card className="p-0 overflow-hidden">{children}</Card>
     </View>
   );
+}
+
+function Divider() {
+  return <View className="h-px bg-border ml-4" />;
 }
 
 export default function SettingsScreen() {
@@ -105,12 +105,12 @@ export default function SettingsScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['left', 'right']}>
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+    <SafeAreaView className="flex-1 bg-background" edges={['left', 'right']}>
+      <ScrollView className="flex-1" contentContainerClassName="py-4">
         {/* Server Info */}
         <SettingsSection title="Connected Server">
           <SettingsRow label="Server Name" value={serverName || 'Unknown'} />
-          <View style={styles.divider} />
+          <Divider />
           <SettingsRow label="Server URL" value={serverUrl || 'Unknown'} />
         </SettingsSection>
 
@@ -121,19 +121,19 @@ export default function SettingsScreen() {
             value={notificationsEnabled}
             onValueChange={setNotificationsEnabled}
           />
-          <View style={styles.divider} />
+          <Divider />
           <SettingsToggle
             label="Alert Notifications"
             value={alertNotifications && notificationsEnabled}
             onValueChange={setAlertNotifications}
           />
-          <View style={styles.divider} />
+          <Divider />
           <SettingsToggle
             label="Session Notifications"
             value={sessionNotifications && notificationsEnabled}
             onValueChange={setSessionNotifications}
           />
-          <Text style={styles.hint}>
+          <Text className="text-xs text-muted px-4 py-2 leading-4">
             Alert notifications notify you when sharing rules are violated. Session notifications
             notify you when streams start or stop.
           </Text>
@@ -142,24 +142,32 @@ export default function SettingsScreen() {
         {/* App Info */}
         <SettingsSection title="About">
           <SettingsRow label="App Version" value={appVersion} />
-          <View style={styles.divider} />
-          <SettingsRow label="Build" value={(Constants.expoConfig?.extra?.buildNumber as string | undefined) ?? 'dev'} />
+          <Divider />
+          <SettingsRow
+            label="Build"
+            value={(Constants.expoConfig?.extra?.buildNumber as string | undefined) ?? 'dev'}
+          />
         </SettingsSection>
 
         {/* Logout Button */}
-        <View style={styles.logoutSection}>
+        <View className="px-4 mt-4">
           <Pressable
-            style={({ pressed }) => [styles.logoutButton, pressed && styles.logoutButtonPressed]}
+            className={cn(
+              'bg-card rounded-lg border border-destructive py-3 items-center justify-center min-h-[48px]',
+              'active:opacity-70'
+            )}
             onPress={handleLogout}
             disabled={isLoading}
           >
             {isLoading ? (
-              <ActivityIndicator color={colors.error} />
+              <ActivityIndicator color="#EF4444" />
             ) : (
-              <Text style={styles.logoutText}>Disconnect from Server</Text>
+              <Text className="text-base font-semibold text-destructive">
+                Disconnect from Server
+              </Text>
             )}
           </Pressable>
-          <Text style={styles.logoutHint}>
+          <Text className="text-xs text-muted text-center mt-2">
             You will need to scan a QR code from the web dashboard to reconnect.
           </Text>
         </View>
@@ -167,99 +175,3 @@ export default function SettingsScreen() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background.dark,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingVertical: spacing.lg,
-  },
-  section: {
-    marginBottom: spacing.lg,
-    paddingHorizontal: spacing.lg,
-  },
-  sectionTitle: {
-    fontSize: typography.fontSize.sm,
-    fontWeight: '600',
-    color: colors.text.secondary.dark,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: spacing.sm,
-  },
-  sectionContent: {
-    backgroundColor: colors.card.dark,
-    borderRadius: borderRadius.lg,
-    borderWidth: 1,
-    borderColor: colors.border.dark,
-    overflow: 'hidden',
-  },
-  settingsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    minHeight: 48,
-  },
-  rowLabel: {
-    fontSize: typography.fontSize.base,
-    color: colors.text.primary.dark,
-    flex: 1,
-  },
-  rowValue: {
-    fontSize: typography.fontSize.base,
-    color: colors.text.muted.dark,
-    textAlign: 'right',
-    flex: 1,
-    marginLeft: spacing.md,
-  },
-  pressed: {
-    opacity: 0.7,
-    backgroundColor: colors.background.dark,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: colors.border.dark,
-    marginLeft: spacing.md,
-  },
-  hint: {
-    fontSize: typography.fontSize.xs,
-    color: colors.text.muted.dark,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    lineHeight: 16,
-  },
-  logoutSection: {
-    paddingHorizontal: spacing.lg,
-    marginTop: spacing.lg,
-  },
-  logoutButton: {
-    backgroundColor: colors.card.dark,
-    borderRadius: borderRadius.lg,
-    borderWidth: 1,
-    borderColor: colors.error,
-    paddingVertical: spacing.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 48,
-  },
-  logoutButtonPressed: {
-    opacity: 0.7,
-  },
-  logoutText: {
-    fontSize: typography.fontSize.base,
-    fontWeight: '600',
-    color: colors.error,
-  },
-  logoutHint: {
-    fontSize: typography.fontSize.xs,
-    color: colors.text.muted.dark,
-    textAlign: 'center',
-    marginTop: spacing.sm,
-  },
-});

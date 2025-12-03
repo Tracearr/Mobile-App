@@ -1,47 +1,62 @@
 /**
  * Users tab - user list and management
+ * Migrated to NativeWind
  */
-import { View, Text, StyleSheet, FlatList, RefreshControl, Pressable } from 'react-native';
+import { View, FlatList, RefreshControl, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { api } from '@/lib/api';
-import { colors, spacing, borderRadius, typography } from '@/lib/theme';
+import { Text } from '@/components/ui/text';
+import { Card } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
 import type { ServerUserWithIdentity } from '@tracearr/shared';
 
 function TrustScoreBadge({ score }: { score: number }) {
-  let color = colors.success;
-  if (score < 50) color = colors.error;
-  else if (score < 75) color = colors.warning;
+  const variant = score < 50 ? 'destructive' : score < 75 ? 'warning' : 'success';
 
   return (
-    <View style={[styles.trustBadge, { backgroundColor: color + '20' }]}>
-      <Text style={[styles.trustScore, { color }]}>{score}</Text>
+    <View
+      className={cn(
+        'px-2 py-1 rounded-sm min-w-[40px] items-center',
+        variant === 'destructive' && 'bg-destructive/20',
+        variant === 'warning' && 'bg-warning/20',
+        variant === 'success' && 'bg-success/20'
+      )}
+    >
+      <Text
+        className={cn(
+          'text-sm font-semibold',
+          variant === 'destructive' && 'text-destructive',
+          variant === 'warning' && 'text-warning',
+          variant === 'success' && 'text-success'
+        )}
+      >
+        {score}
+      </Text>
     </View>
   );
 }
 
 function UserCard({ user, onPress }: { user: ServerUserWithIdentity; onPress: () => void }) {
   return (
-    <Pressable style={styles.userCard} onPress={onPress}>
-      <View style={styles.userInfo}>
-        <View style={styles.avatar}>
-          {user.thumbUrl ? (
-            <View style={styles.avatarImage} />
-          ) : (
-            <Text style={styles.avatarText}>
+    <Pressable onPress={onPress}>
+      <Card className="flex-row items-center justify-between mb-2 p-3">
+        <View className="flex-row items-center gap-3 flex-1">
+          <View className="w-12 h-12 rounded-full bg-cyan-dark items-center justify-center">
+            <Text className="text-xl font-bold">
               {user.username.charAt(0).toUpperCase()}
             </Text>
-          )}
+          </View>
+          <View className="flex-1">
+            <Text className="text-base font-semibold">{user.username}</Text>
+            <Text className="text-sm text-muted mt-0.5">
+              {user.role === 'owner' ? 'Owner' : 'User'}
+            </Text>
+          </View>
         </View>
-        <View style={styles.userDetails}>
-          <Text style={styles.username}>{user.username}</Text>
-          <Text style={styles.userMeta}>
-            {user.role === 'owner' ? 'Owner' : 'User'}
-          </Text>
-        </View>
-      </View>
-      <TrustScoreBadge score={user.trustScore} />
+        <TrustScoreBadge score={user.trustScore} />
+      </Card>
     </Pressable>
   );
 }
@@ -61,7 +76,7 @@ export default function UsersScreen() {
   const users = usersData?.data || [];
 
   return (
-    <SafeAreaView style={styles.container} edges={['left', 'right']}>
+    <SafeAreaView className="flex-1 bg-background" edges={['left', 'right']}>
       <FlatList
         data={users}
         keyExtractor={(item) => item.id}
@@ -71,27 +86,29 @@ export default function UsersScreen() {
             onPress={() => router.push(`/user/${item.id}` as never)}
           />
         )}
-        contentContainerStyle={styles.listContent}
+        contentContainerClassName="p-4 pt-3"
         refreshControl={
           <RefreshControl
             refreshing={isRefetching}
             onRefresh={refetch}
-            tintColor={colors.cyan.core}
+            tintColor="#18D1E7"
           />
         }
         ListHeaderComponent={
-          <View style={styles.header}>
-            <Text style={styles.headerTitle}>Users</Text>
-            <Text style={styles.headerCount}>
+          <View className="flex-row justify-between items-center mb-3">
+            <Text className="text-lg font-semibold">Users</Text>
+            <Text className="text-sm text-muted">
               {users.length} {users.length === 1 ? 'user' : 'users'}
             </Text>
           </View>
         }
         ListEmptyComponent={
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyIcon}>👥</Text>
-            <Text style={styles.emptyTitle}>No Users</Text>
-            <Text style={styles.emptySubtitle}>
+          <View className="items-center py-12">
+            <View className="w-16 h-16 rounded-full bg-card border border-border items-center justify-center mb-4">
+              <Text className="text-2xl text-muted">0</Text>
+            </View>
+            <Text className="text-lg font-semibold mb-1">No Users</Text>
+            <Text className="text-sm text-muted text-center px-4">
               Users will appear here after syncing with your media server
             </Text>
           </View>
@@ -100,108 +117,3 @@ export default function UsersScreen() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background.dark,
-  },
-  listContent: {
-    padding: spacing.lg,
-    paddingTop: spacing.md,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.md,
-  },
-  headerTitle: {
-    fontSize: typography.fontSize.lg,
-    fontWeight: '600',
-    color: colors.text.primary.dark,
-  },
-  headerCount: {
-    fontSize: typography.fontSize.sm,
-    color: colors.text.muted.dark,
-  },
-  userCard: {
-    backgroundColor: colors.card.dark,
-    borderRadius: borderRadius.lg,
-    padding: spacing.md,
-    marginBottom: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.border.dark,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  userInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    flex: 1,
-  },
-  avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: colors.blue.soft,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarImage: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-  },
-  avatarText: {
-    fontSize: typography.fontSize.xl,
-    fontWeight: 'bold',
-    color: colors.text.primary.dark,
-  },
-  userDetails: {
-    flex: 1,
-  },
-  username: {
-    fontSize: typography.fontSize.base,
-    fontWeight: '600',
-    color: colors.text.primary.dark,
-  },
-  userMeta: {
-    fontSize: typography.fontSize.sm,
-    color: colors.text.muted.dark,
-    marginTop: 2,
-  },
-  trustBadge: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: borderRadius.sm,
-    minWidth: 40,
-    alignItems: 'center',
-  },
-  trustScore: {
-    fontSize: typography.fontSize.sm,
-    fontWeight: '600',
-  },
-  emptyState: {
-    alignItems: 'center',
-    paddingVertical: spacing.xxl,
-  },
-  emptyIcon: {
-    fontSize: 48,
-    marginBottom: spacing.md,
-  },
-  emptyTitle: {
-    fontSize: typography.fontSize.lg,
-    fontWeight: '600',
-    color: colors.text.primary.dark,
-    marginBottom: spacing.xs,
-  },
-  emptySubtitle: {
-    fontSize: typography.fontSize.sm,
-    color: colors.text.muted.dark,
-    textAlign: 'center',
-    paddingHorizontal: spacing.lg,
-  },
-});
