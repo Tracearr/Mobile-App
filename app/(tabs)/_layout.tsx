@@ -2,22 +2,28 @@
  * Main tab navigation layout
  */
 import { Tabs } from 'expo-router';
-import { View, StyleSheet } from 'react-native';
+import {
+  LayoutDashboard,
+  Activity,
+  Users,
+  Bell,
+  Settings,
+  type LucideIcon,
+} from 'lucide-react-native';
 import { colors } from '@/lib/theme';
 
-// Simple icon components (will be replaced with proper icons)
-function TabIcon({ focused }: { focused: boolean }) {
+interface TabIconProps {
+  icon: LucideIcon;
+  focused: boolean;
+}
+
+function TabIcon({ icon: Icon, focused }: TabIconProps) {
   return (
-    <View style={[styles.iconContainer, focused && styles.iconFocused]}>
-      <View style={styles.icon}>
-        <View style={{ opacity: focused ? 1 : 0.6 }}>
-          <View>
-            {/* Placeholder for actual icons */}
-            <View style={[styles.iconPlaceholder, { backgroundColor: focused ? colors.cyan.core : colors.text.muted.dark }]} />
-          </View>
-        </View>
-      </View>
-    </View>
+    <Icon
+      size={24}
+      color={focused ? colors.cyan.core : colors.text.muted.dark}
+      strokeWidth={focused ? 2.5 : 2}
+    />
   );
 }
 
@@ -54,7 +60,9 @@ export default function TabLayout() {
         options={{
           title: 'Dashboard',
           tabBarLabel: 'Dashboard',
-          tabBarIcon: ({ focused }) => <TabIcon focused={focused} />,
+          tabBarIcon: ({ focused }) => (
+            <TabIcon icon={LayoutDashboard} focused={focused} />
+          ),
         }}
       />
       <Tabs.Screen
@@ -62,7 +70,9 @@ export default function TabLayout() {
         options={{
           title: 'Activity',
           tabBarLabel: 'Activity',
-          tabBarIcon: ({ focused }) => <TabIcon focused={focused} />,
+          tabBarIcon: ({ focused }) => (
+            <TabIcon icon={Activity} focused={focused} />
+          ),
         }}
       />
       <Tabs.Screen
@@ -70,7 +80,7 @@ export default function TabLayout() {
         options={{
           title: 'Users',
           tabBarLabel: 'Users',
-          tabBarIcon: ({ focused }) => <TabIcon focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon icon={Users} focused={focused} />,
         }}
       />
       <Tabs.Screen
@@ -78,7 +88,7 @@ export default function TabLayout() {
         options={{
           title: 'Alerts',
           tabBarLabel: 'Alerts',
-          tabBarIcon: ({ focused }) => <TabIcon focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon icon={Bell} focused={focused} />,
         }}
       />
       <Tabs.Screen
@@ -86,32 +96,11 @@ export default function TabLayout() {
         options={{
           title: 'Settings',
           tabBarLabel: 'Settings',
-          tabBarIcon: ({ focused }) => <TabIcon focused={focused} />,
+          tabBarIcon: ({ focused }) => (
+            <TabIcon icon={Settings} focused={focused} />
+          ),
         }}
       />
     </Tabs>
   );
 }
-
-const styles = StyleSheet.create({
-  iconContainer: {
-    width: 24,
-    height: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  iconFocused: {
-    // Add any focused styling
-  },
-  icon: {
-    width: 24,
-    height: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  iconPlaceholder: {
-    width: 20,
-    height: 20,
-    borderRadius: 4,
-  },
-});
