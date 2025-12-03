@@ -138,14 +138,46 @@ export const api = {
       const response = await client.get<DashboardStats>('/stats/dashboard');
       return response.data;
     },
-    plays: async (params?: { days?: number }): Promise<{ data: { date: string; plays: number }[] }> => {
+    plays: async (params?: { period?: string }): Promise<{ data: { date: string; count: number }[] }> => {
       const client = await getApiClient();
-      const response = await client.get<{ data: { date: string; plays: number }[] }>('/stats/plays', { params });
+      const response = await client.get<{ data: { date: string; count: number }[] }>('/stats/plays', { params });
       return response.data;
     },
-    platforms: async (params?: { days?: number }): Promise<{ data: { platform: string; plays: number }[] }> => {
+    playsByDayOfWeek: async (params?: { period?: string }): Promise<{ data: { day: number; name: string; count: number }[] }> => {
       const client = await getApiClient();
-      const response = await client.get<{ data: { platform: string; plays: number }[] }>('/stats/platforms', { params });
+      const response = await client.get<{ data: { day: number; name: string; count: number }[] }>('/stats/plays-by-dayofweek', { params });
+      return response.data;
+    },
+    playsByHourOfDay: async (params?: { period?: string }): Promise<{ data: { hour: number; count: number }[] }> => {
+      const client = await getApiClient();
+      const response = await client.get<{ data: { hour: number; count: number }[] }>('/stats/plays-by-hourofday', { params });
+      return response.data;
+    },
+    platforms: async (params?: { period?: string }): Promise<{ data: { platform: string; count: number }[] }> => {
+      const client = await getApiClient();
+      const response = await client.get<{ data: { platform: string; count: number }[] }>('/stats/platforms', { params });
+      return response.data;
+    },
+    quality: async (params?: { period?: string }): Promise<{
+      directPlay: number;
+      transcode: number;
+      total: number;
+      directPlayPercent: number;
+      transcodePercent: number;
+    }> => {
+      const client = await getApiClient();
+      const response = await client.get<{
+        directPlay: number;
+        transcode: number;
+        total: number;
+        directPlayPercent: number;
+        transcodePercent: number;
+      }>('/stats/quality', { params });
+      return response.data;
+    },
+    concurrent: async (params?: { period?: string }): Promise<{ data: { hour: string; maxConcurrent: number }[] }> => {
+      const client = await getApiClient();
+      const response = await client.get<{ data: { hour: string; maxConcurrent: number }[] }>('/stats/concurrent', { params });
       return response.data;
     },
     locations: async (params?: { serverId?: string; userId?: string }): Promise<{ data: { latitude: number; longitude: number; city: string; country: string; playCount: number }[] }> => {
