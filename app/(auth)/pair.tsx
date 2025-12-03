@@ -18,6 +18,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuthStore } from '@/lib/authStore';
 import { colors, spacing, borderRadius, typography } from '@/lib/theme';
 
+interface QRPairingPayload {
+  url: string;
+  token: string;
+}
+
 export default function PairScreen() {
   const [permission, requestPermission] = useCameraPermissions();
   const [manualMode, setManualMode] = useState(false);
@@ -46,7 +51,7 @@ export default function PairScreen() {
         throw new Error('Missing data in QR code');
       }
 
-      const payload = JSON.parse(atob(base64Data));
+      const payload = JSON.parse(atob(base64Data)) as QRPairingPayload;
       await pair(payload.url, payload.token);
     } catch (err) {
       Alert.alert('Pairing Failed', err instanceof Error ? err.message : 'Invalid QR code');

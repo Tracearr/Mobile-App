@@ -16,11 +16,20 @@ interface StreamMapProps {
   height?: number;
 }
 
+/** Session with guaranteed geo coordinates */
+type SessionWithLocation = ActiveSession & {
+  geoLat: number;
+  geoLon: number;
+};
+
+/** Type guard to filter sessions with valid coordinates */
+function hasLocation(session: ActiveSession): session is SessionWithLocation {
+  return session.geoLat != null && session.geoLon != null;
+}
+
 export function StreamMap({ sessions, height = 300 }: StreamMapProps) {
-  // Filter sessions with valid geo coordinates
-  const sessionsWithLocation = sessions.filter(
-    (s) => s.geoLat != null && s.geoLon != null
-  );
+  // Filter sessions with valid geo coordinates (type guard narrows to SessionWithLocation[])
+  const sessionsWithLocation = sessions.filter(hasLocation);
 
   if (sessionsWithLocation.length === 0) {
     return (
@@ -31,8 +40,8 @@ export function StreamMap({ sessions, height = 300 }: StreamMapProps) {
   }
 
   // Calculate center point from all sessions
-  const avgLat = sessionsWithLocation.reduce((sum, s) => sum + s.geoLat!, 0) / sessionsWithLocation.length;
-  const avgLon = sessionsWithLocation.reduce((sum, s) => sum + s.geoLon!, 0) / sessionsWithLocation.length;
+  const avgLat = sessionsWithLocation.reduce((sum, s) => sum + s.geoLat, 0) / sessionsWithLocation.length;
+  const avgLon = sessionsWithLocation.reduce((sum, s) => sum + s.geoLon, 0) / sessionsWithLocation.length;
 
   // Create markers for each session with enhanced info
   const markers = sessionsWithLocation.map((session) => {
@@ -48,8 +57,8 @@ export function StreamMap({ sessions, height = 300 }: StreamMapProps) {
     return {
       id: session.sessionKey || session.id,
       coordinates: {
-        latitude: session.geoLat!,
-        longitude: session.geoLon!,
+        latitude: session.geoLat,
+        longitude: session.geoLon,
       },
       // Title shows username prominently
       title: username,
@@ -69,8 +78,8 @@ export function StreamMap({ sessions, height = 300 }: StreamMapProps) {
     if (sessionsWithLocation.length === 1) return 10;
 
     // Calculate spread of coordinates
-    const lats = sessionsWithLocation.map(s => s.geoLat!);
-    const lons = sessionsWithLocation.map(s => s.geoLon!);
+    const lats = sessionsWithLocation.map(s => s.geoLat);
+    const lons = sessionsWithLocation.map(s => s.geoLon);
     const latSpread = Math.max(...lats) - Math.min(...lats);
     const lonSpread = Math.max(...lons) - Math.min(...lons);
     const maxSpread = Math.max(latSpread, lonSpread);

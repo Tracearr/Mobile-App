@@ -4,7 +4,7 @@
 import React from 'react';
 import { View, Image, StyleSheet } from 'react-native';
 import { Text } from './text';
-import { colors, borderRadius } from '@/lib/theme';
+import { colors } from '@/lib/theme';
 
 interface UserAvatarProps {
   /** User's avatar URL (can be null) */
