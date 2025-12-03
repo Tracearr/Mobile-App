@@ -1,90 +1,76 @@
 /**
- * Bar chart showing plays by platform
+ * Donut chart showing plays by platform (matches web implementation)
+ * Note: Touch interactions not yet supported on PolarChart (victory-native issue #252)
  */
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { CartesianChart, Bar } from 'victory-native';
+import { Pie, PolarChart } from 'victory-native';
 import { colors, spacing, borderRadius, typography } from '../../lib/theme';
 
 interface PlatformChartProps {
-  data: { platform: string; plays: number }[];
+  data: { platform: string; count: number }[];
   height?: number;
 }
 
-// Platform colors
-const platformColors: Record<string, string> = {
-  'Plex Web': colors.orange.core,
-  'Plex for iOS': colors.blue.core,
-  'Plex for Android': colors.success,
-  'Plex HTPC': colors.purple,
-  'Plex for Roku': colors.error,
-  'Plex for Apple TV': colors.cyan.core,
-  'Plex for Android TV': colors.warning,
-  'Plex for Smart TV': colors.info,
-  'Jellyfin Web': colors.purple,
-  'Jellyfin iOS': colors.cyan.core,
-  'Jellyfin Android': colors.success,
-  default: colors.text.secondary.dark,
-};
+// Colors for pie slices - all visible against dark card background
+const CHART_COLORS = [
+  colors.cyan.core, // #18D1E7 - Cyan
+  colors.info, // #3B82F6 - Bright Blue (not blue.core which matches bg!)
+  colors.success, // #22C55E - Green
+  colors.warning, // #F59E0B - Orange/Yellow
+  colors.purple, // #8B5CF6 - Purple
+  colors.error, // #EF4444 - Red
+];
 
-export function PlatformChart({ data, height = 200 }: PlatformChartProps) {
-  // Sort by plays and take top 5
+export function PlatformChart({ data }: PlatformChartProps) {
+  // Sort by count and take top 5
   const sortedData = [...data]
-    .sort((a, b) => b.plays - a.plays)
+    .sort((a, b) => b.count - a.count)
     .slice(0, 5)
     .map((d, index) => ({
-      x: index,
-      plays: d.plays,
-      platform: d.platform,
-      color: platformColors[d.platform] || platformColors.default,
+      label: d.platform.replace('Plex for ', '').replace('Jellyfin ', ''),
+      value: d.count,
+      color: CHART_COLORS[index % CHART_COLORS.length],
     }));
 
   if (sortedData.length === 0) {
     return (
-      <View style={[styles.container, styles.emptyContainer, { height }]}>
+      <View style={[styles.container, styles.emptyContainer]}>
         <Text style={styles.emptyText}>No platform data available</Text>
       </View>
     );
   }
 
-  return (
-    <View style={[styles.container, { height }]}>
-      <CartesianChart
-        data={sortedData}
-        xKey="x"
-        yKeys={["plays"]}
-        domainPadding={{ left: 30, right: 30, top: 20 }}
-        axisOptions={{
-          font: null,
-          lineColor: colors.border.dark,
-          labelColor: colors.text.muted.dark,
-          formatXLabel: (value) => {
-            const item = sortedData[Math.round(value)];
-            if (!item) return '';
-            // Shorten platform name
-            return item.platform.replace('Plex for ', '').replace('Jellyfin ', '').slice(0, 8);
-          },
-          formatYLabel: (value) => String(Math.round(value)),
-        }}
-      >
-        {({ points, chartBounds }) => (
-          <Bar
-            points={points.plays}
-            chartBounds={chartBounds}
-            color={colors.cyan.core}
-            roundedCorners={{ topLeft: 4, topRight: 4 }}
-            animate={{ type: "timing", duration: 500 }}
-          />
-        )}
-      </CartesianChart>
+  const total = sortedData.reduce((sum, item) => sum + item.value, 0);
 
-      {/* Legend */}
+  return (
+    <View style={styles.container}>
+      {/* Pie Chart */}
+      <View style={styles.chartContainer}>
+        <PolarChart
+          data={sortedData}
+          labelKey="label"
+          valueKey="value"
+          colorKey="color"
+        >
+          <Pie.Chart
+            innerRadius="50%"
+            circleSweepDegrees={360}
+            startAngle={0}
+          />
+        </PolarChart>
+      </View>
+
+      {/* Legend with percentages */}
       <View style={styles.legend}>
-        {sortedData.slice(0, 3).map((item) => (
-          <View key={item.platform} style={styles.legendItem}>
+        {sortedData.map((item) => (
+          <View key={item.label} style={styles.legendItem}>
             <View style={[styles.legendDot, { backgroundColor: item.color }]} />
             <Text style={styles.legendText} numberOfLines={1}>
-              {item.platform.replace('Plex for ', '').replace('Jellyfin ', '')}
+              {item.label}
+            </Text>
+            <Text style={styles.legendPercent}>
+              {Math.round((item.value / total) * 100)}%
             </Text>
           </View>
         ))}
@@ -102,10 +88,14 @@ const styles = StyleSheet.create({
   emptyContainer: {
     justifyContent: 'center',
     alignItems: 'center',
+    minHeight: 150,
   },
   emptyText: {
     color: colors.text.muted.dark,
     fontSize: typography.fontSize.sm,
+  },
+  chartContainer: {
+    height: 160,
   },
   legend: {
     flexDirection: 'row',
@@ -130,6 +120,11 @@ const styles = StyleSheet.create({
   legendText: {
     fontSize: typography.fontSize.xs,
     color: colors.text.muted.dark,
-    maxWidth: 80,
+    maxWidth: 60,
+  },
+  legendPercent: {
+    fontSize: typography.fontSize.xs,
+    color: colors.text.secondary.dark,
+    fontWeight: '500',
   },
 });
