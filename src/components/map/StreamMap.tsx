@@ -1,6 +1,9 @@
 /**
  * Interactive map showing active stream locations
  * Uses expo-maps with Apple Maps on iOS, Google Maps on Android
+ *
+ * Note: expo-maps doesn't support custom tile providers, so we can't
+ * match the web's dark theme exactly. Using default map styles.
  */
 import React from 'react';
 import { View, Text, StyleSheet, Platform } from 'react-native';
@@ -31,23 +34,63 @@ export function StreamMap({ sessions, height = 300 }: StreamMapProps) {
   const avgLat = sessionsWithLocation.reduce((sum, s) => sum + s.geoLat!, 0) / sessionsWithLocation.length;
   const avgLon = sessionsWithLocation.reduce((sum, s) => sum + s.geoLon!, 0) / sessionsWithLocation.length;
 
-  // Create markers for each session
-  const markers = sessionsWithLocation.map((session) => ({
-    id: session.sessionKey || session.id,
-    coordinates: {
-      latitude: session.geoLat!,
-      longitude: session.geoLon!,
-    },
-    title: session.user?.username || 'Unknown',
-    snippet: `${session.mediaTitle || 'Unknown'} - ${session.geoCity || ''}, ${session.geoCountry || ''}`,
-  }));
+  // Create markers for each session with enhanced info
+  const markers = sessionsWithLocation.map((session) => {
+    const username = session.user?.username || 'Unknown';
+    const location = [session.geoCity, session.geoCountry].filter(Boolean).join(', ') || 'Unknown location';
+    const mediaTitle = session.mediaTitle || 'Unknown';
+
+    // Truncate long media titles for snippet
+    const truncatedTitle = mediaTitle.length > 40
+      ? mediaTitle.substring(0, 37) + '...'
+      : mediaTitle;
+
+    return {
+      id: session.sessionKey || session.id,
+      coordinates: {
+        latitude: session.geoLat!,
+        longitude: session.geoLon!,
+      },
+      // Title shows username prominently
+      title: username,
+      // Snippet shows media and location
+      snippet: `${truncatedTitle}\n${location}`,
+      // Use cyan tint to match app theme
+      tintColor: colors.cyan.core,
+      // iOS: Use SF Symbol for streaming indicator
+      ...(Platform.OS === 'ios' && {
+        systemImage: 'play.circle.fill',
+      }),
+    };
+  });
+
+  // Calculate appropriate zoom based on marker spread
+  const calculateZoom = () => {
+    if (sessionsWithLocation.length === 1) return 10;
+
+    // Calculate spread of coordinates
+    const lats = sessionsWithLocation.map(s => s.geoLat!);
+    const lons = sessionsWithLocation.map(s => s.geoLon!);
+    const latSpread = Math.max(...lats) - Math.min(...lats);
+    const lonSpread = Math.max(...lons) - Math.min(...lons);
+    const maxSpread = Math.max(latSpread, lonSpread);
+
+    // Adjust zoom based on spread
+    if (maxSpread > 100) return 2;
+    if (maxSpread > 50) return 3;
+    if (maxSpread > 20) return 4;
+    if (maxSpread > 10) return 5;
+    if (maxSpread > 5) return 6;
+    if (maxSpread > 1) return 8;
+    return 10;
+  };
 
   const cameraPosition = {
     coordinates: {
       latitude: avgLat || 39.8283,
       longitude: avgLon || -98.5795,
     },
-    zoom: sessionsWithLocation.length === 1 ? 10 : 4,
+    zoom: calculateZoom(),
   };
 
   // Use platform-specific map component
@@ -63,7 +106,8 @@ export function StreamMap({ sessions, height = 300 }: StreamMapProps) {
           coordinates: m.coordinates,
           title: m.title,
           snippet: m.snippet,
-          tintColor: colors.cyan.core,
+          tintColor: m.tintColor,
+          ...(Platform.OS === 'ios' && m.systemImage && { systemImage: m.systemImage }),
         }))}
         uiSettings={{
           compassEnabled: false,
