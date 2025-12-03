@@ -5,7 +5,7 @@
 import { useFont } from '@shopify/react-native-skia';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const InterMedium = require('../../../assets/fonts/Inter_500Medium.ttf');
+const InterMedium = require('../../../assets/fonts/Inter_500Medium.ttf') as number;
 
 export function useChartFont(size: number = 10) {
   const font = useFont(InterMedium, size);

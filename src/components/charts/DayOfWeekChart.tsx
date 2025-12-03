@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-deprecated */
 /**
  * Bar chart showing plays by day of week with touch interaction
  */

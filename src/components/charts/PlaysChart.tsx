@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-deprecated */
 /**
  * Area chart showing plays over time with touch-to-reveal tooltip
  */
