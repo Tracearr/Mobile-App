@@ -1,0 +1,30 @@
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/preflight.css" layer(base);
+@import "tailwindcss/utilities.css";
+@import "nativewind/theme";
+
+/* Tracearr brand colors */
+@theme {
+  --color-cyan-core: #18D1E7;
+  --color-cyan-deep: #0EAFC8;
+  --color-cyan-dark: #0A7C96;
+
+  /* Background colors - matching web */
+  --color-background: #09090B;
+  --color-card: #1A1A1D;
+  --color-border: #27272A;
+
+  /* Text colors */
+  --color-foreground: #FAFAFA;
+  --color-muted: #71717A;
+
+  /* Semantic colors */
+  --color-destructive: #EF4444;
+  --color-success: #22C55E;
+  --color-warning: #F59E0B;
+
+  /* Border radius */
+  --radius-lg: 0.5rem;
+  --radius-md: calc(var(--radius-lg) - 2px);
+  --radius-sm: calc(var(--radius-lg) - 4px);
+}
