@@ -79,83 +79,74 @@ export function NowPlayingCard({ session, onPress }: NowPlayingCardProps) {
       style={({ pressed }) => [styles.container, pressed && styles.pressed]}
       onPress={() => onPress?.(session)}
     >
-      {/* Poster */}
-      <View style={styles.posterContainer}>
-        {posterUrl ? (
-          <Image source={{ uri: posterUrl }} style={styles.poster} resizeMode="cover" />
-        ) : (
-          <View style={[styles.poster, styles.posterPlaceholder]}>
-            <Ionicons name="film-outline" size={24} color={colors.text.muted.dark} />
-          </View>
-        )}
-        {/* Play/Pause overlay */}
-        <View style={[styles.statusOverlay, isPaused && styles.statusOverlayVisible]}>
-          <Ionicons
-            name={isPaused ? 'pause' : 'play'}
-            size={20}
-            color="#FFFFFF"
-          />
-        </View>
-      </View>
-
-      {/* Info section */}
-      <View style={styles.info}>
-        {/* Top: Title and status */}
-        <View style={styles.titleRow}>
-          <View style={styles.titleContainer}>
-            <Text style={styles.title} numberOfLines={1}>
-              {title}
-            </Text>
-            {subtitle && (
-              <Text style={styles.subtitle} numberOfLines={1}>
-                {subtitle}
-              </Text>
-            )}
-          </View>
-          {/* Status indicator */}
-          <View style={[styles.statusBadge, isPaused && styles.statusBadgePaused]}>
-            <Ionicons
-              name={isPaused ? 'pause' : 'play'}
-              size={10}
-              color={isPaused ? colors.warning : colors.cyan.core}
-            />
-          </View>
-        </View>
-
-        {/* Middle: User */}
-        <View style={styles.userRow}>
-          <UserAvatar thumbUrl={userThumbUrl} username={username} size={18} />
-          <Text style={styles.username} numberOfLines={1}>
-            {username}
-          </Text>
-          {session.isTranscode && (
-            <View style={styles.transcodeBadge}>
-              <Ionicons name="flash" size={10} color={colors.warning} />
+      {/* Main content row */}
+      <View style={styles.contentRow}>
+        {/* Poster */}
+        <View style={styles.posterContainer}>
+          {posterUrl ? (
+            <Image source={{ uri: posterUrl }} style={styles.poster} resizeMode="cover" />
+          ) : (
+            <View style={[styles.poster, styles.posterPlaceholder]}>
+              <Ionicons name="film-outline" size={24} color={colors.text.muted.dark} />
+            </View>
+          )}
+          {/* Paused overlay */}
+          {isPaused && (
+            <View style={styles.pausedOverlay}>
+              <Ionicons name="pause" size={20} color={colors.text.primary.dark} />
             </View>
           )}
         </View>
 
-        {/* Bottom: Progress */}
-        <View style={styles.progressSection}>
-          <View style={styles.progressBar}>
-            <View style={[styles.progressFill, { width: `${progress}%` }]} />
-          </View>
-          <View style={styles.timeRow}>
-            <Text style={styles.timeText}>{formatDuration(session.progressMs)}</Text>
-            <Text style={styles.timeText}>
-              {isPaused ? (
-                <Text style={styles.pausedText}>Paused</Text>
-              ) : (
-                formatDuration(session.totalDurationMs)
-              )}
+        {/* Info section */}
+        <View style={styles.info}>
+          {/* Title + subtitle */}
+          <Text style={styles.title} numberOfLines={1}>
+            {title}
+          </Text>
+          {subtitle && (
+            <Text style={styles.subtitle} numberOfLines={1}>
+              {subtitle}
             </Text>
+          )}
+
+          {/* User + time row combined */}
+          <View style={styles.userTimeRow}>
+            <View style={styles.userSection}>
+              <UserAvatar thumbUrl={userThumbUrl} username={username} size={16} />
+              <Text style={styles.username} numberOfLines={1}>
+                {username}
+              </Text>
+              {session.isTranscode && (
+                <Ionicons name="flash" size={10} color={colors.warning} />
+              )}
+            </View>
+            <View style={styles.timeSection}>
+              <View style={[styles.statusDot, isPaused && styles.statusDotPaused]}>
+                <Ionicons
+                  name={isPaused ? 'pause' : 'play'}
+                  size={6}
+                  color={isPaused ? colors.warning : colors.cyan.core}
+                />
+              </View>
+              <Text style={[styles.timeText, isPaused && styles.pausedText]}>
+                {isPaused
+                  ? 'Paused'
+                  : `${formatDuration(session.progressMs)} / ${formatDuration(session.totalDurationMs)}`}
+              </Text>
+            </View>
           </View>
+        </View>
+
+        {/* Chevron */}
+        <View style={styles.chevron}>
+          <Ionicons name="chevron-forward" size={16} color={colors.text.muted.dark} />
         </View>
       </View>
 
-      {/* Chevron */}
-      <View style={styles.chevron}>
-        <Ionicons name="chevron-forward" size={16} color={colors.text.muted.dark} />
+      {/* Bottom progress bar - full width */}
+      <View style={styles.progressBar}>
+        <View style={[styles.progressFill, { width: `${progress}%` }]} />
       </View>
     </Pressable>
   );
@@ -163,15 +154,19 @@ export function NowPlayingCard({ session, onPress }: NowPlayingCardProps) {
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: 'row',
-    alignItems: 'center',
     backgroundColor: colors.card.dark,
     borderRadius: borderRadius.lg,
-    padding: spacing.sm,
     marginBottom: spacing.sm,
+    overflow: 'hidden',
   },
   pressed: {
     opacity: 0.7,
+  },
+  contentRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
   },
   posterContainer: {
     position: 'relative',
@@ -187,95 +182,77 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  statusOverlay: {
+  pausedOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
     borderRadius: borderRadius.md,
     justifyContent: 'center',
     alignItems: 'center',
-    opacity: 0,
-  },
-  statusOverlayVisible: {
-    opacity: 1,
   },
   info: {
     flex: 1,
-    justifyContent: 'space-between',
-    height: 75,
-    paddingVertical: 2,
-  },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-  },
-  titleContainer: {
-    flex: 1,
-    marginRight: spacing.xs,
+    justifyContent: 'center',
+    gap: 2,
   },
   title: {
     fontSize: typography.fontSize.sm,
     fontWeight: '600',
     color: colors.text.primary.dark,
-    lineHeight: 18,
+    lineHeight: 16,
   },
   subtitle: {
     fontSize: typography.fontSize.xs,
     color: colors.text.muted.dark,
-    marginTop: 1,
   },
-  statusBadge: {
-    width: 18,
-    height: 18,
-    borderRadius: borderRadius.full,
-    backgroundColor: 'rgba(24, 209, 231, 0.15)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  statusBadgePaused: {
-    backgroundColor: 'rgba(245, 158, 11, 0.15)',
-  },
-  userRow: {
+  userTimeRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    justifyContent: 'space-between',
+    marginTop: 2,
+  },
+  userSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    flex: 1,
   },
   username: {
     fontSize: typography.fontSize.xs,
     color: colors.text.secondary.dark,
-    flex: 1,
   },
-  transcodeBadge: {
-    marginLeft: 4,
-  },
-  progressSection: {
-    gap: 3,
-  },
-  progressBar: {
-    height: 3,
-    backgroundColor: colors.surface.dark,
-    borderRadius: borderRadius.full,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: colors.cyan.core,
-    borderRadius: borderRadius.full,
-  },
-  timeRow: {
+  timeSection: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 4,
+  },
+  statusDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: 'rgba(24, 209, 231, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  statusDotPaused: {
+    backgroundColor: 'rgba(245, 158, 11, 0.15)',
   },
   timeText: {
-    fontSize: 10,
+    fontSize: typography.fontSize.xs,
     color: colors.text.muted.dark,
   },
   pausedText: {
     color: colors.warning,
-    fontWeight: '500',
+  },
+  progressBar: {
+    height: 3,
+    backgroundColor: colors.surface.dark,
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: colors.cyan.core,
   },
   chevron: {
-    marginLeft: spacing.xs,
+    marginLeft: 4,
     opacity: 0.5,
   },
 });
