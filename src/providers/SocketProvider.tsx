@@ -93,8 +93,8 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
 
     newSocket.on('session:stopped', (sessionId: string) => {
       queryClient.setQueryData<ActiveSession[]>(['sessions', 'active'], (old) => {
-        if (!old) return [];
-        return old.filter((s) => s.sessionKey !== sessionId && s.id !== sessionId);
+        if (!old || !Array.isArray(old)) return [];
+        return old.filter((s) => s && s.sessionKey !== sessionId && s.id !== sessionId);
       });
       void queryClient.invalidateQueries({ queryKey: ['dashboard', 'stats'] });
     });

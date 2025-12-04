@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Text } from '@/components/ui/text';
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { useAuthStore } from '@/lib/authStore';
+import { useEstimatedProgress } from '@/hooks/useEstimatedProgress';
 import { colors, spacing, borderRadius, typography } from '@/lib/theme';
 import type { ActiveSession } from '@tracearr/shared';
 
@@ -58,11 +59,8 @@ export function NowPlayingCard({ session, onPress }: NowPlayingCardProps) {
   const { serverUrl } = useAuthStore();
   const { title, subtitle } = getMediaDisplay(session);
 
-  // Calculate progress percentage
-  const progress =
-    session.progressMs && session.totalDurationMs
-      ? Math.min((session.progressMs / session.totalDurationMs) * 100, 100)
-      : 0;
+  // Use estimated progress for smooth updates between SSE/poll events
+  const { estimatedProgressMs, progressPercent } = useEstimatedProgress(session);
 
   // Build poster URL using image proxy
   const posterUrl =
@@ -132,7 +130,7 @@ export function NowPlayingCard({ session, onPress }: NowPlayingCardProps) {
               <Text style={[styles.timeText, isPaused && styles.pausedText]}>
                 {isPaused
                   ? 'Paused'
-                  : `${formatDuration(session.progressMs)} / ${formatDuration(session.totalDurationMs)}`}
+                  : `${formatDuration(estimatedProgressMs)} / ${formatDuration(session.totalDurationMs)}`}
               </Text>
             </View>
           </View>
@@ -146,7 +144,7 @@ export function NowPlayingCard({ session, onPress }: NowPlayingCardProps) {
 
       {/* Bottom progress bar - full width */}
       <View style={styles.progressBar}>
-        <View style={[styles.progressFill, { width: `${progress}%` }]} />
+        <View style={[styles.progressFill, { width: `${progressPercent}%` }]} />
       </View>
     </Pressable>
   );
