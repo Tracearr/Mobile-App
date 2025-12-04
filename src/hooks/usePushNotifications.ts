@@ -1,5 +1,8 @@
 /**
  * Push notifications hook for violation alerts
+ *
+ * Handles push notification registration, foreground notifications,
+ * background task registration, and payload decryption.
  */
 import { useEffect, useRef, useState, useCallback } from 'react';
 import * as Notifications from 'expo-notifications';
@@ -7,7 +10,13 @@ import * as Device from 'expo-device';
 import { Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSocket } from '../providers/SocketProvider';
-import type { ViolationWithDetails } from '@tracearr/shared';
+import type { ViolationWithDetails, EncryptedPushPayload } from '@tracearr/shared';
+import {
+  registerBackgroundNotificationTask,
+  unregisterBackgroundNotificationTask,
+} from '../lib/backgroundTasks';
+import { decryptPushPayload, isEncryptionAvailable, getDeviceSecret } from '../lib/crypto';
+import { api } from '../lib/api';
 
 // Configure notification behavior
 Notifications.setNotificationHandler({
@@ -19,6 +28,18 @@ Notifications.setNotificationHandler({
     shouldShowList: true,
   }),
 });
+
+// Check if notification payload is encrypted
+function isEncrypted(data: unknown): data is EncryptedPushPayload {
+  if (!data || typeof data !== 'object') return false;
+  const payload = data as Record<string, unknown>;
+  return (
+    payload.v === 1 &&
+    typeof payload.iv === 'string' &&
+    typeof payload.ct === 'string' &&
+    typeof payload.tag === 'string'
+  );
+}
 
 export function usePushNotifications() {
   const [expoPushToken, setExpoPushToken] = useState<string | null>(null);
@@ -72,15 +93,16 @@ export function usePushNotifications() {
       geo_restriction: 'Geo Restriction',
     };
 
-    const severityEmoji: Record<string, string> = {
-      low: 'ℹ️',
-      warning: '⚠️',
-      high: '🚨',
-      critical: '🔴',
+    const severityLabels: Record<string, string> = {
+      low: 'Low',
+      warning: 'Warning',
+      high: 'High',
+      critical: 'Critical',
     };
 
-    const title = `${severityEmoji[violation.severity] || '⚠️'} ${ruleTypeLabels[violation.rule?.type || ''] || 'Alert'}`;
-    const body = `${violation.user?.username || 'Unknown user'} triggered a rule violation`;
+    const title = `${severityLabels[violation.severity] || 'Warning'} Violation`;
+    const ruleType = violation.rule?.type || '';
+    const body = `${violation.user?.username || 'Unknown user'}: ${ruleTypeLabels[ruleType] || 'Rule Violation'}`;
 
     await Notifications.scheduleNotificationAsync({
       content: {
@@ -97,25 +119,94 @@ export function usePushNotifications() {
     });
   }, []);
 
+  // Process notification data (handle encryption if needed)
+  const processNotificationData = useCallback(
+    async (data: Record<string, unknown>): Promise<Record<string, unknown>> => {
+      if (isEncrypted(data) && isEncryptionAvailable()) {
+        try {
+          return await decryptPushPayload(data);
+        } catch (error) {
+          console.error('Failed to decrypt notification:', error);
+          return data; // Fall back to encrypted data
+        }
+      }
+      return data;
+    },
+    []
+  );
+
   // Initialize push notifications
   useEffect(() => {
-    void registerForPushNotifications().then(setExpoPushToken);
+    const initializePushNotifications = async () => {
+      const token = await registerForPushNotifications();
+      if (token) {
+        setExpoPushToken(token);
+
+        // Register push token with server, including device secret for encryption
+        try {
+          const deviceSecret = isEncryptionAvailable() ? await getDeviceSecret() : undefined;
+          await api.registerPushToken(token, deviceSecret);
+          console.log('Push token registered with server');
+        } catch (error) {
+          console.error('Failed to register push token with server:', error);
+        }
+      }
+    };
+
+    void initializePushNotifications();
+
+    // Register background notification task
+    void registerBackgroundNotificationTask();
 
     // Listen for notifications received while app is foregrounded
     notificationListener.current = Notifications.addNotificationReceivedListener(
-      (receivedNotification) => {
-        setNotification(receivedNotification);
+      async (receivedNotification) => {
+        // Process/decrypt the notification data if needed
+        const rawData = receivedNotification.request.content.data;
+        if (rawData && typeof rawData === 'object') {
+          const processedData = await processNotificationData(
+            rawData as Record<string, unknown>
+          );
+          // Update the notification with processed data
+          const processedNotification = {
+            ...receivedNotification,
+            request: {
+              ...receivedNotification.request,
+              content: {
+                ...receivedNotification.request.content,
+                data: processedData,
+              },
+            },
+          };
+          setNotification(processedNotification as Notifications.Notification);
+        } else {
+          setNotification(receivedNotification);
+        }
       }
     );
 
     // Listen for notification taps
     responseListener.current = Notifications.addNotificationResponseReceivedListener(
-      (response) => {
-        const data = response.notification.request.content.data;
+      async (response) => {
+        const rawData = response.notification.request.content.data;
+        let data = rawData;
 
-        if (data?.type === 'violation') {
-          // Navigate to alerts tab
+        // Decrypt if needed
+        if (rawData && isEncrypted(rawData) && isEncryptionAvailable()) {
+          try {
+            data = await decryptPushPayload(rawData);
+          } catch {
+            // Use raw data if decryption fails
+          }
+        }
+
+        // Navigate based on notification type
+        if (data?.type === 'violation_detected') {
           router.push('/(tabs)/alerts');
+        } else if (data?.type === 'stream_started' || data?.type === 'stream_stopped') {
+          router.push('/(tabs)/activity');
+        } else if (data?.type === 'server_down' || data?.type === 'server_up') {
+          router.push('/(tabs)');
         }
       }
     );
@@ -127,8 +218,10 @@ export function usePushNotifications() {
       if (responseListener.current) {
         responseListener.current.remove();
       }
+      // Note: We don't unregister background task on unmount
+      // as it needs to persist for background notifications
     };
-  }, [registerForPushNotifications, router]);
+  }, [registerForPushNotifications, router, processNotificationData]);
 
   // Listen for violation events from socket
   useEffect(() => {
@@ -145,22 +238,50 @@ export function usePushNotifications() {
     };
   }, [socket, showViolationNotification]);
 
-  // Configure Android notification channel
+  // Configure Android notification channels for different notification types
   useEffect(() => {
     if (Platform.OS === 'android') {
+      // Violations channel - high priority
       void Notifications.setNotificationChannelAsync('violations', {
         name: 'Violation Alerts',
+        description: 'Alerts when rule violations are detected',
         importance: Notifications.AndroidImportance.HIGH,
         vibrationPattern: [0, 250, 250, 250],
         lightColor: '#22D3EE',
         sound: 'default',
       });
+
+      // Sessions channel - default priority
+      void Notifications.setNotificationChannelAsync('sessions', {
+        name: 'Stream Activity',
+        description: 'Notifications for stream start/stop events',
+        importance: Notifications.AndroidImportance.DEFAULT,
+        vibrationPattern: [0, 100, 100, 100],
+        lightColor: '#10B981',
+      });
+
+      // Alerts channel - high priority (server status)
+      void Notifications.setNotificationChannelAsync('alerts', {
+        name: 'Server Alerts',
+        description: 'Server online/offline notifications',
+        importance: Notifications.AndroidImportance.HIGH,
+        vibrationPattern: [0, 500],
+        lightColor: '#EF4444',
+        sound: 'default',
+      });
     }
+  }, []);
+
+  // Cleanup function for logout
+  const cleanup = useCallback(async () => {
+    await unregisterBackgroundNotificationTask();
   }, []);
 
   return {
     expoPushToken,
     notification,
     showViolationNotification,
+    cleanup,
+    isEncryptionAvailable: isEncryptionAvailable(),
   };
 }

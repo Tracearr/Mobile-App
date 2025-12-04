@@ -10,12 +10,18 @@ import type {
   DashboardStats,
   ServerUserWithIdentity,
   ServerUserDetail,
+  Session,
+  SessionWithDetails,
+  UserLocation,
+  UserDevice,
   Violation,
   ViolationWithDetails,
   Rule,
   Server,
   MobilePairResponse,
   PaginatedResponse,
+  NotificationPreferences,
+  NotificationPreferencesWithStatus,
 } from '@tracearr/shared';
 
 let apiClient: AxiosInstance | null = null;
@@ -109,6 +115,13 @@ export function resetApiClient(): void {
 }
 
 /**
+ * Get the current server URL (for building absolute URLs like images)
+ */
+export async function getServerUrl(): Promise<string | null> {
+  return storage.getServerUrl();
+}
+
+/**
  * API methods organized by domain
  */
 export const api = {
@@ -120,11 +133,27 @@ export const api = {
     token: string,
     deviceName: string,
     deviceId: string,
-    platform: 'ios' | 'android'
+    platform: 'ios' | 'android',
+    deviceSecret?: string
   ): Promise<MobilePairResponse> => {
     const response = await axios.post<MobilePairResponse>(
       `${serverUrl}/api/v1/mobile/pair`,
-      { token, deviceName, deviceId, platform }
+      { token, deviceName, deviceId, platform, deviceSecret }
+    );
+    return response.data;
+  },
+
+  /**
+   * Register push token for notifications
+   */
+  registerPushToken: async (
+    expoPushToken: string,
+    deviceSecret?: string
+  ): Promise<{ success: boolean; updatedSessions: number }> => {
+    const client = await getApiClient();
+    const response = await client.post<{ success: boolean; updatedSessions: number }>(
+      '/mobile/push-token',
+      { expoPushToken, deviceSecret }
     );
     return response.data;
   },
@@ -201,6 +230,11 @@ export const api = {
       const response = await client.get<PaginatedResponse<ActiveSession>>('/sessions', { params });
       return response.data;
     },
+    get: async (id: string): Promise<SessionWithDetails> => {
+      const client = await getApiClient();
+      const response = await client.get<SessionWithDetails>(`/sessions/${id}`);
+      return response.data;
+    },
   },
 
   /**
@@ -216,6 +250,21 @@ export const api = {
       const client = await getApiClient();
       const response = await client.get<ServerUserDetail>(`/users/${id}`);
       return response.data;
+    },
+    sessions: async (id: string, params?: { page?: number; pageSize?: number }) => {
+      const client = await getApiClient();
+      const response = await client.get<PaginatedResponse<Session>>(`/users/${id}/sessions`, { params });
+      return response.data;
+    },
+    locations: async (id: string): Promise<UserLocation[]> => {
+      const client = await getApiClient();
+      const response = await client.get<{ data: UserLocation[] }>(`/users/${id}/locations`);
+      return response.data.data;
+    },
+    devices: async (id: string): Promise<UserDevice[]> => {
+      const client = await getApiClient();
+      const response = await client.get<{ data: UserDevice[] }>(`/users/${id}/devices`);
+      return response.data.data;
     },
   },
 
@@ -269,6 +318,49 @@ export const api = {
       const client = await getApiClient();
       const response = await client.get<{ data: Server[] }>('/servers');
       return response.data.data;
+    },
+  },
+
+  /**
+   * Notification preferences (per-device settings)
+   */
+  notifications: {
+    /**
+     * Get notification preferences for current device
+     * Returns preferences with live rate limit status from Redis
+     */
+    getPreferences: async (): Promise<NotificationPreferencesWithStatus> => {
+      const client = await getApiClient();
+      const response = await client.get<NotificationPreferencesWithStatus>(
+        '/notifications/preferences'
+      );
+      return response.data;
+    },
+
+    /**
+     * Update notification preferences for current device
+     * Supports partial updates - only send fields you want to change
+     */
+    updatePreferences: async (
+      data: Partial<Omit<NotificationPreferences, 'id' | 'mobileSessionId' | 'createdAt' | 'updatedAt'>>
+    ): Promise<NotificationPreferences> => {
+      const client = await getApiClient();
+      const response = await client.patch<NotificationPreferences>(
+        '/notifications/preferences',
+        data
+      );
+      return response.data;
+    },
+
+    /**
+     * Send a test notification to verify push is working
+     */
+    sendTest: async (): Promise<{ success: boolean; message: string }> => {
+      const client = await getApiClient();
+      const response = await client.post<{ success: boolean; message: string }>(
+        '/notifications/test'
+      );
+      return response.data;
     },
   },
 };

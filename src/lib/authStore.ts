@@ -6,6 +6,7 @@ import { storage } from './storage';
 import { api, resetApiClient } from './api';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
+import { isEncryptionAvailable, getDeviceSecret } from './crypto';
 
 interface AuthState {
   isAuthenticated: boolean;
@@ -76,8 +77,18 @@ export const useAuthStore = create<AuthState>((set) => ({
       // Normalize URL (remove trailing slash)
       const normalizedUrl = serverUrl.replace(/\/$/, '');
 
+      // Get device secret for push notification encryption (if available)
+      let deviceSecret: string | undefined;
+      if (isEncryptionAvailable()) {
+        try {
+          deviceSecret = await getDeviceSecret();
+        } catch (error) {
+          console.warn('Failed to get device secret for encryption:', error);
+        }
+      }
+
       // Call pair API
-      const response = await api.pair(normalizedUrl, token, deviceName, deviceId, platform);
+      const response = await api.pair(normalizedUrl, token, deviceName, deviceId, platform, deviceSecret);
 
       // Store credentials
       await storage.storeCredentials({

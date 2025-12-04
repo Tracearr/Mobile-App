@@ -41,6 +41,14 @@ export const colors = {
   error: '#EF4444',
   info: '#3B82F6',
 
+  // Switch/toggle colors
+  switch: {
+    trackOff: '#27272A',
+    trackOn: '#0EAFC8',
+    thumbOn: '#18D1E7',
+    thumbOff: '#71717A',
+  },
+
   // Text colors
   text: {
     primary: {
