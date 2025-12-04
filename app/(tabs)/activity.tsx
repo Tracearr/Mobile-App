@@ -7,6 +7,7 @@ import { View, ScrollView, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
+import { colors } from '@/lib/theme';
 import { Text } from '@/components/ui/text';
 import { Card } from '@/components/ui/card';
 import { PeriodSelector, type StatsPeriod } from '@/components/ui/period-selector';
@@ -84,7 +85,7 @@ export default function ActivityScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#09090B' }} edges={['left', 'right']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background.dark }} edges={['left', 'right']}>
       <ScrollView
         className="flex-1"
         contentContainerClassName="p-4 pt-3"
@@ -92,7 +93,7 @@ export default function ActivityScreen() {
           <RefreshControl
             refreshing={isRefetchingPlays}
             onRefresh={handleRefresh}
-            tintColor="#18D1E7"
+            tintColor={colors.cyan.core}
           />
         }
       >

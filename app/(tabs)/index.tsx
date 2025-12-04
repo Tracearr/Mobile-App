@@ -4,6 +4,7 @@
  */
 import { View, ScrollView, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '@/lib/api';
@@ -52,6 +53,7 @@ function StatPill({
 }
 
 export default function DashboardScreen() {
+  const router = useRouter();
   const { serverName } = useAuthStore();
 
   const {
@@ -69,12 +71,12 @@ export default function DashboardScreen() {
   });
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#09090B' }} edges={['left', 'right']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background.dark }} edges={['left', 'right']}>
       <ScrollView
         className="flex-1"
         contentContainerClassName="pb-8"
         refreshControl={
-          <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor="#18D1E7" />
+          <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={colors.cyan.core} />
         }
       >
         {/* Server Name Header with Stats */}
@@ -131,9 +133,7 @@ export default function DashboardScreen() {
                 <NowPlayingCard
                   key={session.id}
                   session={session}
-                  onPress={() => {
-                    // TODO: Navigate to session detail or show modal
-                  }}
+                  onPress={() => router.push(`/session/${session.id}` as never)}
                 />
               ))}
             </View>

@@ -1,29 +1,40 @@
 /**
  * Settings tab - server info, logout, notification preferences
- * Migrated to NativeWind
+ * Migrated to NativeWind with real API integration
  */
-import { useState } from 'react';
 import { View, ScrollView, Pressable, Switch, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { ChevronRight } from 'lucide-react-native';
 import { useAuthStore } from '@/lib/authStore';
 import { Text } from '@/components/ui/text';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
+import { api } from '@/lib/api';
+import { colors } from '@/lib/theme';
 import Constants from 'expo-constants';
 
 function SettingsRow({
   label,
   value,
   onPress,
+  showChevron,
 }: {
   label: string;
   value?: string;
   onPress?: () => void;
+  showChevron?: boolean;
 }) {
   const content = (
     <View className="flex-row justify-between items-center px-4 py-3 min-h-[48px]">
       <Text className="text-base flex-1">{label}</Text>
-      {value && <Text className="text-base text-muted text-right flex-1 ml-4">{value}</Text>}
+      <View className="flex-row items-center">
+        {value && <Text className="text-base text-muted text-right ml-4">{value}</Text>}
+        {showChevron && (
+          <ChevronRight size={20} color={colors.text.muted.dark} className="ml-2" />
+        )}
+      </View>
     </View>
   );
 
@@ -40,22 +51,40 @@ function SettingsRow({
 
 function SettingsToggle({
   label,
+  description,
   value,
   onValueChange,
+  disabled,
+  isLoading,
 }: {
   label: string;
+  description?: string;
   value: boolean;
   onValueChange: (value: boolean) => void;
+  disabled?: boolean;
+  isLoading?: boolean;
 }) {
   return (
     <View className="flex-row justify-between items-center px-4 py-3 min-h-[48px]">
-      <Text className="text-base flex-1">{label}</Text>
-      <Switch
-        value={value}
-        onValueChange={onValueChange}
-        trackColor={{ false: '#27272A', true: '#0EAFC8' }}
-        thumbColor={value ? '#18D1E7' : '#71717A'}
-      />
+      <View className="flex-1 mr-4">
+        <Text className={cn('text-base', disabled && 'opacity-50')}>{label}</Text>
+        {description && (
+          <Text className={cn('text-xs text-muted mt-0.5', disabled && 'opacity-50')}>
+            {description}
+          </Text>
+        )}
+      </View>
+      {isLoading ? (
+        <ActivityIndicator size="small" color={colors.cyan.core} />
+      ) : (
+        <Switch
+          value={value}
+          onValueChange={onValueChange}
+          disabled={disabled}
+          trackColor={{ false: colors.switch.trackOff, true: colors.switch.trackOn }}
+          thumbColor={value ? colors.switch.thumbOn : colors.switch.thumbOff}
+        />
+      )}
     </View>
   );
 }
@@ -82,12 +111,43 @@ function Divider() {
 }
 
 export default function SettingsScreen() {
-  const { serverUrl, serverName, logout, isLoading } = useAuthStore();
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [alertNotifications, setAlertNotifications] = useState(true);
-  const [sessionNotifications, setSessionNotifications] = useState(false);
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const { serverUrl, serverName, logout, isLoading: isLoggingOut } = useAuthStore();
 
   const appVersion = Constants.expoConfig?.version || '1.0.0';
+
+  // Fetch notification preferences
+  const {
+    data: preferences,
+    isLoading: isLoadingPrefs,
+    error: prefsError,
+  } = useQuery({
+    queryKey: ['notifications', 'preferences'],
+    queryFn: api.notifications.getPreferences,
+    staleTime: 1000 * 60, // 1 minute
+  });
+
+  // Update mutation for quick toggle
+  const updateMutation = useMutation({
+    mutationFn: api.notifications.updatePreferences,
+    onMutate: async (newData) => {
+      await queryClient.cancelQueries({ queryKey: ['notifications', 'preferences'] });
+      const previousData = queryClient.getQueryData(['notifications', 'preferences']);
+      queryClient.setQueryData(['notifications', 'preferences'], (old: typeof preferences) =>
+        old ? { ...old, ...newData } : old
+      );
+      return { previousData };
+    },
+    onError: (_err, _newData, context) => {
+      if (context?.previousData) {
+        queryClient.setQueryData(['notifications', 'preferences'], context.previousData);
+      }
+    },
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: ['notifications', 'preferences'] });
+    },
+  });
 
   const handleLogout = () => {
     Alert.alert(
@@ -104,8 +164,30 @@ export default function SettingsScreen() {
     );
   };
 
+  const handleTogglePush = (value: boolean) => {
+    updateMutation.mutate({ pushEnabled: value });
+  };
+
+  const navigateToNotificationSettings = () => {
+    router.push('/settings/notifications');
+  };
+
+  // Count enabled notification events for summary
+  const enabledEventCount = preferences
+    ? [
+        preferences.onViolationDetected,
+        preferences.onStreamStarted,
+        preferences.onStreamStopped,
+        preferences.onConcurrentStreams,
+        preferences.onNewDevice,
+        preferences.onTrustScoreChanged,
+        preferences.onServerDown,
+        preferences.onServerUp,
+      ].filter(Boolean).length
+    : 0;
+
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#09090B' }} edges={['left', 'right']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background.dark }} edges={['left', 'right']}>
       <ScrollView className="flex-1" contentContainerClassName="py-4">
         {/* Server Info */}
         <SettingsSection title="Connected Server">
@@ -116,27 +198,38 @@ export default function SettingsScreen() {
 
         {/* Notification Settings */}
         <SettingsSection title="Notifications">
-          <SettingsToggle
-            label="Enable Notifications"
-            value={notificationsEnabled}
-            onValueChange={setNotificationsEnabled}
-          />
-          <Divider />
-          <SettingsToggle
-            label="Alert Notifications"
-            value={alertNotifications && notificationsEnabled}
-            onValueChange={setAlertNotifications}
-          />
-          <Divider />
-          <SettingsToggle
-            label="Session Notifications"
-            value={sessionNotifications && notificationsEnabled}
-            onValueChange={setSessionNotifications}
-          />
-          <Text className="text-xs text-muted px-4 py-2 leading-4">
-            Alert notifications notify you when sharing rules are violated. Session notifications
-            notify you when streams start or stop.
-          </Text>
+          {prefsError ? (
+            <View className="px-4 py-3">
+              <Text className="text-destructive text-sm">
+                Failed to load notification settings
+              </Text>
+            </View>
+          ) : (
+            <>
+              <SettingsToggle
+                label="Push Notifications"
+                description="Receive alerts on this device"
+                value={preferences?.pushEnabled ?? false}
+                onValueChange={handleTogglePush}
+                isLoading={isLoadingPrefs}
+                disabled={updateMutation.isPending}
+              />
+              <Divider />
+              <SettingsRow
+                label="Notification Settings"
+                value={
+                  preferences?.pushEnabled
+                    ? `${enabledEventCount} events enabled`
+                    : 'Disabled'
+                }
+                onPress={navigateToNotificationSettings}
+                showChevron
+              />
+              <Text className="text-xs text-muted px-4 py-2 leading-4">
+                Configure which events trigger notifications, quiet hours, and filters.
+              </Text>
+            </>
+          )}
         </SettingsSection>
 
         {/* App Info */}
@@ -157,10 +250,10 @@ export default function SettingsScreen() {
               'active:opacity-70'
             )}
             onPress={handleLogout}
-            disabled={isLoading}
+            disabled={isLoggingOut}
           >
-            {isLoading ? (
-              <ActivityIndicator color="#EF4444" />
+            {isLoggingOut ? (
+              <ActivityIndicator color={colors.error} />
             ) : (
               <Text className="text-base font-semibold text-destructive">
                 Disconnect from Server

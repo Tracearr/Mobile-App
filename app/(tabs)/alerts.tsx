@@ -1,18 +1,108 @@
 /**
  * Alerts tab - violations with infinite scroll
+ * Updated UI with rule icons and proper violation details
  */
 import { View, FlatList, RefreshControl, Pressable, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useRouter } from 'expo-router';
+import { formatDistanceToNow } from 'date-fns';
+import {
+  MapPin,
+  Users,
+  Zap,
+  Monitor,
+  Globe,
+  AlertTriangle,
+  Check,
+  type LucideIcon,
+} from 'lucide-react-native';
 import { api } from '@/lib/api';
 import { Text } from '@/components/ui/text';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { UserAvatar } from '@/components/ui/user-avatar';
+import { cn } from '@/lib/utils';
 import { colors } from '@/lib/theme';
-import type { ViolationWithDetails } from '@tracearr/shared';
+import type { ViolationWithDetails, RuleType } from '@tracearr/shared';
 
 const PAGE_SIZE = 50;
+
+// Rule type icons mapping
+const ruleIcons: Record<RuleType, LucideIcon> = {
+  impossible_travel: MapPin,
+  simultaneous_locations: Users,
+  device_velocity: Zap,
+  concurrent_streams: Monitor,
+  geo_restriction: Globe,
+};
+
+// Rule type display names
+const ruleLabels: Record<RuleType, string> = {
+  impossible_travel: 'Impossible Travel',
+  simultaneous_locations: 'Simultaneous Locations',
+  device_velocity: 'Device Velocity',
+  concurrent_streams: 'Concurrent Streams',
+  geo_restriction: 'Geo Restriction',
+};
+
+// Format violation data into readable description based on rule type
+function getViolationDescription(violation: ViolationWithDetails): string {
+  const data = violation.data as Record<string, unknown>;
+  const ruleType = violation.rule?.type;
+
+  if (!data || !ruleType) {
+    return 'Rule violation detected';
+  }
+
+  switch (ruleType) {
+    case 'impossible_travel': {
+      const from = data.fromCity || data.fromLocation || 'unknown location';
+      const to = data.toCity || data.toLocation || 'unknown location';
+      const speed = typeof data.calculatedSpeedKmh === 'number'
+        ? `${Math.round(data.calculatedSpeedKmh)} km/h`
+        : 'impossible speed';
+      return `Traveled from ${from} to ${to} at ${speed}`;
+    }
+    case 'simultaneous_locations': {
+      const locations = data.locations as string[] | undefined;
+      const count = data.locationCount as number | undefined;
+      if (locations && locations.length > 0) {
+        return `Active from ${locations.length} locations: ${locations.slice(0, 2).join(', ')}${locations.length > 2 ? '...' : ''}`;
+      }
+      if (count) {
+        return `Streaming from ${count} different locations simultaneously`;
+      }
+      return 'Streaming from multiple locations simultaneously';
+    }
+    case 'device_velocity': {
+      const ipCount = data.ipCount as number | undefined;
+      const windowHours = data.windowHours as number | undefined;
+      if (ipCount && windowHours) {
+        return `${ipCount} different IPs used in ${windowHours}h window`;
+      }
+      return 'Too many unique devices in short period';
+    }
+    case 'concurrent_streams': {
+      const streamCount = data.streamCount as number | undefined;
+      const maxStreams = data.maxStreams as number | undefined;
+      if (streamCount && maxStreams) {
+        return `${streamCount} concurrent streams (limit: ${maxStreams})`;
+      }
+      return 'Exceeded concurrent stream limit';
+    }
+    case 'geo_restriction': {
+      const country = data.country as string | undefined;
+      const blockedCountry = data.blockedCountry as string | undefined;
+      if (country || blockedCountry) {
+        return `Streaming from blocked region: ${country || blockedCountry}`;
+      }
+      return 'Streaming from restricted location';
+    }
+    default:
+      return 'Rule violation detected';
+  }
+}
 
 function SeverityBadge({ severity }: { severity: string }) {
   const variant =
@@ -29,71 +119,90 @@ function SeverityBadge({ severity }: { severity: string }) {
   );
 }
 
+function RuleIcon({ ruleType }: { ruleType: RuleType | undefined }) {
+  const IconComponent = ruleType ? ruleIcons[ruleType] : AlertTriangle;
+  return (
+    <View className="w-8 h-8 rounded-lg bg-surface items-center justify-center">
+      <IconComponent size={16} color={colors.cyan.core} />
+    </View>
+  );
+}
+
 function ViolationCard({
   violation,
   onAcknowledge,
+  onPress,
 }: {
   violation: ViolationWithDetails;
   onAcknowledge: () => void;
+  onPress: () => void;
 }) {
-  const ruleTypeLabels: Record<string, string> = {
-    impossible_travel: 'Impossible Travel',
-    simultaneous_locations: 'Simultaneous Locations',
-    device_velocity: 'Device Velocity',
-    concurrent_streams: 'Concurrent Streams',
-    geo_restriction: 'Geo Restriction',
-  };
-
   const username = violation.user?.username || 'Unknown User';
+  const ruleType = violation.rule?.type as RuleType | undefined;
+  const ruleName = ruleType ? ruleLabels[ruleType] : violation.rule?.name || 'Unknown Rule';
+  const description = getViolationDescription(violation);
+  const timeAgo = formatDistanceToNow(new Date(violation.createdAt), { addSuffix: true });
 
   return (
-    <Card className="mb-3">
-      {/* Header: User + Severity */}
-      <View className="flex-row justify-between items-start mb-2">
-        <View className="flex-row items-center gap-2 flex-1">
-          <UserAvatar
-            thumbUrl={violation.user?.thumbUrl}
-            username={username}
-            size={36}
-          />
+    <Pressable onPress={onPress} className="active:opacity-80">
+      <Card className="mb-3">
+        {/* Header: User + Severity */}
+        <View className="flex-row justify-between items-start mb-3">
+          <Pressable
+            className="flex-row items-center gap-2.5 flex-1 active:opacity-70"
+            onPress={onPress}
+          >
+            <UserAvatar
+              thumbUrl={violation.user?.thumbUrl}
+              username={username}
+              size={40}
+            />
+            <View className="flex-1">
+              <Text className="text-base font-semibold">{username}</Text>
+              <Text className="text-xs text-muted">{timeAgo}</Text>
+            </View>
+          </Pressable>
+          <SeverityBadge severity={violation.severity} />
+        </View>
+
+        {/* Content: Rule Type with Icon + Description */}
+        <View className="flex-row items-start gap-3 mb-3">
+          <RuleIcon ruleType={ruleType} />
           <View className="flex-1">
-            <Text className="text-base font-semibold">{username}</Text>
-            <Text className="text-xs text-muted mt-0.5">
-              {new Date(violation.createdAt).toLocaleString()}
+            <Text className="text-sm font-medium text-cyan-core mb-1">
+              {ruleName}
+            </Text>
+            <Text className="text-sm text-secondary leading-5" numberOfLines={2}>
+              {description}
             </Text>
           </View>
         </View>
-        <SeverityBadge severity={violation.severity} />
-      </View>
 
-      {/* Content: Rule Type + Details */}
-      <View className="mb-2">
-        <Text className="text-sm font-medium text-cyan-core mb-1">
-          {ruleTypeLabels[violation.rule?.type || ''] || violation.rule?.type || 'Unknown Rule'}
-        </Text>
-        <Text className="text-sm text-muted leading-5" numberOfLines={2}>
-          {violation.data ? JSON.stringify(violation.data) : 'No details available'}
-        </Text>
-      </View>
-
-      {/* Action Button */}
-      {!violation.acknowledgedAt ? (
-        <Pressable
-          className="bg-cyan-core/20 py-2 rounded-md items-center active:opacity-70"
-          onPress={onAcknowledge}
-        >
-          <Text className="text-sm font-semibold text-cyan-core">Acknowledge</Text>
-        </Pressable>
-      ) : (
-        <View className="bg-success/10 py-2 rounded-md items-center">
-          <Text className="text-sm text-success">Acknowledged</Text>
-        </View>
-      )}
-    </Card>
+        {/* Action Button */}
+        {!violation.acknowledgedAt ? (
+          <Pressable
+            className="flex-row items-center justify-center gap-2 bg-cyan-core/15 py-2.5 rounded-lg active:opacity-70"
+            onPress={(e) => {
+              e.stopPropagation();
+              onAcknowledge();
+            }}
+          >
+            <Check size={16} color={colors.cyan.core} />
+            <Text className="text-sm font-semibold text-cyan-core">Acknowledge</Text>
+          </Pressable>
+        ) : (
+          <View className="flex-row items-center justify-center gap-2 bg-success/10 py-2.5 rounded-lg">
+            <Check size={16} color={colors.success} />
+            <Text className="text-sm text-success">Acknowledged</Text>
+          </View>
+        )}
+      </Card>
+    </Pressable>
   );
 }
 
 export default function AlertsScreen() {
+  const router = useRouter();
   const queryClient = useQueryClient();
 
   const {
@@ -125,6 +234,7 @@ export default function AlertsScreen() {
   // Flatten all pages into single array
   const violations = data?.pages.flatMap((page) => page.data) || [];
   const unacknowledgedCount = violations.filter((v) => !v.acknowledgedAt).length;
+  const total = data?.pages[0]?.total || 0;
 
   const handleEndReached = () => {
     if (hasNextPage && !isFetchingNextPage) {
@@ -132,8 +242,15 @@ export default function AlertsScreen() {
     }
   };
 
+  const handleViolationPress = (violation: ViolationWithDetails) => {
+    // Navigate to user detail page
+    if (violation.user?.id) {
+      router.push(`/user/${violation.user.id}` as never);
+    }
+  };
+
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#09090B' }} edges={['left', 'right']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background.dark }} edges={['left', 'right']}>
       <FlatList
         data={violations}
         keyExtractor={(item) => item.id}
@@ -141,6 +258,7 @@ export default function AlertsScreen() {
           <ViolationCard
             violation={item}
             onAcknowledge={() => acknowledgeMutation.mutate(item.id)}
+            onPress={() => handleViolationPress(item)}
           />
         )}
         contentContainerClassName="p-4 pt-3"
@@ -150,16 +268,21 @@ export default function AlertsScreen() {
           <RefreshControl
             refreshing={isRefetching}
             onRefresh={refetch}
-            tintColor="#18D1E7"
+            tintColor={colors.cyan.core}
           />
         }
         ListHeaderComponent={
           <View className="flex-row justify-between items-center mb-3">
-            <Text className="text-lg font-semibold">Alerts</Text>
+            <View>
+              <Text className="text-lg font-semibold">Alerts</Text>
+              <Text className="text-sm text-muted">
+                {total} {total === 1 ? 'violation' : 'violations'} total
+              </Text>
+            </View>
             {unacknowledgedCount > 0 && (
-              <View className="bg-destructive/20 px-2 py-1 rounded-sm">
+              <View className="bg-destructive/20 px-3 py-1.5 rounded-lg">
                 <Text className="text-sm font-medium text-destructive">
-                  {unacknowledgedCount} new
+                  {unacknowledgedCount} pending
                 </Text>
               </View>
             )}
@@ -173,13 +296,13 @@ export default function AlertsScreen() {
           ) : null
         }
         ListEmptyComponent={
-          <View className="items-center py-12">
-            <View className="w-16 h-16 rounded-full bg-success/10 border border-success/20 items-center justify-center mb-4">
-              <Text className="text-2xl text-success">0</Text>
+          <View className="items-center py-16">
+            <View className="w-20 h-20 rounded-full bg-success/10 border border-success/20 items-center justify-center mb-4">
+              <Check size={32} color={colors.success} />
             </View>
-            <Text className="text-lg font-semibold mb-1">No Alerts</Text>
-            <Text className="text-sm text-muted text-center px-4">
-              Rule violations will appear here when detected
+            <Text className="text-xl font-semibold mb-2">All Clear</Text>
+            <Text className="text-sm text-muted text-center px-8 leading-5">
+              No rule violations have been detected. Your users are behaving nicely!
             </Text>
           </View>
         }

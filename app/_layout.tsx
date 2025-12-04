@@ -10,6 +10,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { QueryProvider } from '@/providers/QueryProvider';
 import { SocketProvider } from '@/providers/SocketProvider';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useAuthStore } from '@/lib/authStore';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { colors } from '@/lib/theme';
@@ -63,6 +64,27 @@ function RootLayoutNav() {
       >
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="user"
+          options={{
+            headerShown: false,
+            presentation: 'card',
+          }}
+        />
+        <Stack.Screen
+          name="session"
+          options={{
+            headerShown: false,
+            presentation: 'card',
+          }}
+        />
+        <Stack.Screen
+          name="settings"
+          options={{
+            headerShown: false,
+            presentation: 'modal',
+          }}
+        />
         <Stack.Screen name="+not-found" />
       </Stack>
     </>
@@ -73,11 +95,13 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={styles.container}>
       <SafeAreaProvider>
-        <QueryProvider>
-          <SocketProvider>
-            <RootLayoutNav />
-          </SocketProvider>
-        </QueryProvider>
+        <ErrorBoundary>
+          <QueryProvider>
+            <SocketProvider>
+              <RootLayoutNav />
+            </SocketProvider>
+          </QueryProvider>
+        </ErrorBoundary>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

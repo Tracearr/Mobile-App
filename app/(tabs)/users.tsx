@@ -93,7 +93,7 @@ export default function UsersScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#09090B' }} edges={['left', 'right']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background.dark }} edges={['left', 'right']}>
       <FlatList
         data={users}
         keyExtractor={(item) => item.id}
@@ -110,7 +110,7 @@ export default function UsersScreen() {
           <RefreshControl
             refreshing={isRefetching}
             onRefresh={refetch}
-            tintColor="#18D1E7"
+            tintColor={colors.cyan.core}
           />
         }
         ListHeaderComponent={
