@@ -18,7 +18,8 @@
       "bundleIdentifier": "com.tracearr.app",
       "infoPlist": {
         "UIBackgroundModes": [
-          "remote-notification"
+          "remote-notification",
+          "fetch"
         ],
         "NSCameraUsageDescription": "Tracearr needs camera access to scan QR codes for server pairing.",
         "NSLocationWhenInUseUsageDescription": "Location permission is not required for this app.",
@@ -39,7 +40,8 @@
       "permissions": [
         "RECEIVE_BOOT_COMPLETED",
         "VIBRATE",
-        "android.permission.CAMERA"
+        "android.permission.CAMERA",
+        "android.permission.POST_NOTIFICATIONS"
       ]
     },
     "web": {
@@ -53,7 +55,9 @@
         "expo-notifications",
         {
           "icon": "./assets/notification-icon.png",
-          "color": "#18D1E7"
+          "color": "#18D1E7",
+          "defaultChannel": "violations",
+          "enableBackgroundRemoteNotifications": true
         }
       ],
       [
@@ -69,7 +73,8 @@
           "requestLocationPermission": false
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      "react-native-quick-crypto"
     ],
     "experiments": {
       "typedRoutes": true
