@@ -7,6 +7,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
+import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSocket } from '../providers/SocketProvider';
@@ -73,9 +74,12 @@ export function usePushNotifications() {
 
     // Get Expo push token
     try {
-      const tokenData = await Notifications.getExpoPushTokenAsync({
-        projectId: process.env.EXPO_PUBLIC_PROJECT_ID,
-      });
+      const projectId = Constants.expoConfig?.extra?.eas?.projectId;
+      if (!projectId) {
+        console.error('No EAS project ID found in app config');
+        return null;
+      }
+      const tokenData = await Notifications.getExpoPushTokenAsync({ projectId });
       return tokenData.data;
     } catch (error) {
       console.error('Failed to get push token:', error);
