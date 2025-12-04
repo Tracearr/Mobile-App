@@ -336,7 +336,7 @@ export default function UserDetailScreen() {
 
   // Load server URL for image proxy
   useEffect(() => {
-    getServerUrl().then(setServerUrl);
+    void getServerUrl().then(setServerUrl);
   }, []);
 
   // Fetch user detail
@@ -347,7 +347,7 @@ export default function UserDetailScreen() {
     isRefetching: userRefetching,
   } = useQuery({
     queryKey: ['user', id],
-    queryFn: () => api.users.get(id!),
+    queryFn: () => api.users.get(id),
     enabled: !!id,
   });
 
@@ -367,7 +367,7 @@ export default function UserDetailScreen() {
     isFetchingNextPage: fetchingMoreSessions,
   } = useInfiniteQuery({
     queryKey: ['user', id, 'sessions'],
-    queryFn: ({ pageParam = 1 }) => api.users.sessions(id!, { page: pageParam, pageSize: PAGE_SIZE }),
+    queryFn: ({ pageParam = 1 }) => api.users.sessions(id, { page: pageParam, pageSize: PAGE_SIZE }),
     initialPageParam: 1,
     getNextPageParam: (lastPage) => {
       if (lastPage.page < lastPage.totalPages) {
@@ -401,14 +401,14 @@ export default function UserDetailScreen() {
   // Fetch user locations
   const { data: locations, isLoading: locationsLoading } = useQuery({
     queryKey: ['user', id, 'locations'],
-    queryFn: () => api.users.locations(id!),
+    queryFn: () => api.users.locations(id),
     enabled: !!id,
   });
 
   // Fetch user devices
   const { data: devices, isLoading: devicesLoading } = useQuery({
     queryKey: ['user', id, 'devices'],
-    queryFn: () => api.users.devices(id!),
+    queryFn: () => api.users.devices(id),
     enabled: !!id,
   });
 

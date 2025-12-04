@@ -100,7 +100,7 @@ async function handleNotificationType(payload: DecryptedPayload): Promise<void> 
  */
 TaskManager.defineTask(
   BACKGROUND_NOTIFICATION_TASK,
-  async ({ data, error }: TaskManager.TaskManagerTaskBody<unknown>) => {
+  async ({ data, error }: TaskManager.TaskManagerTaskBody) => {
     if (error) {
       console.error('[BackgroundTask] Error:', error);
       return;

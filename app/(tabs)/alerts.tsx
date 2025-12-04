@@ -22,7 +22,6 @@ import { Text } from '@/components/ui/text';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { UserAvatar } from '@/components/ui/user-avatar';
-import { cn } from '@/lib/utils';
 import { colors } from '@/lib/theme';
 import type { ViolationWithDetails, RuleType } from '@tracearr/shared';
 
@@ -48,7 +47,7 @@ const ruleLabels: Record<RuleType, string> = {
 
 // Format violation data into readable description based on rule type
 function getViolationDescription(violation: ViolationWithDetails): string {
-  const data = violation.data as Record<string, unknown>;
+  const data = violation.data;
   const ruleType = violation.rule?.type;
 
   if (!data || !ruleType) {

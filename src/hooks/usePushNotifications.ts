@@ -160,25 +160,27 @@ export function usePushNotifications() {
 
     // Listen for notifications received while app is foregrounded
     notificationListener.current = Notifications.addNotificationReceivedListener(
-      async (receivedNotification) => {
+      (receivedNotification) => {
         // Process/decrypt the notification data if needed
         const rawData = receivedNotification.request.content.data;
         if (rawData && typeof rawData === 'object') {
-          const processedData = await processNotificationData(
-            rawData as Record<string, unknown>
-          );
-          // Update the notification with processed data
-          const processedNotification = {
-            ...receivedNotification,
-            request: {
-              ...receivedNotification.request,
-              content: {
-                ...receivedNotification.request.content,
-                data: processedData,
+          void (async () => {
+            const processedData = await processNotificationData(
+              rawData as Record<string, unknown>
+            );
+            // Update the notification with processed data
+            const processedNotification = {
+              ...receivedNotification,
+              request: {
+                ...receivedNotification.request,
+                content: {
+                  ...receivedNotification.request.content,
+                  data: processedData,
+                },
               },
-            },
-          };
-          setNotification(processedNotification as Notifications.Notification);
+            };
+            setNotification(processedNotification as Notifications.Notification);
+          })();
         } else {
           setNotification(receivedNotification);
         }
@@ -187,27 +189,30 @@ export function usePushNotifications() {
 
     // Listen for notification taps
     responseListener.current = Notifications.addNotificationResponseReceivedListener(
-      async (response) => {
+      (response) => {
         const rawData = response.notification.request.content.data;
-        let data = rawData;
 
-        // Decrypt if needed
-        if (rawData && isEncrypted(rawData) && isEncryptionAvailable()) {
-          try {
-            data = await decryptPushPayload(rawData);
-          } catch {
-            // Use raw data if decryption fails
+        void (async () => {
+          let data = rawData;
+
+          // Decrypt if needed
+          if (rawData && isEncrypted(rawData) && isEncryptionAvailable()) {
+            try {
+              data = await decryptPushPayload(rawData);
+            } catch {
+              // Use raw data if decryption fails
+            }
           }
-        }
 
-        // Navigate based on notification type
-        if (data?.type === 'violation_detected') {
-          router.push('/(tabs)/alerts');
-        } else if (data?.type === 'stream_started' || data?.type === 'stream_stopped') {
-          router.push('/(tabs)/activity');
-        } else if (data?.type === 'server_down' || data?.type === 'server_up') {
-          router.push('/(tabs)');
-        }
+          // Navigate based on notification type
+          if (data?.type === 'violation_detected') {
+            router.push('/(tabs)/alerts');
+          } else if (data?.type === 'stream_started' || data?.type === 'stream_stopped') {
+            router.push('/(tabs)/activity');
+          } else if (data?.type === 'server_down' || data?.type === 'server_up') {
+            router.push('/(tabs)');
+          }
+        })();
       }
     );
 

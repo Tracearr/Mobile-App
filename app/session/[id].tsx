@@ -7,7 +7,7 @@ import { View, Text, ScrollView, Pressable, ActivityIndicator, Image } from 'rea
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Play,
   Pause,
@@ -193,7 +193,7 @@ export default function SessionDetailScreen() {
 
   // Load server URL for image paths
   useEffect(() => {
-    getServerUrl().then(setServerUrl);
+    void getServerUrl().then(setServerUrl);
   }, []);
 
   const {
@@ -205,7 +205,7 @@ export default function SessionDetailScreen() {
     queryFn: async () => {
       console.log('[SessionDetail] Fetching session:', id);
       try {
-        const result = await api.sessions.get(id!);
+        const result = await api.sessions.get(id);
         console.log('[SessionDetail] Received session data:', JSON.stringify(result, null, 2));
         return result;
       } catch (err) {
