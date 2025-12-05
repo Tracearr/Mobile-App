@@ -1,7 +1,7 @@
 /**
  * Pairing screen - QR code scanner or manual entry
  */
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -29,11 +29,14 @@ export default function PairScreen() {
   const [serverUrl, setServerUrl] = useState('');
   const [token, setToken] = useState('');
   const [scanned, setScanned] = useState(false);
+  const scanLockRef = useRef(false); // Synchronous lock to prevent race conditions
 
   const { pair, isLoading, error, clearError } = useAuthStore();
 
   const handleBarCodeScanned = async ({ data }: { data: string }) => {
-    if (scanned || isLoading) return;
+    // Use ref for synchronous check - state updates are async and cause race conditions
+    if (scanLockRef.current || isLoading) return;
+    scanLockRef.current = true; // Immediate synchronous lock
     setScanned(true);
 
     try {
@@ -41,7 +44,10 @@ export default function PairScreen() {
       // First check if it even looks like our URL format
       if (!data.startsWith('tracearr://pair')) {
         // Silently ignore non-Tracearr QR codes (don't spam alerts)
-        setTimeout(() => setScanned(false), 2000); // 2 second cooldown
+        setTimeout(() => {
+          scanLockRef.current = false;
+          setScanned(false);
+        }, 2000);
         return;
       }
 
@@ -56,7 +62,10 @@ export default function PairScreen() {
     } catch (err) {
       Alert.alert('Pairing Failed', err instanceof Error ? err.message : 'Invalid QR code');
       // Add cooldown before allowing another scan
-      setTimeout(() => setScanned(false), 3000);
+      setTimeout(() => {
+        scanLockRef.current = false;
+        setScanned(false);
+      }, 3000);
     }
   };
 
