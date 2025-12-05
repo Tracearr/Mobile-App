@@ -12,7 +12,8 @@
       ]
     },
     "types": [
-      "expo-router/types"
+      "expo-router/types",
+      "node"
     ],
     "skipLibCheck": true,
     "esModuleInterop": true,
