@@ -1,6 +1,9 @@
 /**
  * Root layout - handles auth state and navigation
  */
+import { Buffer } from 'buffer';
+global.Buffer = Buffer;
+
 import '../global.css';
 import { useEffect } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';

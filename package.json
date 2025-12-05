@@ -32,6 +32,7 @@
     "@tanstack/react-query": "5.60.6",
     "@tracearr/shared": "workspace:*",
     "axios": "1.7.7",
+    "buffer": "^6.0.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",

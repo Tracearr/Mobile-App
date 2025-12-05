@@ -25,6 +25,7 @@
         "NSLocationWhenInUseUsageDescription": "Location permission is not required for this app.",
         "ITSAppUsesNonExemptEncryption": false,
         "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": true,
           "NSAllowsLocalNetworking": true
         },
         "NSLocalNetworkUsageDescription": "Tracearr needs local network access to connect to your self-hosted server."
