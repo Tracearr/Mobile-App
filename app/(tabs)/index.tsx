@@ -68,6 +68,8 @@ export default function DashboardScreen() {
   const { data: activeSessions } = useQuery({
     queryKey: ['sessions', 'active'],
     queryFn: api.sessions.active,
+    staleTime: 1000 * 15, // 15 seconds - match web
+    refetchInterval: 1000 * 30, // 30 seconds - fallback if WebSocket events missed
   });
 
   return (
