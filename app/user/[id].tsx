@@ -369,7 +369,7 @@ export default function UserDetailScreen() {
     queryKey: ['user', id, 'sessions'],
     queryFn: ({ pageParam = 1 }) => api.users.sessions(id, { page: pageParam, pageSize: PAGE_SIZE }),
     initialPageParam: 1,
-    getNextPageParam: (lastPage) => {
+    getNextPageParam: (lastPage: { page: number; totalPages: number }) => {
       if (lastPage.page < lastPage.totalPages) {
         return lastPage.page + 1;
       }
@@ -389,7 +389,7 @@ export default function UserDetailScreen() {
     queryKey: ['violations', { userId: id }],
     queryFn: ({ pageParam = 1 }) => api.violations.list({ userId: id, page: pageParam, pageSize: PAGE_SIZE }),
     initialPageParam: 1,
-    getNextPageParam: (lastPage) => {
+    getNextPageParam: (lastPage: { page: number; totalPages: number }) => {
       if (lastPage.page < lastPage.totalPages) {
         return lastPage.page + 1;
       }

@@ -215,7 +215,7 @@ export default function AlertsScreen() {
     queryKey: ['violations'],
     queryFn: ({ pageParam = 1 }) => api.violations.list({ page: pageParam, pageSize: PAGE_SIZE }),
     initialPageParam: 1,
-    getNextPageParam: (lastPage) => {
+    getNextPageParam: (lastPage: { page: number; totalPages: number }) => {
       if (lastPage.page < lastPage.totalPages) {
         return lastPage.page + 1;
       }

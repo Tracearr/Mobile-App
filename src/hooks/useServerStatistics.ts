@@ -82,19 +82,21 @@ export function useServerStatistics(serverId: string | undefined, enabled: boole
   });
 
   // Calculate averages from windowed data
-  const averages = query.data?.data && query.data.data.length > 0
+  const dataPoints = query.data?.data as ServerResourceDataPoint[] | undefined;
+  const dataLength = dataPoints?.length ?? 0;
+  const averages = dataPoints && dataLength > 0
     ? {
         hostCpu: Math.round(
-          query.data.data.reduce((sum, p) => sum + p.hostCpuUtilization, 0) / query.data.data.length
+          dataPoints.reduce((sum: number, p) => sum + p.hostCpuUtilization, 0) / dataLength
         ),
         processCpu: Math.round(
-          query.data.data.reduce((sum, p) => sum + p.processCpuUtilization, 0) / query.data.data.length
+          dataPoints.reduce((sum: number, p) => sum + p.processCpuUtilization, 0) / dataLength
         ),
         hostMemory: Math.round(
-          query.data.data.reduce((sum, p) => sum + p.hostMemoryUtilization, 0) / query.data.data.length
+          dataPoints.reduce((sum: number, p) => sum + p.hostMemoryUtilization, 0) / dataLength
         ),
         processMemory: Math.round(
-          query.data.data.reduce((sum, p) => sum + p.processMemoryUtilization, 0) / query.data.data.length
+          dataPoints.reduce((sum: number, p) => sum + p.processMemoryUtilization, 0) / dataLength
         ),
       }
     : null;

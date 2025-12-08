@@ -51,7 +51,7 @@ const styles = StyleSheet.create({
   },
   button: {
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs + 2,
+    paddingVertical: (spacing.xs as number) + 2,
     borderRadius: borderRadius.md,
   },
   buttonSelected: {
