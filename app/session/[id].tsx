@@ -1,6 +1,7 @@
 /**
  * Session detail screen
  * Shows comprehensive information about a specific session/stream
+ * Query keys include selectedServerId for proper cache isolation per media server
  */
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { View, Text, ScrollView, Pressable, ActivityIndicator, Image } from 'react-native';
@@ -26,6 +27,7 @@ import {
   Wifi,
 } from 'lucide-react-native';
 import { api, getServerUrl } from '@/lib/api';
+import { useMediaServer } from '@/providers/MediaServerProvider';
 import { colors } from '@/lib/theme';
 import { Badge } from '@/components/ui/badge';
 import type { SessionWithDetails, SessionState, MediaType } from '@tracearr/shared';
@@ -116,8 +118,8 @@ function InfoCard({
   children: React.ReactNode;
 }) {
   return (
-    <View className="bg-zinc-900 rounded-xl p-4 mb-4">
-      <Text className="text-zinc-400 text-sm font-medium mb-3">{title}</Text>
+    <View className="bg-card rounded-xl p-4 mb-4">
+      <Text className="text-muted-foreground text-sm font-medium mb-3">{title}</Text>
       {children}
     </View>
   );
@@ -136,9 +138,9 @@ function InfoRow({
   valueColor?: string;
 }) {
   return (
-    <View className="flex-row items-center py-2 border-b border-zinc-800 last:border-b-0">
+    <View className="flex-row items-center py-2 border-b border-border last:border-b-0">
       <Icon size={18} color={colors.text.secondary.dark} />
-      <Text className="text-zinc-400 text-sm ml-3 flex-1">{label}</Text>
+      <Text className="text-muted-foreground text-sm ml-3 flex-1">{label}</Text>
       <Text
         className="text-sm font-medium"
         style={{ color: valueColor || colors.text.primary.dark }}
@@ -189,6 +191,7 @@ function ProgressBar({
 export default function SessionDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { selectedServerId } = useMediaServer();
   const [serverUrl, setServerUrl] = useState<string | null>(null);
 
   // Load server URL for image paths
@@ -201,7 +204,7 @@ export default function SessionDetailScreen() {
     isLoading,
     error,
   } = useQuery<SessionWithDetails>({
-    queryKey: ['session', id],
+    queryKey: ['session', id, selectedServerId],
     queryFn: async () => {
       console.log('[SessionDetail] Fetching session:', id);
       try {
@@ -290,10 +293,10 @@ export default function SessionDetailScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background.dark }} edges={['bottom']}>
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
         {/* Media Header */}
-        <View className="bg-zinc-900 rounded-xl p-4 mb-4">
+        <View className="bg-card rounded-xl p-4 mb-4">
           <View className="flex-row items-start">
             {/* Poster/Thumbnail */}
-            <View className="w-20 h-28 bg-zinc-800 rounded-lg mr-4 overflow-hidden">
+            <View className="w-20 h-28 bg-surface rounded-lg mr-4 overflow-hidden">
               {session.thumbPath && serverUrl ? (
                 <Image
                   source={{ uri: `${serverUrl}/api/v1/images/proxy?server=${session.serverId}&url=${encodeURIComponent(session.thumbPath)}&width=160&height=224` }}
@@ -320,14 +323,14 @@ export default function SessionDetailScreen() {
               </Text>
 
               {getSubtitle() ? (
-                <Text className="text-zinc-400 text-sm mt-1" numberOfLines={1}>
+                <Text className="text-muted-foreground text-sm mt-1" numberOfLines={1}>
                   {getSubtitle()}
                 </Text>
               ) : null}
 
               <View className="flex-row items-center mt-2">
                 <MediaIcon size={14} color={colors.text.secondary.dark} />
-                <Text className="text-zinc-500 text-xs ml-1 capitalize">
+                <Text className="text-muted-foreground text-xs ml-1 capitalize">
                   {session.mediaType}
                 </Text>
               </View>
@@ -341,11 +344,11 @@ export default function SessionDetailScreen() {
         {/* User Card - Tappable */}
         <Pressable
           onPress={() => router.push(`/user/${session.serverUserId}` as never)}
-          className="bg-zinc-900 rounded-xl p-4 mb-4 active:opacity-70"
+          className="bg-card rounded-xl p-4 mb-4 active:opacity-70"
         >
-          <Text className="text-zinc-400 text-sm font-medium mb-3">User</Text>
+          <Text className="text-muted-foreground text-sm font-medium mb-3">User</Text>
           <View className="flex-row items-center">
-            <View className="w-12 h-12 rounded-full bg-zinc-800 overflow-hidden">
+            <View className="w-12 h-12 rounded-full bg-surface overflow-hidden">
               {session.userThumb ? (
                 <Image
                   source={{ uri: session.userThumb }}
@@ -359,12 +362,12 @@ export default function SessionDetailScreen() {
               )}
             </View>
             <View className="flex-1 ml-3">
-              <Text className="text-white text-base font-semibold">
+              <Text className="text-foreground text-base font-semibold">
                 {session.username}
               </Text>
-              <Text className="text-zinc-400 text-sm">Tap to view profile</Text>
+              <Text className="text-muted-foreground text-sm">Tap to view profile</Text>
             </View>
-            <Text className="text-cyan-400 text-sm">→</Text>
+            <Text className="text-primary text-sm">→</Text>
           </View>
         </Pressable>
 
@@ -373,10 +376,10 @@ export default function SessionDetailScreen() {
           <View className="flex-row items-center">
             <Server size={20} color={colors.text.secondary.dark} />
             <View className="flex-1 ml-3">
-              <Text className="text-white text-base font-medium">
+              <Text className="text-foreground text-base font-medium">
                 {session.serverName}
               </Text>
-              <Text className="text-zinc-400 text-sm capitalize">
+              <Text className="text-muted-foreground text-sm capitalize">
                 {session.serverType}
               </Text>
             </View>

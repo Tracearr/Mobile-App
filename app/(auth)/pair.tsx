@@ -1,5 +1,6 @@
 /**
  * Pairing screen - QR code scanner or manual entry
+ * Supports both initial pairing and adding additional servers
  */
 import { useState, useRef } from 'react';
 import {
@@ -15,6 +16,8 @@ import {
 } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
+import { ChevronLeft } from 'lucide-react-native';
 import { useAuthStore } from '@/lib/authStore';
 import { colors, spacing, borderRadius, typography } from '@/lib/theme';
 
@@ -24,6 +27,7 @@ interface QRPairingPayload {
 }
 
 export default function PairScreen() {
+  const router = useRouter();
   const [permission, requestPermission] = useCameraPermissions();
   const [manualMode, setManualMode] = useState(false);
   const [serverUrl, setServerUrl] = useState('');
@@ -31,7 +35,10 @@ export default function PairScreen() {
   const [scanned, setScanned] = useState(false);
   const scanLockRef = useRef(false); // Synchronous lock to prevent race conditions
 
-  const { pair, isLoading, error, clearError } = useAuthStore();
+  const { addServer, isAuthenticated, servers, isLoading, error, clearError } = useAuthStore();
+
+  // Check if this is adding an additional server vs first-time pairing
+  const isAddingServer = isAuthenticated && servers.length > 0;
 
   const handleBarCodeScanned = async ({ data }: { data: string }) => {
     // Use ref for synchronous check - state updates are async and cause race conditions
@@ -58,7 +65,12 @@ export default function PairScreen() {
       }
 
       const payload = JSON.parse(atob(base64Data)) as QRPairingPayload;
-      await pair(payload.url, payload.token);
+      await addServer(payload.url, payload.token);
+
+      // Navigate back to tabs if adding a server
+      if (isAddingServer) {
+        router.replace('/(tabs)');
+      }
     } catch (err) {
       Alert.alert('Pairing Failed', err instanceof Error ? err.message : 'Invalid QR code');
       // Add cooldown before allowing another scan
@@ -77,10 +89,19 @@ export default function PairScreen() {
 
     clearError();
     try {
-      await pair(serverUrl.trim(), token.trim());
+      await addServer(serverUrl.trim(), token.trim());
+
+      // Navigate back to tabs if adding a server
+      if (isAddingServer) {
+        router.replace('/(tabs)');
+      }
     } catch {
       // Error is handled by the store
     }
+  };
+
+  const handleBack = () => {
+    router.back();
   };
 
   if (manualMode) {
@@ -91,8 +112,18 @@ export default function PairScreen() {
           style={styles.keyboardView}
         >
           <ScrollView contentContainerStyle={styles.scrollContent}>
+            {/* Back button for adding servers */}
+            {isAddingServer && (
+              <Pressable style={styles.backButton} onPress={handleBack}>
+                <ChevronLeft size={24} color={colors.text.primary.dark} />
+                <Text style={styles.backText}>Back</Text>
+              </Pressable>
+            )}
+
             <View style={styles.header}>
-              <Text style={styles.title}>Connect to Server</Text>
+              <Text style={styles.title}>
+                {isAddingServer ? 'Add Server' : 'Connect to Server'}
+              </Text>
               <Text style={styles.subtitle}>
                 Enter your Tracearr server URL and mobile access token
               </Text>
@@ -157,8 +188,18 @@ export default function PairScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      {/* Back button for adding servers */}
+      {isAddingServer && (
+        <Pressable style={styles.backButton} onPress={handleBack}>
+          <ChevronLeft size={24} color={colors.text.primary.dark} />
+          <Text style={styles.backText}>Back</Text>
+        </Pressable>
+      )}
+
       <View style={styles.header}>
-        <Text style={styles.title}>Welcome to Tracearr</Text>
+        <Text style={styles.title}>
+          {isAddingServer ? 'Add Server' : 'Welcome to Tracearr'}
+        </Text>
         <Text style={styles.subtitle}>
           Open Settings → Mobile App in your Tracearr dashboard and scan the QR code
         </Text>
@@ -207,6 +248,18 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     padding: spacing.lg,
+  },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    marginTop: spacing.sm,
+  },
+  backText: {
+    fontSize: typography.fontSize.base,
+    color: colors.text.primary.dark,
+    marginLeft: spacing.xs,
   },
   header: {
     paddingHorizontal: spacing.lg,

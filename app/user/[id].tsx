@@ -1,6 +1,7 @@
 /**
  * User Detail Screen
  * Shows comprehensive user information with web feature parity
+ * Query keys include selectedServerId for proper cache isolation per media server
  */
 import { View, ScrollView, RefreshControl, Pressable, ActivityIndicator, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -27,6 +28,7 @@ import {
 } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { api, getServerUrl } from '@/lib/api';
+import { useMediaServer } from '@/providers/MediaServerProvider';
 import { Text } from '@/components/ui/text';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -102,7 +104,7 @@ function TrustScoreBadge({ score, showLabel = false }: { score: number; showLabe
         </Text>
       </View>
       {showLabel && (
-        <Text className="text-sm text-muted">{label} Trust</Text>
+        <Text className="text-sm text-muted-foreground">{label} Trust</Text>
       )}
     </View>
   );
@@ -118,10 +120,10 @@ function StatCard({ icon: Icon, label, value, subValue }: {
     <View className="flex-1 bg-surface rounded-lg p-3 border border-border">
       <View className="flex-row items-center gap-2 mb-1">
         <Icon size={14} color={colors.text.muted.dark} />
-        <Text className="text-xs text-muted">{label}</Text>
+        <Text className="text-xs text-muted-foreground">{label}</Text>
       </View>
       <Text className="text-xl font-bold">{value}</Text>
-      {subValue && <Text className="text-xs text-muted mt-0.5">{subValue}</Text>}
+      {subValue && <Text className="text-xs text-muted-foreground mt-0.5">{subValue}</Text>}
     </View>
   );
 }
@@ -165,7 +167,7 @@ function LocationCard({ location }: { location: UserLocation }) {
       </View>
       <View className="flex-1">
         <Text className="text-sm font-medium">{locationText}</Text>
-        <Text className="text-xs text-muted">
+        <Text className="text-xs text-muted-foreground">
           {location.sessionCount} {location.sessionCount === 1 ? 'session' : 'sessions'}
           {' • '}
           {safeFormatDistanceToNow(location.lastSeenAt)}
@@ -186,10 +188,10 @@ function DeviceCard({ device }: { device: UserDevice }) {
       </View>
       <View className="flex-1">
         <Text className="text-sm font-medium">{deviceName}</Text>
-        <Text className="text-xs text-muted">
+        <Text className="text-xs text-muted-foreground">
           {platform} • {device.sessionCount} {device.sessionCount === 1 ? 'session' : 'sessions'}
         </Text>
-        <Text className="text-xs text-muted">
+        <Text className="text-xs text-muted-foreground">
           Last seen {safeFormatDistanceToNow(device.lastSeenAt)}
         </Text>
       </View>
@@ -255,7 +257,7 @@ function SessionCard({ session, onPress, serverUrl }: { session: Session; onPres
               <Text className="text-sm font-medium" numberOfLines={1}>
                 {session.mediaTitle}
               </Text>
-              <Text className="text-xs text-muted capitalize">{session.mediaType}</Text>
+              <Text className="text-xs text-muted-foreground capitalize">{session.mediaType}</Text>
             </View>
             <Badge variant={displayState.variant}>
               {displayState.label}
@@ -264,16 +266,16 @@ function SessionCard({ session, onPress, serverUrl }: { session: Session; onPres
           <View className="flex-row items-center gap-4 mt-1">
             <View className="flex-row items-center gap-1">
               <Clock size={12} color={colors.text.muted.dark} />
-              <Text className="text-xs text-muted">{formatDuration(session.durationMs)}</Text>
+              <Text className="text-xs text-muted-foreground">{formatDuration(session.durationMs)}</Text>
             </View>
             <View className="flex-row items-center gap-1">
               <Tv size={12} color={colors.text.muted.dark} />
-              <Text className="text-xs text-muted">{session.platform || 'Unknown'}</Text>
+              <Text className="text-xs text-muted-foreground">{session.platform || 'Unknown'}</Text>
             </View>
             {locationText && (
               <View className="flex-row items-center gap-1">
                 <Globe size={12} color={colors.text.muted.dark} />
-                <Text className="text-xs text-muted">{locationText}</Text>
+                <Text className="text-xs text-muted-foreground">{locationText}</Text>
               </View>
             )}
           </View>
@@ -304,7 +306,7 @@ function ViolationCard({
           </View>
           <View className="flex-1">
             <Text className="text-sm font-medium">{ruleName}</Text>
-            <Text className="text-xs text-muted">{timeAgo}</Text>
+            <Text className="text-xs text-muted-foreground">{timeAgo}</Text>
           </View>
         </View>
         <SeverityBadge severity={violation.severity} />
@@ -332,6 +334,7 @@ export default function UserDetailScreen() {
   const navigation = useNavigation();
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { selectedServerId } = useMediaServer();
   const [serverUrl, setServerUrl] = useState<string | null>(null);
 
   // Load server URL for image proxy
@@ -339,14 +342,14 @@ export default function UserDetailScreen() {
     void getServerUrl().then(setServerUrl);
   }, []);
 
-  // Fetch user detail
+  // Fetch user detail - query keys include selectedServerId for cache isolation
   const {
     data: user,
     isLoading: userLoading,
     refetch: refetchUser,
     isRefetching: userRefetching,
   } = useQuery({
-    queryKey: ['user', id],
+    queryKey: ['user', id, selectedServerId],
     queryFn: () => api.users.get(id),
     enabled: !!id,
   });
@@ -366,7 +369,7 @@ export default function UserDetailScreen() {
     hasNextPage: hasMoreSessions,
     isFetchingNextPage: fetchingMoreSessions,
   } = useInfiniteQuery({
-    queryKey: ['user', id, 'sessions'],
+    queryKey: ['user', id, 'sessions', selectedServerId],
     queryFn: ({ pageParam = 1 }) => api.users.sessions(id, { page: pageParam, pageSize: PAGE_SIZE }),
     initialPageParam: 1,
     getNextPageParam: (lastPage: { page: number; totalPages: number }) => {
@@ -386,7 +389,7 @@ export default function UserDetailScreen() {
     hasNextPage: hasMoreViolations,
     isFetchingNextPage: fetchingMoreViolations,
   } = useInfiniteQuery({
-    queryKey: ['violations', { userId: id }],
+    queryKey: ['violations', { userId: id }, selectedServerId],
     queryFn: ({ pageParam = 1 }) => api.violations.list({ userId: id, page: pageParam, pageSize: PAGE_SIZE }),
     initialPageParam: 1,
     getNextPageParam: (lastPage: { page: number; totalPages: number }) => {
@@ -400,14 +403,14 @@ export default function UserDetailScreen() {
 
   // Fetch user locations
   const { data: locations, isLoading: locationsLoading } = useQuery({
-    queryKey: ['user', id, 'locations'],
+    queryKey: ['user', id, 'locations', selectedServerId],
     queryFn: () => api.users.locations(id),
     enabled: !!id,
   });
 
   // Fetch user devices
   const { data: devices, isLoading: devicesLoading } = useQuery({
-    queryKey: ['user', id, 'devices'],
+    queryKey: ['user', id, 'devices', selectedServerId],
     queryFn: () => api.users.devices(id),
     enabled: !!id,
   });
@@ -416,7 +419,7 @@ export default function UserDetailScreen() {
   const acknowledgeMutation = useMutation({
     mutationFn: api.violations.acknowledge,
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['violations', { userId: id }] });
+      void queryClient.invalidateQueries({ queryKey: ['violations', { userId: id }, selectedServerId] });
     },
   });
 
@@ -427,10 +430,10 @@ export default function UserDetailScreen() {
 
   const handleRefresh = () => {
     void refetchUser();
-    void queryClient.invalidateQueries({ queryKey: ['user', id, 'sessions'] });
-    void queryClient.invalidateQueries({ queryKey: ['violations', { userId: id }] });
-    void queryClient.invalidateQueries({ queryKey: ['user', id, 'locations'] });
-    void queryClient.invalidateQueries({ queryKey: ['user', id, 'devices'] });
+    void queryClient.invalidateQueries({ queryKey: ['user', id, 'sessions', selectedServerId] });
+    void queryClient.invalidateQueries({ queryKey: ['violations', { userId: id }, selectedServerId] });
+    void queryClient.invalidateQueries({ queryKey: ['user', id, 'locations', selectedServerId] });
+    void queryClient.invalidateQueries({ queryKey: ['user', id, 'devices', selectedServerId] });
   };
 
   const handleSessionPress = (session: Session) => {
@@ -452,7 +455,7 @@ export default function UserDetailScreen() {
       <SafeAreaView style={{ flex: 1, backgroundColor: colors.background.dark }} edges={['left', 'right']}>
         <View className="flex-1 items-center justify-center px-8">
           <Text className="text-xl font-semibold text-center mb-2">User Not Found</Text>
-          <Text className="text-muted text-center">This user may have been removed.</Text>
+          <Text className="text-muted-foreground text-center">This user may have been removed.</Text>
         </View>
       </SafeAreaView>
     );
@@ -487,7 +490,7 @@ export default function UserDetailScreen() {
                 )}
               </View>
               {user.email && (
-                <Text className="text-sm text-muted mb-2">{user.email}</Text>
+                <Text className="text-sm text-muted-foreground mb-2">{user.email}</Text>
               )}
               <TrustScoreBadge score={user.trustScore} showLabel />
             </View>
@@ -525,7 +528,7 @@ export default function UserDetailScreen() {
           <CardHeader>
             <View className="flex-row justify-between items-center">
               <CardTitle>Locations</CardTitle>
-              <Text className="text-xs text-muted">
+              <Text className="text-xs text-muted-foreground">
                 {locations?.length || 0} {locations?.length === 1 ? 'location' : 'locations'}
               </Text>
             </View>
@@ -538,11 +541,11 @@ export default function UserDetailScreen() {
                 <LocationCard key={`${location.city}-${location.country}-${index}`} location={location} />
               ))
             ) : (
-              <Text className="text-sm text-muted py-4 text-center">No locations recorded</Text>
+              <Text className="text-sm text-muted-foreground py-4 text-center">No locations recorded</Text>
             )}
             {locations && locations.length > 5 && (
               <View className="pt-3 items-center">
-                <Text className="text-xs text-muted">
+                <Text className="text-xs text-muted-foreground">
                   +{locations.length - 5} more locations
                 </Text>
               </View>
@@ -555,7 +558,7 @@ export default function UserDetailScreen() {
           <CardHeader>
             <View className="flex-row justify-between items-center">
               <CardTitle>Devices</CardTitle>
-              <Text className="text-xs text-muted">
+              <Text className="text-xs text-muted-foreground">
                 {devices?.length || 0} {devices?.length === 1 ? 'device' : 'devices'}
               </Text>
             </View>
@@ -568,11 +571,11 @@ export default function UserDetailScreen() {
                 <DeviceCard key={device.deviceId || index} device={device} />
               ))
             ) : (
-              <Text className="text-sm text-muted py-4 text-center">No devices recorded</Text>
+              <Text className="text-sm text-muted-foreground py-4 text-center">No devices recorded</Text>
             )}
             {devices && devices.length > 5 && (
               <View className="pt-3 items-center">
-                <Text className="text-xs text-muted">
+                <Text className="text-xs text-muted-foreground">
                   +{devices.length - 5} more devices
                 </Text>
               </View>
@@ -585,7 +588,7 @@ export default function UserDetailScreen() {
           <CardHeader>
             <View className="flex-row justify-between items-center">
               <CardTitle>Recent Sessions</CardTitle>
-              <Text className="text-xs text-muted">{totalSessions} total</Text>
+              <Text className="text-xs text-muted-foreground">{totalSessions} total</Text>
             </View>
           </CardHeader>
           <CardContent>
@@ -619,7 +622,7 @@ export default function UserDetailScreen() {
                 )}
               </>
             ) : (
-              <Text className="text-sm text-muted py-4 text-center">No sessions found</Text>
+              <Text className="text-sm text-muted-foreground py-4 text-center">No sessions found</Text>
             )}
           </CardContent>
         </Card>
@@ -629,7 +632,7 @@ export default function UserDetailScreen() {
           <CardHeader>
             <View className="flex-row justify-between items-center">
               <CardTitle>Violations</CardTitle>
-              <Text className="text-xs text-muted">{totalViolations} total</Text>
+              <Text className="text-xs text-muted-foreground">{totalViolations} total</Text>
             </View>
           </CardHeader>
           <CardContent>
@@ -666,7 +669,7 @@ export default function UserDetailScreen() {
                 <View className="w-12 h-12 rounded-full bg-success/10 items-center justify-center mb-2">
                   <Check size={24} color={colors.success} />
                 </View>
-                <Text className="text-sm text-muted">No violations</Text>
+                <Text className="text-sm text-muted-foreground">No violations</Text>
               </View>
             )}
           </CardContent>

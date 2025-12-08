@@ -24,6 +24,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { api } from '@/lib/api';
+import { useAuthStore } from '@/lib/authStore';
 import { colors } from '@/lib/theme';
 import type { NotificationPreferences } from '@tracearr/shared';
 
@@ -56,7 +57,7 @@ function SettingsSection({
 }) {
   return (
     <View className="mb-6">
-      <Text className="text-sm font-semibold text-muted uppercase tracking-wide mb-2">
+      <Text className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">
         {title}
       </Text>
       <Card className="p-0 overflow-hidden">{children}</Card>
@@ -93,7 +94,7 @@ function SettingRow({
           <Text className={cn('text-base', disabled && 'opacity-50')}>{label}</Text>
         </View>
         {description && (
-          <Text className={cn('text-xs text-muted mt-0.5', Icon && 'ml-7', disabled && 'opacity-50')}>
+          <Text className={cn('text-xs text-muted-foreground mt-0.5', Icon && 'ml-7', disabled && 'opacity-50')}>
             {description}
           </Text>
         )}
@@ -144,7 +145,7 @@ function SelectRow({
       disabled={disabled}
       className={cn('px-4 py-3 min-h-[52px]', 'active:opacity-70')}
     >
-      <Text className={cn('text-sm text-muted mb-1', disabled && 'opacity-50')}>
+      <Text className={cn('text-sm text-muted-foreground mb-1', disabled && 'opacity-50')}>
         {label}
       </Text>
       <Text className={cn('text-base', disabled && 'opacity-50')}>
@@ -243,16 +244,16 @@ function RateLimitStatus({
 }) {
   return (
     <View className="px-4 py-3">
-      <Text className="text-sm text-muted mb-2">Current Rate Limit Status</Text>
+      <Text className="text-sm text-muted-foreground mb-2">Current Rate Limit Status</Text>
       <View className="flex-row gap-4">
         <View className="flex-1 p-3 rounded-lg bg-surface">
-          <Text className="text-xs text-muted mb-1">Per Minute</Text>
+          <Text className="text-xs text-muted-foreground mb-1">Per Minute</Text>
           <Text className="text-lg font-semibold">
             {remainingMinute ?? maxPerMinute} / {maxPerMinute}
           </Text>
         </View>
         <View className="flex-1 p-3 rounded-lg bg-surface">
-          <Text className="text-xs text-muted mb-1">Per Hour</Text>
+          <Text className="text-xs text-muted-foreground mb-1">Per Hour</Text>
           <Text className="text-lg font-semibold">
             {remainingHour ?? maxPerHour} / {maxPerHour}
           </Text>
@@ -264,8 +265,9 @@ function RateLimitStatus({
 
 export default function NotificationSettingsScreen() {
   const queryClient = useQueryClient();
+  const { activeServerId } = useAuthStore();
 
-  // Fetch current preferences
+  // Fetch current preferences (per-device, not per-server)
   const {
     data: preferences,
     isLoading,
@@ -273,6 +275,7 @@ export default function NotificationSettingsScreen() {
   } = useQuery({
     queryKey: ['notifications', 'preferences'],
     queryFn: api.notifications.getPreferences,
+    enabled: !!activeServerId, // Still need auth
   });
 
   // Update mutation with optimistic updates
@@ -325,7 +328,7 @@ export default function NotificationSettingsScreen() {
       <SafeAreaView style={{ flex: 1, backgroundColor: colors.background.dark }} edges={['left', 'right']}>
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator size="large" color={colors.cyan.core} />
-          <Text className="mt-4 text-muted">Loading preferences...</Text>
+          <Text className="mt-4 text-muted-foreground">Loading preferences...</Text>
         </View>
       </SafeAreaView>
     );
@@ -338,7 +341,7 @@ export default function NotificationSettingsScreen() {
           <Text className="text-xl font-semibold text-center mb-2">
             Unable to Load Preferences
           </Text>
-          <Text className="text-muted text-center">
+          <Text className="text-muted-foreground text-center">
             {error instanceof Error ? error.message : 'An error occurred'}
           </Text>
         </View>
@@ -471,16 +474,16 @@ export default function NotificationSettingsScreen() {
               <View className="px-4 py-3">
                 <View className="flex-row justify-between items-center">
                   <View>
-                    <Text className="text-sm text-muted">Start Time</Text>
+                    <Text className="text-sm text-muted-foreground">Start Time</Text>
                     <Text className="text-base">{preferences.quietHoursStart ?? '23:00'}</Text>
                   </View>
-                  <Text className="text-muted mx-4">to</Text>
+                  <Text className="text-muted-foreground mx-4">to</Text>
                   <View>
-                    <Text className="text-sm text-muted">End Time</Text>
+                    <Text className="text-sm text-muted-foreground">End Time</Text>
                     <Text className="text-base">{preferences.quietHoursEnd ?? '08:00'}</Text>
                   </View>
                 </View>
-                <Text className="text-xs text-muted mt-2">
+                <Text className="text-xs text-muted-foreground mt-2">
                   Timezone: {preferences.quietHoursTimezone || 'UTC'}
                 </Text>
               </View>
@@ -506,7 +509,7 @@ export default function NotificationSettingsScreen() {
           />
           <Divider />
           <View className="px-4 py-2">
-            <Text className="text-xs text-muted leading-4">
+            <Text className="text-xs text-muted-foreground leading-4">
               Rate limits prevent notification spam. Current limits: {preferences.maxPerMinute}/min, {preferences.maxPerHour}/hour.
             </Text>
           </View>
@@ -525,7 +528,7 @@ export default function NotificationSettingsScreen() {
               <Text className="text-background font-semibold">Send Test Notification</Text>
             )}
           </Button>
-          <Text className="text-xs text-muted text-center mt-2">
+          <Text className="text-xs text-muted-foreground text-center mt-2">
             Verify that push notifications are working correctly
           </Text>
         </View>
