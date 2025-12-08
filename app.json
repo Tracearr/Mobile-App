@@ -45,11 +45,6 @@
         "android.permission.POST_NOTIFICATIONS"
       ]
     },
-    "web": {
-      "bundler": "metro",
-      "output": "static",
-      "favicon": "./assets/favicon.png"
-    },
     "plugins": [
       "expo-router",
       [
