@@ -9,8 +9,10 @@ import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/lib/authStore';
+import { useServerStatistics } from '@/hooks/useServerStatistics';
 import { StreamMap } from '@/components/map/StreamMap';
 import { NowPlayingCard } from '@/components/sessions';
+import { ServerResourceCard } from '@/components/server/ServerResourceCard';
 import { Text } from '@/components/ui/text';
 import { Card } from '@/components/ui/card';
 import { colors } from '@/lib/theme';
@@ -72,6 +74,23 @@ export default function DashboardScreen() {
     refetchInterval: 1000 * 30, // 30 seconds - fallback if WebSocket events missed
   });
 
+  // Get servers to find Plex server for resource monitoring
+  const { data: servers } = useQuery({
+    queryKey: ['servers', 'list'],
+    queryFn: api.servers.list,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+
+  // Find the first Plex server (only Plex supports resource stats)
+  const plexServer = servers?.find((s) => s.type === 'plex');
+
+  // Poll server statistics only when dashboard is visible and we have a Plex server
+  const {
+    latest: serverResources,
+    isLoadingData: resourcesLoading,
+    error: resourcesError,
+  } = useServerStatistics(plexServer?.id, !!plexServer);
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background.dark }} edges={['left', 'right']}>
       <ScrollView
@@ -111,9 +130,12 @@ export default function DashboardScreen() {
         {/* Now Playing - Active Streams */}
         <View className="px-4 mb-4">
           <View className="flex-row items-center justify-between mb-3">
-            <Text className="text-sm font-semibold text-muted uppercase tracking-wide">
-              Now Playing
-            </Text>
+            <View className="flex-row items-center gap-2">
+              <Ionicons name="tv-outline" size={18} color={colors.cyan.core} />
+              <Text className="text-sm font-semibold text-muted uppercase tracking-wide">
+                Now Playing
+              </Text>
+            </View>
             {activeSessions && activeSessions.length > 0 && (
               <View
                 style={{
@@ -159,13 +181,33 @@ export default function DashboardScreen() {
           )}
         </View>
 
-        {/* Stream Map - last component */}
+        {/* Stream Map - only show when there are active streams */}
         {activeSessions && activeSessions.length > 0 && (
-          <View className="px-4">
-            <Text className="text-sm font-semibold text-muted uppercase tracking-wide mb-3">
-              Stream Locations
-            </Text>
+          <View className="px-4 mb-4">
+            <View className="flex-row items-center gap-2 mb-3">
+              <Ionicons name="location-outline" size={18} color={colors.cyan.core} />
+              <Text className="text-sm font-semibold text-muted uppercase tracking-wide">
+                Stream Locations
+              </Text>
+            </View>
             <StreamMap sessions={activeSessions} height={200} />
+          </View>
+        )}
+
+        {/* Server Resources - only show if Plex server exists */}
+        {plexServer && (
+          <View className="px-4">
+            <View className="flex-row items-center gap-2 mb-3">
+              <Ionicons name="server-outline" size={18} color={colors.cyan.core} />
+              <Text className="text-sm font-semibold text-muted uppercase tracking-wide">
+                Server Resources
+              </Text>
+            </View>
+            <ServerResourceCard
+              latest={serverResources}
+              isLoading={resourcesLoading}
+              error={resourcesError}
+            />
           </View>
         )}
 
