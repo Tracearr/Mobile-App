@@ -1,11 +1,13 @@
 /**
  * Users tab - user list with infinite scroll
+ * Query keys include selectedServerId for proper cache isolation per media server
  */
 import { View, FlatList, RefreshControl, Pressable, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { api } from '@/lib/api';
+import { useMediaServer } from '@/providers/MediaServerProvider';
 import { Text } from '@/components/ui/text';
 import { Card } from '@/components/ui/card';
 import { UserAvatar } from '@/components/ui/user-avatar';
@@ -49,7 +51,7 @@ function UserCard({ user, onPress }: { user: ServerUserWithIdentity; onPress: ()
           <UserAvatar thumbUrl={user.thumbUrl} username={user.username} size={48} />
           <View className="flex-1">
             <Text className="text-base font-semibold">{user.username}</Text>
-            <Text className="text-sm text-muted mt-0.5">
+            <Text className="text-sm text-muted-foreground mt-0.5">
               {user.role === 'owner' ? 'Owner' : 'User'}
             </Text>
           </View>
@@ -62,6 +64,7 @@ function UserCard({ user, onPress }: { user: ServerUserWithIdentity; onPress: ()
 
 export default function UsersScreen() {
   const router = useRouter();
+  const { selectedServerId } = useMediaServer();
 
   const {
     data,
@@ -71,8 +74,9 @@ export default function UsersScreen() {
     refetch,
     isRefetching,
   } = useInfiniteQuery({
-    queryKey: ['users'],
-    queryFn: ({ pageParam = 1 }) => api.users.list({ page: pageParam, pageSize: PAGE_SIZE }),
+    queryKey: ['users', selectedServerId],
+    queryFn: ({ pageParam = 1 }) =>
+      api.users.list({ page: pageParam, pageSize: PAGE_SIZE, serverId: selectedServerId ?? undefined }),
     initialPageParam: 1,
     getNextPageParam: (lastPage: { page: number; totalPages: number }) => {
       if (lastPage.page < lastPage.totalPages) {
@@ -116,7 +120,7 @@ export default function UsersScreen() {
         ListHeaderComponent={
           <View className="flex-row justify-between items-center mb-3">
             <Text className="text-lg font-semibold">Users</Text>
-            <Text className="text-sm text-muted">
+            <Text className="text-sm text-muted-foreground">
               {total} {total === 1 ? 'user' : 'users'}
             </Text>
           </View>
@@ -131,10 +135,10 @@ export default function UsersScreen() {
         ListEmptyComponent={
           <View className="items-center py-12">
             <View className="w-16 h-16 rounded-full bg-card border border-border items-center justify-center mb-4">
-              <Text className="text-2xl text-muted">0</Text>
+              <Text className="text-2xl text-muted-foreground">0</Text>
             </View>
             <Text className="text-lg font-semibold mb-1">No Users</Text>
-            <Text className="text-sm text-muted text-center px-4">
+            <Text className="text-sm text-muted-foreground text-center px-4">
               Users will appear here after syncing with your media server
             </Text>
           </View>

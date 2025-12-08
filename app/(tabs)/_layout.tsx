@@ -11,6 +11,7 @@ import {
   type LucideIcon,
 } from 'lucide-react-native';
 import { colors } from '@/lib/theme';
+import { ServerSelector } from '@/components/ServerSelector';
 
 interface TabIconProps {
   icon: LucideIcon;
@@ -39,6 +40,7 @@ export default function TabLayout() {
         headerTitleStyle: {
           fontWeight: '600',
         },
+        headerRight: () => <ServerSelector />,
         tabBarStyle: {
           backgroundColor: colors.card.dark,
           borderTopColor: colors.border.dark,

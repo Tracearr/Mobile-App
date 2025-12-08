@@ -1,6 +1,6 @@
 /**
  * Dashboard tab - overview of streaming activity
- * Migrated to NativeWind
+ * Query keys include selectedServerId for proper cache isolation per media server
  */
 import { View, ScrollView, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -8,7 +8,7 @@ import { useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '@/lib/api';
-import { useAuthStore } from '@/lib/authStore';
+import { useMediaServer } from '@/providers/MediaServerProvider';
 import { useServerStatistics } from '@/hooks/useServerStatistics';
 import { StreamMap } from '@/components/map/StreamMap';
 import { NowPlayingCard } from '@/components/sessions';
@@ -56,40 +56,36 @@ function StatPill({
 
 export default function DashboardScreen() {
   const router = useRouter();
-  const { serverName } = useAuthStore();
+  const { selectedServerId, selectedServer } = useMediaServer();
 
   const {
     data: stats,
     refetch,
     isRefetching,
   } = useQuery({
-    queryKey: ['dashboard', 'stats'],
-    queryFn: api.stats.dashboard,
+    queryKey: ['dashboard', 'stats', selectedServerId],
+    queryFn: () => api.stats.dashboard(selectedServerId ?? undefined),
   });
 
   const { data: activeSessions } = useQuery({
-    queryKey: ['sessions', 'active'],
-    queryFn: api.sessions.active,
+    queryKey: ['sessions', 'active', selectedServerId],
+    queryFn: () => api.sessions.active(selectedServerId ?? undefined),
     staleTime: 1000 * 15, // 15 seconds - match web
     refetchInterval: 1000 * 30, // 30 seconds - fallback if WebSocket events missed
   });
 
-  // Get servers to find Plex server for resource monitoring
-  const { data: servers } = useQuery({
-    queryKey: ['servers', 'list'],
-    queryFn: api.servers.list,
-    staleTime: 1000 * 60 * 5, // 5 minutes
-  });
-
-  // Find the first Plex server (only Plex supports resource stats)
-  const plexServer = servers?.find((s) => s.type === 'plex');
+  // Only show server resources for Plex servers
+  const isPlexServer = selectedServer?.type === 'plex';
 
   // Poll server statistics only when dashboard is visible and we have a Plex server
   const {
     latest: serverResources,
     isLoadingData: resourcesLoading,
     error: resourcesError,
-  } = useServerStatistics(plexServer?.id, !!plexServer);
+  } = useServerStatistics(selectedServerId ?? undefined, isPlexServer);
+
+  // Server name from selected media server
+  const serverName = selectedServer?.name || 'Tracearr';
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background.dark }} edges={['left', 'right']}>
@@ -102,7 +98,7 @@ export default function DashboardScreen() {
       >
         {/* Server Name Header with Stats */}
         <View className="p-4 pt-3">
-          <Text className="text-2xl font-bold">{serverName || 'Tracearr'}</Text>
+          <Text className="text-2xl font-bold">{serverName}</Text>
           {stats && (
             <View
               style={{
@@ -132,7 +128,7 @@ export default function DashboardScreen() {
           <View className="flex-row items-center justify-between mb-3">
             <View className="flex-row items-center gap-2">
               <Ionicons name="tv-outline" size={18} color={colors.cyan.core} />
-              <Text className="text-sm font-semibold text-muted uppercase tracking-wide">
+              <Text className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
                 Now Playing
               </Text>
             </View>
@@ -175,7 +171,7 @@ export default function DashboardScreen() {
                   <Ionicons name="tv-outline" size={32} color={colors.text.muted.dark} />
                 </View>
                 <Text className="text-base font-semibold">No active streams</Text>
-                <Text className="text-sm text-muted mt-1">Streams will appear here when users start watching</Text>
+                <Text className="text-sm text-muted-foreground mt-1">Streams will appear here when users start watching</Text>
               </View>
             </Card>
           )}
@@ -186,7 +182,7 @@ export default function DashboardScreen() {
           <View className="px-4 mb-4">
             <View className="flex-row items-center gap-2 mb-3">
               <Ionicons name="location-outline" size={18} color={colors.cyan.core} />
-              <Text className="text-sm font-semibold text-muted uppercase tracking-wide">
+              <Text className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
                 Stream Locations
               </Text>
             </View>
@@ -194,12 +190,12 @@ export default function DashboardScreen() {
           </View>
         )}
 
-        {/* Server Resources - only show if Plex server exists */}
-        {plexServer && (
+        {/* Server Resources - only show if Plex server is active */}
+        {isPlexServer && (
           <View className="px-4">
             <View className="flex-row items-center gap-2 mb-3">
               <Ionicons name="server-outline" size={18} color={colors.cyan.core} />
-              <Text className="text-sm font-semibold text-muted uppercase tracking-wide">
+              <Text className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
                 Server Resources
               </Text>
             </View>

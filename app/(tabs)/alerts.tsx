@@ -1,6 +1,6 @@
 /**
  * Alerts tab - violations with infinite scroll
- * Updated UI with rule icons and proper violation details
+ * Query keys include selectedServerId for proper cache isolation per media server
  */
 import { View, FlatList, RefreshControl, Pressable, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -18,6 +18,7 @@ import {
   type LucideIcon,
 } from 'lucide-react-native';
 import { api } from '@/lib/api';
+import { useMediaServer } from '@/providers/MediaServerProvider';
 import { Text } from '@/components/ui/text';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -158,7 +159,7 @@ function ViolationCard({
             />
             <View className="flex-1">
               <Text className="text-base font-semibold">{username}</Text>
-              <Text className="text-xs text-muted">{timeAgo}</Text>
+              <Text className="text-xs text-muted-foreground">{timeAgo}</Text>
             </View>
           </Pressable>
           <SeverityBadge severity={violation.severity} />
@@ -203,6 +204,7 @@ function ViolationCard({
 export default function AlertsScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { selectedServerId } = useMediaServer();
 
   const {
     data,
@@ -212,8 +214,9 @@ export default function AlertsScreen() {
     refetch,
     isRefetching,
   } = useInfiniteQuery({
-    queryKey: ['violations'],
-    queryFn: ({ pageParam = 1 }) => api.violations.list({ page: pageParam, pageSize: PAGE_SIZE }),
+    queryKey: ['violations', selectedServerId],
+    queryFn: ({ pageParam = 1 }) =>
+      api.violations.list({ page: pageParam, pageSize: PAGE_SIZE, serverId: selectedServerId ?? undefined }),
     initialPageParam: 1,
     getNextPageParam: (lastPage: { page: number; totalPages: number }) => {
       if (lastPage.page < lastPage.totalPages) {
@@ -226,7 +229,7 @@ export default function AlertsScreen() {
   const acknowledgeMutation = useMutation({
     mutationFn: api.violations.acknowledge,
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['violations'] });
+      void queryClient.invalidateQueries({ queryKey: ['violations', selectedServerId] });
     },
   });
 
@@ -274,7 +277,7 @@ export default function AlertsScreen() {
           <View className="flex-row justify-between items-center mb-3">
             <View>
               <Text className="text-lg font-semibold">Alerts</Text>
-              <Text className="text-sm text-muted">
+              <Text className="text-sm text-muted-foreground">
                 {total} {total === 1 ? 'violation' : 'violations'} total
               </Text>
             </View>
@@ -300,7 +303,7 @@ export default function AlertsScreen() {
               <Check size={32} color={colors.success} />
             </View>
             <Text className="text-xl font-semibold mb-2">All Clear</Text>
-            <Text className="text-sm text-muted text-center px-8 leading-5">
+            <Text className="text-sm text-muted-foreground text-center px-8 leading-5">
               No rule violations have been detected. Your users are behaving nicely!
             </Text>
           </View>

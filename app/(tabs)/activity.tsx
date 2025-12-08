@@ -1,12 +1,13 @@
 /**
  * Activity tab - streaming statistics and charts
- * Matches web dashboard Activity page
+ * Query keys include selectedServerId for proper cache isolation per media server
  */
 import { useState } from 'react';
 import { View, ScrollView, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
+import { useMediaServer } from '@/providers/MediaServerProvider';
 import { colors } from '@/lib/theme';
 import { Text } from '@/components/ui/text';
 import { Card } from '@/components/ui/card';
@@ -28,7 +29,7 @@ function ChartSection({
 }) {
   return (
     <View className="mb-4">
-      <Text className="text-sm font-semibold text-muted uppercase tracking-wide mb-2">
+      <Text className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">
         {title}
       </Text>
       {children}
@@ -38,35 +39,36 @@ function ChartSection({
 
 export default function ActivityScreen() {
   const [period, setPeriod] = useState<StatsPeriod>('month');
+  const { selectedServerId } = useMediaServer();
 
-  // Fetch all stats data with selected period
+  // Fetch all stats data with selected period - query keys include selectedServerId for cache isolation
   const {
     data: playsData,
     refetch: refetchPlays,
     isRefetching: isRefetchingPlays,
   } = useQuery({
-    queryKey: ['stats', 'plays', period],
-    queryFn: () => api.stats.plays({ period }),
+    queryKey: ['stats', 'plays', period, selectedServerId],
+    queryFn: () => api.stats.plays({ period, serverId: selectedServerId ?? undefined }),
   });
 
   const { data: dayOfWeekData, refetch: refetchDayOfWeek } = useQuery({
-    queryKey: ['stats', 'dayOfWeek', period],
-    queryFn: () => api.stats.playsByDayOfWeek({ period }),
+    queryKey: ['stats', 'dayOfWeek', period, selectedServerId],
+    queryFn: () => api.stats.playsByDayOfWeek({ period, serverId: selectedServerId ?? undefined }),
   });
 
   const { data: hourOfDayData, refetch: refetchHourOfDay } = useQuery({
-    queryKey: ['stats', 'hourOfDay', period],
-    queryFn: () => api.stats.playsByHourOfDay({ period }),
+    queryKey: ['stats', 'hourOfDay', period, selectedServerId],
+    queryFn: () => api.stats.playsByHourOfDay({ period, serverId: selectedServerId ?? undefined }),
   });
 
   const { data: platformsData, refetch: refetchPlatforms } = useQuery({
-    queryKey: ['stats', 'platforms', period],
-    queryFn: () => api.stats.platforms({ period }),
+    queryKey: ['stats', 'platforms', period, selectedServerId],
+    queryFn: () => api.stats.platforms({ period, serverId: selectedServerId ?? undefined }),
   });
 
   const { data: qualityData, refetch: refetchQuality } = useQuery({
-    queryKey: ['stats', 'quality', period],
-    queryFn: () => api.stats.quality({ period }),
+    queryKey: ['stats', 'quality', period, selectedServerId],
+    queryFn: () => api.stats.quality({ period, serverId: selectedServerId ?? undefined }),
   });
 
   const handleRefresh = () => {
@@ -101,7 +103,7 @@ export default function ActivityScreen() {
         <View className="flex-row items-center justify-between mb-4">
           <View>
             <Text className="text-lg font-semibold">Activity</Text>
-            <Text className="text-sm text-muted">{periodLabels[period]}</Text>
+            <Text className="text-sm text-muted-foreground">{periodLabels[period]}</Text>
           </View>
           <PeriodSelector value={period} onChange={setPeriod} />
         </View>
@@ -114,7 +116,7 @@ export default function ActivityScreen() {
         {/* Day of Week & Hour of Day in a row on larger screens */}
         <View className="flex-row gap-3 mb-4">
           <View className="flex-1">
-            <Text className="text-sm font-semibold text-muted uppercase tracking-wide mb-2">
+            <Text className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">
               By Day
             </Text>
             <DayOfWeekChart data={dayOfWeekData?.data || []} height={160} />
@@ -122,7 +124,7 @@ export default function ActivityScreen() {
         </View>
 
         <View className="mb-4">
-          <Text className="text-sm font-semibold text-muted uppercase tracking-wide mb-2">
+          <Text className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">
             By Hour
           </Text>
           <HourOfDayChart data={hourOfDayData?.data || []} height={160} />
@@ -145,7 +147,7 @@ export default function ActivityScreen() {
             />
           ) : (
             <Card className="h-[120px] items-center justify-center">
-              <Text className="text-muted">Loading...</Text>
+              <Text className="text-muted-foreground">Loading...</Text>
             </Card>
           )}
         </ChartSection>
