@@ -22,6 +22,7 @@ import type {
   PaginatedResponse,
   NotificationPreferences,
   NotificationPreferencesWithStatus,
+  ServerResourceStats,
 } from '@tracearr/shared';
 
 let apiClient: AxiosInstance | null = null;
@@ -318,6 +319,11 @@ export const api = {
       const client = await getApiClient();
       const response = await client.get<{ data: Server[] }>('/servers');
       return response.data.data;
+    },
+    statistics: async (id: string): Promise<ServerResourceStats> => {
+      const client = await getApiClient();
+      const response = await client.get<ServerResourceStats>(`/servers/${id}/statistics`);
+      return response.data;
     },
   },
 
