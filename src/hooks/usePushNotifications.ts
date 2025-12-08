@@ -11,6 +11,7 @@ import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSocket } from '../providers/SocketProvider';
+import { useMediaServer } from '../providers/MediaServerProvider';
 import type { ViolationWithDetails, EncryptedPushPayload } from '@tracearr/shared';
 import {
   registerBackgroundNotificationTask,
@@ -49,6 +50,7 @@ export function usePushNotifications() {
   const responseListener = useRef<Notifications.EventSubscription | null>(null);
   const router = useRouter();
   const { socket } = useSocket();
+  const { selectServer, servers } = useMediaServer();
 
   // Register for push notifications
   const registerForPushNotifications = useCallback(async (): Promise<string | null> => {
@@ -208,6 +210,12 @@ export function usePushNotifications() {
             }
           }
 
+          // Auto-select the server related to this notification if provided
+          const notificationServerId = data?.serverId as string | undefined;
+          if (notificationServerId && servers.some((s) => s.id === notificationServerId)) {
+            selectServer(notificationServerId);
+          }
+
           // Navigate based on notification type
           if (data?.type === 'violation_detected') {
             router.push('/(tabs)/alerts');
@@ -230,7 +238,7 @@ export function usePushNotifications() {
       // Note: We don't unregister background task on unmount
       // as it needs to persist for background notifications
     };
-  }, [registerForPushNotifications, router, processNotificationData]);
+  }, [registerForPushNotifications, router, processNotificationData, selectServer, servers]);
 
   // Listen for violation events from socket
   useEffect(() => {
