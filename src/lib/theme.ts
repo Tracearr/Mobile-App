@@ -1,5 +1,6 @@
 /**
  * Design system tokens matching Tracearr web app
+ * These values match the web's dark mode theme exactly
  */
 
 export const colors = {
@@ -15,7 +16,7 @@ export const colors = {
     soft: '#1E3A5C',
   },
 
-  // Background colors
+  // Background colors - matching web dark mode
   background: {
     dark: '#050A12',
     light: '#F9FAFB',
@@ -39,35 +40,46 @@ export const colors = {
   success: '#22C55E',
   warning: '#F59E0B',
   error: '#EF4444',
+  danger: '#EF4444',
   info: '#3B82F6',
 
-  // Switch/toggle colors
+  // Switch/toggle colors - matching web dark mode border
   switch: {
-    trackOff: '#27272A',
+    trackOff: '#162840',
     trackOn: '#0EAFC8',
     thumbOn: '#18D1E7',
-    thumbOff: '#71717A',
+    thumbOff: '#64748B',
   },
 
-  // Text colors
+  // Text colors - matching web dark mode (CSS: --color-*)
   text: {
+    // --color-foreground / --color-card-foreground
     primary: {
       dark: '#FFFFFF',
       light: '#0B1A2E',
     },
+    // --color-muted-foreground (used for secondary/muted text)
     secondary: {
       dark: '#94A3B8',
       light: '#64748B',
     },
+    // Alias for secondary - use this for muted text in inline styles
     muted: {
-      dark: '#64748B',
-      light: '#94A3B8',
+      dark: '#94A3B8',
+      light: '#64748B',
     },
   },
 
-  // Border colors
+  // Icon colors - matching web dark mode (CSS: --color-icon-*)
+  icon: {
+    default: '#8CA3B8',
+    active: '#18D1E7',
+    danger: '#FF4C4C',
+  },
+
+  // Border colors - matching web dark mode (blue-steel)
   border: {
-    dark: '#1E3A5C',
+    dark: '#162840',
     light: '#E5E7EB',
   },
 

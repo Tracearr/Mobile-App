@@ -7,12 +7,13 @@ import { Text } from './text';
 const badgeVariants = cva('flex-row items-center rounded-full px-2.5 py-0.5', {
   variants: {
     variant: {
-      default: 'bg-cyan-core',
-      secondary: 'bg-muted',
+      default: 'bg-primary',
+      secondary: 'bg-secondary',
       destructive: 'bg-destructive',
       outline: 'border border-border bg-transparent',
-      success: 'bg-success/20',
-      warning: 'bg-warning/20',
+      success: 'bg-success/15',
+      warning: 'bg-warning/15',
+      danger: 'bg-danger/15',
     },
   },
   defaultVariants: {
@@ -23,12 +24,13 @@ const badgeVariants = cva('flex-row items-center rounded-full px-2.5 py-0.5', {
 const badgeTextVariants = cva('text-xs font-semibold', {
   variants: {
     variant: {
-      default: 'text-background',
-      secondary: 'text-muted',
-      destructive: 'text-white',
+      default: 'text-primary-foreground',
+      secondary: 'text-secondary-foreground',
+      destructive: 'text-destructive-foreground',
       outline: 'text-foreground',
       success: 'text-success',
       warning: 'text-warning',
+      danger: 'text-danger',
     },
   },
   defaultVariants: {

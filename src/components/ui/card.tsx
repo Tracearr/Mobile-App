@@ -23,7 +23,7 @@ const CardTitle = React.forwardRef<RNText, TextProps>(({ className, ...props }, 
 CardTitle.displayName = 'CardTitle';
 
 const CardDescription = React.forwardRef<RNText, TextProps>(({ className, ...props }, ref) => (
-  <Text ref={ref} className={cn('text-sm text-muted', className)} {...props} />
+  <Text ref={ref} className={cn('text-sm text-muted-foreground', className)} {...props} />
 ));
 CardDescription.displayName = 'CardDescription';
 

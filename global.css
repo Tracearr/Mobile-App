@@ -3,25 +3,57 @@
 @import "tailwindcss/utilities.css";
 @import "nativewind/theme";
 
-/* Tracearr brand colors */
+/* Tracearr brand colors - matching web dark mode exactly */
 @theme {
+  /* Brand colors */
   --color-cyan-core: #18D1E7;
   --color-cyan-deep: #0EAFC8;
   --color-cyan-dark: #0A7C96;
+  --color-blue-core: #0B1A2E;
+  --color-blue-steel: #162840;
+  --color-blue-soft: #1E3A5C;
 
-  /* Background colors - matching web */
-  --color-background: #09090B;
-  --color-card: #1A1A1D;
-  --color-border: #27272A;
+  /* Background colors - matching web dark mode exactly */
+  --color-background: #050A12;
+  --color-card: #0B1A2E;
+  --color-card-foreground: #FFFFFF;
+  --color-surface: #0F2338;
+  --color-popover: #162840;
+  --color-popover-foreground: #FFFFFF;
 
   /* Text colors */
-  --color-foreground: #FAFAFA;
-  --color-muted: #71717A;
+  --color-foreground: #FFFFFF;
+  --color-muted: #162840;
+  --color-muted-foreground: #94A3B8;
+
+  /* Primary (cyan) */
+  --color-primary: #18D1E7;
+  --color-primary-foreground: #0B1A2E;
+
+  /* Secondary */
+  --color-secondary: #162840;
+  --color-secondary-foreground: #FFFFFF;
+
+  /* Accent (same as primary) */
+  --color-accent: #18D1E7;
+  --color-accent-foreground: #0B1A2E;
+
+  /* Form inputs */
+  --color-input: #162840;
+  --color-ring: #18D1E7;
+  --color-border: #162840;
 
   /* Semantic colors */
   --color-destructive: #EF4444;
+  --color-destructive-foreground: #FFFFFF;
   --color-success: #22C55E;
   --color-warning: #F59E0B;
+  --color-danger: #EF4444;
+
+  /* Icon colors */
+  --color-icon: #8CA3B8;
+  --color-icon-active: #18D1E7;
+  --color-icon-danger: #FF4C4C;
 
   /* Border radius */
   --radius-lg: 0.5rem;

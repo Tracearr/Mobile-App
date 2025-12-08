@@ -7,11 +7,12 @@ import { Text } from './text';
 const buttonVariants = cva('flex-row items-center justify-center rounded-md', {
   variants: {
     variant: {
-      default: 'bg-cyan-core',
+      default: 'bg-primary',
       destructive: 'bg-destructive',
       outline: 'border border-border bg-transparent',
-      secondary: 'bg-muted',
+      secondary: 'bg-secondary',
       ghost: 'bg-transparent',
+      link: 'bg-transparent',
     },
     size: {
       default: 'h-10 px-4 py-2',
@@ -29,11 +30,12 @@ const buttonVariants = cva('flex-row items-center justify-center rounded-md', {
 const buttonTextVariants = cva('font-medium', {
   variants: {
     variant: {
-      default: 'text-background',
-      destructive: 'text-white',
+      default: 'text-primary-foreground',
+      destructive: 'text-destructive-foreground',
       outline: 'text-foreground',
-      secondary: 'text-foreground',
+      secondary: 'text-secondary-foreground',
       ghost: 'text-foreground',
+      link: 'text-primary underline',
     },
     size: {
       default: 'text-sm',
