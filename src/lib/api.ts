@@ -1,6 +1,7 @@
 /**
  * API client for Tracearr mobile app
  * Uses axios with automatic token refresh
+ * Supports multiple servers with active server selection
  */
 import axios from 'axios';
 import type { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
@@ -25,29 +26,45 @@ import type {
   ServerResourceStats,
 } from '@tracearr/shared';
 
-let apiClient: AxiosInstance | null = null;
+// Cache of API clients per server
+const apiClients = new Map<string, AxiosInstance>();
+let activeServerId: string | null = null;
 
 /**
- * Initialize or get the API client
+ * Initialize or get the API client for the active server
  */
 export async function getApiClient(): Promise<AxiosInstance> {
-  if (apiClient) {
-    return apiClient;
-  }
-
-  const serverUrl = await storage.getServerUrl();
-  if (!serverUrl) {
+  const serverId = await storage.getActiveServerId();
+  if (!serverId) {
     throw new Error('No server configured');
   }
 
-  apiClient = createApiClient(serverUrl);
-  return apiClient;
+  // If server changed, update active
+  if (activeServerId !== serverId) {
+    activeServerId = serverId;
+  }
+
+  // Check cache
+  const cached = apiClients.get(serverId);
+  if (cached) {
+    return cached;
+  }
+
+  // Get server info
+  const server = await storage.getServer(serverId);
+  if (!server) {
+    throw new Error('Server not found');
+  }
+
+  const client = createApiClient(server.url, serverId);
+  apiClients.set(serverId, client);
+  return client;
 }
 
 /**
- * Create a new API client for a given server URL
+ * Create a new API client for a given server
  */
-export function createApiClient(baseURL: string): AxiosInstance {
+export function createApiClient(baseURL: string, serverId: string): AxiosInstance {
   const client = axios.create({
     baseURL: `${baseURL}/api/v1`,
     timeout: 30000,
@@ -56,19 +73,19 @@ export function createApiClient(baseURL: string): AxiosInstance {
     },
   });
 
-  // Request interceptor - add auth token
+  // Request interceptor - add auth token for this server
   client.interceptors.request.use(
     async (config: InternalAxiosRequestConfig) => {
-      const token = await storage.getAccessToken();
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
+      const credentials = await storage.getServerCredentials(serverId);
+      if (credentials) {
+        config.headers.Authorization = `Bearer ${credentials.accessToken}`;
       }
       return config;
     },
     (error: unknown) => Promise.reject(error instanceof Error ? error : new Error(String(error)))
   );
 
-  // Response interceptor - handle token refresh
+  // Response interceptor - handle token refresh for this server
   client.interceptors.response.use(
     (response) => response,
     async (error: AxiosError) => {
@@ -79,24 +96,28 @@ export function createApiClient(baseURL: string): AxiosInstance {
         originalRequest._retry = true;
 
         try {
-          const refreshToken = await storage.getRefreshToken();
-          if (!refreshToken) {
+          const credentials = await storage.getServerCredentials(serverId);
+          if (!credentials?.refreshToken) {
             throw new Error('No refresh token');
           }
 
           const response = await client.post<{ accessToken: string; refreshToken: string }>(
             '/mobile/refresh',
-            { refreshToken }
+            { refreshToken: credentials.refreshToken }
           );
 
-          await storage.updateTokens(response.data.accessToken, response.data.refreshToken);
+          await storage.updateServerTokens(
+            serverId,
+            response.data.accessToken,
+            response.data.refreshToken
+          );
 
           // Retry original request with new token
           originalRequest.headers.Authorization = `Bearer ${response.data.accessToken}`;
           return await client(originalRequest);
         } catch {
-          // Refresh failed - clear credentials and throw
-          await storage.clearCredentials();
+          // Refresh failed - remove this server's client from cache
+          apiClients.delete(serverId);
           throw new Error('Session expired');
         }
       }
@@ -109,10 +130,18 @@ export function createApiClient(baseURL: string): AxiosInstance {
 }
 
 /**
- * Reset the API client (call when switching servers or logging out)
+ * Reset the API client cache (call when switching servers or logging out)
  */
 export function resetApiClient(): void {
-  apiClient = null;
+  apiClients.clear();
+  activeServerId = null;
+}
+
+/**
+ * Remove a specific server's client from cache
+ */
+export function removeApiClient(serverId: string): void {
+  apiClients.delete(serverId);
 }
 
 /**
@@ -124,10 +153,12 @@ export async function getServerUrl(): Promise<string | null> {
 
 /**
  * API methods organized by domain
+ * All methods use the active server's client
  */
 export const api = {
   /**
    * Pair with server using mobile token
+   * This is called before we have a client, so it uses direct axios
    */
   pair: async (
     serverUrl: string,
@@ -163,32 +194,58 @@ export const api = {
    * Dashboard stats
    */
   stats: {
-    dashboard: async (): Promise<DashboardStats> => {
+    dashboard: async (serverId?: string): Promise<DashboardStats> => {
       const client = await getApiClient();
-      const response = await client.get<DashboardStats>('/stats/dashboard');
+      const response = await client.get<DashboardStats>('/stats/dashboard', {
+        params: serverId ? { serverId } : undefined,
+      });
       return response.data;
     },
-    plays: async (params?: { period?: string }): Promise<{ data: { date: string; count: number }[] }> => {
+    plays: async (params?: {
+      period?: string;
+      serverId?: string;
+    }): Promise<{ data: { date: string; count: number }[] }> => {
       const client = await getApiClient();
-      const response = await client.get<{ data: { date: string; count: number }[] }>('/stats/plays', { params });
+      const response = await client.get<{ data: { date: string; count: number }[] }>(
+        '/stats/plays',
+        { params }
+      );
       return response.data;
     },
-    playsByDayOfWeek: async (params?: { period?: string }): Promise<{ data: { day: number; name: string; count: number }[] }> => {
+    playsByDayOfWeek: async (params?: {
+      period?: string;
+      serverId?: string;
+    }): Promise<{ data: { day: number; name: string; count: number }[] }> => {
       const client = await getApiClient();
-      const response = await client.get<{ data: { day: number; name: string; count: number }[] }>('/stats/plays-by-dayofweek', { params });
+      const response = await client.get<{ data: { day: number; name: string; count: number }[] }>(
+        '/stats/plays-by-dayofweek',
+        { params }
+      );
       return response.data;
     },
-    playsByHourOfDay: async (params?: { period?: string }): Promise<{ data: { hour: number; count: number }[] }> => {
+    playsByHourOfDay: async (params?: {
+      period?: string;
+      serverId?: string;
+    }): Promise<{ data: { hour: number; count: number }[] }> => {
       const client = await getApiClient();
-      const response = await client.get<{ data: { hour: number; count: number }[] }>('/stats/plays-by-hourofday', { params });
+      const response = await client.get<{ data: { hour: number; count: number }[] }>(
+        '/stats/plays-by-hourofday',
+        { params }
+      );
       return response.data;
     },
-    platforms: async (params?: { period?: string }): Promise<{ data: { platform: string; count: number }[] }> => {
+    platforms: async (params?: {
+      period?: string;
+      serverId?: string;
+    }): Promise<{ data: { platform: string; count: number }[] }> => {
       const client = await getApiClient();
-      const response = await client.get<{ data: { platform: string; count: number }[] }>('/stats/platforms', { params });
+      const response = await client.get<{ data: { platform: string; count: number }[] }>(
+        '/stats/platforms',
+        { params }
+      );
       return response.data;
     },
-    quality: async (params?: { period?: string }): Promise<{
+    quality: async (params?: { period?: string; serverId?: string }): Promise<{
       directPlay: number;
       transcode: number;
       total: number;
@@ -205,14 +262,39 @@ export const api = {
       }>('/stats/quality', { params });
       return response.data;
     },
-    concurrent: async (params?: { period?: string }): Promise<{ data: { hour: string; maxConcurrent: number }[] }> => {
+    concurrent: async (params?: {
+      period?: string;
+      serverId?: string;
+    }): Promise<{ data: { hour: string; maxConcurrent: number }[] }> => {
       const client = await getApiClient();
-      const response = await client.get<{ data: { hour: string; maxConcurrent: number }[] }>('/stats/concurrent', { params });
+      const response = await client.get<{ data: { hour: string; maxConcurrent: number }[] }>(
+        '/stats/concurrent',
+        { params }
+      );
       return response.data;
     },
-    locations: async (params?: { serverId?: string; userId?: string }): Promise<{ data: { latitude: number; longitude: number; city: string; country: string; playCount: number }[] }> => {
+    locations: async (params?: {
+      serverId?: string;
+      userId?: string;
+    }): Promise<{
+      data: {
+        latitude: number;
+        longitude: number;
+        city: string;
+        country: string;
+        playCount: number;
+      }[];
+    }> => {
       const client = await getApiClient();
-      const response = await client.get<{ data: { latitude: number; longitude: number; city: string; country: string; playCount: number }[] }>('/stats/locations', { params });
+      const response = await client.get<{
+        data: {
+          latitude: number;
+          longitude: number;
+          city: string;
+          country: string;
+          playCount: number;
+        }[];
+      }>('/stats/locations', { params });
       return response.data;
     },
   },
@@ -221,12 +303,19 @@ export const api = {
    * Sessions
    */
   sessions: {
-    active: async (): Promise<ActiveSession[]> => {
+    active: async (serverId?: string): Promise<ActiveSession[]> => {
       const client = await getApiClient();
-      const response = await client.get<{ data: ActiveSession[] }>('/sessions/active');
+      const response = await client.get<{ data: ActiveSession[] }>('/sessions/active', {
+        params: serverId ? { serverId } : undefined,
+      });
       return response.data.data;
     },
-    list: async (params?: { page?: number; pageSize?: number; userId?: string }) => {
+    list: async (params?: {
+      page?: number;
+      pageSize?: number;
+      userId?: string;
+      serverId?: string;
+    }) => {
       const client = await getApiClient();
       const response = await client.get<PaginatedResponse<ActiveSession>>('/sessions', { params });
       return response.data;
@@ -242,9 +331,11 @@ export const api = {
    * Users
    */
   users: {
-    list: async (params?: { page?: number; pageSize?: number }) => {
+    list: async (params?: { page?: number; pageSize?: number; serverId?: string }) => {
       const client = await getApiClient();
-      const response = await client.get<PaginatedResponse<ServerUserWithIdentity>>('/users', { params });
+      const response = await client.get<PaginatedResponse<ServerUserWithIdentity>>('/users', {
+        params,
+      });
       return response.data;
     },
     get: async (id: string): Promise<ServerUserDetail> => {
@@ -254,7 +345,9 @@ export const api = {
     },
     sessions: async (id: string, params?: { page?: number; pageSize?: number }) => {
       const client = await getApiClient();
-      const response = await client.get<PaginatedResponse<Session>>(`/users/${id}/sessions`, { params });
+      const response = await client.get<PaginatedResponse<Session>>(`/users/${id}/sessions`, {
+        params,
+      });
       return response.data;
     },
     locations: async (id: string): Promise<UserLocation[]> => {
@@ -279,9 +372,12 @@ export const api = {
       userId?: string;
       severity?: string;
       acknowledged?: boolean;
+      serverId?: string;
     }) => {
       const client = await getApiClient();
-      const response = await client.get<PaginatedResponse<ViolationWithDetails>>('/violations', { params });
+      const response = await client.get<PaginatedResponse<ViolationWithDetails>>('/violations', {
+        params,
+      });
       return response.data;
     },
     acknowledge: async (id: string): Promise<Violation> => {
@@ -299,9 +395,11 @@ export const api = {
    * Rules
    */
   rules: {
-    list: async (): Promise<Rule[]> => {
+    list: async (serverId?: string): Promise<Rule[]> => {
       const client = await getApiClient();
-      const response = await client.get<{ data: Rule[] }>('/rules');
+      const response = await client.get<{ data: Rule[] }>('/rules', {
+        params: serverId ? { serverId } : undefined,
+      });
       return response.data.data;
     },
     toggle: async (id: string, isActive: boolean): Promise<Rule> => {
@@ -348,7 +446,9 @@ export const api = {
      * Supports partial updates - only send fields you want to change
      */
     updatePreferences: async (
-      data: Partial<Omit<NotificationPreferences, 'id' | 'mobileSessionId' | 'createdAt' | 'updatedAt'>>
+      data: Partial<
+        Omit<NotificationPreferences, 'id' | 'mobileSessionId' | 'createdAt' | 'updatedAt'>
+      >
     ): Promise<NotificationPreferences> => {
       const client = await getApiClient();
       const response = await client.patch<NotificationPreferences>(

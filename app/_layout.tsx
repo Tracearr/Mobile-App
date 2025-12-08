@@ -13,6 +13,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { QueryProvider } from '@/providers/QueryProvider';
 import { SocketProvider } from '@/providers/SocketProvider';
+import { MediaServerProvider } from '@/providers/MediaServerProvider';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useAuthStore } from '@/lib/authStore';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
@@ -32,6 +33,7 @@ function RootLayoutNav() {
   }, [initialize]);
 
   // Handle navigation based on auth state
+  // Note: We allow authenticated users to access (auth)/pair for adding servers
   useEffect(() => {
     if (isLoading) return;
 
@@ -40,10 +42,8 @@ function RootLayoutNav() {
     if (!isAuthenticated && !inAuthGroup) {
       // Not authenticated and not on auth screen - redirect to pair
       router.replace('/(auth)/pair');
-    } else if (isAuthenticated && inAuthGroup) {
-      // Authenticated but on auth screen - redirect to main app
-      router.replace('/(tabs)');
     }
+    // Don't redirect away from pair if authenticated - user might be adding a server
   }, [isAuthenticated, isLoading, segments, router]);
 
   // Show loading screen while initializing
@@ -101,7 +101,9 @@ export default function RootLayout() {
         <ErrorBoundary>
           <QueryProvider>
             <SocketProvider>
-              <RootLayoutNav />
+              <MediaServerProvider>
+                <RootLayoutNav />
+              </MediaServerProvider>
             </SocketProvider>
           </QueryProvider>
         </ErrorBoundary>
