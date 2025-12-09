@@ -5,7 +5,7 @@ import { Buffer } from 'buffer';
 global.Buffer = Buffer;
 
 import '../global.css';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
@@ -23,19 +23,21 @@ function RootLayoutNav() {
   const { isAuthenticated, isLoading, initialize } = useAuthStore();
   const segments = useSegments();
   const router = useRouter();
+  const [hasInitialized, setHasInitialized] = useState(false);
 
   // Initialize push notifications (only when authenticated)
   usePushNotifications();
 
   // Initialize auth state on mount
   useEffect(() => {
-    void initialize();
+    void initialize().finally(() => setHasInitialized(true));
   }, [initialize]);
 
   // Handle navigation based on auth state
   // Note: We allow authenticated users to access (auth)/pair for adding servers
+  // Wait for initialization to complete before redirecting (prevents hot reload issues)
   useEffect(() => {
-    if (isLoading) return;
+    if (isLoading || !hasInitialized) return;
 
     const inAuthGroup = segments[0] === '(auth)';
 
@@ -44,7 +46,7 @@ function RootLayoutNav() {
       router.replace('/(auth)/pair');
     }
     // Don't redirect away from pair if authenticated - user might be adding a server
-  }, [isAuthenticated, isLoading, segments, router]);
+  }, [isAuthenticated, isLoading, hasInitialized, segments, router]);
 
   // Show loading screen while initializing
   if (isLoading) {

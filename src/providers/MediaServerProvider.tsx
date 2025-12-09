@@ -13,7 +13,7 @@ import {
   type ReactNode,
 } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 import type { Server } from '@tracearr/shared';
 import { api } from '../lib/api';
 import { useAuthStore } from '../lib/authStore';
@@ -39,7 +39,7 @@ export function MediaServerProvider({ children }: { children: ReactNode }) {
 
   // Load saved selection on mount
   useEffect(() => {
-    void AsyncStorage.getItem(SELECTED_SERVER_KEY).then((saved) => {
+    void SecureStore.getItemAsync(SELECTED_SERVER_KEY).then((saved) => {
       if (saved) {
         setSelectedServerId(saved);
       }
@@ -66,7 +66,7 @@ export function MediaServerProvider({ children }: { children: ReactNode }) {
     if (servers.length === 0) {
       if (selectedServerId) {
         setSelectedServerId(null);
-        void AsyncStorage.removeItem(SELECTED_SERVER_KEY);
+        void SecureStore.deleteItemAsync(SELECTED_SERVER_KEY);
       }
       return;
     }
@@ -76,7 +76,7 @@ export function MediaServerProvider({ children }: { children: ReactNode }) {
       const firstServer = servers[0];
       if (firstServer) {
         setSelectedServerId(firstServer.id);
-        void AsyncStorage.setItem(SELECTED_SERVER_KEY, firstServer.id);
+        void SecureStore.setItemAsync(SELECTED_SERVER_KEY, firstServer.id);
       }
     }
 
@@ -85,7 +85,7 @@ export function MediaServerProvider({ children }: { children: ReactNode }) {
       const firstServer = servers[0];
       if (firstServer) {
         setSelectedServerId(firstServer.id);
-        void AsyncStorage.setItem(SELECTED_SERVER_KEY, firstServer.id);
+        void SecureStore.setItemAsync(SELECTED_SERVER_KEY, firstServer.id);
       }
     }
   }, [servers, selectedServerId, initialized, isLoading]);
@@ -94,7 +94,7 @@ export function MediaServerProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!isAuthenticated) {
       setSelectedServerId(null);
-      void AsyncStorage.removeItem(SELECTED_SERVER_KEY);
+      void SecureStore.deleteItemAsync(SELECTED_SERVER_KEY);
     }
   }, [isAuthenticated]);
 
@@ -102,9 +102,9 @@ export function MediaServerProvider({ children }: { children: ReactNode }) {
     (serverId: string | null) => {
       setSelectedServerId(serverId);
       if (serverId) {
-        void AsyncStorage.setItem(SELECTED_SERVER_KEY, serverId);
+        void SecureStore.setItemAsync(SELECTED_SERVER_KEY, serverId);
       } else {
-        void AsyncStorage.removeItem(SELECTED_SERVER_KEY);
+        void SecureStore.deleteItemAsync(SELECTED_SERVER_KEY);
       }
       // Invalidate all server-dependent queries
       void queryClient.invalidateQueries({

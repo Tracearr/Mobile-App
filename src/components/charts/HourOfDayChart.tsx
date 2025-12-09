@@ -85,9 +85,7 @@ export function HourOfDayChart({ data, height = 180 }: HourOfDayChartProps) {
             <Text style={styles.valueText}>{displayValue.count} plays</Text>
             <Text style={styles.hourText}>{formatHour(displayValue.hour)}</Text>
           </>
-        ) : (
-          <Text style={styles.hintText}>Touch bar for details</Text>
-        )}
+        ) : null}
       </View>
 
       <CartesianChart
@@ -161,10 +159,5 @@ const styles = StyleSheet.create({
   hourText: {
     color: colors.text.muted.dark,
     fontSize: typography.fontSize.xs,
-  },
-  hintText: {
-    color: colors.text.muted.dark,
-    fontSize: typography.fontSize.xs,
-    fontStyle: 'italic',
   },
 });

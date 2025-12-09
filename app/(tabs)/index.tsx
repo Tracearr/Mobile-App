@@ -84,9 +84,6 @@ export default function DashboardScreen() {
     error: resourcesError,
   } = useServerStatistics(selectedServerId ?? undefined, isPlexServer);
 
-  // Server name from selected media server
-  const serverName = selectedServer?.name || 'Tracearr';
-
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background.dark }} edges={['left', 'right']}>
       <ScrollView
@@ -96,16 +93,14 @@ export default function DashboardScreen() {
           <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={colors.cyan.core} />
         }
       >
-        {/* Server Name Header with Stats */}
-        <View className="p-4 pt-3">
-          <Text className="text-2xl font-bold">{serverName}</Text>
-          {stats && (
+        {/* Today's Stats Bar */}
+        {stats && (
+          <View className="px-4 pt-3 pb-2">
             <View
               style={{
                 flexDirection: 'row',
                 alignItems: 'center',
                 gap: 8,
-                marginTop: 8,
               }}
             >
               <Text style={{ fontSize: 11, color: colors.text.muted.dark, fontWeight: '600', marginRight: 2 }}>
@@ -120,8 +115,8 @@ export default function DashboardScreen() {
                 color={stats.alertsLast24h > 0 ? colors.warning : colors.text.muted.dark}
               />
             </View>
-          )}
-        </View>
+          </View>
+        )}
 
         {/* Now Playing - Active Streams */}
         <View className="px-4 mb-4">

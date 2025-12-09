@@ -33,8 +33,8 @@ export function ServerSelector() {
     if (servers.length === 1) {
       return (
         <View className="flex-row items-center px-3">
-          <Server size={16} color={colors.text.muted.dark} />
-          <Text className="ml-2 text-sm text-gray-400" numberOfLines={1}>
+          <Server size={16} color={colors.text.primary.dark} />
+          <Text className="ml-2 text-sm text-white font-medium" numberOfLines={1}>
             {servers[0]?.name}
           </Text>
         </View>

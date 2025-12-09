@@ -1,9 +1,10 @@
 /**
  * Secure storage utilities for mobile app credentials
  * Supports multiple server connections with independent credentials
+ *
+ * Uses expo-secure-store for all storage (Expo Go compatible)
  */
 import * as SecureStore from 'expo-secure-store';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Keys for secure storage (per-server, uses serverId suffix)
 const SECURE_KEYS = {
@@ -11,14 +12,14 @@ const SECURE_KEYS = {
   REFRESH_TOKEN: 'tracearr_refresh_token',
 } as const;
 
-// Keys for async storage (JSON-serializable data)
-const ASYNC_KEYS = {
+// Keys for general storage (JSON-serializable data, stored in SecureStore)
+const STORAGE_KEYS = {
   SERVERS: 'tracearr_servers',
   ACTIVE_SERVER: 'tracearr_active_server',
 } as const;
 
 /**
- * Server connection info stored in AsyncStorage
+ * Server connection info stored in SecureStore
  */
 export interface ServerInfo {
   id: string; // Unique identifier (from pairing response or generated)
@@ -57,7 +58,7 @@ export const storage = {
    * Get all connected servers
    */
   async getServers(): Promise<ServerInfo[]> {
-    const data = await AsyncStorage.getItem(ASYNC_KEYS.SERVERS);
+    const data = await SecureStore.getItemAsync(STORAGE_KEYS.SERVERS);
     if (!data) return [];
     try {
       return JSON.parse(data) as ServerInfo[];
@@ -90,7 +91,7 @@ export const storage = {
     } else {
       servers.push(server);
     }
-    await AsyncStorage.setItem(ASYNC_KEYS.SERVERS, JSON.stringify(servers));
+    await SecureStore.setItemAsync(STORAGE_KEYS.SERVERS, JSON.stringify(servers));
   },
 
   /**
@@ -109,7 +110,7 @@ export const storage = {
     ]);
 
     // Remove from server list
-    await AsyncStorage.setItem(ASYNC_KEYS.SERVERS, JSON.stringify(filtered));
+    await SecureStore.setItemAsync(STORAGE_KEYS.SERVERS, JSON.stringify(filtered));
 
     // Update active server if the removed one was active
     if (activeId === serverId) {
@@ -117,7 +118,7 @@ export const storage = {
       if (filtered.length > 0) {
         await this.setActiveServerId(filtered[0]!.id);
       } else {
-        await AsyncStorage.removeItem(ASYNC_KEYS.ACTIVE_SERVER);
+        await SecureStore.deleteItemAsync(STORAGE_KEYS.ACTIVE_SERVER);
       }
     }
   },
@@ -138,7 +139,7 @@ export const storage = {
     const index = servers.findIndex((s) => s.id === serverId);
     if (index >= 0) {
       servers[index] = { ...servers[index]!, ...updates };
-      await AsyncStorage.setItem(ASYNC_KEYS.SERVERS, JSON.stringify(servers));
+      await SecureStore.setItemAsync(STORAGE_KEYS.SERVERS, JSON.stringify(servers));
     }
   },
 
@@ -150,14 +151,14 @@ export const storage = {
    * Get the currently active server ID
    */
   async getActiveServerId(): Promise<string | null> {
-    return AsyncStorage.getItem(ASYNC_KEYS.ACTIVE_SERVER);
+    return SecureStore.getItemAsync(STORAGE_KEYS.ACTIVE_SERVER);
   },
 
   /**
    * Set the active server
    */
   async setActiveServerId(serverId: string): Promise<void> {
-    await AsyncStorage.setItem(ASYNC_KEYS.ACTIVE_SERVER, serverId);
+    await SecureStore.setItemAsync(STORAGE_KEYS.ACTIVE_SERVER, serverId);
   },
 
   /**

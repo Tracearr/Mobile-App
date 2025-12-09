@@ -40,7 +40,6 @@ export default function TabLayout() {
         headerTitleStyle: {
           fontWeight: '600',
         },
-        headerRight: () => <ServerSelector />,
         tabBarStyle: {
           backgroundColor: colors.card.dark,
           borderTopColor: colors.border.dark,
@@ -61,6 +60,7 @@ export default function TabLayout() {
         name="index"
         options={{
           title: 'Dashboard',
+          headerTitle: () => <ServerSelector />,
           tabBarLabel: 'Dashboard',
           tabBarIcon: ({ focused }) => (
             <TabIcon icon={LayoutDashboard} focused={focused} />
@@ -71,6 +71,7 @@ export default function TabLayout() {
         name="activity"
         options={{
           title: 'Activity',
+          headerTitle: () => <ServerSelector />,
           tabBarLabel: 'Activity',
           tabBarIcon: ({ focused }) => (
             <TabIcon icon={Activity} focused={focused} />
@@ -81,6 +82,7 @@ export default function TabLayout() {
         name="users"
         options={{
           title: 'Users',
+          headerTitle: () => <ServerSelector />,
           tabBarLabel: 'Users',
           tabBarIcon: ({ focused }) => <TabIcon icon={Users} focused={focused} />,
         }}
@@ -89,6 +91,7 @@ export default function TabLayout() {
         name="alerts"
         options={{
           title: 'Alerts',
+          headerTitle: () => <ServerSelector />,
           tabBarLabel: 'Alerts',
           tabBarIcon: ({ focused }) => <TabIcon icon={Bell} focused={focused} />,
         }}

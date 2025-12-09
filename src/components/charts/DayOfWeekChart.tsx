@@ -90,9 +90,7 @@ export function DayOfWeekChart({ data, height = 180 }: DayOfWeekChartProps) {
             <Text style={styles.valueText}>{displayValue.count} plays</Text>
             <Text style={styles.dayText}>{selectedDay.name}</Text>
           </>
-        ) : (
-          <Text style={styles.hintText}>Touch bar for details</Text>
-        )}
+        ) : null}
       </View>
 
       <CartesianChart
@@ -159,10 +157,5 @@ const styles = StyleSheet.create({
   dayText: {
     color: colors.text.muted.dark,
     fontSize: typography.fontSize.xs,
-  },
-  hintText: {
-    color: colors.text.muted.dark,
-    fontSize: typography.fontSize.xs,
-    fontStyle: 'italic',
   },
 });

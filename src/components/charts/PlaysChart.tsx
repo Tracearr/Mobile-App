@@ -88,9 +88,7 @@ export function PlaysChart({ data, height = 200 }: PlaysChartProps) {
             <Text style={styles.valueText}>{displayValue.count} plays</Text>
             <Text style={styles.dateText}>{dateLabel}</Text>
           </>
-        ) : (
-          <Text style={styles.hintText}>Touch chart for details</Text>
-        )}
+        ) : null}
       </View>
 
       <CartesianChart
@@ -162,10 +160,5 @@ const styles = StyleSheet.create({
   dateText: {
     color: colors.text.muted.dark,
     fontSize: typography.fontSize.xs,
-  },
-  hintText: {
-    color: colors.text.muted.dark,
-    fontSize: typography.fontSize.xs,
-    fontStyle: 'italic',
   },
 });
