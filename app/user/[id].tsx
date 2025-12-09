@@ -24,6 +24,9 @@ import {
   Check,
   Film,
   Music,
+  XCircle,
+  User,
+  Bot,
   type LucideIcon,
 } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
@@ -35,7 +38,14 @@ import { Badge } from '@/components/ui/badge';
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { cn } from '@/lib/utils';
 import { colors } from '@/lib/theme';
-import type { Session, ViolationWithDetails, UserLocation, UserDevice, RuleType } from '@tracearr/shared';
+import type {
+  Session,
+  ViolationWithDetails,
+  UserLocation,
+  UserDevice,
+  RuleType,
+  TerminationLogWithDetails,
+} from '@tracearr/shared';
 
 const PAGE_SIZE = 10;
 
@@ -329,6 +339,63 @@ function ViolationCard({
   );
 }
 
+function TerminationCard({ termination }: { termination: TerminationLogWithDetails }) {
+  const timeAgo = safeFormatDistanceToNow(termination.createdAt);
+  const isManual = termination.trigger === 'manual';
+
+  return (
+    <View className="py-3 border-b border-border">
+      <View className="flex-row justify-between items-start mb-2">
+        <View className="flex-row items-center gap-2 flex-1">
+          <View className="w-7 h-7 rounded-md bg-surface items-center justify-center">
+            {isManual ? (
+              <User size={14} color={colors.cyan.core} />
+            ) : (
+              <Bot size={14} color={colors.cyan.core} />
+            )}
+          </View>
+          <View className="flex-1">
+            <Text className="text-sm font-medium" numberOfLines={1}>
+              {termination.mediaTitle ?? 'Unknown Media'}
+            </Text>
+            <Text className="text-xs text-muted-foreground capitalize">
+              {termination.mediaType ?? 'unknown'} • {timeAgo}
+            </Text>
+          </View>
+        </View>
+        <Badge variant={isManual ? 'default' : 'secondary'}>
+          {isManual ? 'Manual' : 'Rule'}
+        </Badge>
+      </View>
+      <View className="ml-9">
+        <Text className="text-xs text-muted-foreground">
+          {isManual
+            ? `By @${termination.triggeredByUsername ?? 'Unknown'}`
+            : termination.ruleName ?? 'Unknown rule'}
+        </Text>
+        {termination.reason && (
+          <Text className="text-xs text-muted-foreground mt-1" numberOfLines={2}>
+            Reason: {termination.reason}
+          </Text>
+        )}
+        <View className="flex-row items-center gap-1 mt-1">
+          {termination.success ? (
+            <>
+              <Check size={12} color={colors.success} />
+              <Text className="text-xs text-success">Success</Text>
+            </>
+          ) : (
+            <>
+              <XCircle size={12} color={colors.error} />
+              <Text className="text-xs text-destructive">Failed</Text>
+            </>
+          )}
+        </View>
+      </View>
+    </View>
+  );
+}
+
 export default function UserDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const navigation = useNavigation();
@@ -415,6 +482,27 @@ export default function UserDetailScreen() {
     enabled: !!id,
   });
 
+  // Fetch user terminations
+  const {
+    data: terminationsData,
+    isLoading: terminationsLoading,
+    fetchNextPage: fetchMoreTerminations,
+    hasNextPage: hasMoreTerminations,
+    isFetchingNextPage: fetchingMoreTerminations,
+  } = useInfiniteQuery({
+    queryKey: ['user', id, 'terminations', selectedServerId],
+    queryFn: ({ pageParam = 1 }) =>
+      api.users.terminations(id, { page: pageParam, pageSize: PAGE_SIZE }),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage: { page: number; totalPages: number }) => {
+      if (lastPage.page < lastPage.totalPages) {
+        return lastPage.page + 1;
+      }
+      return undefined;
+    },
+    enabled: !!id,
+  });
+
   // Acknowledge mutation
   const acknowledgeMutation = useMutation({
     mutationFn: api.violations.acknowledge,
@@ -425,8 +513,10 @@ export default function UserDetailScreen() {
 
   const sessions = sessionsData?.pages.flatMap((page) => page.data) || [];
   const violations = violationsData?.pages.flatMap((page) => page.data) || [];
+  const terminations = terminationsData?.pages.flatMap((page) => page.data) || [];
   const totalSessions = sessionsData?.pages[0]?.total || 0;
   const totalViolations = violationsData?.pages[0]?.total || 0;
+  const totalTerminations = terminationsData?.pages[0]?.total || 0;
 
   const handleRefresh = () => {
     void refetchUser();
@@ -434,6 +524,7 @@ export default function UserDetailScreen() {
     void queryClient.invalidateQueries({ queryKey: ['violations', { userId: id }, selectedServerId] });
     void queryClient.invalidateQueries({ queryKey: ['user', id, 'locations', selectedServerId] });
     void queryClient.invalidateQueries({ queryKey: ['user', id, 'devices', selectedServerId] });
+    void queryClient.invalidateQueries({ queryKey: ['user', id, 'terminations', selectedServerId] });
   };
 
   const handleSessionPress = (session: Session) => {
@@ -671,6 +762,50 @@ export default function UserDetailScreen() {
                 </View>
                 <Text className="text-sm text-muted-foreground">No violations</Text>
               </View>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Termination History */}
+        <Card className="mb-8">
+          <CardHeader>
+            <View className="flex-row justify-between items-center">
+              <View className="flex-row items-center gap-2">
+                <XCircle size={18} color={colors.text.primary.dark} />
+                <CardTitle>Termination History</CardTitle>
+              </View>
+              <Text className="text-xs text-muted-foreground">{totalTerminations} total</Text>
+            </View>
+          </CardHeader>
+          <CardContent>
+            {terminationsLoading ? (
+              <ActivityIndicator size="small" color={colors.cyan.core} />
+            ) : terminations.length > 0 ? (
+              <>
+                {terminations.map((termination) => (
+                  <TerminationCard key={termination.id} termination={termination} />
+                ))}
+                {hasMoreTerminations && (
+                  <Pressable
+                    className="py-3 items-center active:opacity-70"
+                    onPress={() => void fetchMoreTerminations()}
+                    disabled={fetchingMoreTerminations}
+                  >
+                    {fetchingMoreTerminations ? (
+                      <ActivityIndicator size="small" color={colors.cyan.core} />
+                    ) : (
+                      <View className="flex-row items-center gap-1">
+                        <Text className="text-sm text-cyan-core font-medium">Load More</Text>
+                        <ChevronRight size={16} color={colors.cyan.core} />
+                      </View>
+                    )}
+                  </Pressable>
+                )}
+              </>
+            ) : (
+              <Text className="text-sm text-muted-foreground py-4 text-center">
+                No stream terminations
+              </Text>
             )}
           </CardContent>
         </Card>

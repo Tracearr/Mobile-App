@@ -4,9 +4,9 @@
  * Query keys include selectedServerId for proper cache isolation per media server
  */
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { View, Text, ScrollView, Pressable, ActivityIndicator, Image } from 'react-native';
+import { View, Text, ScrollView, Pressable, ActivityIndicator, Image, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { useState, useEffect } from 'react';
 import {
@@ -25,6 +25,7 @@ import {
   Zap,
   Globe,
   Wifi,
+  X,
 } from 'lucide-react-native';
 import { api, getServerUrl } from '@/lib/api';
 import { useMediaServer } from '@/providers/MediaServerProvider';
@@ -191,6 +192,7 @@ function ProgressBar({
 export default function SessionDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { selectedServerId } = useMediaServer();
   const [serverUrl, setServerUrl] = useState<string | null>(null);
 
@@ -198,6 +200,41 @@ export default function SessionDetailScreen() {
   useEffect(() => {
     void getServerUrl().then(setServerUrl);
   }, []);
+
+  // Terminate session mutation
+  const terminateMutation = useMutation({
+    mutationFn: ({ sessionId, reason }: { sessionId: string; reason?: string }) =>
+      api.sessions.terminate(sessionId, reason),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['sessions', 'active'] });
+      Alert.alert('Stream Terminated', 'The playback session has been stopped.');
+      router.back();
+    },
+    onError: (error: Error) => {
+      Alert.alert('Failed to Terminate', error.message);
+    },
+  });
+
+  // Handle terminate button press
+  const handleTerminate = () => {
+    Alert.prompt(
+      'Terminate Stream',
+      'Enter an optional message to show the user (leave empty to skip):',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Terminate',
+          style: 'destructive',
+          onPress: (reason: string | undefined) => {
+            terminateMutation.mutate({ sessionId: id, reason: reason?.trim() || undefined });
+          },
+        },
+      ],
+      'plain-text',
+      '',
+      'default'
+    );
+  };
 
   const {
     data: session,
@@ -294,6 +331,18 @@ export default function SessionDetailScreen() {
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
         {/* Media Header */}
         <View className="bg-card rounded-xl p-4 mb-4">
+          {/* Terminate button - top right */}
+          <View className="absolute top-2 right-2 z-10">
+            <Pressable
+              onPress={handleTerminate}
+              disabled={terminateMutation.isPending}
+              className="w-8 h-8 rounded-full bg-destructive/10 items-center justify-center active:opacity-70"
+              style={{ opacity: terminateMutation.isPending ? 0.5 : 1 }}
+            >
+              <X size={18} color="#ef4444" />
+            </Pressable>
+          </View>
+
           <View className="flex-row items-start">
             {/* Poster/Thumbnail */}
             <View className="w-20 h-28 bg-surface rounded-lg mr-4 overflow-hidden">

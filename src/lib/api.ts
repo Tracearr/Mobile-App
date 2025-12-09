@@ -24,6 +24,7 @@ import type {
   NotificationPreferences,
   NotificationPreferencesWithStatus,
   ServerResourceStats,
+  TerminationLogWithDetails,
 } from '@tracearr/shared';
 
 // Cache of API clients per server
@@ -325,6 +326,18 @@ export const api = {
       const response = await client.get<SessionWithDetails>(`/sessions/${id}`);
       return response.data;
     },
+    terminate: async (
+      id: string,
+      reason?: string
+    ): Promise<{ success: boolean; terminationLogId: string; message: string }> => {
+      const client = await getApiClient();
+      const response = await client.post<{
+        success: boolean;
+        terminationLogId: string;
+        message: string;
+      }>(`/mobile/streams/${id}/terminate`, { reason });
+      return response.data;
+    },
   },
 
   /**
@@ -359,6 +372,17 @@ export const api = {
       const client = await getApiClient();
       const response = await client.get<{ data: UserDevice[] }>(`/users/${id}/devices`);
       return response.data.data;
+    },
+    terminations: async (
+      id: string,
+      params?: { page?: number; pageSize?: number }
+    ): Promise<PaginatedResponse<TerminationLogWithDetails>> => {
+      const client = await getApiClient();
+      const response = await client.get<PaginatedResponse<TerminationLogWithDetails>>(
+        `/users/${id}/terminations`,
+        { params }
+      );
+      return response.data;
     },
   },
 
