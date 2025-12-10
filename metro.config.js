@@ -20,4 +20,19 @@ config.resolver.nodeModulesPaths = [
 // 3. Enable symlink support for pnpm
 config.resolver.unstable_enableSymlinks = true;
 
+// 4. Handle .js imports that should resolve to .ts files (NodeNext compatibility)
+// TypeScript with moduleResolution: NodeNext requires .js extensions in imports
+// even for .ts source files. Metro needs help resolving these correctly.
+config.resolver.resolveRequest = (context, moduleName, platform) => {
+  if (moduleName.startsWith('.') && moduleName.endsWith('.js')) {
+    const tsModuleName = moduleName.replace(/\.js$/, '.ts');
+    try {
+      return context.resolveRequest(context, tsModuleName, platform);
+    } catch {
+      // Fall through to default resolution if .ts doesn't exist
+    }
+  }
+  return context.resolveRequest(context, moduleName, platform);
+};
+
 module.exports = withNativewind(config, { input: './global.css' });
