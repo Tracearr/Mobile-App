@@ -27,6 +27,13 @@
       },
       "channel": "preview"
     },
+    "preview-apk": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "channel": "preview"
+    },
     "production": {
       "ios": {
         "resourceClass": "m-medium"
