@@ -67,10 +67,8 @@ export default function PairScreen() {
       const payload = JSON.parse(atob(base64Data)) as QRPairingPayload;
       await addServer(payload.url, payload.token);
 
-      // Navigate back to tabs if adding a server
-      if (isAddingServer) {
-        router.replace('/(tabs)');
-      }
+      // Navigate to tabs after successful pairing
+      router.replace('/(tabs)');
     } catch (err) {
       Alert.alert('Pairing Failed', err instanceof Error ? err.message : 'Invalid QR code');
       // Add cooldown before allowing another scan
@@ -91,10 +89,8 @@ export default function PairScreen() {
     try {
       await addServer(serverUrl.trim(), token.trim());
 
-      // Navigate back to tabs if adding a server
-      if (isAddingServer) {
-        router.replace('/(tabs)');
-      }
+      // Navigate to tabs after successful pairing
+      router.replace('/(tabs)');
     } catch {
       // Error is handled by the store
     }
