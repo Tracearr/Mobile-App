@@ -325,7 +325,7 @@ export default function NotificationSettingsScreen() {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: colors.background.dark }} edges={['left', 'right']}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.background.dark }} edges={['left', 'right', 'bottom']}>
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator size="large" color={colors.cyan.core} />
           <Text className="mt-4 text-muted-foreground">Loading preferences...</Text>
@@ -336,7 +336,7 @@ export default function NotificationSettingsScreen() {
 
   if (error || !preferences) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: colors.background.dark }} edges={['left', 'right']}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.background.dark }} edges={['left', 'right', 'bottom']}>
         <View className="flex-1 items-center justify-center px-8">
           <Text className="text-xl font-semibold text-center mb-2">
             Unable to Load Preferences
@@ -352,7 +352,7 @@ export default function NotificationSettingsScreen() {
   const pushEnabled = preferences.pushEnabled;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background.dark }} edges={['left', 'right']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background.dark }} edges={['left', 'right', 'bottom']}>
       <ScrollView className="flex-1" contentContainerClassName="p-4">
         {/* Master Toggle */}
         <SettingsSection title="Push Notifications">

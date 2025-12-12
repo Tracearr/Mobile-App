@@ -97,7 +97,7 @@ export default function UsersScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background.dark }} edges={['left', 'right']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background.dark }} edges={['left', 'right', 'bottom']}>
       <FlatList
         data={users}
         keyExtractor={(item) => item.id}

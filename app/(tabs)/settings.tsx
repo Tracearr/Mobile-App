@@ -222,7 +222,7 @@ export default function SettingsScreen() {
   return (
     <SafeAreaView
       style={{ flex: 1, backgroundColor: colors.background.dark }}
-      edges={['left', 'right']}
+      edges={['left', 'right', 'bottom']}
     >
       <ScrollView className="flex-1" contentContainerClassName="py-4">
         {/* Connected Server Info */}

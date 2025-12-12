@@ -10,6 +10,7 @@ import {
   Settings,
   type LucideIcon,
 } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '@/lib/theme';
 import { ServerSelector } from '@/components/ServerSelector';
 
@@ -29,6 +30,10 @@ function TabIcon({ icon: Icon, focused }: TabIconProps) {
 }
 
 export default function TabLayout() {
+  const insets = useSafeAreaInsets();
+  // Dynamic tab bar height: base height + safe area bottom inset
+  const tabBarHeight = 60 + insets.bottom;
+
   return (
     <Tabs
       screenOptions={{
@@ -44,8 +49,8 @@ export default function TabLayout() {
           backgroundColor: colors.card.dark,
           borderTopColor: colors.border.dark,
           borderTopWidth: 1,
-          height: 80,
-          paddingBottom: 20,
+          height: tabBarHeight,
+          paddingBottom: insets.bottom,
           paddingTop: 8,
         },
         tabBarActiveTintColor: colors.cyan.core,

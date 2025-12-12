@@ -276,7 +276,7 @@ export default function SessionDetailScreen() {
     return (
       <SafeAreaView
         style={{ flex: 1, backgroundColor: colors.background.dark, justifyContent: 'center', alignItems: 'center' }}
-        edges={['bottom']}
+        edges={['left', 'right', 'bottom']}
       >
         <ActivityIndicator size="large" color={colors.cyan.core} />
       </SafeAreaView>
@@ -287,7 +287,7 @@ export default function SessionDetailScreen() {
     return (
       <SafeAreaView
         style={{ flex: 1, backgroundColor: colors.background.dark, justifyContent: 'center', alignItems: 'center', padding: 16 }}
-        edges={['bottom']}
+        edges={['left', 'right', 'bottom']}
       >
         <Text style={{ color: '#f87171', textAlign: 'center' }}>
           {error instanceof Error ? error.message : 'Failed to load session'}
@@ -327,7 +327,7 @@ export default function SessionDetailScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background.dark }} edges={['bottom']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background.dark }} edges={['left', 'right', 'bottom']}>
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
         {/* Media Header */}
         <View className="bg-card rounded-xl p-4 mb-4">

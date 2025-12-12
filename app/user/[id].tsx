@@ -533,7 +533,7 @@ export default function UserDetailScreen() {
 
   if (userLoading) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: colors.background.dark }} edges={['left', 'right']}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.background.dark }} edges={['left', 'right', 'bottom']}>
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator size="large" color={colors.cyan.core} />
         </View>
@@ -543,7 +543,7 @@ export default function UserDetailScreen() {
 
   if (!user) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: colors.background.dark }} edges={['left', 'right']}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.background.dark }} edges={['left', 'right', 'bottom']}>
         <View className="flex-1 items-center justify-center px-8">
           <Text className="text-xl font-semibold text-center mb-2">User Not Found</Text>
           <Text className="text-muted-foreground text-center">This user may have been removed.</Text>
@@ -553,7 +553,7 @@ export default function UserDetailScreen() {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background.dark }} edges={['left', 'right']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background.dark }} edges={['left', 'right', 'bottom']}>
       <ScrollView
         className="flex-1"
         contentContainerClassName="p-4"

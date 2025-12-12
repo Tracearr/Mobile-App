@@ -85,7 +85,7 @@ export default function DashboardScreen() {
   } = useServerStatistics(selectedServerId ?? undefined, isPlexServer);
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background.dark }} edges={['left', 'right']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background.dark }} edges={['left', 'right', 'bottom']}>
       <ScrollView
         className="flex-1"
         contentContainerClassName="pb-8"
