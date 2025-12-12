@@ -169,11 +169,48 @@ export const api = {
     platform: 'ios' | 'android',
     deviceSecret?: string
   ): Promise<MobilePairResponse> => {
-    const response = await axios.post<MobilePairResponse>(
-      `${serverUrl}/api/v1/mobile/pair`,
-      { token, deviceName, deviceId, platform, deviceSecret }
-    );
-    return response.data;
+    try {
+      const response = await axios.post<MobilePairResponse>(
+        `${serverUrl}/api/v1/mobile/pair`,
+        { token, deviceName, deviceId, platform, deviceSecret },
+        { timeout: 15000 }
+      );
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        // Extract server's error message if available
+        const serverMessage =
+          error.response?.data?.message ||
+          error.response?.data?.error;
+
+        if (serverMessage) {
+          throw new Error(serverMessage);
+        }
+
+        // Handle specific HTTP status codes
+        if (error.response?.status === 429) {
+          throw new Error('Too many pairing attempts. Please wait a few minutes.');
+        }
+        if (error.response?.status === 401) {
+          throw new Error('Invalid or expired pairing token.');
+        }
+        if (error.response?.status === 400) {
+          throw new Error('Invalid pairing request. Check your token.');
+        }
+
+        // Handle network errors
+        if (error.code === 'ECONNABORTED') {
+          throw new Error('Connection timed out. Check your server URL.');
+        }
+        if (error.code === 'ERR_NETWORK' || !error.response) {
+          throw new Error('Cannot reach server. Check URL and network connection.');
+        }
+
+        // Fallback to axios message
+        throw new Error(error.message);
+      }
+      throw error;
+    }
   },
 
   /**

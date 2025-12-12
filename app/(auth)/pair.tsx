@@ -61,10 +61,31 @@ export default function PairScreen() {
       const url = new URL(data);
       const base64Data = url.searchParams.get('data');
       if (!base64Data) {
-        throw new Error('Missing data in QR code');
+        throw new Error('Invalid QR code: missing pairing data');
       }
 
-      const payload = JSON.parse(atob(base64Data)) as QRPairingPayload;
+      // Decode and parse payload with proper error handling
+      let payload: QRPairingPayload;
+      try {
+        const decoded = atob(base64Data);
+        payload = JSON.parse(decoded) as QRPairingPayload;
+      } catch {
+        throw new Error('Invalid QR code format. Please generate a new code.');
+      }
+
+      // Validate payload has required fields
+      if (!payload.url || typeof payload.url !== 'string') {
+        throw new Error('Invalid QR code: missing server URL');
+      }
+      if (!payload.token || typeof payload.token !== 'string') {
+        throw new Error('Invalid QR code: missing pairing token');
+      }
+
+      // Validate URL format
+      if (!payload.url.startsWith('http://') && !payload.url.startsWith('https://')) {
+        throw new Error('Invalid server URL in QR code');
+      }
+
       await addServer(payload.url, payload.token);
 
       // Navigate to tabs after successful pairing
@@ -85,9 +106,25 @@ export default function PairScreen() {
       return;
     }
 
+    const trimmedUrl = serverUrl.trim();
+
+    // Validate URL format
+    if (!trimmedUrl.startsWith('http://') && !trimmedUrl.startsWith('https://')) {
+      Alert.alert('Invalid URL', 'Server URL must start with http:// or https://');
+      return;
+    }
+
+    // Validate URL is well-formed
+    try {
+      new URL(trimmedUrl);
+    } catch {
+      Alert.alert('Invalid URL', 'Please enter a valid server URL');
+      return;
+    }
+
     clearError();
     try {
-      await addServer(serverUrl.trim(), token.trim());
+      await addServer(trimmedUrl, token.trim());
 
       // Navigate to tabs after successful pairing
       router.replace('/(tabs)');
