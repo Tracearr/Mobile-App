@@ -46,6 +46,13 @@
       ]
     },
     "plugins": [
+      [
+        "./plugins/withGradleProperties",
+        {
+          "org.gradle.jvmargs": "-Xmx4g -XX:MaxMetaspaceSize=1g -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8",
+          "org.gradle.daemon": "false"
+        }
+      ],
       "expo-router",
       [
         "expo-notifications",
