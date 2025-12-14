@@ -5,11 +5,50 @@
  * Note: expo-maps doesn't support custom tile providers, so we can't
  * match the web's dark theme exactly. Using default map styles.
  */
-import React from 'react';
+import React, { Component, type ReactNode } from 'react';
 import { View, Text, StyleSheet, Platform } from 'react-native';
 import { AppleMaps, GoogleMaps } from 'expo-maps';
+import { Ionicons } from '@expo/vector-icons';
 import type { ActiveSession } from '@tracearr/shared';
 import { colors, borderRadius, typography } from '../../lib/theme';
+
+/**
+ * Error boundary to catch map crashes (e.g., missing Google Maps API key on Android)
+ * This prevents the entire app from crashing if the map fails to render
+ */
+class MapErrorBoundary extends Component<
+  { children: ReactNode; height: number },
+  { hasError: boolean; error: Error | null }
+> {
+  constructor(props: { children: ReactNode; height: number }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error('StreamMap crashed:', error.message);
+    console.error('Component stack:', errorInfo.componentStack);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <View style={[styles.container, styles.errorContainer, { height: this.props.height }]}>
+          <Ionicons name="map-outline" size={32} color={colors.text.muted.dark} />
+          <Text style={styles.errorText}>Map unavailable</Text>
+          {__DEV__ && this.state.error && (
+            <Text style={styles.errorDetail}>{this.state.error.message}</Text>
+          )}
+        </View>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 interface StreamMapProps {
   sessions: ActiveSession[];
@@ -106,26 +145,28 @@ export function StreamMap({ sessions, height = 300 }: StreamMapProps) {
   const MapComponent = Platform.OS === 'ios' ? AppleMaps.View : GoogleMaps.View;
 
   return (
-    <View style={[styles.container, { height }]}>
-      <MapComponent
-        style={styles.map}
-        cameraPosition={cameraPosition}
-        markers={markers.map((m) => ({
-          id: m.id,
-          coordinates: m.coordinates,
-          title: m.title,
-          snippet: m.snippet,
-          tintColor: m.tintColor,
-          ...(Platform.OS === 'ios' && m.systemImage && { systemImage: m.systemImage }),
-        }))}
-        uiSettings={{
-          compassEnabled: false,
-          scaleBarEnabled: false,
-          rotationGesturesEnabled: false,
-          tiltGesturesEnabled: false,
-        }}
-      />
-    </View>
+    <MapErrorBoundary height={height}>
+      <View style={[styles.container, { height }]}>
+        <MapComponent
+          style={styles.map}
+          cameraPosition={cameraPosition}
+          markers={markers.map((m) => ({
+            id: m.id,
+            coordinates: m.coordinates,
+            title: m.title,
+            snippet: m.snippet,
+            tintColor: m.tintColor,
+            ...(Platform.OS === 'ios' && m.systemImage && { systemImage: m.systemImage }),
+          }))}
+          uiSettings={{
+            compassEnabled: false,
+            scaleBarEnabled: false,
+            rotationGesturesEnabled: false,
+            tiltGesturesEnabled: false,
+          }}
+        />
+      </View>
+    </MapErrorBoundary>
   );
 }
 
@@ -145,5 +186,22 @@ const styles = StyleSheet.create({
   emptyText: {
     color: colors.text.muted.dark,
     fontSize: typography.fontSize.sm,
+  },
+  errorContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+  },
+  errorText: {
+    color: colors.text.muted.dark,
+    fontSize: typography.fontSize.sm,
+    fontWeight: '500',
+  },
+  errorDetail: {
+    color: colors.error,
+    fontSize: typography.fontSize.xs,
+    textAlign: 'center',
+    paddingHorizontal: 16,
+    marginTop: 4,
   },
 });
