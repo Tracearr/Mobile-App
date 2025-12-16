@@ -82,7 +82,7 @@ export function useServerStatistics(serverId: string | undefined, enabled: boole
   });
 
   // Calculate averages from windowed data
-  const dataPoints = query.data?.data as ServerResourceDataPoint[] | undefined;
+  const dataPoints = query.data?.data;
   const dataLength = dataPoints?.length ?? 0;
   const averages = dataPoints && dataLength > 0
     ? {

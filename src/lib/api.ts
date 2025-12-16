@@ -19,6 +19,7 @@ import type {
   ViolationWithDetails,
   Rule,
   Server,
+  Settings,
   MobilePairResponse,
   PaginatedResponse,
   NotificationPreferences,
@@ -527,6 +528,17 @@ export const api = {
       const response = await client.post<{ success: boolean; message: string }>(
         '/notifications/test'
       );
+      return response.data;
+    },
+  },
+
+  /**
+   * Global settings (display preferences, etc.)
+   */
+  settings: {
+    get: async (): Promise<Settings> => {
+      const client = await getApiClient();
+      const response = await client.get<Settings>('/settings');
       return response.data;
     },
   },

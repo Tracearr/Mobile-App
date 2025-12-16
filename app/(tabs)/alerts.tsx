@@ -4,7 +4,7 @@
  */
 import { View, FlatList, RefreshControl, Pressable, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { formatDistanceToNow } from 'date-fns';
 import {
@@ -24,7 +24,8 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { colors } from '@/lib/theme';
-import type { ViolationWithDetails, RuleType } from '@tracearr/shared';
+import type { ViolationWithDetails, RuleType, UnitSystem } from '@tracearr/shared';
+import { formatSpeed } from '@tracearr/shared';
 
 const PAGE_SIZE = 50;
 
@@ -47,7 +48,7 @@ const ruleLabels: Record<RuleType, string> = {
 };
 
 // Format violation data into readable description based on rule type
-function getViolationDescription(violation: ViolationWithDetails): string {
+function getViolationDescription(violation: ViolationWithDetails, unitSystem: UnitSystem = 'metric'): string {
   const data = violation.data;
   const ruleType = violation.rule?.type;
 
@@ -60,7 +61,7 @@ function getViolationDescription(violation: ViolationWithDetails): string {
       const from = data.fromCity || data.fromLocation || 'unknown location';
       const to = data.toCity || data.toLocation || 'unknown location';
       const speed = typeof data.calculatedSpeedKmh === 'number'
-        ? `${Math.round(data.calculatedSpeedKmh)} km/h`
+        ? formatSpeed(data.calculatedSpeedKmh, unitSystem)
         : 'impossible speed';
       return `Traveled from ${from} to ${to} at ${speed}`;
     }
@@ -132,15 +133,17 @@ function ViolationCard({
   violation,
   onAcknowledge,
   onPress,
+  unitSystem,
 }: {
   violation: ViolationWithDetails;
   onAcknowledge: () => void;
   onPress: () => void;
+  unitSystem: UnitSystem;
 }) {
   const username = violation.user?.username || 'Unknown User';
   const ruleType = violation.rule?.type as RuleType | undefined;
   const ruleName = ruleType ? ruleLabels[ruleType] : violation.rule?.name || 'Unknown Rule';
-  const description = getViolationDescription(violation);
+  const description = getViolationDescription(violation, unitSystem);
   const timeAgo = formatDistanceToNow(new Date(violation.createdAt), { addSuffix: true });
 
   return (
@@ -206,6 +209,14 @@ export default function AlertsScreen() {
   const queryClient = useQueryClient();
   const { selectedServerId } = useMediaServer();
 
+  // Fetch settings for unit system preference
+  const { data: settings } = useQuery({
+    queryKey: ['settings'],
+    queryFn: api.settings.get,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+  const unitSystem = settings?.unitSystem ?? 'metric';
+
   const {
     data,
     fetchNextPage,
@@ -261,6 +272,7 @@ export default function AlertsScreen() {
             violation={item}
             onAcknowledge={() => acknowledgeMutation.mutate(item.id)}
             onPress={() => handleViolationPress(item)}
+            unitSystem={unitSystem}
           />
         )}
         contentContainerClassName="p-4 pt-3"
