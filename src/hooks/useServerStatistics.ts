@@ -8,7 +8,7 @@ import { useRef, useCallback, useEffect, useState } from 'react';
 import { AppState, type AppStateStatus } from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
 import { useQuery } from '@tanstack/react-query';
-import { SERVER_STATS_CONFIG, type ServerResourceDataPoint } from '@tracearr/shared';
+import { SERVER_STATS_CONFIG, type ServerResourceDataPoint, type ServerResourceStats } from '@tracearr/shared';
 import { api } from '@/lib/api';
 
 /**
@@ -60,9 +60,9 @@ export function useServerStatistics(serverId: string | undefined, enabled: boole
     return sorted.reverse();
   }, []);
 
-  const query = useQuery({
+  const query = useQuery<ServerResourceStats>({
     queryKey: ['servers', 'statistics', serverId],
-    queryFn: async () => {
+    queryFn: async (): Promise<ServerResourceStats> => {
       if (!serverId) throw new Error('Server ID required');
       const response = await api.servers.statistics(serverId);
       // Merge with accumulated data
