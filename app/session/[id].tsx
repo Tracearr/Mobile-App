@@ -265,7 +265,7 @@ export default function SessionDetailScreen() {
     if (session) {
       console.log('[SessionDetail] Session fields:', {
         id: session.id,
-        username: session.username,
+        username: session.user.username,
         mediaTitle: session.mediaTitle,
         state: session.state,
       });
@@ -398,9 +398,9 @@ export default function SessionDetailScreen() {
           <Text className="text-muted-foreground text-sm font-medium mb-3">User</Text>
           <View className="flex-row items-center">
             <View className="w-12 h-12 rounded-full bg-surface overflow-hidden">
-              {session.userThumb ? (
+              {session.user.thumbUrl ? (
                 <Image
-                  source={{ uri: session.userThumb }}
+                  source={{ uri: session.user.thumbUrl }}
                   className="w-full h-full"
                   resizeMode="cover"
                 />
@@ -412,7 +412,7 @@ export default function SessionDetailScreen() {
             </View>
             <View className="flex-1 ml-3">
               <Text className="text-foreground text-base font-semibold">
-                {session.username}
+                {session.user.identityName ?? session.user.username}
               </Text>
               <Text className="text-muted-foreground text-sm">Tap to view profile</Text>
             </View>
@@ -426,10 +426,10 @@ export default function SessionDetailScreen() {
             <Server size={20} color={colors.text.secondary.dark} />
             <View className="flex-1 ml-3">
               <Text className="text-foreground text-base font-medium">
-                {session.serverName}
+                {session.server.name}
               </Text>
               <Text className="text-muted-foreground text-sm capitalize">
-                {session.serverType}
+                {session.server.type}
               </Text>
             </View>
           </View>
@@ -507,10 +507,30 @@ export default function SessionDetailScreen() {
           />
           <InfoRow
             icon={Zap}
-            label="Transcode"
-            value={session.isTranscode ? 'Yes' : 'Direct Play'}
+            label="Stream"
+            value={
+              session.isTranscode
+                ? 'Transcode'
+                : session.videoDecision === 'copy' || session.audioDecision === 'copy'
+                  ? 'Direct Stream'
+                  : 'Direct Play'
+            }
             valueColor={session.isTranscode ? colors.warning : colors.success}
           />
+          {session.videoDecision && (
+            <InfoRow
+              icon={Film}
+              label="Video"
+              value={session.videoDecision === 'directplay' ? 'Direct Play' : session.videoDecision === 'copy' ? 'Direct Stream' : 'Transcode'}
+            />
+          )}
+          {session.audioDecision && (
+            <InfoRow
+              icon={Music}
+              label="Audio"
+              value={session.audioDecision === 'directplay' ? 'Direct Play' : session.audioDecision === 'copy' ? 'Direct Stream' : 'Transcode'}
+            />
+          )}
           {session.bitrate && (
             <InfoRow icon={Gauge} label="Bitrate" value={formatBitrate(session.bitrate)} />
           )}
