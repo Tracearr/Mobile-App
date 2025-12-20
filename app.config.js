@@ -10,25 +10,14 @@ module.exports = ({ config }) => {
   return {
     ...baseConfig.expo,
     ...config,
-    plugins: [
-      // Keep existing plugins but update expo-maps with API key from env
-      ...baseConfig.expo.plugins.map((plugin) => {
-        // Handle expo-maps plugin
-        if (Array.isArray(plugin) && plugin[0] === 'expo-maps') {
-          return [
-            'expo-maps',
-            {
-              ...plugin[1],
-              android: {
-                ...plugin[1]?.android,
-                // Inject Google Maps API key from EAS secrets or env var
-                googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY || '',
-              },
-            },
-          ];
-        }
-        return plugin;
-      }),
-    ],
+    android: {
+      ...baseConfig.expo.android,
+      config: {
+        ...baseConfig.expo.android?.config,
+        googleMaps: {
+          apiKey: process.env.GOOGLE_MAPS_API_KEY || '',
+        },
+      },
+    },
   };
 };
