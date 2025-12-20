@@ -3,60 +3,70 @@
 @import "tailwindcss/utilities.css";
 @import "nativewind/theme";
 
-/* Tracearr brand colors - matching web dark mode exactly */
+/* Tracearr Mobile Theme - Aligned with Web Dark Mode
+   Note: Mobile uses static HSL values since NativeWind processes @theme at build time.
+   Web uses dynamic --accent-hue for runtime theme switching. */
 @theme {
-  /* Brand colors */
-  --color-cyan-core: #18D1E7;
-  --color-cyan-deep: #0EAFC8;
-  --color-cyan-dark: #0A7C96;
-  --color-blue-core: #0B1A2E;
-  --color-blue-steel: #162840;
-  --color-blue-soft: #1E3A5C;
+  /* Brand Colors - Cyan accent (hue 187) */
+  --color-cyan-core: hsl(187 80% 50%);
+  --color-cyan-deep: hsl(187 86% 42%);
+  --color-cyan-dark: hsl(187 85% 31%);
+  --color-blue-core: hsl(213 62% 11%);
+  --color-blue-steel: hsl(213 47% 17%);
+  --color-blue-soft: hsl(212 49% 24%);
 
-  /* Background colors - matching web dark mode exactly */
-  --color-background: #050A12;
-  --color-card: #0B1A2E;
-  --color-card-foreground: #FFFFFF;
-  --color-surface: #0F2338;
-  --color-popover: #162840;
-  --color-popover-foreground: #FFFFFF;
+  /* Background colors - shadcn neutral dark mode */
+  --color-background: hsl(240 10% 4%);
+  --color-foreground: hsl(0 0% 98%);
+  --color-card: hsl(240 10% 4%);
+  --color-card-foreground: hsl(0 0% 98%);
+  --color-surface: hsl(240 6% 10%);
+  --color-popover: hsl(240 10% 4%);
+  --color-popover-foreground: hsl(0 0% 98%);
 
-  /* Text colors */
-  --color-foreground: #FFFFFF;
-  --color-muted: #162840;
-  --color-muted-foreground: #94A3B8;
+  /* Muted colors */
+  --color-muted: hsl(240 4% 16%);
+  --color-muted-foreground: hsl(240 5% 65%);
 
-  /* Primary (cyan) */
-  --color-primary: #18D1E7;
-  --color-primary-foreground: #0B1A2E;
+  /* Primary (cyan accent) */
+  --color-primary: hsl(187 80% 50%);
+  --color-primary-foreground: hsl(240 6% 10%);
 
   /* Secondary */
-  --color-secondary: #162840;
-  --color-secondary-foreground: #FFFFFF;
+  --color-secondary: hsl(240 4% 16%);
+  --color-secondary-foreground: hsl(0 0% 98%);
 
-  /* Accent (same as primary) */
-  --color-accent: #18D1E7;
-  --color-accent-foreground: #0B1A2E;
+  /* Accent (neutral for hover states) */
+  --color-accent: hsl(240 4% 16%);
+  --color-accent-foreground: hsl(0 0% 98%);
 
   /* Form inputs */
-  --color-input: #162840;
-  --color-ring: #18D1E7;
-  --color-border: #162840;
+  --color-input: hsl(240 4% 16%);
+  --color-ring: hsl(187 80% 50%);
+  --color-border: hsl(240 4% 16%);
 
   /* Semantic colors */
-  --color-destructive: #EF4444;
-  --color-destructive-foreground: #FFFFFF;
-  --color-success: #22C55E;
-  --color-warning: #F59E0B;
-  --color-danger: #EF4444;
+  --color-destructive: hsl(0 62% 50%);
+  --color-destructive-foreground: hsl(0 0% 98%);
+  --color-success: hsl(142 76% 36%);
+  --color-warning: hsl(38 92% 50%);
+  --color-danger: hsl(0 62% 50%);
 
   /* Icon colors */
-  --color-icon: #8CA3B8;
-  --color-icon-active: #18D1E7;
-  --color-icon-danger: #FF4C4C;
+  --color-icon: hsl(240 5% 65%);
+  --color-icon-active: hsl(187 80% 50%);
+  --color-icon-danger: hsl(0 100% 65%);
+
+  /* Chart colors */
+  --color-chart-1: hsl(187 80% 50%);
+  --color-chart-2: hsl(187 70% 60%);
+  --color-chart-3: hsl(197 37% 50%);
+  --color-chart-4: hsl(43 80% 55%);
+  --color-chart-5: hsl(0 75% 55%);
 
   /* Border radius */
-  --radius-lg: 0.5rem;
-  --radius-md: calc(var(--radius-lg) - 2px);
-  --radius-sm: calc(var(--radius-lg) - 4px);
+  --radius: 0.5rem;
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
 }
