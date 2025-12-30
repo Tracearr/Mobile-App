@@ -86,7 +86,8 @@ export function StreamMap({ sessions, height = 300 }: StreamMapProps) {
 
   // Create markers for each session with enhanced info
   const markers = sessionsWithLocation.map((session) => {
-    const username = session.user?.username || 'Unknown';
+    const username = session.user?.username ?? 'Unknown';
+    const displayName = session.user?.identityName ?? username;
     const location =
       [session.geoCity, session.geoCountry].filter(Boolean).join(', ') || 'Unknown location';
     const mediaTitle = session.mediaTitle || 'Unknown';
@@ -101,8 +102,8 @@ export function StreamMap({ sessions, height = 300 }: StreamMapProps) {
         latitude: session.geoLat,
         longitude: session.geoLon,
       },
-      // Title shows username prominently
-      title: username,
+      // Title shows display name prominently
+      title: displayName,
       // Snippet shows media and location
       snippet: `${truncatedTitle}\n${location}`,
       // Use cyan tint to match app theme

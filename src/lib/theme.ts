@@ -1,33 +1,41 @@
 /**
  * Design system tokens matching Tracearr web app
- * These values match the web's dark mode theme exactly
+ * These values match the web's dark mode theme exactly (shadcn neutral palette)
+ *
+ * HSL to Hex conversions from web globals.css:
+ * - hsl(240 10% 4%)  = #09090B (background)
+ * - hsl(0 0% 98%)    = #FAFAFA (foreground)
+ * - hsl(240 4% 16%)  = #27272A (secondary/muted/border)
+ * - hsl(240 5% 65%)  = #A1A1AA (muted-foreground)
+ * - hsl(240 6% 10%)  = #18181B (surface/sidebar)
  */
 
 export const colors = {
-  // Brand colors (from Tracearr web)
+  // Brand colors (Tracearr identity - cyan accent hue 187)
   cyan: {
-    core: '#18D1E7',
-    deep: '#0EAFC8',
-    dark: '#0A7C96',
+    core: '#18D1E7', // hsl(187 80% 50%) - primary accent
+    deep: '#0EAFC8', // hsl(187 86% 42%) - hover/gradients
+    dark: '#0A7C96', // hsl(187 85% 31%) - shadows/outlines
   },
+  // Legacy blue panel colors - kept for gradual migration
   blue: {
-    core: '#0B1A2E',
-    steel: '#162840',
-    soft: '#1E3A5C',
+    core: '#0B1A2E', // hsl(213 62% 11%)
+    steel: '#162840', // hsl(213 47% 17%)
+    soft: '#1E3A5C', // hsl(212 49% 24%)
   },
 
-  // Background colors - matching web dark mode
+  // Background colors - shadcn neutral dark mode
   background: {
-    dark: '#050A12',
-    light: '#F9FAFB',
+    dark: '#09090B', // hsl(240 10% 4%) - matches web --background
+    light: '#FFFFFF', // hsl(0 0% 100%)
   },
   card: {
-    dark: '#0B1A2E',
-    light: '#FFFFFF',
+    dark: '#09090B', // hsl(240 10% 4%) - matches web --card (same as bg)
+    light: '#FFFFFF', // hsl(0 0% 100%)
   },
   surface: {
-    dark: '#0F2338',
-    light: '#F3F4F6',
+    dark: '#18181B', // hsl(240 6% 10%) - matches web --sidebar
+    light: '#F4F4F5', // hsl(240 5% 96%)
   },
 
   // Accent colors
@@ -43,48 +51,47 @@ export const colors = {
   danger: '#EF4444',
   info: '#3B82F6',
 
-  // Switch/toggle colors - matching web dark mode border
+  // Switch/toggle colors
   switch: {
-    trackOff: '#162840',
-    trackOn: '#0EAFC8',
-    thumbOn: '#18D1E7',
-    thumbOff: '#64748B',
+    trackOff: '#27272A', // matches border color
+    trackOn: '#0EAFC8', // cyan-deep
+    thumbOn: '#18D1E7', // cyan-core
+    thumbOff: '#71717A', // zinc-500
   },
 
-  // Text colors - matching web dark mode (CSS: --color-*)
+  // Text colors - shadcn neutral palette
   text: {
     // --color-foreground / --color-card-foreground
     primary: {
-      dark: '#FFFFFF',
-      light: '#0B1A2E',
+      dark: '#FAFAFA', // hsl(0 0% 98%) - matches web --foreground
+      light: '#09090B', // hsl(240 10% 4%)
     },
-    // --color-muted-foreground (used for secondary/muted text)
+    // --color-muted-foreground
     secondary: {
-      dark: '#94A3B8',
-      light: '#64748B',
+      dark: '#A1A1AA', // hsl(240 5% 65%) - matches web --muted-foreground
+      light: '#71717A', // hsl(240 4% 46%)
     },
-    // Alias for secondary - use this for muted text in inline styles
     muted: {
-      dark: '#94A3B8',
-      light: '#64748B',
+      dark: '#A1A1AA', // alias for secondary
+      light: '#71717A',
     },
   },
 
-  // Icon colors - matching web dark mode (CSS: --color-icon-*)
+  // Icon colors
   icon: {
-    default: '#8CA3B8',
-    active: '#18D1E7',
-    danger: '#FF4C4C',
+    default: '#A1A1AA', // matches muted-foreground
+    active: '#18D1E7', // cyan-core
+    danger: '#EF4444', // matches destructive
   },
 
-  // Border colors - matching web dark mode (blue-steel)
+  // Border colors - shadcn neutral
   border: {
-    dark: '#162840',
-    light: '#E5E7EB',
+    dark: '#27272A', // hsl(240 4% 16%) - matches web --border
+    light: '#E4E4E7', // hsl(240 6% 90%)
   },
 
-  // Chart colors
-  chart: ['#18D1E7', '#0EAFC8', '#1E3A5C', '#F59E0B', '#EF4444', '#22C55E'],
+  // Chart colors (matches web --chart-1 through --chart-5)
+  chart: ['#18D1E7', '#0EAFC8', '#71717A', '#F59E0B', '#EF4444', '#22C55E'],
 };
 
 export const spacing = {
@@ -150,6 +157,26 @@ export const shadows = {
     elevation: 5,
   },
 } as const;
+
+/**
+ * Responsive breakpoints - matches global.css and optimized for mobile devices
+ *
+ * Device coverage:
+ * - Base (0px):   Phone portrait - iPhone SE to iPhone 16 Pro Max (375-440px)
+ * - sm (480px):   Phone landscape, large phones
+ * - md (768px):   Tablet portrait - iPad Mini (744px), iPad (820px)
+ * - lg (1024px):  Tablet landscape, iPad Pro, large tablets
+ * - xl (1280px):  Extra large tablets in landscape
+ */
+export const breakpoints = {
+  sm: 480,
+  md: 768,
+  lg: 1024,
+  xl: 1280,
+} as const;
+
+export type Breakpoint = keyof typeof breakpoints;
+export type DeviceSize = 'phone' | 'phoneLandscape' | 'tablet' | 'tabletLandscape' | 'desktop';
 
 // Helper function to get theme-aware colors
 export function getThemeColor(

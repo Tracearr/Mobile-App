@@ -69,4 +69,15 @@
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
+
+  /* Responsive breakpoints - optimized for mobile devices
+     Base (0px)   → Phone portrait (single column)
+     sm (480px)   → Large phone / phone landscape
+     md (768px)   → Tablet portrait (2 columns) - iPad Mini+
+     lg (1024px)  → Tablet landscape / large tablet (3+ columns)
+     xl (1280px)  → Extra large tablets in landscape */
+  --breakpoint-sm: 480px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
 }

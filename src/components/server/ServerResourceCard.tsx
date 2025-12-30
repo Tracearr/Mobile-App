@@ -2,11 +2,17 @@
  * Server resource monitoring card (CPU + RAM)
  * Displays real-time server resource utilization with progress bars
  * Note: Section header is rendered by parent - this is just the card content
+ *
+ * Responsive enhancements for tablets:
+ * - Larger progress bars (6px vs 4px)
+ * - Increased padding and spacing
+ * - Slightly larger text
  */
 import { View, Animated, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useRef } from 'react';
 import { Text } from '@/components/ui/text';
+import { useResponsive } from '@/hooks/useResponsive';
 import { colors, spacing, borderRadius, typography } from '@/lib/theme';
 
 // Bar colors matching web app
@@ -20,9 +26,10 @@ interface ResourceBarProps {
   processValue: number;
   systemValue: number;
   icon: keyof typeof Ionicons.glyphMap;
+  isTablet?: boolean;
 }
 
-function ResourceBar({ label, processValue, systemValue, icon }: ResourceBarProps) {
+function ResourceBar({ label, processValue, systemValue, icon, isTablet }: ResourceBarProps) {
   const processWidth = useRef(new Animated.Value(0)).current;
   const systemWidth = useRef(new Animated.Value(0)).current;
 
@@ -41,21 +48,27 @@ function ResourceBar({ label, processValue, systemValue, icon }: ResourceBarProp
     ]).start();
   }, [processValue, systemValue, processWidth, systemWidth]);
 
+  // Responsive sizing
+  const barHeight = isTablet ? 6 : 4;
+  const iconSize = isTablet ? 16 : 14;
+  const labelFontSize = isTablet ? typography.fontSize.sm : typography.fontSize.xs;
+  const barLabelFontSize = isTablet ? 11 : 10;
+
   return (
-    <View style={styles.resourceBar}>
+    <View style={[styles.resourceBar, isTablet && { marginBottom: spacing.md }]}>
       {/* Header row */}
-      <View style={styles.resourceHeader}>
-        <Ionicons name={icon} size={14} color={colors.text.secondary.dark} />
-        <Text style={styles.resourceLabel}>{label}</Text>
+      <View style={[styles.resourceHeader, isTablet && { marginBottom: spacing.sm }]}>
+        <Ionicons name={icon} size={iconSize} color={colors.text.secondary.dark} />
+        <Text style={[styles.resourceLabel, { fontSize: labelFontSize }]}>{label}</Text>
       </View>
 
       {/* Process bar (Plex Media Server) */}
-      <View style={styles.barSection}>
+      <View style={[styles.barSection, isTablet && { marginBottom: spacing.sm }]}>
         <View style={styles.barLabelRow}>
-          <Text style={styles.barLabelText}>Plex Media Server</Text>
-          <Text style={styles.barValueText}>{processValue}%</Text>
+          <Text style={[styles.barLabelText, { fontSize: barLabelFontSize }]}>Plex Media Server</Text>
+          <Text style={[styles.barValueText, { fontSize: barLabelFontSize }]}>{processValue}%</Text>
         </View>
-        <View style={styles.barTrack}>
+        <View style={[styles.barTrack, { height: barHeight }]}>
           <Animated.View
             style={[
               styles.barFill,
@@ -74,10 +87,10 @@ function ResourceBar({ label, processValue, systemValue, icon }: ResourceBarProp
       {/* System bar */}
       <View style={styles.barSection}>
         <View style={styles.barLabelRow}>
-          <Text style={styles.barLabelText}>System</Text>
-          <Text style={styles.barValueText}>{systemValue}%</Text>
+          <Text style={[styles.barLabelText, { fontSize: barLabelFontSize }]}>System</Text>
+          <Text style={[styles.barValueText, { fontSize: barLabelFontSize }]}>{systemValue}%</Text>
         </View>
-        <View style={styles.barTrack}>
+        <View style={[styles.barTrack, { height: barHeight }]}>
           <Animated.View
             style={[
               styles.barFill,
@@ -108,9 +121,12 @@ interface ServerResourceCardProps {
 }
 
 export function ServerResourceCard({ latest, isLoading, error }: ServerResourceCardProps) {
+  const { isTablet } = useResponsive();
+  const containerPadding = isTablet ? spacing.md : spacing.sm;
+
   if (isLoading) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { padding: containerPadding }]}>
         <View style={styles.loadingContainer}>
           <Text style={styles.loadingText}>Loading...</Text>
         </View>
@@ -120,7 +136,7 @@ export function ServerResourceCard({ latest, isLoading, error }: ServerResourceC
 
   if (error) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { padding: containerPadding }]}>
         <View style={styles.emptyContainer}>
           <View style={[styles.emptyIconContainer, { backgroundColor: 'rgba(239, 68, 68, 0.1)' }]}>
             <Ionicons name="alert-circle-outline" size={24} color="#ef4444" />
@@ -134,7 +150,7 @@ export function ServerResourceCard({ latest, isLoading, error }: ServerResourceC
 
   if (!latest) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { padding: containerPadding }]}>
         <View style={styles.emptyContainer}>
           <View style={styles.emptyIconContainer}>
             <Ionicons name="server-outline" size={24} color={colors.text.muted.dark} />
@@ -147,12 +163,13 @@ export function ServerResourceCard({ latest, isLoading, error }: ServerResourceC
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { padding: containerPadding }]}>
       <ResourceBar
         label="CPU"
         icon="speedometer-outline"
         processValue={latest.processCpu}
         systemValue={latest.hostCpu}
+        isTablet={isTablet}
       />
 
       <ResourceBar
@@ -160,6 +177,7 @@ export function ServerResourceCard({ latest, isLoading, error }: ServerResourceC
         icon="hardware-chip-outline"
         processValue={latest.processMemory}
         systemValue={latest.hostMemory}
+        isTablet={isTablet}
       />
     </View>
   );
@@ -169,7 +187,7 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: colors.card.dark,
     borderRadius: borderRadius.lg,
-    padding: spacing.sm,
+    // padding is set dynamically based on isTablet
   },
   loadingContainer: {
     height: 80,

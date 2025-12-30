@@ -2,6 +2,10 @@
  * User Detail Screen
  * Shows comprehensive user information with web feature parity
  * Query keys include selectedServerId for proper cache isolation per media server
+ *
+ * Responsive layout:
+ * - Phone: Single column, 64px avatar, 2x2 stats grid
+ * - Tablet (md+): Responsive padding, 80px avatar, 1x4 stats row, 2-column Locations/Devices
  */
 import {
   View,
@@ -39,12 +43,13 @@ import {
 import { useEffect, useState } from 'react';
 import { api, getServerUrl } from '@/lib/api';
 import { useMediaServer } from '@/providers/MediaServerProvider';
+import { useResponsive } from '@/hooks/useResponsive';
 import { Text } from '@/components/ui/text';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { cn } from '@/lib/utils';
-import { colors } from '@/lib/theme';
+import { colors, spacing } from '@/lib/theme';
 import type {
   Session,
   ViolationWithDetails,
@@ -418,7 +423,12 @@ export default function UserDetailScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { selectedServerId } = useMediaServer();
+  const { isTablet, select } = useResponsive();
   const [serverUrl, setServerUrl] = useState<string | null>(null);
+
+  // Responsive values
+  const horizontalPadding = select({ base: spacing.md, md: spacing.lg, lg: spacing.xl });
+  const avatarSize = isTablet ? 80 : 64;
 
   // Load server URL for image proxy
   useEffect(() => {
@@ -437,12 +447,13 @@ export default function UserDetailScreen() {
     enabled: !!id,
   });
 
-  // Update header title with username
+  // Update header title with display name (identity name or username)
   useEffect(() => {
-    if (user?.username) {
-      navigation.setOptions({ title: user.username });
+    if (user) {
+      const displayName = user.identityName ?? user.username;
+      navigation.setOptions({ title: displayName });
     }
-  }, [user?.username, navigation]);
+  }, [user?.identityName, user?.username, navigation]);
 
   // Fetch user sessions
   const {
@@ -591,7 +602,11 @@ export default function UserDetailScreen() {
     >
       <ScrollView
         className="flex-1"
-        contentContainerClassName="p-4"
+        contentContainerStyle={{
+          paddingHorizontal: horizontalPadding,
+          paddingTop: spacing.sm,
+          paddingBottom: spacing.xl,
+        }}
         refreshControl={
           <RefreshControl
             refreshing={userRefetching}
@@ -603,12 +618,18 @@ export default function UserDetailScreen() {
         {/* User Info Card */}
         <Card className="mb-4">
           <View className="flex-row items-start gap-4">
-            <UserAvatar thumbUrl={user.thumbUrl} username={user.username} size={64} />
+            <UserAvatar thumbUrl={user.thumbUrl} username={user.username} size={avatarSize} />
             <View className="flex-1">
               <View className="mb-1 flex-row items-center gap-2">
-                <Text className="text-xl font-bold">{user.username}</Text>
+                <Text className="text-xl font-bold">
+                  {user.identityName ?? user.username}
+                </Text>
                 {user.role === 'owner' && <Crown size={18} color={colors.warning} />}
               </View>
+              {/* Show @username if identity name is displayed */}
+              {user.identityName && user.identityName !== user.username && (
+                <Text className="text-muted-foreground text-sm">@{user.username}</Text>
+              )}
               {user.email && (
                 <Text className="text-muted-foreground mb-2 text-sm">{user.email}</Text>
               )}
@@ -617,90 +638,114 @@ export default function UserDetailScreen() {
           </View>
         </Card>
 
-        {/* Stats Grid */}
-        <View className="mb-4 flex-row gap-3">
-          <StatCard icon={Play} label="Sessions" value={totalSessions} />
-          <StatCard icon={AlertTriangle} label="Violations" value={totalViolations} />
-        </View>
-        <View className="mb-4 flex-row gap-3">
-          <StatCard
-            icon={Clock}
-            label="Joined"
-            value={safeFormatDate(user.createdAt, 'MMM d, yyyy')}
-          />
-          <StatCard icon={Globe} label="Locations" value={locations?.length || 0} />
-        </View>
-
-        {/* Locations */}
-        <Card className="mb-4">
-          <CardHeader>
-            <View className="flex-row items-center justify-between">
-              <CardTitle>Locations</CardTitle>
-              <Text className="text-muted-foreground text-xs">
-                {locations?.length || 0} {locations?.length === 1 ? 'location' : 'locations'}
-              </Text>
+        {/* Stats Grid - single row on tablet, 2 rows on phone */}
+        {isTablet ? (
+          <View className="mb-4 flex-row gap-3">
+            <StatCard icon={Play} label="Sessions" value={totalSessions} />
+            <StatCard icon={AlertTriangle} label="Violations" value={totalViolations} />
+            <StatCard
+              icon={Clock}
+              label="Joined"
+              value={safeFormatDate(user.createdAt, 'MMM d, yyyy')}
+            />
+            <StatCard icon={Globe} label="Locations" value={locations?.length || 0} />
+          </View>
+        ) : (
+          <>
+            <View className="mb-4 flex-row gap-3">
+              <StatCard icon={Play} label="Sessions" value={totalSessions} />
+              <StatCard icon={AlertTriangle} label="Violations" value={totalViolations} />
             </View>
-          </CardHeader>
-          <CardContent>
-            {locationsLoading ? (
-              <ActivityIndicator size="small" color={colors.cyan.core} />
-            ) : locations && locations.length > 0 ? (
-              locations
-                .slice(0, 5)
-                .map((location, index) => (
-                  <LocationCard
-                    key={`${location.city}-${location.country}-${index}`}
-                    location={location}
-                  />
-                ))
-            ) : (
-              <Text className="text-muted-foreground py-4 text-center text-sm">
-                No locations recorded
-              </Text>
-            )}
-            {locations && locations.length > 5 && (
-              <View className="items-center pt-3">
+            <View className="mb-4 flex-row gap-3">
+              <StatCard
+                icon={Clock}
+                label="Joined"
+                value={safeFormatDate(user.createdAt, 'MMM d, yyyy')}
+              />
+              <StatCard icon={Globe} label="Locations" value={locations?.length || 0} />
+            </View>
+          </>
+        )}
+
+        {/* Locations & Devices - side by side on tablet */}
+        <View
+          style={{
+            flexDirection: isTablet ? 'row' : 'column',
+            gap: isTablet ? spacing.md : 0,
+            marginBottom: spacing.md,
+          }}
+        >
+          {/* Locations */}
+          <Card style={{ flex: isTablet ? 1 : undefined, marginBottom: isTablet ? 0 : spacing.md }}>
+            <CardHeader>
+              <View className="flex-row items-center justify-between">
+                <CardTitle>Locations</CardTitle>
                 <Text className="text-muted-foreground text-xs">
-                  +{locations.length - 5} more locations
+                  {locations?.length || 0} {locations?.length === 1 ? 'location' : 'locations'}
                 </Text>
               </View>
-            )}
-          </CardContent>
-        </Card>
+            </CardHeader>
+            <CardContent>
+              {locationsLoading ? (
+                <ActivityIndicator size="small" color={colors.cyan.core} />
+              ) : locations && locations.length > 0 ? (
+                locations
+                  .slice(0, 5)
+                  .map((location, index) => (
+                    <LocationCard
+                      key={`${location.city}-${location.country}-${index}`}
+                      location={location}
+                    />
+                  ))
+              ) : (
+                <Text className="text-muted-foreground py-4 text-center text-sm">
+                  No locations recorded
+                </Text>
+              )}
+              {locations && locations.length > 5 && (
+                <View className="items-center pt-3">
+                  <Text className="text-muted-foreground text-xs">
+                    +{locations.length - 5} more locations
+                  </Text>
+                </View>
+              )}
+            </CardContent>
+          </Card>
 
-        {/* Devices */}
-        <Card className="mb-4">
-          <CardHeader>
-            <View className="flex-row items-center justify-between">
-              <CardTitle>Devices</CardTitle>
-              <Text className="text-muted-foreground text-xs">
-                {devices?.length || 0} {devices?.length === 1 ? 'device' : 'devices'}
-              </Text>
-            </View>
-          </CardHeader>
-          <CardContent>
-            {devicesLoading ? (
-              <ActivityIndicator size="small" color={colors.cyan.core} />
-            ) : devices && devices.length > 0 ? (
-              devices
-                .slice(0, 5)
-                .map((device, index) => (
-                  <DeviceCard key={device.deviceId || index} device={device} />
-                ))
-            ) : (
-              <Text className="text-muted-foreground py-4 text-center text-sm">
-                No devices recorded
-              </Text>
-            )}
-            {devices && devices.length > 5 && (
-              <View className="items-center pt-3">
+          {/* Devices */}
+          <Card style={{ flex: isTablet ? 1 : undefined }}>
+            <CardHeader>
+              <View className="flex-row items-center justify-between">
+                <CardTitle>Devices</CardTitle>
                 <Text className="text-muted-foreground text-xs">
-                  +{devices.length - 5} more devices
+                  {devices?.length || 0} {devices?.length === 1 ? 'device' : 'devices'}
                 </Text>
               </View>
-            )}
-          </CardContent>
-        </Card>
+            </CardHeader>
+            <CardContent>
+              {devicesLoading ? (
+                <ActivityIndicator size="small" color={colors.cyan.core} />
+              ) : devices && devices.length > 0 ? (
+                devices
+                  .slice(0, 5)
+                  .map((device, index) => (
+                    <DeviceCard key={device.deviceId || index} device={device} />
+                  ))
+              ) : (
+                <Text className="text-muted-foreground py-4 text-center text-sm">
+                  No devices recorded
+                </Text>
+              )}
+              {devices && devices.length > 5 && (
+                <View className="items-center pt-3">
+                  <Text className="text-muted-foreground text-xs">
+                    +{devices.length - 5} more devices
+                  </Text>
+                </View>
+              )}
+            </CardContent>
+          </Card>
+        </View>
 
         {/* Recent Sessions */}
         <Card className="mb-4">

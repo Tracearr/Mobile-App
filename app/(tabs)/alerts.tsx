@@ -1,7 +1,12 @@
 /**
- * Alerts tab - violations with infinite scroll
+ * Alerts tab - violations with infinite scroll and filters
  * Query keys include selectedServerId for proper cache isolation per media server
+ *
+ * Responsive layout:
+ * - Phone: Single column, compact cards
+ * - Tablet (md+): 2-column grid, filters row, larger avatars
  */
+import { useState, useMemo } from 'react';
 import { View, FlatList, RefreshControl, Pressable, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useInfiniteQuery, useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
@@ -15,19 +20,24 @@ import {
   Globe,
   AlertTriangle,
   Check,
+  Filter,
+  ChevronRight,
   type LucideIcon,
 } from 'lucide-react-native';
 import { api } from '@/lib/api';
 import { useMediaServer } from '@/providers/MediaServerProvider';
+import { useResponsive } from '@/hooks/useResponsive';
 import { Text } from '@/components/ui/text';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { UserAvatar } from '@/components/ui/user-avatar';
-import { colors } from '@/lib/theme';
-import type { ViolationWithDetails, RuleType, UnitSystem } from '@tracearr/shared';
+import { colors, spacing, borderRadius } from '@/lib/theme';
+import type { ViolationWithDetails, RuleType, UnitSystem, ViolationSeverity } from '@tracearr/shared';
 import { formatSpeed } from '@tracearr/shared';
 
 const PAGE_SIZE = 50;
+
+type StatusFilter = 'all' | 'pending' | 'acknowledged';
 
 // Rule type icons mapping
 const ruleIcons: Record<RuleType, LucideIcon> = {
@@ -133,39 +143,84 @@ function RuleIcon({ ruleType }: { ruleType: RuleType | undefined }) {
   );
 }
 
+interface FilterChipProps {
+  label: string;
+  active: boolean;
+  onPress: () => void;
+}
+
+function FilterChip({ label, active, onPress }: FilterChipProps) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={{
+        paddingHorizontal: spacing.md,
+        paddingVertical: spacing.xs,
+        borderRadius: borderRadius.full,
+        backgroundColor: active ? colors.cyan.core : colors.card.dark,
+        borderWidth: 1,
+        borderColor: active ? colors.cyan.core : colors.border.dark,
+      }}
+    >
+      <Text
+        style={{
+          fontSize: 13,
+          fontWeight: active ? '600' : '400',
+          color: active ? 'white' : colors.text.secondary.dark,
+        }}
+      >
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
 function ViolationCard({
   violation,
   onAcknowledge,
   onPress,
   unitSystem,
+  isTablet,
 }: {
   violation: ViolationWithDetails;
   onAcknowledge: () => void;
   onPress: () => void;
   unitSystem: UnitSystem;
+  isTablet?: boolean;
 }) {
-  const username = violation.user?.username || 'Unknown User';
+  const displayName = violation.user?.identityName ?? violation.user?.username ?? 'Unknown User';
+  const username = violation.user?.username ?? 'Unknown';
   const ruleType = violation.rule?.type as RuleType | undefined;
   const ruleName = ruleType ? ruleLabels[ruleType] : violation.rule?.name || 'Unknown Rule';
   const description = getViolationDescription(violation, unitSystem);
   const timeAgo = formatDistanceToNow(new Date(violation.createdAt), { addSuffix: true });
+  const avatarSize = isTablet ? 48 : 40;
 
   return (
     <Pressable onPress={onPress} className="active:opacity-80">
       <Card className="mb-3">
         {/* Header: User + Severity */}
         <View className="mb-3 flex-row items-start justify-between">
-          <Pressable
-            className="flex-1 flex-row items-center gap-2.5 active:opacity-70"
-            onPress={onPress}
-          >
-            <UserAvatar thumbUrl={violation.user?.thumbUrl} username={username} size={40} />
+          <View className="flex-1 flex-row items-center gap-2.5">
+            <UserAvatar
+              thumbUrl={violation.user?.thumbUrl}
+              username={username}
+              size={avatarSize}
+            />
             <View className="flex-1">
-              <Text className="text-base font-semibold">{username}</Text>
+              <Text className="text-base font-semibold" numberOfLines={1}>
+                {displayName}
+              </Text>
+              {violation.user?.identityName && violation.user.identityName !== username && (
+                <Text className="text-muted-foreground text-xs">@{username}</Text>
+              )}
               <Text className="text-muted-foreground text-xs">{timeAgo}</Text>
             </View>
-          </Pressable>
-          <SeverityBadge severity={violation.severity} />
+          </View>
+          <View className="flex-row items-center gap-2">
+            <SeverityBadge severity={violation.severity} />
+            <ChevronRight size={16} color={colors.text.muted.dark} />
+          </View>
         </View>
 
         {/* Content: Rule Type with Icon + Description */}
@@ -206,23 +261,39 @@ export default function AlertsScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { selectedServerId } = useMediaServer();
+  const { isTablet, select } = useResponsive();
+
+  // Filter state
+  const [severityFilter, setSeverityFilter] = useState<ViolationSeverity | 'all'>('all');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+
+  // Responsive values
+  const horizontalPadding = select({ base: spacing.md, md: spacing.lg, lg: spacing.xl });
+  const numColumns = isTablet ? 2 : 1;
 
   // Fetch settings for unit system preference
   const { data: settings } = useQuery({
     queryKey: ['settings'],
     queryFn: api.settings.get,
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 1000 * 60 * 5,
   });
   const unitSystem = settings?.unitSystem ?? 'metric';
 
+  // Build query params based on filters
+  const queryParams = useMemo(() => ({
+    pageSize: PAGE_SIZE,
+    serverId: selectedServerId ?? undefined,
+    severity: severityFilter === 'all' ? undefined : severityFilter,
+    acknowledged: statusFilter === 'all' ? undefined : statusFilter === 'acknowledged',
+  }), [selectedServerId, severityFilter, statusFilter]);
+
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, refetch, isRefetching } =
     useInfiniteQuery({
-      queryKey: ['violations', selectedServerId],
+      queryKey: ['violations', selectedServerId, severityFilter, statusFilter],
       queryFn: ({ pageParam = 1 }) =>
         api.violations.list({
+          ...queryParams,
           page: pageParam,
-          pageSize: PAGE_SIZE,
-          serverId: selectedServerId ?? undefined,
         }),
       initialPageParam: 1,
       getNextPageParam: (lastPage: { page: number; totalPages: number }) => {
@@ -236,14 +307,16 @@ export default function AlertsScreen() {
   const acknowledgeMutation = useMutation({
     mutationFn: api.violations.acknowledge,
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['violations', selectedServerId] });
+      void queryClient.invalidateQueries({ queryKey: ['violations'] });
     },
   });
 
   // Flatten all pages into single array
   const violations = data?.pages.flatMap((page) => page.data) || [];
-  const unacknowledgedCount = violations.filter((v) => !v.acknowledgedAt).length;
   const total = data?.pages[0]?.total || 0;
+
+  // Count unacknowledged from current filtered view
+  const unacknowledgedCount = violations.filter((v) => !v.acknowledgedAt).length;
 
   const handleEndReached = () => {
     if (hasNextPage && !isFetchingNextPage) {
@@ -252,11 +325,11 @@ export default function AlertsScreen() {
   };
 
   const handleViolationPress = (violation: ViolationWithDetails) => {
-    // Navigate to user detail page
-    if (violation.user?.id) {
-      router.push(`/user/${violation.user.id}` as never);
-    }
+    // Navigate to violation detail page
+    router.push(`/violation/${violation.id}` as never);
   };
+
+  const hasActiveFilters = severityFilter !== 'all' || statusFilter !== 'all';
 
   return (
     <SafeAreaView
@@ -266,15 +339,30 @@ export default function AlertsScreen() {
       <FlatList
         data={violations}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <ViolationCard
-            violation={item}
-            onAcknowledge={() => acknowledgeMutation.mutate(item.id)}
-            onPress={() => handleViolationPress(item)}
-            unitSystem={unitSystem}
-          />
+        numColumns={numColumns}
+        key={numColumns}
+        renderItem={({ item, index }) => (
+          <View
+            style={{
+              flex: 1,
+              paddingLeft: isTablet && index % 2 === 1 ? spacing.sm / 2 : 0,
+              paddingRight: isTablet && index % 2 === 0 ? spacing.sm / 2 : 0,
+            }}
+          >
+            <ViolationCard
+              violation={item}
+              onAcknowledge={() => acknowledgeMutation.mutate(item.id)}
+              onPress={() => handleViolationPress(item)}
+              unitSystem={unitSystem}
+              isTablet={isTablet}
+            />
+          </View>
         )}
-        contentContainerClassName="p-4 pt-3"
+        contentContainerStyle={{
+          paddingHorizontal: horizontalPadding,
+          paddingTop: spacing.sm,
+          paddingBottom: spacing.xl,
+        }}
         onEndReached={handleEndReached}
         onEndReachedThreshold={0.5}
         refreshControl={
@@ -285,20 +373,74 @@ export default function AlertsScreen() {
           />
         }
         ListHeaderComponent={
-          <View className="mb-3 flex-row items-center justify-between">
-            <View>
-              <Text className="text-lg font-semibold">Alerts</Text>
-              <Text className="text-muted-foreground text-sm">
-                {total} {total === 1 ? 'violation' : 'violations'} total
-              </Text>
-            </View>
-            {unacknowledgedCount > 0 && (
-              <View className="bg-destructive/20 rounded-lg px-3 py-1.5">
-                <Text className="text-destructive text-sm font-medium">
-                  {unacknowledgedCount} pending
+          <View style={{ marginBottom: spacing.md }}>
+            {/* Title row */}
+            <View className="mb-3 flex-row items-center justify-between">
+              <View>
+                <Text className="text-lg font-semibold">Alerts</Text>
+                <Text className="text-muted-foreground text-sm">
+                  {hasActiveFilters ? `${violations.length} of ` : ''}
+                  {total} {total === 1 ? 'violation' : 'violations'}
                 </Text>
               </View>
-            )}
+              {unacknowledgedCount > 0 && statusFilter !== 'acknowledged' && (
+                <View className="bg-destructive/20 rounded-lg px-3 py-1.5">
+                  <Text className="text-destructive text-sm font-medium">
+                    {unacknowledgedCount} pending
+                  </Text>
+                </View>
+              )}
+            </View>
+
+            {/* Filters */}
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: spacing.sm,
+                marginBottom: spacing.xs,
+              }}
+            >
+              <Filter size={14} color={colors.text.muted.dark} />
+              <Text className="text-muted-foreground text-xs font-medium">FILTERS</Text>
+            </View>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs }}>
+              {/* Severity filters */}
+              <FilterChip
+                label="All"
+                active={severityFilter === 'all'}
+                onPress={() => setSeverityFilter('all')}
+              />
+              <FilterChip
+                label="High"
+                active={severityFilter === 'high'}
+                onPress={() => setSeverityFilter('high')}
+              />
+              <FilterChip
+                label="Warning"
+                active={severityFilter === 'warning'}
+                onPress={() => setSeverityFilter('warning')}
+              />
+              <FilterChip
+                label="Low"
+                active={severityFilter === 'low'}
+                onPress={() => setSeverityFilter('low')}
+              />
+              <View style={{ width: spacing.sm }} />
+              {/* Status filters */}
+              <FilterChip
+                label="Pending"
+                active={statusFilter === 'pending'}
+                onPress={() => setStatusFilter(statusFilter === 'pending' ? 'all' : 'pending')}
+              />
+              <FilterChip
+                label="Acknowledged"
+                active={statusFilter === 'acknowledged'}
+                onPress={() =>
+                  setStatusFilter(statusFilter === 'acknowledged' ? 'all' : 'acknowledged')
+                }
+              />
+            </View>
           </View>
         }
         ListFooterComponent={
@@ -313,9 +455,13 @@ export default function AlertsScreen() {
             <View className="bg-success/10 border-success/20 mb-4 h-20 w-20 items-center justify-center rounded-full border">
               <Check size={32} color={colors.success} />
             </View>
-            <Text className="mb-2 text-xl font-semibold">All Clear</Text>
+            <Text className="mb-2 text-xl font-semibold">
+              {hasActiveFilters ? 'No Matches' : 'All Clear'}
+            </Text>
             <Text className="text-muted-foreground px-8 text-center text-sm leading-5">
-              No rule violations have been detected. Your users are behaving nicely!
+              {hasActiveFilters
+                ? 'No violations match the current filters. Try adjusting your selection.'
+                : 'No rule violations have been detected. Your users are behaving nicely!'}
             </Text>
           </View>
         }

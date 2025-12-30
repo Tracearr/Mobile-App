@@ -22,7 +22,7 @@ const CHART_COLORS = [
   colors.error, // #EF4444 - Red
 ];
 
-export function PlatformChart({ data }: PlatformChartProps) {
+export function PlatformChart({ data, height }: PlatformChartProps) {
   // Sort by count and take top 5
   const sortedData = [...data]
     .sort((a, b) => b.count - a.count)
@@ -46,7 +46,7 @@ export function PlatformChart({ data }: PlatformChartProps) {
   return (
     <View style={styles.container}>
       {/* Pie Chart */}
-      <View style={styles.chartContainer}>
+      <View style={[styles.chartContainer, height ? { height: height - 60 } : undefined]}>
         <PolarChart data={sortedData} labelKey="label" valueKey="value" colorKey="color">
           <Pie.Chart innerRadius="50%" circleSweepDegrees={360} startAngle={0} />
         </PolarChart>
@@ -84,7 +84,7 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.sm,
   },
   chartContainer: {
-    height: 160,
+    height: 160, // default, can be overridden via style prop
   },
   legend: {
     flexDirection: 'row',

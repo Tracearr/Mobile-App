@@ -1,6 +1,11 @@
 /**
  * Dashboard tab - overview of streaming activity
  * Query keys include selectedServerId for proper cache isolation per media server
+ *
+ * Responsive layout:
+ * - Phone: Single column, stacked cards
+ * - Tablet (md+): 2-column grid for Now Playing, larger map
+ * - Large tablet (lg+): 3-column grid for Now Playing
  */
 import { View, ScrollView, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -10,12 +15,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { api } from '@/lib/api';
 import { useMediaServer } from '@/providers/MediaServerProvider';
 import { useServerStatistics } from '@/hooks/useServerStatistics';
+import { useResponsive } from '@/hooks/useResponsive';
 import { StreamMap } from '@/components/map/StreamMap';
 import { NowPlayingCard } from '@/components/sessions';
 import { ServerResourceCard } from '@/components/server/ServerResourceCard';
 import { Text } from '@/components/ui/text';
 import { Card } from '@/components/ui/card';
-import { colors } from '@/lib/theme';
+import { colors, spacing } from '@/lib/theme';
 
 /**
  * Compact stat pill for dashboard summary bar
@@ -55,6 +61,7 @@ function StatPill({
 export default function DashboardScreen() {
   const router = useRouter();
   const { selectedServerId, selectedServer } = useMediaServer();
+  const { isTablet, columns, select } = useResponsive();
 
   const {
     data: stats,
@@ -82,6 +89,11 @@ export default function DashboardScreen() {
     error: resourcesError,
   } = useServerStatistics(selectedServerId ?? undefined, isPlexServer);
 
+  // Responsive values
+  const horizontalPadding = select({ base: spacing.md, md: spacing.lg, lg: spacing.xl });
+  const mapHeight = select({ base: 200, md: 280, lg: 320 });
+  const nowPlayingColumns = columns.cards; // 1 on phone, 2 on tablet, 3 on large tablet
+
   return (
     <SafeAreaView
       style={{ flex: 1, backgroundColor: colors.background.dark }}
@@ -100,12 +112,13 @@ export default function DashboardScreen() {
       >
         {/* Today's Stats Bar */}
         {stats && (
-          <View className="px-4 pt-3 pb-2">
+          <View style={{ paddingHorizontal: horizontalPadding, paddingTop: 12, paddingBottom: 8 }}>
             <View
               style={{
                 flexDirection: 'row',
                 alignItems: 'center',
-                gap: 8,
+                flexWrap: 'wrap',
+                gap: isTablet ? 12 : 8,
               }}
             >
               <Text
@@ -120,6 +133,9 @@ export default function DashboardScreen() {
               </Text>
               <StatPill icon="play-circle-outline" value={stats.todayPlays} unit="plays" />
               <StatPill icon="time-outline" value={stats.watchTimeHours} unit="hrs" />
+              {isTablet && (
+                <StatPill icon="people-outline" value={stats.activeUsersToday} unit="users" />
+              )}
               <StatPill
                 icon="warning-outline"
                 value={stats.alertsLast24h}
@@ -131,7 +147,7 @@ export default function DashboardScreen() {
         )}
 
         {/* Now Playing - Active Streams */}
-        <View className="mb-4 px-4">
+        <View style={{ marginBottom: spacing.md, paddingHorizontal: horizontalPadding }}>
           <View className="mb-3 flex-row items-center justify-between">
             <View className="flex-row items-center gap-2">
               <Ionicons name="tv-outline" size={18} color={colors.cyan.core} />
@@ -155,13 +171,26 @@ export default function DashboardScreen() {
             )}
           </View>
           {activeSessions && activeSessions.length > 0 ? (
-            <View>
+            <View
+              style={{
+                flexDirection: 'row',
+                flexWrap: 'wrap',
+                marginHorizontal: isTablet ? -spacing.sm / 2 : 0,
+              }}
+            >
               {activeSessions.map((session) => (
-                <NowPlayingCard
+                <View
                   key={session.id}
-                  session={session}
-                  onPress={() => router.push(`/session/${session.id}` as never)}
-                />
+                  style={{
+                    width: isTablet ? `${100 / nowPlayingColumns}%` : '100%',
+                    paddingHorizontal: isTablet ? spacing.sm / 2 : 0,
+                  }}
+                >
+                  <NowPlayingCard
+                    session={session}
+                    onPress={() => router.push(`/session/${session.id}` as never)}
+                  />
+                </View>
               ))}
             </View>
           ) : (
@@ -188,20 +217,20 @@ export default function DashboardScreen() {
 
         {/* Stream Map - only show when there are active streams */}
         {activeSessions && activeSessions.length > 0 && (
-          <View className="mb-4 px-4">
+          <View style={{ marginBottom: spacing.md, paddingHorizontal: horizontalPadding }}>
             <View className="mb-3 flex-row items-center gap-2">
               <Ionicons name="location-outline" size={18} color={colors.cyan.core} />
               <Text className="text-muted-foreground text-sm font-semibold tracking-wide uppercase">
                 Stream Locations
               </Text>
             </View>
-            <StreamMap sessions={activeSessions} height={200} />
+            <StreamMap sessions={activeSessions} height={mapHeight} />
           </View>
         )}
 
         {/* Server Resources - only show if Plex server is active */}
         {isPlexServer && (
-          <View className="px-4">
+          <View style={{ paddingHorizontal: horizontalPadding }}>
             <View className="mb-3 flex-row items-center gap-2">
               <Ionicons name="server-outline" size={18} color={colors.cyan.core} />
               <Text className="text-muted-foreground text-sm font-semibold tracking-wide uppercase">

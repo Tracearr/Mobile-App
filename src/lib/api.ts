@@ -305,12 +305,11 @@ export const api = {
     concurrent: async (params?: {
       period?: string;
       serverId?: string;
-    }): Promise<{ data: { hour: string; maxConcurrent: number }[] }> => {
+    }): Promise<{ data: { hour: string; total: number; direct: number; transcode: number }[] }> => {
       const client = await getApiClient();
-      const response = await client.get<{ data: { hour: string; maxConcurrent: number }[] }>(
-        '/stats/concurrent',
-        { params }
-      );
+      const response = await client.get<{
+        data: { hour: string; total: number; direct: number; transcode: number }[];
+      }>('/stats/concurrent', { params });
       return response.data;
     },
     locations: async (params?: {
