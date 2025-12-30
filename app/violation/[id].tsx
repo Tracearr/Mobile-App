@@ -7,17 +7,16 @@
  * - Phone: Single column, compact layout
  * - Tablet (md+): Responsive padding, 2-column stream comparison grid
  */
-import { useState, useMemo } from 'react';
+import { useMemo } from 'react';
 import {
   View,
   ScrollView,
-  RefreshControl,
   Pressable,
   ActivityIndicator,
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQueryClient, useMutation, useQuery } from '@tanstack/react-query';
 import { formatDistanceToNow, format } from 'date-fns';
 import {
@@ -41,7 +40,7 @@ import { api } from '@/lib/api';
 import { useMediaServer } from '@/providers/MediaServerProvider';
 import { useResponsive } from '@/hooks/useResponsive';
 import { Text } from '@/components/ui/text';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { colors, spacing } from '@/lib/theme';
@@ -300,7 +299,6 @@ function StreamCard({ session, index, isTriggering, userHistory }: StreamCardPro
 
 export default function ViolationDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const navigation = useNavigation();
   const router = useRouter();
   const queryClient = useQueryClient();
   const { selectedServerId } = useMediaServer();
@@ -335,7 +333,7 @@ export default function ViolationDetailScreen() {
   }, [queryClient, id, selectedServerId]);
 
   // Update header title
-  const ruleType = violation?.rule?.type as RuleType | undefined;
+  const ruleType = violation?.rule?.type;
   const ruleName = ruleType ? ruleLabels[ruleType] : 'Violation';
 
   // Acknowledge mutation
@@ -387,7 +385,7 @@ export default function ViolationDetailScreen() {
 
     // Add triggering session first
     if (violation.session) {
-      sessions.push(violation.session as ViolationSessionInfo);
+      sessions.push(violation.session);
       seenIds.add(violation.session.id);
     }
 
