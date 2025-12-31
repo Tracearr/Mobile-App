@@ -8,13 +8,7 @@
  * - Tablet (md+): Responsive padding, 2-column stream comparison grid
  */
 import { useMemo } from 'react';
-import {
-  View,
-  ScrollView,
-  Pressable,
-  ActivityIndicator,
-  Alert,
-} from 'react-native';
+import { View, ScrollView, Pressable, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQueryClient, useMutation, useQuery } from '@tanstack/react-query';
@@ -361,14 +355,18 @@ export default function ViolationDetailScreen() {
 
   const handleDismiss = () => {
     if (!violation) return;
-    Alert.alert('Dismiss Violation', 'Are you sure you want to dismiss this violation? This will remove it permanently and restore the user\'s trust score.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Dismiss',
-        style: 'destructive',
-        onPress: () => dismissMutation.mutate(violation.id),
-      },
-    ]);
+    Alert.alert(
+      'Dismiss Violation',
+      "Are you sure you want to dismiss this violation? This will remove it permanently and restore the user's trust score.",
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Dismiss',
+          style: 'destructive',
+          onPress: () => dismissMutation.mutate(violation.id),
+        },
+      ]
+    );
   };
 
   const handleUserPress = () => {
@@ -411,9 +409,7 @@ export default function ViolationDetailScreen() {
         allSessions.map((s) => s.deviceId || s.device).filter((d): d is string => !!d)
       ).size,
       uniqueLocations: new Set(
-        allSessions
-          .map((s) => `${s.geoCity || ''}-${s.geoCountry || ''}`)
-          .filter((l) => l !== '-')
+        allSessions.map((s) => `${s.geoCity || ''}-${s.geoCountry || ''}`).filter((l) => l !== '-')
       ).size,
     };
   }, [allSessions]);
@@ -472,9 +468,7 @@ export default function ViolationDetailScreen() {
               </Text>
               {violation.user?.identityName &&
                 violation.user.identityName !== violation.user.username && (
-                  <Text className="text-muted-foreground text-sm">
-                    @{violation.user.username}
-                  </Text>
+                  <Text className="text-muted-foreground text-sm">@{violation.user.username}</Text>
                 )}
               {violation.server?.name && (
                 <Text className="text-muted-foreground text-sm">{violation.server.name}</Text>
@@ -526,7 +520,10 @@ export default function ViolationDetailScreen() {
                     </View>
                   )}
                   {analysis.uniqueDevices > 1 && (
-                    <View style={{ backgroundColor: `${colors.orange.core}20` }} className="rounded px-2 py-0.5">
+                    <View
+                      style={{ backgroundColor: `${colors.orange.core}20` }}
+                      className="rounded px-2 py-0.5"
+                    >
                       <Text style={{ color: colors.orange.core }} className="text-xs">
                         {analysis.uniqueDevices} Devices
                       </Text>

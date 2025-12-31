@@ -78,7 +78,10 @@ function getQualityInfo(session: ActiveSession): {
     return { label: 'Transcode', color: colors.warning, bgColor: 'rgba(245, 158, 11, 0.15)' };
   }
   // If video is direct play and audio is direct play or copy
-  if (videoDecision === 'directplay' && (audioDecision === 'directplay' || audioDecision === 'copy')) {
+  if (
+    videoDecision === 'directplay' &&
+    (audioDecision === 'directplay' || audioDecision === 'copy')
+  ) {
     return { label: 'Direct Play', color: colors.success, bgColor: 'rgba(34, 197, 94, 0.15)' };
   }
   // Direct stream (video copy or direct stream)
@@ -212,7 +215,11 @@ export function NowPlayingCard({ session, onPress }: NowPlayingCardProps) {
                 { width: posterWidth, height: posterHeight },
               ]}
             >
-              <Ionicons name="film-outline" size={isTablet ? 28 : 24} color={colors.text.muted.dark} />
+              <Ionicons
+                name="film-outline"
+                size={isTablet ? 28 : 24}
+                color={colors.text.muted.dark}
+              />
             </View>
           )}
           {/* Paused overlay */}
@@ -254,9 +261,7 @@ export function NowPlayingCard({ session, onPress }: NowPlayingCardProps) {
               </Text>
               {/* Show quality badge on tablet, just transcode icon on phone */}
               {isTablet ? (
-                <View
-                  style={[styles.qualityBadge, { backgroundColor: qualityInfo.bgColor }]}
-                >
+                <View style={[styles.qualityBadge, { backgroundColor: qualityInfo.bgColor }]}>
                   <Text style={[styles.qualityText, { color: qualityInfo.color }]}>
                     {qualityInfo.label}
                   </Text>
@@ -294,7 +299,11 @@ export function NowPlayingCard({ session, onPress }: NowPlayingCardProps) {
 
         {/* Chevron */}
         <View style={styles.chevron}>
-          <Ionicons name="chevron-forward" size={isTablet ? 18 : 16} color={colors.text.muted.dark} />
+          <Ionicons
+            name="chevron-forward"
+            size={isTablet ? 18 : 16}
+            color={colors.text.muted.dark}
+          />
         </View>
       </View>
 

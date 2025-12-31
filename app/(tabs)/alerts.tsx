@@ -32,7 +32,12 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { colors, spacing, borderRadius } from '@/lib/theme';
-import type { ViolationWithDetails, RuleType, UnitSystem, ViolationSeverity } from '@tracearr/shared';
+import type {
+  ViolationWithDetails,
+  RuleType,
+  UnitSystem,
+  ViolationSeverity,
+} from '@tracearr/shared';
 import { formatSpeed } from '@tracearr/shared';
 
 const PAGE_SIZE = 50;
@@ -202,11 +207,7 @@ function ViolationCard({
         {/* Header: User + Severity */}
         <View className="mb-3 flex-row items-start justify-between">
           <View className="flex-1 flex-row items-center gap-2.5">
-            <UserAvatar
-              thumbUrl={violation.user?.thumbUrl}
-              username={username}
-              size={avatarSize}
-            />
+            <UserAvatar thumbUrl={violation.user?.thumbUrl} username={username} size={avatarSize} />
             <View className="flex-1">
               <Text className="text-base font-semibold" numberOfLines={1}>
                 {displayName}
@@ -280,12 +281,15 @@ export default function AlertsScreen() {
   const unitSystem = settings?.unitSystem ?? 'metric';
 
   // Build query params based on filters
-  const queryParams = useMemo(() => ({
-    pageSize: PAGE_SIZE,
-    serverId: selectedServerId ?? undefined,
-    severity: severityFilter === 'all' ? undefined : severityFilter,
-    acknowledged: statusFilter === 'all' ? undefined : statusFilter === 'acknowledged',
-  }), [selectedServerId, severityFilter, statusFilter]);
+  const queryParams = useMemo(
+    () => ({
+      pageSize: PAGE_SIZE,
+      serverId: selectedServerId ?? undefined,
+      severity: severityFilter === 'all' ? undefined : severityFilter,
+      acknowledged: statusFilter === 'all' ? undefined : statusFilter === 'acknowledged',
+    }),
+    [selectedServerId, severityFilter, statusFilter]
+  );
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, refetch, isRefetching } =
     useInfiniteQuery({

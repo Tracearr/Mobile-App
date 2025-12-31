@@ -7,7 +7,14 @@
  * - Tablet (md+): 2-column grid, larger avatars, more info (crown, joined date), search bar
  */
 import { useState, useMemo } from 'react';
-import { View, FlatList, RefreshControl, Pressable, ActivityIndicator, TextInput } from 'react-native';
+import {
+  View,
+  FlatList,
+  RefreshControl,
+  Pressable,
+  ActivityIndicator,
+  TextInput,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
@@ -74,9 +81,7 @@ function UserCard({
               <Text className="text-base font-semibold" numberOfLines={1}>
                 {displayName}
               </Text>
-              {isOwner && (
-                <Ionicons name="shield-checkmark" size={14} color={colors.warning} />
-              )}
+              {isOwner && <Ionicons name="shield-checkmark" size={14} color={colors.warning} />}
             </View>
             {/* Show username if different from display name */}
             {user.identityName && user.identityName !== user.username && (
@@ -84,7 +89,7 @@ function UserCard({
             )}
             {/* Tablet: show joined date */}
             {isTablet && user.createdAt && (
-              <View className="flex-row items-center gap-1 mt-0.5">
+              <View className="mt-0.5 flex-row items-center gap-1">
                 <Ionicons name="time-outline" size={10} color={colors.text.muted.dark} />
                 <Text className="text-muted-foreground text-xs">
                   Joined {formatDistanceToNow(new Date(user.createdAt), { addSuffix: true })}
@@ -199,7 +204,8 @@ export default function UsersScreen() {
             <View className="mb-3 flex-row items-center justify-between">
               <Text className="text-lg font-semibold">Users</Text>
               <Text className="text-muted-foreground text-sm">
-                {searchQuery ? `${users.length} of ${total}` : total} {total === 1 ? 'user' : 'users'}
+                {searchQuery ? `${users.length} of ${total}` : total}{' '}
+                {total === 1 ? 'user' : 'users'}
               </Text>
             </View>
             {/* Search bar - tablet only */}

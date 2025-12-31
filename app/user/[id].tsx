@@ -621,9 +621,7 @@ export default function UserDetailScreen() {
             <UserAvatar thumbUrl={user.thumbUrl} username={user.username} size={avatarSize} />
             <View className="flex-1">
               <View className="mb-1 flex-row items-center gap-2">
-                <Text className="text-xl font-bold">
-                  {user.identityName ?? user.username}
-                </Text>
+                <Text className="text-xl font-bold">{user.identityName ?? user.username}</Text>
                 {user.role === 'owner' && <Crown size={18} color={colors.warning} />}
               </View>
               {/* Show @username if identity name is displayed */}

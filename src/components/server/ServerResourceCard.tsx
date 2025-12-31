@@ -65,7 +65,9 @@ function ResourceBar({ label, processValue, systemValue, icon, isTablet }: Resou
       {/* Process bar (Plex Media Server) */}
       <View style={[styles.barSection, isTablet && { marginBottom: spacing.sm }]}>
         <View style={styles.barLabelRow}>
-          <Text style={[styles.barLabelText, { fontSize: barLabelFontSize }]}>Plex Media Server</Text>
+          <Text style={[styles.barLabelText, { fontSize: barLabelFontSize }]}>
+            Plex Media Server
+          </Text>
           <Text style={[styles.barValueText, { fontSize: barLabelFontSize }]}>{processValue}%</Text>
         </View>
         <View style={[styles.barTrack, { height: barHeight }]}>
