@@ -45,15 +45,7 @@ const withSecureStoreBackupRules = (config) => {
     'android',
     async (config) => {
       const projectRoot = config.modRequest.projectRoot;
-      const xmlDir = path.join(
-        projectRoot,
-        'android',
-        'app',
-        'src',
-        'main',
-        'res',
-        'xml'
-      );
+      const xmlDir = path.join(projectRoot, 'android', 'app', 'src', 'main', 'res', 'xml');
 
       // Create the xml directory if it doesn't exist
       if (!fs.existsSync(xmlDir)) {
@@ -65,10 +57,7 @@ const withSecureStoreBackupRules = (config) => {
       fs.writeFileSync(backupRulesPath, BACKUP_RULES_CONTENT);
 
       // Write data extraction rules for Android 12+
-      const extractionRulesPath = path.join(
-        xmlDir,
-        'secure_store_data_extraction_rules.xml'
-      );
+      const extractionRulesPath = path.join(xmlDir, 'secure_store_data_extraction_rules.xml');
       fs.writeFileSync(extractionRulesPath, DATA_EXTRACTION_RULES_CONTENT);
 
       return config;
