@@ -45,7 +45,7 @@ export async function getItemAsync(key: string): Promise<string | null> {
       );
       consecutiveFailures = 0;
       return value;
-    } catch (error) {
+    } catch {
       if (attempt < MAX_RETRIES) {
         await sleep(RETRY_DELAY_MS);
       } else {
@@ -67,7 +67,7 @@ export async function setItemAsync(key: string, value: string): Promise<boolean>
       );
       consecutiveFailures = 0;
       return true;
-    } catch (error) {
+    } catch {
       if (attempt < MAX_RETRIES) {
         await sleep(RETRY_DELAY_MS);
       } else {
@@ -89,7 +89,7 @@ export async function deleteItemAsync(key: string): Promise<boolean> {
       );
       consecutiveFailures = 0;
       return true;
-    } catch (error) {
+    } catch {
       if (attempt < MAX_RETRIES) {
         await sleep(RETRY_DELAY_MS);
       } else {
