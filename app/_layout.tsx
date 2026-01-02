@@ -8,7 +8,7 @@ import '../global.css';
 import { useEffect, useState } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, ActivityIndicator, StyleSheet, Text, Pressable } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { QueryProvider } from '@/providers/QueryProvider';
@@ -20,39 +20,59 @@ import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { colors } from '@/lib/theme';
 
 function RootLayoutNav() {
-  const { isAuthenticated, isLoading, initialize } = useAuthStore();
+  const {
+    isAuthenticated,
+    isLoading,
+    initialize,
+    storageAvailable,
+    retryStorageAccess,
+    resetStorageState,
+  } = useAuthStore();
   const segments = useSegments();
   const router = useRouter();
   const [hasInitialized, setHasInitialized] = useState(false);
 
-  // Initialize push notifications (only when authenticated)
   usePushNotifications();
 
-  // Initialize auth state on mount
   useEffect(() => {
     void initialize().finally(() => setHasInitialized(true));
   }, [initialize]);
 
   // Handle navigation based on auth state
-  // Note: We allow authenticated users to access (auth)/pair for adding servers
-  // Wait for initialization to complete before redirecting (prevents hot reload issues)
   useEffect(() => {
-    if (isLoading || !hasInitialized) return;
+    if (isLoading || !hasInitialized || !storageAvailable) return;
 
     const inAuthGroup = segments[0] === '(auth)';
 
     if (!isAuthenticated && !inAuthGroup) {
-      // Not authenticated and not on auth screen - redirect to pair
       router.replace('/(auth)/pair');
     }
-    // Don't redirect away from pair if authenticated - user might be adding a server
-  }, [isAuthenticated, isLoading, hasInitialized, segments, router]);
+  }, [isAuthenticated, isLoading, hasInitialized, storageAvailable, segments, router]);
 
-  // Show loading screen while initializing
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={colors.cyan.core} />
+      </View>
+    );
+  }
+
+  if (!storageAvailable) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text style={styles.errorText}>Storage Unavailable</Text>
+        <Text style={styles.statusSubtext}>
+          Secure storage isn't responding. Try disabling battery saver or restarting the app.
+        </Text>
+        <Pressable
+          style={styles.retryButton}
+          onPress={() => {
+            resetStorageState();
+            void retryStorageAccess();
+          }}
+        >
+          <Text style={styles.retryButtonText}>Retry</Text>
+        </Pressable>
       </View>
     );
   }
@@ -124,5 +144,30 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: colors.background.dark,
+    paddingHorizontal: 32,
+  },
+  statusSubtext: {
+    color: colors.text.secondary.dark,
+    fontSize: 14,
+    textAlign: 'center',
+    marginTop: 8,
+  },
+  errorText: {
+    color: colors.error,
+    fontSize: 20,
+    fontWeight: '600',
+    marginBottom: 12,
+  },
+  retryButton: {
+    marginTop: 24,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    backgroundColor: colors.cyan.core,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: colors.background.dark,
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

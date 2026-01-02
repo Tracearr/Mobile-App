@@ -1,10 +1,8 @@
 /**
  * Secure storage utilities for mobile app credentials
  * Supports multiple server connections with independent credentials
- *
- * Uses expo-secure-store for all storage (Expo Go compatible)
  */
-import * as SecureStore from 'expo-secure-store';
+import * as ResilientStorage from './resilientStorage';
 
 // Keys for secure storage (per-server, uses serverId suffix)
 const SECURE_KEYS = {
@@ -18,47 +16,30 @@ const STORAGE_KEYS = {
   ACTIVE_SERVER: 'tracearr_active_server',
 } as const;
 
-/**
- * Server connection info stored in SecureStore
- */
 export interface ServerInfo {
-  id: string; // Unique identifier (from pairing response or generated)
+  id: string;
   url: string;
   name: string;
   type: 'plex' | 'jellyfin' | 'emby';
-  addedAt: string; // ISO date string
+  addedAt: string;
 }
 
-/**
- * Credentials for a specific server (tokens stored in SecureStore)
- */
 export interface ServerCredentials {
   accessToken: string;
   refreshToken: string;
 }
 
-/**
- * Full server data including credentials
- */
 export interface StoredServer extends ServerInfo {
   credentials: ServerCredentials;
 }
 
-// Helper to get per-server secure key
 function getSecureKey(baseKey: string, serverId: string): string {
   return `${baseKey}_${serverId}`;
 }
 
 export const storage = {
-  // ============================================================================
-  // Server List Management
-  // ============================================================================
-
-  /**
-   * Get all connected servers
-   */
   async getServers(): Promise<ServerInfo[]> {
-    const data = await SecureStore.getItemAsync(STORAGE_KEYS.SERVERS);
+    const data = await ResilientStorage.getItemAsync(STORAGE_KEYS.SERVERS);
     if (!data) return [];
     try {
       return JSON.parse(data) as ServerInfo[];
@@ -67,21 +48,28 @@ export const storage = {
     }
   },
 
-  /**
-   * Add a new server to the list
-   */
-  async addServer(server: ServerInfo, credentials: ServerCredentials): Promise<void> {
-    // Store credentials in SecureStore
-    await Promise.all([
-      SecureStore.setItemAsync(
+  async addServer(server: ServerInfo, credentials: ServerCredentials): Promise<boolean> {
+    // Store credentials in parallel
+    const [accessOk, refreshOk] = await Promise.all([
+      ResilientStorage.setItemAsync(
         getSecureKey(SECURE_KEYS.ACCESS_TOKEN, server.id),
         credentials.accessToken
       ),
-      SecureStore.setItemAsync(
+      ResilientStorage.setItemAsync(
         getSecureKey(SECURE_KEYS.REFRESH_TOKEN, server.id),
         credentials.refreshToken
       ),
     ]);
+
+    if (!accessOk || !refreshOk) {
+      console.error('[Storage] Failed to store credentials');
+      // Rollback: clean up any partially stored credentials
+      await Promise.all([
+        ResilientStorage.deleteItemAsync(getSecureKey(SECURE_KEYS.ACCESS_TOKEN, server.id)),
+        ResilientStorage.deleteItemAsync(getSecureKey(SECURE_KEYS.REFRESH_TOKEN, server.id)),
+      ]);
+      return false;
+    }
 
     // Add server to list
     const servers = await this.getServers();
@@ -91,96 +79,94 @@ export const storage = {
     } else {
       servers.push(server);
     }
-    await SecureStore.setItemAsync(STORAGE_KEYS.SERVERS, JSON.stringify(servers));
+
+    const serversOk = await ResilientStorage.setItemAsync(
+      STORAGE_KEYS.SERVERS,
+      JSON.stringify(servers)
+    );
+    if (!serversOk) {
+      console.error('[Storage] Failed to store server list');
+      // Rollback: remove credentials since server list update failed
+      await Promise.all([
+        ResilientStorage.deleteItemAsync(getSecureKey(SECURE_KEYS.ACCESS_TOKEN, server.id)),
+        ResilientStorage.deleteItemAsync(getSecureKey(SECURE_KEYS.REFRESH_TOKEN, server.id)),
+      ]);
+      return false;
+    }
+
+    return true;
   },
 
-  /**
-   * Remove a server and its credentials
-   */
-  async removeServer(serverId: string): Promise<void> {
-    // Read active server ID BEFORE making any changes to avoid race conditions
-    const activeId = await this.getActiveServerId();
+  async removeServer(serverId: string): Promise<boolean> {
     const servers = await this.getServers();
     const filtered = servers.filter((s) => s.id !== serverId);
 
-    // Remove credentials from SecureStore
+    // Remove credentials in parallel
     await Promise.all([
-      SecureStore.deleteItemAsync(getSecureKey(SECURE_KEYS.ACCESS_TOKEN, serverId)),
-      SecureStore.deleteItemAsync(getSecureKey(SECURE_KEYS.REFRESH_TOKEN, serverId)),
+      ResilientStorage.deleteItemAsync(getSecureKey(SECURE_KEYS.ACCESS_TOKEN, serverId)),
+      ResilientStorage.deleteItemAsync(getSecureKey(SECURE_KEYS.REFRESH_TOKEN, serverId)),
     ]);
 
-    // Remove from server list
-    await SecureStore.setItemAsync(STORAGE_KEYS.SERVERS, JSON.stringify(filtered));
+    // Update server list
+    const listOk = await ResilientStorage.setItemAsync(
+      STORAGE_KEYS.SERVERS,
+      JSON.stringify(filtered)
+    );
+    if (!listOk) {
+      console.error('[Storage] Failed to update server list after removal');
+      return false;
+    }
 
-    // Update active server if the removed one was active
+    // Update active server if needed
+    const activeId = await this.getActiveServerId();
     if (activeId === serverId) {
-      // Select first remaining server or clear
       if (filtered.length > 0) {
-        await this.setActiveServerId(filtered[0]!.id);
+        const setOk = await ResilientStorage.setItemAsync(
+          STORAGE_KEYS.ACTIVE_SERVER,
+          filtered[0]!.id
+        );
+        if (!setOk) console.warn('[Storage] Failed to update active server after removal');
       } else {
-        await SecureStore.deleteItemAsync(STORAGE_KEYS.ACTIVE_SERVER);
+        await ResilientStorage.deleteItemAsync(STORAGE_KEYS.ACTIVE_SERVER);
       }
     }
+
+    return true;
   },
 
-  /**
-   * Get a specific server by ID
-   */
   async getServer(serverId: string): Promise<ServerInfo | null> {
     const servers = await this.getServers();
     return servers.find((s) => s.id === serverId) ?? null;
   },
 
-  /**
-   * Update server info (e.g., name changed)
-   */
-  async updateServer(serverId: string, updates: Partial<Omit<ServerInfo, 'id'>>): Promise<void> {
+  async updateServer(serverId: string, updates: Partial<Omit<ServerInfo, 'id'>>): Promise<boolean> {
     const servers = await this.getServers();
     const index = servers.findIndex((s) => s.id === serverId);
     if (index >= 0) {
       servers[index] = { ...servers[index]!, ...updates };
-      await SecureStore.setItemAsync(STORAGE_KEYS.SERVERS, JSON.stringify(servers));
+      return await ResilientStorage.setItemAsync(STORAGE_KEYS.SERVERS, JSON.stringify(servers));
     }
+    return false;
   },
 
-  // ============================================================================
-  // Active Server Selection
-  // ============================================================================
-
-  /**
-   * Get the currently active server ID
-   */
   async getActiveServerId(): Promise<string | null> {
-    return SecureStore.getItemAsync(STORAGE_KEYS.ACTIVE_SERVER);
+    return ResilientStorage.getItemAsync(STORAGE_KEYS.ACTIVE_SERVER);
   },
 
-  /**
-   * Set the active server
-   */
-  async setActiveServerId(serverId: string): Promise<void> {
-    await SecureStore.setItemAsync(STORAGE_KEYS.ACTIVE_SERVER, serverId);
+  async setActiveServerId(serverId: string): Promise<boolean> {
+    return await ResilientStorage.setItemAsync(STORAGE_KEYS.ACTIVE_SERVER, serverId);
   },
 
-  /**
-   * Get the active server info
-   */
   async getActiveServer(): Promise<ServerInfo | null> {
     const activeId = await this.getActiveServerId();
     if (!activeId) return null;
     return this.getServer(activeId);
   },
 
-  // ============================================================================
-  // Credentials Management (per-server)
-  // ============================================================================
-
-  /**
-   * Get credentials for a specific server
-   */
   async getServerCredentials(serverId: string): Promise<ServerCredentials | null> {
     const [accessToken, refreshToken] = await Promise.all([
-      SecureStore.getItemAsync(getSecureKey(SECURE_KEYS.ACCESS_TOKEN, serverId)),
-      SecureStore.getItemAsync(getSecureKey(SECURE_KEYS.REFRESH_TOKEN, serverId)),
+      ResilientStorage.getItemAsync(getSecureKey(SECURE_KEYS.ACCESS_TOKEN, serverId)),
+      ResilientStorage.getItemAsync(getSecureKey(SECURE_KEYS.REFRESH_TOKEN, serverId)),
     ]);
 
     if (!accessToken || !refreshToken) {
@@ -190,96 +176,92 @@ export const storage = {
     return { accessToken, refreshToken };
   },
 
-  /**
-   * Update tokens for a specific server (after refresh)
-   */
   async updateServerTokens(
     serverId: string,
     accessToken: string,
     refreshToken: string
-  ): Promise<void> {
-    await Promise.all([
-      SecureStore.setItemAsync(getSecureKey(SECURE_KEYS.ACCESS_TOKEN, serverId), accessToken),
-      SecureStore.setItemAsync(getSecureKey(SECURE_KEYS.REFRESH_TOKEN, serverId), refreshToken),
-    ]);
+  ): Promise<boolean> {
+    // Sequential writes to prevent race conditions with mismatched token pairs
+    const accessOk = await ResilientStorage.setItemAsync(
+      getSecureKey(SECURE_KEYS.ACCESS_TOKEN, serverId),
+      accessToken
+    );
+    if (!accessOk) return false;
+
+    const refreshOk = await ResilientStorage.setItemAsync(
+      getSecureKey(SECURE_KEYS.REFRESH_TOKEN, serverId),
+      refreshToken
+    );
+    return refreshOk;
   },
 
-  /**
-   * Get access token for active server
-   */
   async getAccessToken(): Promise<string | null> {
     const activeId = await this.getActiveServerId();
     if (!activeId) return null;
-    return SecureStore.getItemAsync(getSecureKey(SECURE_KEYS.ACCESS_TOKEN, activeId));
+    return ResilientStorage.getItemAsync(getSecureKey(SECURE_KEYS.ACCESS_TOKEN, activeId));
   },
 
-  /**
-   * Get refresh token for active server
-   */
   async getRefreshToken(): Promise<string | null> {
     const activeId = await this.getActiveServerId();
     if (!activeId) return null;
-    return SecureStore.getItemAsync(getSecureKey(SECURE_KEYS.REFRESH_TOKEN, activeId));
+    return ResilientStorage.getItemAsync(getSecureKey(SECURE_KEYS.REFRESH_TOKEN, activeId));
   },
 
-  /**
-   * Get server URL for active server
-   */
   async getServerUrl(): Promise<string | null> {
     const server = await this.getActiveServer();
     return server?.url ?? null;
   },
 
-  /**
-   * Update tokens for active server
-   */
-  async updateTokens(accessToken: string, refreshToken: string): Promise<void> {
+  async updateTokens(accessToken: string, refreshToken: string): Promise<boolean> {
     const activeId = await this.getActiveServerId();
     if (!activeId) throw new Error('No active server');
-    await this.updateServerTokens(activeId, accessToken, refreshToken);
+    return this.updateServerTokens(activeId, accessToken, refreshToken);
   },
 
-  // ============================================================================
-  // Migration & Compatibility
-  // ============================================================================
-
-  /**
-   * Check if using legacy single-server storage and migrate if needed
-   */
   async migrateFromLegacy(): Promise<boolean> {
-    // Check for legacy keys
-    const legacyUrl = await SecureStore.getItemAsync('tracearr_server_url');
-    const legacyAccess = await SecureStore.getItemAsync('tracearr_access_token');
-    const legacyRefresh = await SecureStore.getItemAsync('tracearr_refresh_token');
-    const legacyName = await SecureStore.getItemAsync('tracearr_server_name');
+    const [legacyUrl, legacyAccess, legacyRefresh, legacyName] = await Promise.all([
+      ResilientStorage.getItemAsync('tracearr_server_url'),
+      ResilientStorage.getItemAsync('tracearr_access_token'),
+      ResilientStorage.getItemAsync('tracearr_refresh_token'),
+      ResilientStorage.getItemAsync('tracearr_server_name'),
+    ]);
 
     if (legacyUrl && legacyAccess && legacyRefresh) {
-      // Generate a server ID from the URL
-      const serverId = Buffer.from(legacyUrl).toString('base64').slice(0, 16);
+      const serverId = legacyUrl
+        .split('')
+        .reduce((acc, char) => ((acc << 5) - acc + char.charCodeAt(0)) | 0, 0)
+        .toString(36)
+        .replace('-', '')
+        .slice(0, 16)
+        .padEnd(16, '0');
 
       const serverInfo: ServerInfo = {
         id: serverId,
         url: legacyUrl,
         name: legacyName || 'Tracearr',
-        type: 'plex', // Assume plex for legacy, will update on next sync
+        type: 'plex',
         addedAt: new Date().toISOString(),
       };
 
-      // Add server with credentials
-      await this.addServer(serverInfo, {
+      const addSuccess = await this.addServer(serverInfo, {
         accessToken: legacyAccess,
         refreshToken: legacyRefresh,
       });
 
-      // Set as active
-      await this.setActiveServerId(serverId);
+      if (!addSuccess) {
+        console.error('[Storage] Migration failed - keeping legacy data');
+        return false;
+      }
+
+      const setOk = await this.setActiveServerId(serverId);
+      if (!setOk) console.warn('[Storage] Migration: failed to set active server');
 
       // Clean up legacy keys
       await Promise.all([
-        SecureStore.deleteItemAsync('tracearr_server_url'),
-        SecureStore.deleteItemAsync('tracearr_access_token'),
-        SecureStore.deleteItemAsync('tracearr_refresh_token'),
-        SecureStore.deleteItemAsync('tracearr_server_name'),
+        ResilientStorage.deleteItemAsync('tracearr_server_url'),
+        ResilientStorage.deleteItemAsync('tracearr_access_token'),
+        ResilientStorage.deleteItemAsync('tracearr_refresh_token'),
+        ResilientStorage.deleteItemAsync('tracearr_server_name'),
       ]);
 
       return true;
@@ -288,14 +270,7 @@ export const storage = {
     return false;
   },
 
-  // ============================================================================
-  // Legacy Compatibility (for existing code during transition)
-  // ============================================================================
-
-  /**
-   * @deprecated Use getServers() and getServerCredentials() instead
-   * Get stored credentials for active server (legacy compatibility)
-   */
+  /** @deprecated Use getServers() and getServerCredentials() instead */
   async getCredentials(): Promise<{
     serverUrl: string;
     accessToken: string;
@@ -316,24 +291,26 @@ export const storage = {
     };
   },
 
-  /**
-   * @deprecated Use addServer() instead
-   * Store credentials (legacy compatibility - adds/updates single server)
-   */
+  /** @deprecated Use addServer() instead */
   async storeCredentials(credentials: {
     serverUrl: string;
     accessToken: string;
     refreshToken: string;
     serverName: string;
   }): Promise<void> {
-    // Generate ID from URL for consistency
-    const serverId = Buffer.from(credentials.serverUrl).toString('base64').slice(0, 16);
+    const serverId = credentials.serverUrl
+      .split('')
+      .reduce((acc, char) => ((acc << 5) - acc + char.charCodeAt(0)) | 0, 0)
+      .toString(36)
+      .replace('-', '')
+      .slice(0, 16)
+      .padEnd(16, '0');
 
     const serverInfo: ServerInfo = {
       id: serverId,
       url: credentials.serverUrl,
       name: credentials.serverName,
-      type: 'plex', // Will be updated on server sync
+      type: 'plex',
       addedAt: new Date().toISOString(),
     };
 
@@ -345,10 +322,7 @@ export const storage = {
     await this.setActiveServerId(serverId);
   },
 
-  /**
-   * @deprecated Use removeServer() for specific server
-   * Clear all credentials (legacy compatibility - removes active server)
-   */
+  /** @deprecated Use removeServer() for specific server */
   async clearCredentials(): Promise<void> {
     const activeId = await this.getActiveServerId();
     if (activeId) {
@@ -356,11 +330,20 @@ export const storage = {
     }
   },
 
-  /**
-   * Check if user is authenticated (has at least one server)
-   */
   async isAuthenticated(): Promise<boolean> {
     const servers = await this.getServers();
     return servers.length > 0;
+  },
+
+  async checkStorageAvailability(): Promise<boolean> {
+    return ResilientStorage.checkStorageAvailability();
+  },
+
+  isStorageUnavailable(): boolean {
+    return ResilientStorage.isStorageUnavailable();
+  },
+
+  resetFailureCount(): void {
+    ResilientStorage.resetFailureCount();
   },
 };

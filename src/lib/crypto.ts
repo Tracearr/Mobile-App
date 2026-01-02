@@ -10,7 +10,7 @@
  * - Per-device keys: Each device has a unique derived key
  */
 import crypto from 'react-native-quick-crypto';
-import * as SecureStore from 'expo-secure-store';
+import * as ResilientStorage from './resilientStorage';
 import type { EncryptedPushPayload, NotificationEventType } from '@tracearr/shared';
 
 // Storage key for the per-device encryption secret
@@ -39,13 +39,16 @@ export interface DecryptedPayload {
  * This secret is used along with the server's key to derive the encryption key
  */
 export async function getDeviceSecret(): Promise<string> {
-  let secret = await SecureStore.getItemAsync(DEVICE_SECRET_KEY);
+  let secret = await ResilientStorage.getItemAsync(DEVICE_SECRET_KEY);
 
   if (!secret) {
     // Generate a new 32-byte random secret
     const randomBytes = crypto.randomBytes(32);
     secret = Buffer.from(randomBytes).toString('base64');
-    await SecureStore.setItemAsync(DEVICE_SECRET_KEY, secret);
+    const stored = await ResilientStorage.setItemAsync(DEVICE_SECRET_KEY, secret);
+    if (!stored) {
+      throw new Error('Failed to store device secret');
+    }
     console.log('[Crypto] Generated new device secret');
   }
 
@@ -185,6 +188,6 @@ export function isEncryptionAvailable(): boolean {
  * Clear the device secret (on logout/unpair)
  */
 export async function clearDeviceSecret(): Promise<void> {
-  await SecureStore.deleteItemAsync(DEVICE_SECRET_KEY);
+  await ResilientStorage.deleteItemAsync(DEVICE_SECRET_KEY);
   console.log('[Crypto] Cleared device secret');
 }

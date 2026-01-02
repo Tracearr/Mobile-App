@@ -10,67 +10,77 @@ import { Platform } from 'react-native';
 import { isEncryptionAvailable, getDeviceSecret } from './crypto';
 
 interface AuthState {
-  // Multi-server state
   servers: ServerInfo[];
   activeServerId: string | null;
   activeServer: ServerInfo | null;
-
-  // Legacy compatibility
+  storageAvailable: boolean;
   isAuthenticated: boolean;
   isLoading: boolean;
   serverUrl: string | null;
   serverName: string | null;
   error: string | null;
 
-  // Actions
   initialize: () => Promise<void>;
+  retryStorageAccess: () => Promise<void>;
   pair: (serverUrl: string, token: string) => Promise<void>;
   addServer: (serverUrl: string, token: string) => Promise<void>;
   removeServer: (serverId: string) => Promise<void>;
   selectServer: (serverId: string) => Promise<void>;
-  /** @deprecated Use removeServer(serverId) instead for clarity. This removes the active server. */
+  /** @deprecated Use removeServer(serverId) instead */
   logout: () => Promise<void>;
   removeActiveServer: () => Promise<void>;
+  resetStorageState: () => void;
   clearError: () => void;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
-  // Initial state
   servers: [],
   activeServerId: null,
   activeServer: null,
+  storageAvailable: true,
   isAuthenticated: false,
   isLoading: true,
   serverUrl: null,
   serverName: null,
   error: null,
 
-  /**
-   * Initialize auth state from stored credentials
-   * Handles migration from legacy single-server storage
-   */
   initialize: async () => {
     try {
       set({ isLoading: true, error: null });
 
-      // Check for and migrate legacy storage
+      // Check storage availability - handles Android Keystore flakiness
+      const available = await storage.checkStorageAvailability();
+
+      if (!available) {
+        console.warn('[AuthStore] Storage unavailable - may need app restart');
+        set({
+          storageAvailable: false,
+          isLoading: false,
+          error: null,
+        });
+        return;
+      }
+
+      // Storage is available - proceed normally
       await storage.migrateFromLegacy();
 
-      // Load servers and active selection
-      const servers = await storage.getServers();
-      const activeServerId = await storage.getActiveServerId();
+      const [servers, activeServerId] = await Promise.all([
+        storage.getServers(),
+        storage.getActiveServerId(),
+      ]);
       const activeServer = activeServerId
         ? (servers.find((s) => s.id === activeServerId) ?? null)
         : null;
 
-      // If we have servers but no active selection, select first one
       if (servers.length > 0 && !activeServer) {
         const firstServer = servers[0]!;
-        await storage.setActiveServerId(firstServer.id);
+        const setOk = await storage.setActiveServerId(firstServer.id);
+        if (!setOk) console.warn('[AuthStore] Failed to set active server ID');
         set({
           servers,
           activeServerId: firstServer.id,
           activeServer: firstServer,
+          storageAvailable: true,
           isAuthenticated: true,
           serverUrl: firstServer.url,
           serverName: firstServer.name,
@@ -81,6 +91,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           servers,
           activeServerId,
           activeServer,
+          storageAvailable: true,
           isAuthenticated: true,
           serverUrl: activeServer.url,
           serverName: activeServer.name,
@@ -91,6 +102,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           servers: [],
           activeServerId: null,
           activeServer: null,
+          storageAvailable: true,
           isAuthenticated: false,
           serverUrl: null,
           serverName: null,
@@ -103,6 +115,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         servers: [],
         activeServerId: null,
         activeServer: null,
+        storageAvailable: true,
         isAuthenticated: false,
         isLoading: false,
         error: 'Failed to initialize authentication',
@@ -110,31 +123,39 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
-  /**
-   * Pair with server using mobile token (legacy method, adds as first/only server)
-   */
+  retryStorageAccess: async () => {
+    if (get().isLoading) {
+      console.log('[AuthStore] Retry skipped - already loading');
+      return;
+    }
+    set({ isLoading: true });
+    await get().initialize();
+  },
+
+  resetStorageState: () => {
+    storage.resetFailureCount();
+    set({
+      storageAvailable: true,
+      isAuthenticated: false,
+      isLoading: false,
+      error: null,
+    });
+  },
+
   pair: async (serverUrl: string, token: string) => {
-    // Delegate to addServer
     await get().addServer(serverUrl, token);
   },
 
-  /**
-   * Add a new server connection
-   */
   addServer: async (serverUrl: string, token: string) => {
     try {
       set({ isLoading: true, error: null });
 
-      // Get device info
       const deviceName =
         Device.deviceName || `${Device.brand || 'Unknown'} ${Device.modelName || 'Device'}`;
       const deviceId = Device.osBuildId || `${Platform.OS}-${Date.now()}`;
       const platform = Platform.OS === 'ios' ? 'ios' : 'android';
-
-      // Normalize URL (remove trailing slash)
       const normalizedUrl = serverUrl.replace(/\/$/, '');
 
-      // Get device secret for push notification encryption (if available)
       let deviceSecret: string | undefined;
       if (isEncryptionAvailable()) {
         try {
@@ -144,7 +165,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         }
       }
 
-      // Call pair API
       const response = await api.pair(
         normalizedUrl,
         token,
@@ -154,7 +174,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         deviceSecret
       );
 
-      // Create server info
       const serverInfo: ServerInfo = {
         id: response.server.id,
         url: normalizedUrl,
@@ -163,24 +182,24 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         addedAt: new Date().toISOString(),
       };
 
-      // Store server and credentials
-      await storage.addServer(serverInfo, {
+      const addOk = await storage.addServer(serverInfo, {
         accessToken: response.accessToken,
         refreshToken: response.refreshToken,
       });
+      if (!addOk) {
+        throw new Error('Failed to store server credentials');
+      }
 
-      // Set as active server
-      await storage.setActiveServerId(serverInfo.id);
-
-      // Reset API client to use new server
+      const setOk = await storage.setActiveServerId(serverInfo.id);
+      if (!setOk) console.warn('[AuthStore] Failed to set active server ID');
       resetApiClient();
 
-      // Update state
       const servers = await storage.getServers();
       set({
         servers,
         activeServerId: serverInfo.id,
         activeServer: serverInfo,
+        storageAvailable: true,
         isAuthenticated: true,
         serverUrl: normalizedUrl,
         serverName: serverInfo.name,
@@ -197,23 +216,18 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
-  /**
-   * Remove a server connection
-   */
   removeServer: async (serverId: string) => {
     try {
       set({ isLoading: true });
 
       await storage.removeServer(serverId);
 
-      // Reload state
       const servers = await storage.getServers();
       const activeServerId = await storage.getActiveServerId();
       const activeServer = activeServerId
         ? (servers.find((s) => s.id === activeServerId) ?? null)
         : null;
 
-      // Reset API client
       resetApiClient();
 
       if (servers.length === 0) {
@@ -221,6 +235,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           servers: [],
           activeServerId: null,
           activeServer: null,
+          storageAvailable: true,
           isAuthenticated: false,
           serverUrl: null,
           serverName: null,
@@ -247,9 +262,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
-  /**
-   * Switch to a different server
-   */
   selectServer: async (serverId: string) => {
     try {
       const { servers } = get();
@@ -259,10 +271,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         throw new Error('Server not found');
       }
 
-      // Set as active
-      await storage.setActiveServerId(serverId);
-
-      // Reset API client to use new server
+      const setOk = await storage.setActiveServerId(serverId);
+      if (!setOk) {
+        throw new Error('Failed to save server selection');
+      }
       resetApiClient();
 
       set({
@@ -279,10 +291,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
-  /**
-   * Remove the currently active server
-   * @deprecated Use removeServer(serverId) instead for clarity
-   */
+  /** @deprecated Use removeServer(serverId) instead */
   logout: async () => {
     const { activeServerId } = get();
     if (activeServerId) {
@@ -290,9 +299,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
-  /**
-   * Remove the currently active server (alias for logout with clearer name)
-   */
   removeActiveServer: async () => {
     const { activeServerId } = get();
     if (activeServerId) {
@@ -300,9 +306,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
-  /**
-   * Clear error message
-   */
   clearError: () => {
     set({ error: null });
   },
