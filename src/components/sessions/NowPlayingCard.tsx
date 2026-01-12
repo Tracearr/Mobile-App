@@ -48,7 +48,7 @@ function getMediaDisplay(session: ActiveSession): { title: string; subtitle: str
     // TV Show episode
     const episodeInfo =
       session.seasonNumber && session.episodeNumber
-        ? `S${session.seasonNumber.toString().padStart(2, '0')}E${session.episodeNumber.toString().padStart(2, '0')}`
+        ? `S${session.seasonNumber.toString().padStart(2, '0')} E${session.episodeNumber.toString().padStart(2, '0')}`
         : '';
     return {
       title: session.grandparentTitle,

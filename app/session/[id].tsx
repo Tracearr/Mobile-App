@@ -325,7 +325,7 @@ export default function SessionDetailScreen() {
     if (session.mediaType === 'episode' && session.grandparentTitle) {
       const episodeInfo =
         session.seasonNumber && session.episodeNumber
-          ? `S${session.seasonNumber}E${session.episodeNumber}`
+          ? `S${session.seasonNumber} E${session.episodeNumber}`
           : '';
       return `${session.grandparentTitle}${episodeInfo ? ` • ${episodeInfo}` : ''}`;
     }
