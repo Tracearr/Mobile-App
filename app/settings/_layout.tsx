@@ -33,9 +33,15 @@ export default function SettingsLayout() {
       }}
     >
       <Stack.Screen
+        name="index"
+        options={{
+          title: 'Settings',
+        }}
+      />
+      <Stack.Screen
         name="notifications"
         options={{
-          title: 'Notification Settings',
+          title: 'Notifications',
         }}
       />
     </Stack>

@@ -88,7 +88,7 @@ function RootLayoutNav() {
         }}
       >
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="(drawer)" options={{ headerShown: false }} />
         <Stack.Screen
           name="user"
           options={{
@@ -98,6 +98,13 @@ function RootLayoutNav() {
         />
         <Stack.Screen
           name="session"
+          options={{
+            headerShown: false,
+            presentation: 'card',
+          }}
+        />
+        <Stack.Screen
+          name="alerts"
           options={{
             headerShown: false,
             presentation: 'card',
