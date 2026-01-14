@@ -215,11 +215,12 @@ export function usePushNotifications() {
 
         // Navigate based on notification type
         if (data?.type === 'violation_detected') {
-          router.push('/(tabs)/alerts');
+          // Alerts is now a standalone screen, not a tab
+          router.push('/alerts' as never);
         } else if (data?.type === 'stream_started' || data?.type === 'stream_stopped') {
-          router.push('/(tabs)/activity');
+          router.push('/(drawer)/(tabs)/activity' as never);
         } else if (data?.type === 'server_down' || data?.type === 'server_up') {
-          router.push('/(tabs)');
+          router.push('/(drawer)/(tabs)' as never);
         }
       })();
     });
