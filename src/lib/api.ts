@@ -26,6 +26,9 @@ import type {
   NotificationPreferencesWithStatus,
   ServerResourceStats,
   TerminationLogWithDetails,
+  HistorySessionResponse,
+  HistoryAggregates,
+  HistoryFilterOptions,
 } from '@tracearr/shared';
 
 // Cache of API clients per server
@@ -213,6 +216,29 @@ export const api = {
   },
 
   /**
+   * Get current user's profile info
+   */
+  me: async (): Promise<{
+    id: string;
+    username: string;
+    friendlyName: string;
+    thumbUrl: string | null;
+    email: string | null;
+    role: string;
+  }> => {
+    const client = await getApiClient();
+    const response = await client.get<{
+      id: string;
+      username: string;
+      friendlyName: string;
+      thumbUrl: string | null;
+      email: string | null;
+      role: string;
+    }>('/mobile/me');
+    return response.data;
+  },
+
+  /**
    * Register push token for notifications
    */
   registerPushToken: async (
@@ -374,6 +400,96 @@ export const api = {
         terminationLogId: string;
         message: string;
       }>(`/mobile/streams/${id}/terminate`, { reason });
+      return response.data;
+    },
+    /**
+     * Query history with cursor-based pagination and filters
+     * Used for the History tab with infinite scroll
+     */
+    history: async (params?: {
+      cursor?: string;
+      pageSize?: number;
+      serverUserIds?: string[];
+      serverId?: string;
+      state?: 'playing' | 'paused' | 'stopped';
+      mediaTypes?: ('movie' | 'episode' | 'track' | 'live')[];
+      startDate?: Date;
+      endDate?: Date;
+      search?: string;
+      platforms?: string[];
+      product?: string;
+      device?: string;
+      playerName?: string;
+      ipAddress?: string;
+      geoCountries?: string[];
+      geoCity?: string;
+      geoRegion?: string;
+      transcodeDecisions?: ('directplay' | 'copy' | 'transcode')[];
+      watched?: boolean;
+      excludeShortSessions?: boolean;
+      orderBy?: 'startedAt' | 'durationMs' | 'mediaTitle';
+      orderDir?: 'asc' | 'desc';
+    }): Promise<HistorySessionResponse> => {
+      const client = await getApiClient();
+      const searchParams = new URLSearchParams();
+      if (params?.cursor) searchParams.set('cursor', params.cursor);
+      if (params?.pageSize) searchParams.set('pageSize', String(params.pageSize));
+      if (params?.serverUserIds?.length)
+        searchParams.set('serverUserIds', params.serverUserIds.join(','));
+      if (params?.serverId) searchParams.set('serverId', params.serverId);
+      if (params?.state) searchParams.set('state', params.state);
+      if (params?.mediaTypes?.length) searchParams.set('mediaTypes', params.mediaTypes.join(','));
+      if (params?.startDate) searchParams.set('startDate', params.startDate.toISOString());
+      if (params?.endDate) searchParams.set('endDate', params.endDate.toISOString());
+      if (params?.search) searchParams.set('search', params.search);
+      if (params?.platforms?.length) searchParams.set('platforms', params.platforms.join(','));
+      if (params?.product) searchParams.set('product', params.product);
+      if (params?.device) searchParams.set('device', params.device);
+      if (params?.playerName) searchParams.set('playerName', params.playerName);
+      if (params?.ipAddress) searchParams.set('ipAddress', params.ipAddress);
+      if (params?.geoCountries?.length)
+        searchParams.set('geoCountries', params.geoCountries.join(','));
+      if (params?.geoCity) searchParams.set('geoCity', params.geoCity);
+      if (params?.geoRegion) searchParams.set('geoRegion', params.geoRegion);
+      if (params?.transcodeDecisions?.length)
+        searchParams.set('transcodeDecisions', params.transcodeDecisions.join(','));
+      if (params?.watched !== undefined) searchParams.set('watched', String(params.watched));
+      if (params?.excludeShortSessions !== undefined)
+        searchParams.set('excludeShortSessions', String(params.excludeShortSessions));
+      if (params?.orderBy) searchParams.set('orderBy', params.orderBy);
+      if (params?.orderDir) searchParams.set('orderDir', params.orderDir);
+      const response = await client.get<HistorySessionResponse>(
+        `/sessions/history?${searchParams.toString()}`
+      );
+      return response.data;
+    },
+    /**
+     * Get aggregate stats for history (total plays, watch time, etc.)
+     */
+    historyAggregates: async (params?: {
+      serverId?: string;
+      startDate?: Date;
+      endDate?: Date;
+    }): Promise<HistoryAggregates> => {
+      const client = await getApiClient();
+      const searchParams = new URLSearchParams();
+      if (params?.serverId) searchParams.set('serverId', params.serverId);
+      if (params?.startDate) searchParams.set('startDate', params.startDate.toISOString());
+      if (params?.endDate) searchParams.set('endDate', params.endDate.toISOString());
+      const response = await client.get<HistoryAggregates>(
+        `/sessions/history/aggregates?${searchParams.toString()}`
+      );
+      return response.data;
+    },
+    /**
+     * Get available filter options for history filtering (users, platforms, countries, etc.)
+     */
+    filterOptions: async (serverId?: string): Promise<HistoryFilterOptions> => {
+      const client = await getApiClient();
+      const params = serverId ? { serverId } : undefined;
+      const response = await client.get<HistoryFilterOptions>('/sessions/filter-options', {
+        params,
+      });
       return response.data;
     },
   },
