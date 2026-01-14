@@ -12,7 +12,7 @@ import { Text } from '@/components/ui/text';
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { ServerSelector } from '@/components/ServerSelector';
 import { api } from '@/lib/api';
-import { colors, spacing } from '@/lib/theme';
+import { colors, spacing, withAlpha } from '@/lib/theme';
 
 interface DrawerItemProps {
   icon: React.ReactNode;
@@ -26,7 +26,7 @@ function DrawerItem({ icon, label, onPress, showChevron = true }: DrawerItemProp
     <Pressable
       onPress={onPress}
       style={styles.drawerItem}
-      android_ripple={{ color: colors.cyan.core + '20' }}
+      android_ripple={{ color: withAlpha(colors.cyan.core, '20') }}
     >
       <View style={styles.drawerItemLeft}>
         {icon}
@@ -93,7 +93,7 @@ export function DrawerContent(props: DrawerContentComponentProps) {
       </ScrollView>
 
       {/* User Profile Section - fixed at bottom */}
-      <View style={[styles.userSection, { paddingBottom: insets.bottom + spacing.md }]}>
+      <View style={[styles.userSection, { paddingBottom: insets.bottom + (spacing.md as number) }]}>
         {userLoading ? (
           <ActivityIndicator size="small" color={colors.cyan.core} />
         ) : user ? (

@@ -41,7 +41,7 @@ import {
 } from 'lucide-react-native';
 import { api, getServerUrl } from '@/lib/api';
 import { useMediaServer } from '@/providers/MediaServerProvider';
-import { colors, spacing, borderRadius } from '@/lib/theme';
+import { colors, spacing, borderRadius, withAlpha } from '@/lib/theme';
 import { Text } from '@/components/ui/text';
 import { Badge } from '@/components/ui/badge';
 import { UserAvatar } from '@/components/ui/user-avatar';
@@ -589,7 +589,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: borderRadius.full,
-    backgroundColor: colors.error + '15',
+    backgroundColor: withAlpha(colors.error, '15'),
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -709,7 +709,7 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: borderRadius.full,
-    backgroundColor: colors.cyan.core + '15',
+    backgroundColor: withAlpha(colors.cyan.core, '15'),
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -806,9 +806,9 @@ const styles = StyleSheet.create({
   },
   // Transcode Reason
   transcodeReasonCard: {
-    backgroundColor: colors.warning + '10',
+    backgroundColor: withAlpha(colors.warning, '10'),
     borderWidth: 1,
-    borderColor: colors.warning + '30',
+    borderColor: withAlpha(colors.warning, '30'),
     borderRadius: borderRadius.lg,
     padding: spacing.sm,
   },

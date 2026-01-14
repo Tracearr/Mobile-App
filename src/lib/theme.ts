@@ -92,7 +92,16 @@ export const colors = {
 
   // Chart colors (matches web --chart-1 through --chart-5)
   chart: ['#18D1E7', '#0EAFC8', '#71717A', '#F59E0B', '#EF4444', '#22C55E'],
-};
+} as const;
+
+/**
+ * Add alpha channel to a hex color
+ * @param color - Hex color string (e.g., '#EF4444')
+ * @param alpha - Hex alpha value (e.g., '15' for ~8% opacity, '33' for 20%)
+ */
+export function withAlpha(color: string, alpha: string): string {
+  return `${color}${alpha}`;
+}
 
 export const spacing = {
   xs: 4,

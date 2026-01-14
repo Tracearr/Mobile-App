@@ -40,7 +40,7 @@ import { Text } from '@/components/ui/text';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { UserAvatar } from '@/components/ui/user-avatar';
-import { colors, spacing, borderRadius } from '@/lib/theme';
+import { colors, spacing, borderRadius, withAlpha } from '@/lib/theme';
 import type {
   ViolationWithDetails,
   RuleType,
@@ -514,7 +514,7 @@ const emptyStyles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: colors.success + '15',
+    backgroundColor: withAlpha(colors.success, '15'),
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.md,

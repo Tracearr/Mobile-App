@@ -63,14 +63,13 @@ export default function HistoryScreen() {
   });
 
   // Count active advanced filters
-  const activeFilterCount = useMemo(() => {
-    return (
-      advancedFilters.serverUserIds.length +
-      advancedFilters.platforms.length +
-      advancedFilters.geoCountries.length +
-      advancedFilters.mediaTypes.length +
-      advancedFilters.transcodeDecisions.length
-    );
+  const activeFilterCount = useMemo((): number => {
+    const serverUserCount = advancedFilters.serverUserIds.length as number;
+    const platformCount = advancedFilters.platforms.length as number;
+    const geoCount = advancedFilters.geoCountries.length as number;
+    const mediaCount = advancedFilters.mediaTypes.length as number;
+    const transcodeCount = advancedFilters.transcodeDecisions.length as number;
+    return serverUserCount + platformCount + geoCount + mediaCount + transcodeCount;
   }, [advancedFilters]);
 
   // Fetch filter options for the bottom sheet

@@ -12,7 +12,7 @@ import {
   Info,
   Server,
   MessageCircle,
-  GithubIcon,
+  Code2,
 } from 'lucide-react-native';
 import Constants from 'expo-constants';
 import { Text } from '@/components/ui/text';
@@ -79,9 +79,11 @@ export default function SettingsScreen() {
         {
           text: 'Disconnect',
           style: 'destructive',
-          onPress: async () => {
-            await removeActiveServer();
-            router.replace('/(auth)/pair');
+          onPress: () => {
+            void (async () => {
+              await removeActiveServer();
+              router.replace('/(auth)/pair');
+            })();
           },
         },
       ]
@@ -121,7 +123,7 @@ export default function SettingsScreen() {
           />
           <View style={styles.divider} />
           <SettingsRow
-            icon={<GithubIcon size={20} color={colors.text.secondary.dark} />}
+            icon={<Code2 size={20} color={colors.text.secondary.dark} />}
             label="GitHub"
             description="View source code"
             onPress={handleGithubPress}
@@ -222,7 +224,7 @@ const styles = StyleSheet.create({
   divider: {
     height: 1,
     backgroundColor: colors.border.dark,
-    marginLeft: spacing.md + 20 + spacing.md, // icon width + gaps
+    marginLeft: (spacing.md as number) + 20 + (spacing.md as number), // icon width + gaps
   },
   spacer: {
     flex: 1,
