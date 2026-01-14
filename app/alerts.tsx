@@ -1,5 +1,6 @@
 /**
- * Alerts tab - violations with infinite scroll and filters
+ * Alerts screen - violations with infinite scroll and filters
+ * Accessed via bell icon in header - not a tab anymore
  * Query keys include selectedServerId for proper cache isolation per media server
  *
  * Responsive layout:
@@ -7,8 +8,15 @@
  * - Tablet (md+): 2-column grid, filters row, larger avatars
  */
 import { useState, useMemo } from 'react';
-import { View, FlatList, RefreshControl, Pressable, ActivityIndicator } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import {
+  View,
+  FlatList,
+  RefreshControl,
+  Pressable,
+  ActivityIndicator,
+  StyleSheet,
+} from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useInfiniteQuery, useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { formatDistanceToNow } from 'date-fns';
@@ -22,6 +30,7 @@ import {
   Check,
   Filter,
   ChevronRight,
+  ChevronLeft,
   type LucideIcon,
 } from 'lucide-react-native';
 import { api } from '@/lib/api';
@@ -334,12 +343,37 @@ export default function AlertsScreen() {
   };
 
   const hasActiveFilters = severityFilter !== 'all' || statusFilter !== 'all';
+  const insets = useSafeAreaInsets();
+
+  const handleBack = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      // Fallback to home - navigate to the drawer's index (dashboard)
+      router.replace('/(drawer)/(tabs)' as never);
+    }
+  };
 
   return (
     <SafeAreaView
       style={{ flex: 1, backgroundColor: colors.background.dark }}
       edges={['left', 'right', 'bottom']}
     >
+      {/* Header with back button */}
+      <View style={[headerStyles.container, { paddingTop: insets.top }]}>
+        <View style={headerStyles.content}>
+          <Pressable
+            onPress={handleBack}
+            style={headerStyles.backButton}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <ChevronLeft size={24} color={colors.text.primary.dark} />
+          </Pressable>
+          <Text style={headerStyles.title}>Alerts</Text>
+          <View style={headerStyles.spacer} />
+        </View>
+      </View>
+
       <FlatList
         data={violations}
         keyExtractor={(item) => item.id}
@@ -455,17 +489,13 @@ export default function AlertsScreen() {
           ) : null
         }
         ListEmptyComponent={
-          <View className="items-center py-16">
-            <View className="bg-success/10 border-success/20 mb-4 h-20 w-20 items-center justify-center rounded-full border">
+          <View style={emptyStyles.container}>
+            <View style={emptyStyles.icon}>
               <Check size={32} color={colors.success} />
             </View>
-            <Text className="mb-2 text-xl font-semibold">
-              {hasActiveFilters ? 'No Matches' : 'All Clear'}
-            </Text>
-            <Text className="text-muted-foreground px-8 text-center text-sm leading-5">
-              {hasActiveFilters
-                ? 'No violations match the current filters. Try adjusting your selection.'
-                : 'No rule violations have been detected. Your users are behaving nicely!'}
+            <Text style={emptyStyles.title}>{hasActiveFilters ? 'No Matches' : 'All Clear'}</Text>
+            <Text style={emptyStyles.subtitle}>
+              {hasActiveFilters ? 'Try adjusting your filters' : 'No rule violations detected'}
             </Text>
           </View>
         }
@@ -473,3 +503,61 @@ export default function AlertsScreen() {
     </SafeAreaView>
   );
 }
+
+const emptyStyles = StyleSheet.create({
+  container: {
+    alignItems: 'center',
+    paddingVertical: spacing.xxl,
+    paddingHorizontal: spacing.lg,
+  },
+  icon: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: colors.success + '15',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.md,
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: colors.text.primary.dark,
+    marginBottom: spacing.xs,
+  },
+  subtitle: {
+    fontSize: 14,
+    color: colors.text.muted.dark,
+    textAlign: 'center',
+  },
+});
+
+const headerStyles = StyleSheet.create({
+  container: {
+    backgroundColor: colors.background.dark,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border.dark,
+  },
+  content: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    height: 56,
+    paddingHorizontal: spacing.md,
+  },
+  backButton: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 8,
+  },
+  title: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: colors.text.primary.dark,
+  },
+  spacer: {
+    width: 44,
+  },
+});
