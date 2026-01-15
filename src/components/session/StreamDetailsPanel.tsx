@@ -15,6 +15,7 @@ import type {
   StreamAudioDetails,
   TranscodeInfo,
   SubtitleInfo,
+  ServerType,
 } from '@tracearr/shared';
 
 interface StreamDetailsPanelProps {
@@ -37,6 +38,8 @@ interface StreamDetailsPanelProps {
   videoDecision: string | null;
   audioDecision: string | null;
   bitrate: number | null;
+  // Server type for conditional display
+  serverType: ServerType;
 }
 
 // Format bitrate for display
@@ -248,6 +251,7 @@ export function StreamDetailsPanel({
   videoDecision,
   audioDecision,
   bitrate,
+  serverType,
 }: StreamDetailsPanelProps) {
   const [transcodeOpen, setTranscodeOpen] = useState(false);
 
@@ -311,9 +315,14 @@ export function StreamDetailsPanel({
             <ComparisonRow
               label="Bitrate"
               sourceValue={formatBitrate(sourceVideoDetails?.bitrate)}
-              streamValue={formatBitrate(
-                streamVideoDetails?.bitrate ?? sourceVideoDetails?.bitrate
-              )}
+              streamValue={
+                // Show N/A for Jellyfin/Emby transcodes without stream bitrate
+                videoDecision === 'transcode' &&
+                !streamVideoDetails?.bitrate &&
+                serverType !== 'plex'
+                  ? 'N/A'
+                  : formatBitrate(streamVideoDetails?.bitrate ?? sourceVideoDetails?.bitrate)
+              }
             />
             {sourceVideoDetails?.framerate && (
               <ComparisonRow
@@ -380,9 +389,14 @@ export function StreamDetailsPanel({
             <ComparisonRow
               label="Bitrate"
               sourceValue={formatBitrate(sourceAudioDetails?.bitrate)}
-              streamValue={formatBitrate(
-                streamAudioDetails?.bitrate ?? sourceAudioDetails?.bitrate
-              )}
+              streamValue={
+                // Show N/A for Jellyfin/Emby transcodes without stream bitrate
+                audioDecision === 'transcode' &&
+                !streamAudioDetails?.bitrate &&
+                serverType !== 'plex'
+                  ? 'N/A'
+                  : formatBitrate(streamAudioDetails?.bitrate ?? sourceAudioDetails?.bitrate)
+              }
             />
             {sourceAudioDetails?.language && (
               <ComparisonRow

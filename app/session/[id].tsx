@@ -521,6 +521,7 @@ export default function SessionDetailScreen() {
             videoDecision={session.videoDecision ?? null}
             audioDecision={session.audioDecision ?? null}
             bitrate={session.bitrate ?? null}
+            serverType={session.server.type}
           />
         </Section>
 
