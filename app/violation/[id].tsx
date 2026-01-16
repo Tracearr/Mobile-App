@@ -53,6 +53,7 @@ const ruleIcons: Record<RuleType, LucideIcon> = {
   device_velocity: Zap,
   concurrent_streams: Monitor,
   geo_restriction: Globe,
+  account_inactivity: Clock,
 };
 
 // Rule type display names
@@ -62,6 +63,7 @@ const ruleLabels: Record<RuleType, string> = {
   device_velocity: 'Device Velocity',
   concurrent_streams: 'Concurrent Streams',
   geo_restriction: 'Geo Restriction',
+  account_inactivity: 'Account Inactivity',
 };
 
 // Format violation description
