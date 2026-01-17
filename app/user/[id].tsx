@@ -466,8 +466,7 @@ export default function UserDetailScreen() {
     isFetchingNextPage: fetchingMoreSessions,
   } = useInfiniteQuery({
     queryKey: ['user', id, 'sessions', selectedServerId],
-    queryFn: ({ pageParam = 1 }) =>
-      api.users.sessions(id, { page: pageParam, pageSize: PAGE_SIZE }),
+    queryFn: ({ pageParam }) => api.users.sessions(id, { page: pageParam, pageSize: PAGE_SIZE }),
     initialPageParam: 1,
     getNextPageParam: (lastPage: { page: number; totalPages: number }) => {
       if (lastPage.page < lastPage.totalPages) {
@@ -487,7 +486,7 @@ export default function UserDetailScreen() {
     isFetchingNextPage: fetchingMoreViolations,
   } = useInfiniteQuery({
     queryKey: ['violations', { userId: id }, selectedServerId],
-    queryFn: ({ pageParam = 1 }) =>
+    queryFn: ({ pageParam }) =>
       api.violations.list({ userId: id, page: pageParam, pageSize: PAGE_SIZE }),
     initialPageParam: 1,
     getNextPageParam: (lastPage: { page: number; totalPages: number }) => {
@@ -522,7 +521,7 @@ export default function UserDetailScreen() {
     isFetchingNextPage: fetchingMoreTerminations,
   } = useInfiniteQuery({
     queryKey: ['user', id, 'terminations', selectedServerId],
-    queryFn: ({ pageParam = 1 }) =>
+    queryFn: ({ pageParam }) =>
       api.users.terminations(id, { page: pageParam, pageSize: PAGE_SIZE }),
     initialPageParam: 1,
     getNextPageParam: (lastPage: { page: number; totalPages: number }) => {

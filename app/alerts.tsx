@@ -306,7 +306,7 @@ export default function AlertsScreen() {
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, refetch, isRefetching } =
     useInfiniteQuery({
       queryKey: ['violations', selectedServerId, severityFilter, statusFilter],
-      queryFn: ({ pageParam = 1 }) =>
+      queryFn: ({ pageParam }) =>
         api.violations.list({
           ...queryParams,
           page: pageParam,

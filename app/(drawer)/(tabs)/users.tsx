@@ -123,7 +123,7 @@ export default function UsersScreen() {
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, refetch, isRefetching } =
     useInfiniteQuery({
       queryKey: ['users', selectedServerId],
-      queryFn: ({ pageParam = 1 }) =>
+      queryFn: ({ pageParam }) =>
         api.users.list({
           page: pageParam,
           pageSize: PAGE_SIZE,

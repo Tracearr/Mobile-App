@@ -40,6 +40,9 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, activeServerId, serverUrl } = useAuthStore();
   const queryClient = useQueryClient();
   const socketRef = useRef<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null);
+  const [socket, setSocket] = useState<Socket<ServerToClientEvents, ClientToServerEvents> | null>(
+    null
+  );
   const [isConnected, setIsConnected] = useState(false);
   // Track which Tracearr backend we're connected to
   const connectedServerIdRef = useRef<string | null>(null);
@@ -56,6 +59,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     if (socketRef.current) {
       socketRef.current.disconnect();
       socketRef.current = null;
+      setSocket(null);
     }
 
     const credentials = await storage.getServerCredentials(activeServerId);
@@ -117,6 +121,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     });
 
     socketRef.current = newSocket;
+    setSocket(newSocket);
   }, [isAuthenticated, serverUrl, activeServerId, queryClient]);
 
   // Connect/disconnect based on auth state
@@ -126,6 +131,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     } else if (socketRef.current) {
       socketRef.current.disconnect();
       socketRef.current = null;
+      setSocket(null);
       connectedServerIdRef.current = null;
       setIsConnected(false);
     }
@@ -153,8 +159,6 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
   }, [isAuthenticated, isConnected, connectSocket]);
 
   return (
-    <SocketContext.Provider value={{ socket: socketRef.current, isConnected }}>
-      {children}
-    </SocketContext.Provider>
+    <SocketContext.Provider value={{ socket, isConnected }}>{children}</SocketContext.Provider>
   );
 }
