@@ -343,7 +343,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   pausedOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
     borderRadius: borderRadius.md,
     justifyContent: 'center',
