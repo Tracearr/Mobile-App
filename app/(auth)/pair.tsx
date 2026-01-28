@@ -19,6 +19,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { ChevronLeft } from 'lucide-react-native';
 import { useAuthStore } from '@/lib/authStore';
+import { isInternalUrl } from '@/lib/utils';
 import { colors, spacing, borderRadius, typography } from '@/lib/theme';
 
 interface QRPairingPayload {
@@ -87,6 +88,44 @@ export default function PairScreen() {
         throw new Error('Invalid server URL in QR code');
       }
 
+      // Check for internal/localhost URL and warn
+      if (isInternalUrl(payload.url)) {
+        Alert.alert(
+          'Internal URL Detected',
+          'This QR code contains a local network address that may not work outside your home network.\n\nSet an External URL in Settings → General on your Tracearr web dashboard to enable remote access.',
+          [
+            {
+              text: 'Cancel',
+              style: 'cancel',
+              onPress: () => {
+                setTimeout(() => {
+                  scanLockRef.current = false;
+                  setScanned(false);
+                }, 1000);
+              },
+            },
+            {
+              text: 'Continue Anyway',
+              onPress: () => {
+                void (async () => {
+                  try {
+                    await addServer(payload.url, payload.token);
+                    router.replace('/(drawer)/(tabs)' as never);
+                  } catch (e) {
+                    Alert.alert('Pairing Failed', e instanceof Error ? e.message : 'Unknown error');
+                    setTimeout(() => {
+                      scanLockRef.current = false;
+                      setScanned(false);
+                    }, 3000);
+                  }
+                })();
+              },
+            },
+          ]
+        );
+        return;
+      }
+
       await addServer(payload.url, payload.token);
 
       // Navigate to tabs after successful pairing
@@ -120,6 +159,32 @@ export default function PairScreen() {
       new URL(trimmedUrl);
     } catch {
       Alert.alert('Invalid URL', 'Please enter a valid server URL');
+      return;
+    }
+
+    // Check for internal/localhost URL and warn
+    if (isInternalUrl(trimmedUrl)) {
+      Alert.alert(
+        'Internal URL Detected',
+        'This appears to be a local network address that may not work outside your home network.\n\nSet an External URL in Settings → General on your Tracearr web dashboard to enable remote access.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Continue Anyway',
+            onPress: () => {
+              void (async () => {
+                clearError();
+                try {
+                  await addServer(trimmedUrl, token.trim());
+                  router.replace('/(drawer)/(tabs)' as never);
+                } catch {
+                  // Error is handled by the store
+                }
+              })();
+            },
+          },
+        ]
+      );
       return;
     }
 
