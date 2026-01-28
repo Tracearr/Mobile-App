@@ -3,7 +3,7 @@
  * Animated toast for showing brief feedback messages like "Reconnected"
  */
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, Animated } from 'react-native';
+import { Text, StyleSheet, Animated } from 'react-native';
 import { Check, AlertCircle, Info } from 'lucide-react-native';
 import { colors, spacing, borderRadius, typography } from '../lib/theme';
 
