@@ -19,8 +19,8 @@ import { Text } from '@/components/ui/text';
 import { useAuthStore } from '@/lib/authStore';
 import { colors, spacing, borderRadius } from '@/lib/theme';
 
-const DISCORD_URL = 'https://discord.gg/tracearr';
-const GITHUB_URL = 'https://github.com/cgallopo/tracearr';
+const DISCORD_URL = 'https://discord.gg/a7n3sFd2Yw';
+const GITHUB_URL = 'https://github.com/connorgallopo/Tracearr';
 
 function SettingsSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
