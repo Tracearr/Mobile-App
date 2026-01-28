@@ -16,7 +16,7 @@ import {
 } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { ChevronLeft } from 'lucide-react-native';
 import { useAuthStore } from '@/lib/authStore';
 import { colors, spacing, borderRadius, typography } from '@/lib/theme';
@@ -28,9 +28,10 @@ interface QRPairingPayload {
 
 export default function PairScreen() {
   const router = useRouter();
+  const { prefillUrl } = useLocalSearchParams<{ prefillUrl?: string }>();
   const [permission, requestPermission] = useCameraPermissions();
-  const [manualMode, setManualMode] = useState(false);
-  const [serverUrl, setServerUrl] = useState('');
+  const [manualMode, setManualMode] = useState(!!prefillUrl);
+  const [serverUrl, setServerUrl] = useState(prefillUrl ?? '');
   const [token, setToken] = useState('');
   const [scanned, setScanned] = useState(false);
   const scanLockRef = useRef(false); // Synchronous lock to prevent race conditions

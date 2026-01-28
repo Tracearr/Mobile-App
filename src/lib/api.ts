@@ -6,6 +6,7 @@
 import axios from 'axios';
 import type { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { storage } from './storage';
+import { useConnectionStore } from '../stores/connectionStore';
 import type {
   ActiveSession,
   DashboardStats,
@@ -92,7 +93,14 @@ export function createApiClient(baseURL: string, serverId: string): AxiosInstanc
 
   // Response interceptor - handle token refresh for this server
   client.interceptors.response.use(
-    (response) => response,
+    (response) => {
+      // If we were disconnected and now succeeded, mark as connected
+      const { state, setConnected } = useConnectionStore.getState();
+      if (state === 'disconnected') {
+        setConnected();
+      }
+      return response;
+    },
     async (error: AxiosError) => {
       const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
@@ -121,10 +129,21 @@ export function createApiClient(baseURL: string, serverId: string): AxiosInstanc
           originalRequest.headers.Authorization = `Bearer ${response.data.accessToken}`;
           return await client(originalRequest);
         } catch {
-          // Refresh failed - remove this server's client from cache
+          // Refresh failed - token is invalid, mark as unauthenticated
           apiClients.delete(serverId);
+          const { setUnauthenticated } = useConnectionStore.getState();
+          const serverUrlBase = client.defaults.baseURL?.replace('/api/v1', '') ?? '';
+          setUnauthenticated(serverUrlBase, null);
           throw new Error('Session expired');
         }
+      }
+
+      // Network error = server unreachable
+      if (error.code === 'ERR_NETWORK' || error.code === 'ECONNABORTED') {
+        const { setDisconnected } = useConnectionStore.getState();
+        setDisconnected(
+          error.code === 'ECONNABORTED' ? 'Connection timed out' : 'Server unreachable'
+        );
       }
 
       return Promise.reject(error);

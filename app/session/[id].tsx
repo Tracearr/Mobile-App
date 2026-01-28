@@ -42,6 +42,7 @@ import {
 } from 'lucide-react-native';
 import { api, getServerUrl } from '@/lib/api';
 import { useMediaServer } from '@/providers/MediaServerProvider';
+import { useConnectionStore } from '@/stores/connectionStore';
 import { colors, spacing, borderRadius, withAlpha } from '@/lib/theme';
 import { Text } from '@/components/ui/text';
 import { Badge } from '@/components/ui/badge';
@@ -228,6 +229,8 @@ export default function SessionDetailScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { selectedServerId } = useMediaServer();
+  const { state: connectionState } = useConnectionStore();
+  const isOffline = connectionState !== 'connected';
   const [serverUrl, setServerUrl] = useState<string | null>(null);
 
   useEffect(() => {
@@ -355,8 +358,11 @@ export default function SessionDetailScreen() {
           {session.state !== 'stopped' && (
             <Pressable
               onPress={handleTerminate}
-              disabled={terminateMutation.isPending}
-              style={[styles.terminateButton, terminateMutation.isPending && styles.disabledButton]}
+              disabled={terminateMutation.isPending || isOffline}
+              style={[
+                styles.terminateButton,
+                (terminateMutation.isPending || isOffline) && styles.disabledButton,
+              ]}
             >
               <X size={18} color={colors.error} />
             </Pressable>

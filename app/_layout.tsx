@@ -5,7 +5,7 @@ import { Buffer } from 'buffer';
 global.Buffer = Buffer;
 
 import '../global.css';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { View, ActivityIndicator, StyleSheet, Text, Pressable } from 'react-native';
@@ -15,7 +15,12 @@ import { QueryProvider } from '@/providers/QueryProvider';
 import { SocketProvider } from '@/providers/SocketProvider';
 import { MediaServerProvider } from '@/providers/MediaServerProvider';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { OfflineBanner } from '@/components/OfflineBanner';
+import { UnauthenticatedScreen } from '@/components/UnauthenticatedScreen';
+import { Toast } from '@/components/Toast';
 import { useAuthStore } from '@/lib/authStore';
+import { useConnectionStore } from '@/stores/connectionStore';
+import { useConnectionValidator } from '@/hooks/useConnectionValidator';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { colors } from '@/lib/theme';
 
@@ -28,11 +33,23 @@ function RootLayoutNav() {
     retryStorageAccess,
     resetStorageState,
   } = useAuthStore();
+  const { state: connectionState } = useConnectionStore();
+  const { validate } = useConnectionValidator();
   const segments = useSegments();
   const router = useRouter();
   const [hasInitialized, setHasInitialized] = useState(false);
+  const [showReconnectedToast, setShowReconnectedToast] = useState(false);
+  const prevConnectionState = useRef(connectionState);
 
   usePushNotifications();
+
+  // Track connection state changes for reconnection toast
+  useEffect(() => {
+    if (prevConnectionState.current === 'disconnected' && connectionState === 'connected') {
+      setShowReconnectedToast(true);
+    }
+    prevConnectionState.current = connectionState;
+  }, [connectionState]);
 
   useEffect(() => {
     void initialize().finally(() => setHasInitialized(true));
@@ -77,9 +94,25 @@ function RootLayoutNav() {
     );
   }
 
+  // Show unauthenticated screen when token is revoked
+  if (connectionState === 'unauthenticated') {
+    return (
+      <>
+        <StatusBar style="light" backgroundColor={colors.background.dark} translucent={false} />
+        <UnauthenticatedScreen />
+      </>
+    );
+  }
+
   return (
     <>
       <StatusBar style="light" backgroundColor={colors.background.dark} translucent={false} />
+      <OfflineBanner onRetry={validate} />
+      <Toast
+        message="Reconnected"
+        visible={showReconnectedToast}
+        onHide={() => setShowReconnectedToast(false)}
+      />
       <Stack
         screenOptions={{
           headerShown: false,
