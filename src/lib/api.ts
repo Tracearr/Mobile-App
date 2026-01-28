@@ -5,6 +5,7 @@
  */
 import axios from 'axios';
 import type { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
+import { Platform } from 'react-native';
 import { storage } from './storage';
 import { useConnectionStore } from '../stores/connectionStore';
 import type {
@@ -224,6 +225,14 @@ export const api = {
           throw new Error('Connection timed out. Check your server URL.');
         }
         if (error.code === 'ERR_NETWORK' || !error.response) {
+          // On Android, HTTP (non-HTTPS) connections may be blocked
+          // Check if URL is HTTP and provide more helpful message
+          if (Platform.OS === 'android' && serverUrl.startsWith('http://')) {
+            throw new Error(
+              'Cannot reach server. Android blocks non-secure (HTTP) connections. ' +
+                'Use HTTPS or set up a reverse proxy with SSL.'
+            );
+          }
           throw new Error('Cannot reach server. Check URL and network connection.');
         }
 
