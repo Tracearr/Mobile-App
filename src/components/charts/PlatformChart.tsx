@@ -6,23 +6,26 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Pie, PolarChart } from 'victory-native';
 import { colors, spacing, borderRadius, typography } from '../../lib/theme';
+import { useTheme } from '../../providers/ThemeProvider';
 
 interface PlatformChartProps {
   data: { platform: string; count: number }[];
   height?: number;
 }
 
-// Colors for pie slices - all visible against dark card background
-const CHART_COLORS = [
-  colors.cyan.core, // #18D1E7 - Cyan
-  colors.info, // #3B82F6 - Bright Blue (not blue.core which matches bg!)
-  colors.success, // #22C55E - Green
-  colors.warning, // #F59E0B - Orange/Yellow
-  colors.purple, // #8B5CF6 - Purple
-  colors.error, // #EF4444 - Red
-];
-
 export function PlatformChart({ data, height }: PlatformChartProps) {
+  const { accentColor } = useTheme();
+
+  // Colors for pie slices - all visible against dark card background
+  // Using dynamic accent color as the primary color
+  const chartColors = [
+    accentColor, // Primary accent color
+    colors.info, // #3B82F6 - Bright Blue
+    colors.success, // #22C55E - Green
+    colors.warning, // #F59E0B - Orange/Yellow
+    colors.purple, // #8B5CF6 - Purple
+    colors.error, // #EF4444 - Red
+  ];
   // Sort by count and take top 5
   const sortedData = [...data]
     .sort((a, b) => b.count - a.count)
@@ -30,7 +33,7 @@ export function PlatformChart({ data, height }: PlatformChartProps) {
     .map((d, index) => ({
       label: d.platform.replace('Plex for ', '').replace('Jellyfin ', ''),
       value: d.count,
-      color: CHART_COLORS[index % CHART_COLORS.length],
+      color: chartColors[index % chartColors.length],
     }));
 
   if (sortedData.length === 0) {

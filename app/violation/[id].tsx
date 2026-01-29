@@ -32,6 +32,7 @@ import {
 } from 'lucide-react-native';
 import { api } from '@/lib/api';
 import { useMediaServer } from '@/providers/MediaServerProvider';
+import { useTheme } from '@/providers/ThemeProvider';
 import { useResponsive } from '@/hooks/useResponsive';
 import { Text } from '@/components/ui/text';
 import { Card } from '@/components/ui/card';
@@ -298,6 +299,7 @@ export default function ViolationDetailScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { selectedServerId } = useMediaServer();
+  const { accentColor } = useTheme();
   const { isTablet, select } = useResponsive();
 
   // Responsive values
@@ -484,7 +486,7 @@ export default function ViolationDetailScreen() {
         <Card className="mb-4">
           <View className="mb-3 flex-row items-center gap-3">
             <View className="bg-cyan-core/15 h-10 w-10 items-center justify-center rounded-lg">
-              <IconComponent size={20} color={colors.cyan.core} />
+              <IconComponent size={20} color={accentColor} />
             </View>
             <View className="flex-1">
               <Text className="text-base font-semibold">{violation.rule?.name || ruleName}</Text>

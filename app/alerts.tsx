@@ -36,6 +36,7 @@ import {
 } from 'lucide-react-native';
 import { api } from '@/lib/api';
 import { useMediaServer } from '@/providers/MediaServerProvider';
+import { useTheme } from '@/providers/ThemeProvider';
 import { useResponsive } from '@/hooks/useResponsive';
 import { Text } from '@/components/ui/text';
 import { Card } from '@/components/ui/card';
@@ -152,10 +153,11 @@ function SeverityBadge({ severity }: { severity: string }) {
 }
 
 function RuleIcon({ ruleType }: { ruleType: RuleType | undefined }) {
+  const { accentColor } = useTheme();
   const IconComponent = ruleType ? ruleIcons[ruleType] : AlertTriangle;
   return (
     <View className="bg-surface h-8 w-8 items-center justify-center rounded-lg">
-      <IconComponent size={16} color={colors.cyan.core} />
+      <IconComponent size={16} color={accentColor} />
     </View>
   );
 }
@@ -167,6 +169,7 @@ interface FilterChipProps {
 }
 
 function FilterChip({ label, active, onPress }: FilterChipProps) {
+  const { accentColor } = useTheme();
   return (
     <Pressable
       onPress={onPress}
@@ -174,9 +177,9 @@ function FilterChip({ label, active, onPress }: FilterChipProps) {
         paddingHorizontal: spacing.md,
         paddingVertical: spacing.xs,
         borderRadius: borderRadius.full,
-        backgroundColor: active ? colors.cyan.core : colors.card.dark,
+        backgroundColor: active ? accentColor : colors.card.dark,
         borderWidth: 1,
-        borderColor: active ? colors.cyan.core : colors.border.dark,
+        borderColor: active ? accentColor : colors.border.dark,
       }}
     >
       <Text
@@ -205,6 +208,7 @@ function ViolationCard({
   unitSystem: UnitSystem;
   isTablet?: boolean;
 }) {
+  const { accentColor } = useTheme();
   const displayName = violation.user?.identityName ?? violation.user?.username ?? 'Unknown User';
   const username = violation.user?.username ?? 'Unknown';
   const ruleType = violation.rule?.type as RuleType | undefined;
@@ -256,7 +260,7 @@ function ViolationCard({
               onAcknowledge();
             }}
           >
-            <Check size={16} color={colors.cyan.core} />
+            <Check size={16} color={accentColor} />
             <Text className="text-cyan-core text-sm font-semibold">Acknowledge</Text>
           </Pressable>
         ) : (
@@ -274,6 +278,7 @@ export default function AlertsScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { selectedServerId } = useMediaServer();
+  const { accentColor } = useTheme();
   const { isTablet, select } = useResponsive();
 
   // Filter state
@@ -407,11 +412,7 @@ export default function AlertsScreen() {
         onEndReached={handleEndReached}
         onEndReachedThreshold={0.5}
         refreshControl={
-          <RefreshControl
-            refreshing={isRefetching}
-            onRefresh={refetch}
-            tintColor={colors.cyan.core}
-          />
+          <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={accentColor} />
         }
         ListHeaderComponent={
           <View style={{ marginBottom: spacing.md }}>
@@ -487,7 +488,7 @@ export default function AlertsScreen() {
         ListFooterComponent={
           isFetchingNextPage ? (
             <View className="items-center py-4">
-              <ActivityIndicator size="small" color={colors.cyan.core} />
+              <ActivityIndicator size="small" color={accentColor} />
             </View>
           ) : null
         }

@@ -6,10 +6,12 @@ import { useState } from 'react';
 import { View, Text, TouchableOpacity, Modal, Pressable, ActivityIndicator } from 'react-native';
 import { Server, ChevronDown, Check } from 'lucide-react-native';
 import { useMediaServer } from '../providers/MediaServerProvider';
+import { useTheme } from '../providers/ThemeProvider';
 import { colors } from '../lib/theme';
 
 export function ServerSelector() {
   const { servers, selectedServer, selectedServerId, selectServer, isLoading } = useMediaServer();
+  const { accentColor } = useTheme();
   const [modalVisible, setModalVisible] = useState(false);
 
   // Don't show if loading or no servers
@@ -48,7 +50,7 @@ export function ServerSelector() {
         className="flex-row items-center px-3 py-2"
         activeOpacity={0.7}
       >
-        <Server size={16} color={colors.cyan.core} />
+        <Server size={16} color={accentColor} />
         <Text className="ml-2 text-sm font-medium text-white" numberOfLines={1}>
           {selectedServer?.name ?? 'Select Server'}
         </Text>
@@ -83,9 +85,7 @@ export function ServerSelector() {
                   <View className="flex-1 flex-row items-center">
                     <Server
                       size={20}
-                      color={
-                        server.id === selectedServerId ? colors.cyan.core : colors.text.muted.dark
-                      }
+                      color={server.id === selectedServerId ? accentColor : colors.text.muted.dark}
                     />
                     <View className="ml-3 flex-1">
                       <Text
@@ -101,7 +101,7 @@ export function ServerSelector() {
                       <Text className="text-xs text-gray-500 capitalize">{server.type}</Text>
                     </View>
                   </View>
-                  {server.id === selectedServerId && <Check size={20} color={colors.cyan.core} />}
+                  {server.id === selectedServerId && <Check size={20} color={accentColor} />}
                 </TouchableOpacity>
               ))}
             </View>

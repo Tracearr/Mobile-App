@@ -6,6 +6,7 @@ import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Play, Clock, Users, Film } from 'lucide-react-native';
 import { Text } from '@/components/ui/text';
+import { useTheme } from '@/providers/ThemeProvider';
 import { colors, spacing, borderRadius } from '@/lib/theme';
 import type { HistoryAggregates as AggregatesType } from '@tracearr/shared';
 
@@ -30,13 +31,14 @@ interface StatItemProps {
   label: string;
   value: string | number;
   isLoading?: boolean;
+  accentColor: string;
 }
 
-function StatItem({ icon: Icon, label, value, isLoading }: StatItemProps) {
+function StatItem({ icon: Icon, label, value, isLoading, accentColor }: StatItemProps) {
   return (
     <View style={styles.statItem}>
-      <View style={styles.iconContainer}>
-        <Icon size={12} color={colors.cyan.core} />
+      <View style={[styles.iconContainer, { backgroundColor: `${accentColor}15` }]}>
+        <Icon size={12} color={accentColor} />
       </View>
       <View style={styles.statContent}>
         <Text style={styles.statValue}>
@@ -49,6 +51,8 @@ function StatItem({ icon: Icon, label, value, isLoading }: StatItemProps) {
 }
 
 export function HistoryAggregates({ aggregates, isLoading }: HistoryAggregatesProps) {
+  const { accentColor } = useTheme();
+
   return (
     <View style={styles.container}>
       <StatItem
@@ -56,6 +60,7 @@ export function HistoryAggregates({ aggregates, isLoading }: HistoryAggregatesPr
         label="Plays"
         value={aggregates?.playCount ?? 0}
         isLoading={isLoading}
+        accentColor={accentColor}
       />
       <View style={styles.divider} />
       <StatItem
@@ -63,6 +68,7 @@ export function HistoryAggregates({ aggregates, isLoading }: HistoryAggregatesPr
         label="Watch Time"
         value={formatWatchTime(aggregates?.totalWatchTimeMs ?? 0)}
         isLoading={isLoading}
+        accentColor={accentColor}
       />
       <View style={styles.divider} />
       <StatItem
@@ -70,6 +76,7 @@ export function HistoryAggregates({ aggregates, isLoading }: HistoryAggregatesPr
         label="Users"
         value={aggregates?.uniqueUsers ?? 0}
         isLoading={isLoading}
+        accentColor={accentColor}
       />
       <View style={styles.divider} />
       <StatItem
@@ -77,6 +84,7 @@ export function HistoryAggregates({ aggregates, isLoading }: HistoryAggregatesPr
         label="Titles"
         value={aggregates?.uniqueContent ?? 0}
         isLoading={isLoading}
+        accentColor={accentColor}
       />
     </View>
   );
@@ -102,7 +110,6 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     borderRadius: 10,
-    backgroundColor: `${colors.cyan.core}15`,
     alignItems: 'center',
     justifyContent: 'center',
   },

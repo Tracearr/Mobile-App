@@ -42,6 +42,7 @@ import {
 } from 'lucide-react-native';
 import { api, getServerUrl } from '@/lib/api';
 import { useMediaServer } from '@/providers/MediaServerProvider';
+import { useTheme } from '@/providers/ThemeProvider';
 import { useConnectionStore } from '@/stores/connectionStore';
 import { colors, spacing, borderRadius, withAlpha } from '@/lib/theme';
 import { Text } from '@/components/ui/text';
@@ -174,12 +175,15 @@ function Section({
   badge?: React.ReactNode;
   children: React.ReactNode;
 }) {
+  const { accentColor } = useTheme();
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
         <View style={styles.sectionHeaderLeft}>
-          <View style={styles.sectionIconContainer}>
-            <Icon size={14} color={colors.cyan.core} />
+          <View
+            style={[styles.sectionIconContainer, { backgroundColor: withAlpha(accentColor, '15') }]}
+          >
+            <Icon size={14} color={accentColor} />
           </View>
           <Text style={styles.sectionTitle}>{title}</Text>
         </View>
@@ -229,6 +233,7 @@ export default function SessionDetailScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { selectedServerId } = useMediaServer();
+  const { accentColor } = useTheme();
   const { state: connectionState } = useConnectionStore();
   const isOffline = connectionState !== 'connected';
   const [serverUrl, setServerUrl] = useState<string | null>(null);
@@ -290,7 +295,7 @@ export default function SessionDetailScreen() {
   if (isLoading) {
     return (
       <SafeAreaView style={styles.loadingContainer} edges={['left', 'right', 'bottom']}>
-        <ActivityIndicator size="large" color={colors.cyan.core} />
+        <ActivityIndicator size="large" color={accentColor} />
       </SafeAreaView>
     );
   }
@@ -394,7 +399,12 @@ export default function SessionDetailScreen() {
             {/* Progress inline */}
             <View style={styles.progressContainer}>
               <View style={styles.progressBar}>
-                <View style={[styles.progressFill, { width: `${progress}%` }]} />
+                <View
+                  style={[
+                    styles.progressFill,
+                    { width: `${progress}%`, backgroundColor: accentColor },
+                  ]}
+                />
               </View>
               <Text style={styles.progressText}>{progress}%</Text>
             </View>
@@ -666,7 +676,7 @@ const styles = StyleSheet.create({
   },
   progressFill: {
     height: '100%',
-    backgroundColor: colors.cyan.core,
+    backgroundColor: colors.cyan.core, // Fallback; overridden inline with accentColor
     borderRadius: 3,
   },
   progressText: {
@@ -719,7 +729,7 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: borderRadius.full,
-    backgroundColor: withAlpha(colors.cyan.core, '15'),
+    backgroundColor: withAlpha(colors.cyan.core, '15'), // Fallback; overridden inline with accentColor
     alignItems: 'center',
     justifyContent: 'center',
   },

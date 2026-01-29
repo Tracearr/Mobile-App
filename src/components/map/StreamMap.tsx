@@ -10,6 +10,7 @@ import { View, Text, StyleSheet, Platform } from 'react-native';
 import { AppleMaps, GoogleMaps } from 'expo-maps';
 import { Ionicons } from '@expo/vector-icons';
 import type { ActiveSession } from '@tracearr/shared';
+import { useTheme } from '../../providers/ThemeProvider';
 import { colors, borderRadius, typography } from '../../lib/theme';
 
 /**
@@ -67,6 +68,7 @@ function hasLocation(session: ActiveSession): session is SessionWithLocation {
 }
 
 export function StreamMap({ sessions, height = 300 }: StreamMapProps) {
+  const { accentColor } = useTheme();
   // Filter sessions with valid geo coordinates (type guard narrows to SessionWithLocation[])
   const sessionsWithLocation = sessions.filter(hasLocation);
 
@@ -106,8 +108,8 @@ export function StreamMap({ sessions, height = 300 }: StreamMapProps) {
       title: displayName,
       // Snippet shows media and location
       snippet: `${truncatedTitle}\n${location}`,
-      // Use cyan tint to match app theme
-      tintColor: colors.cyan.core,
+      // Use accent color to match app theme
+      tintColor: accentColor,
       // iOS: Use SF Symbol for streaming indicator
       ...(Platform.OS === 'ios' && {
         systemImage: 'play.circle.fill',

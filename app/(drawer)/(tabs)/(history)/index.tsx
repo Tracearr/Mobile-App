@@ -17,6 +17,7 @@ import { DrawerActions, useNavigation } from '@react-navigation/native';
 import { Play } from 'lucide-react-native';
 import { api } from '@/lib/api';
 import { useMediaServer } from '@/providers/MediaServerProvider';
+import { useTheme } from '@/providers/ThemeProvider';
 import { Text } from '@/components/ui/text';
 import {
   HistoryFilters,
@@ -57,6 +58,7 @@ export default function HistoryScreen() {
   const router = useRouter();
   const navigation = useNavigation();
   const { selectedServerId } = useMediaServer();
+  const { accentColor } = useTheme();
   const filterSheetRef = useRef<FilterBottomSheetRef>(null);
 
   // Filter state
@@ -187,11 +189,7 @@ export default function HistoryScreen() {
           onEndReached={handleEndReached}
           onEndReachedThreshold={0.5}
           refreshControl={
-            <RefreshControl
-              refreshing={isRefetching}
-              onRefresh={refetch}
-              tintColor={colors.cyan.core}
-            />
+            <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={accentColor} />
           }
           ListHeaderComponent={
             <View style={styles.header}>
@@ -212,14 +210,14 @@ export default function HistoryScreen() {
           ListFooterComponent={
             isFetchingNextPage ? (
               <View style={styles.footer}>
-                <ActivityIndicator size="small" color={colors.cyan.core} />
+                <ActivityIndicator size="small" color={accentColor} />
               </View>
             ) : null
           }
           ListEmptyComponent={
             isLoading ? (
               <View style={styles.empty}>
-                <ActivityIndicator size="large" color={colors.cyan.core} />
+                <ActivityIndicator size="large" color={accentColor} />
               </View>
             ) : (
               <View style={styles.empty}>

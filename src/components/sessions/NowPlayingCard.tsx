@@ -16,6 +16,7 @@ import { UserAvatar } from '@/components/ui/user-avatar';
 import { useAuthStore } from '@/lib/authStore';
 import { useEstimatedProgress } from '@/hooks/useEstimatedProgress';
 import { useResponsive } from '@/hooks/useResponsive';
+import { useTheme } from '@/providers/ThemeProvider';
 import { colors, spacing, borderRadius, typography } from '@/lib/theme';
 import type { ActiveSession } from '@tracearr/shared';
 
@@ -165,6 +166,7 @@ function getLocationString(session: ActiveSession): string | null {
 
 export function NowPlayingCard({ session, onPress }: NowPlayingCardProps) {
   const { serverUrl } = useAuthStore();
+  const { accentColor } = useTheme();
   const { isTablet, select } = useResponsive();
   const { title, subtitle } = getMediaDisplay(session);
 
@@ -275,7 +277,7 @@ export function NowPlayingCard({ session, onPress }: NowPlayingCardProps) {
                 <Ionicons
                   name={isPaused ? 'pause' : 'play'}
                   size={6}
-                  color={isPaused ? colors.warning : colors.cyan.core}
+                  color={isPaused ? colors.warning : accentColor}
                 />
               </View>
               <Text style={[styles.timeText, isPaused && styles.pausedText]}>
@@ -309,7 +311,12 @@ export function NowPlayingCard({ session, onPress }: NowPlayingCardProps) {
 
       {/* Bottom progress bar - full width */}
       <View style={styles.progressBar}>
-        <View style={[styles.progressFill, { width: `${progressPercent}%` }]} />
+        <View
+          style={[
+            styles.progressFill,
+            { width: `${progressPercent}%`, backgroundColor: accentColor },
+          ]}
+        />
       </View>
     </Pressable>
   );

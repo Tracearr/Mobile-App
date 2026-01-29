@@ -25,6 +25,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/lib/authStore';
+import { useTheme } from '@/providers/ThemeProvider';
 import { colors } from '@/lib/theme';
 import type { NotificationPreferences } from '@tracearr/shared';
 
@@ -252,6 +253,7 @@ function RateLimitStatus({
 export default function NotificationSettingsScreen() {
   const queryClient = useQueryClient();
   const { activeServerId } = useAuthStore();
+  const { accentColor } = useTheme();
 
   // Fetch current preferences (per-device, not per-server)
   const {
@@ -314,7 +316,7 @@ export default function NotificationSettingsScreen() {
         edges={['left', 'right', 'bottom']}
       >
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color={colors.cyan.core} />
+          <ActivityIndicator size="large" color={accentColor} />
           <Text className="text-muted-foreground mt-4">Loading preferences...</Text>
         </View>
       </SafeAreaView>

@@ -24,6 +24,7 @@ import {
   ChevronRight,
 } from 'lucide-react-native';
 import { Text } from '@/components/ui/text';
+import { useTheme } from '@/providers/ThemeProvider';
 import { colors, spacing, borderRadius } from '@/lib/theme';
 import type { HistoryFilterOptions, UserFilterOption, FilterOptionItem } from '@tracearr/shared';
 
@@ -67,6 +68,7 @@ const TRANSCODE_OPTIONS: { value: TranscodeDecision; label: string; icon: React.
 export const FilterBottomSheet = forwardRef<FilterBottomSheetRef, FilterBottomSheetProps>(
   ({ filterOptions, filters, onFiltersChange }, ref) => {
     const bottomSheetRef = useRef<BottomSheet>(null);
+    const { accentColor } = useTheme();
     const [activeSection, setActiveSection] = React.useState<FilterSection>('main');
 
     const snapPoints = useMemo(() => ['60%', '90%'], []);
@@ -222,7 +224,7 @@ export const FilterBottomSheet = forwardRef<FilterBottomSheetRef, FilterBottomSh
           <Text style={styles.sectionTitle}>{title}</Text>
           {count > 0 && (
             <Pressable onPress={() => clearSection(section)} style={styles.clearSectionButton}>
-              <Text style={styles.clearSectionText}>Clear ({count})</Text>
+              <Text style={[styles.clearSectionText, { color: accentColor }]}>Clear ({count})</Text>
             </Pressable>
           )}
         </View>
@@ -238,7 +240,10 @@ export const FilterBottomSheet = forwardRef<FilterBottomSheetRef, FilterBottomSh
         <Pressable
           key={user.id}
           onPress={() => toggleUser(user.id)}
-          style={[styles.listItem, isSelected && styles.listItemSelected]}
+          style={[
+            styles.listItem,
+            isSelected && [styles.listItemSelected, { backgroundColor: `${accentColor}10` }],
+          ]}
         >
           <View style={styles.userAvatar}>
             {user.thumbUrl ? (
@@ -250,12 +255,15 @@ export const FilterBottomSheet = forwardRef<FilterBottomSheetRef, FilterBottomSh
             )}
           </View>
           <Text
-            style={[styles.listItemText, isSelected && styles.listItemTextSelected]}
+            style={[
+              styles.listItemText,
+              isSelected && [styles.listItemTextSelected, { color: accentColor }],
+            ]}
             numberOfLines={1}
           >
             {displayName}
           </Text>
-          {isSelected && <Check size={18} color={colors.cyan.core} />}
+          {isSelected && <Check size={18} color={accentColor} />}
         </Pressable>
       );
     };
@@ -269,17 +277,23 @@ export const FilterBottomSheet = forwardRef<FilterBottomSheetRef, FilterBottomSh
       <Pressable
         key={item.value}
         onPress={onToggle}
-        style={[styles.listItem, isSelected && styles.listItemSelected]}
+        style={[
+          styles.listItem,
+          isSelected && [styles.listItemSelected, { backgroundColor: `${accentColor}10` }],
+        ]}
       >
         <Text
-          style={[styles.listItemText, isSelected && styles.listItemTextSelected]}
+          style={[
+            styles.listItemText,
+            isSelected && [styles.listItemTextSelected, { color: accentColor }],
+          ]}
           numberOfLines={1}
         >
           {item.value}
         </Text>
         <View style={styles.listItemRight}>
           <Text style={styles.countBadge}>{item.count}</Text>
-          {isSelected && <Check size={18} color={colors.cyan.core} />}
+          {isSelected && <Check size={18} color={accentColor} />}
         </View>
       </Pressable>
     );
@@ -308,7 +322,7 @@ export const FilterBottomSheet = forwardRef<FilterBottomSheetRef, FilterBottomSh
             <Text style={styles.menuItemText}>Users</Text>
             <View style={styles.menuItemRight}>
               {filters.serverUserIds.length > 0 && (
-                <View style={styles.badge}>
+                <View style={[styles.badge, { backgroundColor: accentColor }]}>
                   <Text style={styles.badgeText}>{filters.serverUserIds.length}</Text>
                 </View>
               )}
@@ -322,7 +336,7 @@ export const FilterBottomSheet = forwardRef<FilterBottomSheetRef, FilterBottomSh
             <Text style={styles.menuItemText}>Platforms</Text>
             <View style={styles.menuItemRight}>
               {filters.platforms.length > 0 && (
-                <View style={styles.badge}>
+                <View style={[styles.badge, { backgroundColor: accentColor }]}>
                   <Text style={styles.badgeText}>{filters.platforms.length}</Text>
                 </View>
               )}
@@ -336,7 +350,7 @@ export const FilterBottomSheet = forwardRef<FilterBottomSheetRef, FilterBottomSh
             <Text style={styles.menuItemText}>Countries</Text>
             <View style={styles.menuItemRight}>
               {filters.geoCountries.length > 0 && (
-                <View style={styles.badge}>
+                <View style={[styles.badge, { backgroundColor: accentColor }]}>
                   <Text style={styles.badgeText}>{filters.geoCountries.length}</Text>
                 </View>
               )}
@@ -355,10 +369,21 @@ export const FilterBottomSheet = forwardRef<FilterBottomSheetRef, FilterBottomSh
                 <Pressable
                   key={value}
                   onPress={() => toggleMediaType(value)}
-                  style={[styles.checkboxItem, isSelected && styles.checkboxItemSelected]}
+                  style={[
+                    styles.checkboxItem,
+                    isSelected && [
+                      styles.checkboxItemSelected,
+                      { borderColor: accentColor, backgroundColor: `${accentColor}15` },
+                    ],
+                  ]}
                 >
-                  <Icon size={16} color={isSelected ? colors.cyan.core : colors.text.muted.dark} />
-                  <Text style={[styles.checkboxText, isSelected && styles.checkboxTextSelected]}>
+                  <Icon size={16} color={isSelected ? accentColor : colors.text.muted.dark} />
+                  <Text
+                    style={[
+                      styles.checkboxText,
+                      isSelected && [styles.checkboxTextSelected, { color: accentColor }],
+                    ]}
+                  >
                     {label}
                   </Text>
                 </Pressable>
@@ -377,10 +402,21 @@ export const FilterBottomSheet = forwardRef<FilterBottomSheetRef, FilterBottomSh
                 <Pressable
                   key={value}
                   onPress={() => toggleTranscode(value)}
-                  style={[styles.checkboxItem, isSelected && styles.checkboxItemSelected]}
+                  style={[
+                    styles.checkboxItem,
+                    isSelected && [
+                      styles.checkboxItemSelected,
+                      { borderColor: accentColor, backgroundColor: `${accentColor}15` },
+                    ],
+                  ]}
                 >
-                  <Icon size={16} color={isSelected ? colors.cyan.core : colors.text.muted.dark} />
-                  <Text style={[styles.checkboxText, isSelected && styles.checkboxTextSelected]}>
+                  <Icon size={16} color={isSelected ? accentColor : colors.text.muted.dark} />
+                  <Text
+                    style={[
+                      styles.checkboxText,
+                      isSelected && [styles.checkboxTextSelected, { color: accentColor }],
+                    ]}
+                  >
                     {label}
                   </Text>
                 </Pressable>
@@ -528,7 +564,7 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   badge: {
-    backgroundColor: colors.cyan.core,
+    backgroundColor: colors.cyan.core, // Fallback; overridden inline with accentColor
     borderRadius: borderRadius.full,
     paddingHorizontal: 8,
     paddingVertical: 2,
@@ -557,15 +593,15 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   checkboxItemSelected: {
-    borderColor: colors.cyan.core,
-    backgroundColor: `${colors.cyan.core}15`,
+    borderColor: colors.cyan.core, // Fallback; overridden inline with accentColor
+    backgroundColor: `${colors.cyan.core}15`, // Fallback; overridden inline with accentColor
   },
   checkboxText: {
     fontSize: 13,
     color: colors.text.muted.dark,
   },
   checkboxTextSelected: {
-    color: colors.cyan.core,
+    color: colors.cyan.core, // Fallback; overridden inline with accentColor
   },
   // Sub-section styles
   subSection: {
@@ -595,7 +631,7 @@ const styles = StyleSheet.create({
   },
   clearSectionText: {
     fontSize: 13,
-    color: colors.cyan.core,
+    color: colors.cyan.core, // Fallback; overridden inline with accentColor
   },
   listContent: {
     paddingHorizontal: spacing.md,
@@ -609,7 +645,7 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border.dark,
   },
   listItemSelected: {
-    backgroundColor: `${colors.cyan.core}10`,
+    backgroundColor: `${colors.cyan.core}10`, // Fallback; overridden inline with accentColor
   },
   listItemText: {
     flex: 1,
@@ -617,7 +653,7 @@ const styles = StyleSheet.create({
     color: colors.text.primary.dark,
   },
   listItemTextSelected: {
-    color: colors.cyan.core,
+    color: colors.cyan.core, // Fallback; overridden inline with accentColor
     fontWeight: '500',
   },
   listItemRight: {

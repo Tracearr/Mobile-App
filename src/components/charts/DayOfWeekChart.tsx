@@ -9,6 +9,7 @@ import { Circle } from '@shopify/react-native-skia';
 import { useAnimatedReaction, runOnJS } from 'react-native-reanimated';
 import type { SharedValue } from 'react-native-reanimated';
 import { colors, spacing, borderRadius, typography } from '../../lib/theme';
+import { useTheme } from '../../providers/ThemeProvider';
 import { useChartFont } from './useChartFont';
 
 interface DayOfWeekChartProps {
@@ -18,12 +19,21 @@ interface DayOfWeekChartProps {
 
 const DAY_ABBREV = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-function ToolTip({ x, y }: { x: SharedValue<number>; y: SharedValue<number> }) {
-  return <Circle cx={x} cy={y} r={5} color={colors.cyan.core} />;
+function ToolTip({
+  x,
+  y,
+  color,
+}: {
+  x: SharedValue<number>;
+  y: SharedValue<number>;
+  color: string;
+}) {
+  return <Circle cx={x} cy={y} r={5} color={color} />;
 }
 
 export function DayOfWeekChart({ data, height = 180 }: DayOfWeekChartProps) {
   const font = useChartFont(10);
+  const { accentColor } = useTheme();
   const { state, isActive } = useChartPressState({ x: 0, y: { count: 0 } });
 
   // React state to display values (synced from SharedValues)
@@ -82,7 +92,9 @@ export function DayOfWeekChart({ data, height = 180 }: DayOfWeekChartProps) {
       <View style={styles.valueDisplay}>
         {displayValue && selectedDay ? (
           <>
-            <Text style={styles.valueText}>{displayValue.count} plays</Text>
+            <Text style={[styles.valueText, { color: accentColor }]}>
+              {displayValue.count} plays
+            </Text>
             <Text style={styles.dayText}>{selectedDay.name}</Text>
           </>
         ) : null}
@@ -108,11 +120,13 @@ export function DayOfWeekChart({ data, height = 180 }: DayOfWeekChartProps) {
             <Bar
               points={points.count}
               chartBounds={chartBounds}
-              color={colors.cyan.core}
+              color={accentColor}
               roundedCorners={{ topLeft: 4, topRight: 4 }}
               animate={{ type: 'timing', duration: 500 }}
             />
-            {isActive && <ToolTip x={state.x.position} y={state.y.count.position} />}
+            {isActive && (
+              <ToolTip x={state.x.position} y={state.y.count.position} color={accentColor} />
+            )}
           </>
         )}
       </CartesianChart>

@@ -13,9 +13,11 @@ import {
   Server,
   MessageCircle,
   Code2,
+  Palette,
 } from 'lucide-react-native';
 import Constants from 'expo-constants';
 import { Text } from '@/components/ui/text';
+import { AccentColorPicker } from '@/components/settings/AccentColorPicker';
 import { useAuthStore } from '@/lib/authStore';
 import { colors, spacing, borderRadius } from '@/lib/theme';
 
@@ -109,6 +111,17 @@ export default function SettingsScreen() {
             description="Configure push notification preferences"
             onPress={() => router.push('/settings/notifications')}
           />
+        </SettingsSection>
+
+        {/* Appearance */}
+        <SettingsSection title="Appearance">
+          <View style={styles.appearanceContent}>
+            <View style={styles.appearanceHeader}>
+              <Palette size={20} color={colors.text.secondary.dark} />
+              <Text style={styles.rowLabel}>Accent Color</Text>
+            </View>
+            <AccentColorPicker />
+          </View>
         </SettingsSection>
 
         {/* Links */}
@@ -225,6 +238,15 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: colors.border.dark,
     marginLeft: (spacing.md as number) + 20 + (spacing.md as number), // icon width + gaps
+  },
+  appearanceContent: {
+    padding: spacing.md,
+  },
+  appearanceHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    marginBottom: spacing.md,
   },
   spacer: {
     flex: 1,

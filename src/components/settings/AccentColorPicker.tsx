@@ -12,9 +12,6 @@ export function AccentColorPicker() {
 
   return (
     <View style={{ gap: 12 }}>
-      <Text style={{ fontSize: 14, fontWeight: '600', color: colors.text.primary.dark }}>
-        Accent Color
-      </Text>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
         {ACCENT_PRESETS.map((preset) => {
           const isSelected = Math.abs(accentHue - preset.hue) < 10;

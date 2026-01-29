@@ -9,10 +9,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Unlink } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useConnectionStore } from '../stores/connectionStore';
+import { useTheme } from '../providers/ThemeProvider';
 import { colors, spacing, borderRadius, typography } from '../lib/theme';
 
 export function UnauthenticatedScreen() {
   const router = useRouter();
+  const { accentColor } = useTheme();
   const { cachedServerUrl, cachedServerName } = useConnectionStore();
 
   const handleScanQR = () => {
@@ -41,7 +43,10 @@ export function UnauthenticatedScreen() {
           Your access to {serverDisplay} was revoked. Ask the server owner for a new pairing code.
         </Text>
 
-        <Pressable style={styles.primaryButton} onPress={handleScanQR}>
+        <Pressable
+          style={[styles.primaryButton, { backgroundColor: accentColor }]}
+          onPress={handleScanQR}
+        >
           <Text style={styles.primaryButtonText}>Scan QR Code</Text>
         </Pressable>
 

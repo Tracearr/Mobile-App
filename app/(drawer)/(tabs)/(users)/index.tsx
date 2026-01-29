@@ -23,6 +23,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { formatDistanceToNow } from 'date-fns';
 import { api } from '@/lib/api';
 import { useMediaServer } from '@/providers/MediaServerProvider';
+import { useTheme } from '@/providers/ThemeProvider';
 import { useResponsive } from '@/hooks/useResponsive';
 import { Text } from '@/components/ui/text';
 import { Card } from '@/components/ui/card';
@@ -115,6 +116,7 @@ export default function UsersScreen() {
   const router = useRouter();
   const navigation = useNavigation();
   const { selectedServerId } = useMediaServer();
+  const { accentColor } = useTheme();
   const { isTablet, select } = useResponsive();
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -192,11 +194,7 @@ export default function UsersScreen() {
         onEndReached={handleEndReached}
         onEndReachedThreshold={0.5}
         refreshControl={
-          <RefreshControl
-            refreshing={isRefetching}
-            onRefresh={refetch}
-            tintColor={colors.cyan.core}
-          />
+          <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={accentColor} />
         }
         ListHeaderComponent={
           <View style={{ marginBottom: spacing.md }}>
@@ -248,7 +246,7 @@ export default function UsersScreen() {
         ListFooterComponent={
           isFetchingNextPage ? (
             <View className="items-center py-4">
-              <ActivityIndicator size="small" color={colors.cyan.core} />
+              <ActivityIndicator size="small" color={accentColor} />
             </View>
           ) : null
         }

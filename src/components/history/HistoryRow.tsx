@@ -17,6 +17,7 @@ import {
 } from 'lucide-react-native';
 import { Text } from '@/components/ui/text';
 import { useAuthStore } from '@/lib/authStore';
+import { useTheme } from '@/providers/ThemeProvider';
 import { colors, spacing, borderRadius } from '@/lib/theme';
 import type { SessionWithDetails, MediaType } from '@tracearr/shared';
 
@@ -86,6 +87,7 @@ function MediaTypeIcon({ type }: { type: MediaType }) {
 
 // Quality badge showing transcode status
 function QualityBadge({ session }: { session: SessionWithDetails }) {
+  const { accentColor } = useTheme();
   const isTranscode = session.isTranscode ?? false;
   const isCopy = session.videoDecision === 'copy' || session.audioDecision === 'copy';
 
@@ -100,15 +102,21 @@ function QualityBadge({ session }: { session: SessionWithDetails }) {
 
   if (isCopy) {
     return (
-      <View style={[styles.qualityBadge, styles.directBadge]}>
-        <MonitorPlay size={10} color={colors.cyan.core} />
-        <Text style={[styles.qualityText, styles.directText]}>Direct Stream</Text>
+      <View
+        style={[styles.qualityBadge, styles.directBadge, { backgroundColor: `${accentColor}15` }]}
+      >
+        <MonitorPlay size={10} color={accentColor} />
+        <Text style={[styles.qualityText, styles.directText, { color: accentColor }]}>
+          Direct Stream
+        </Text>
       </View>
     );
   }
 
   return (
-    <View style={[styles.qualityBadge, styles.directBadge]}>
+    <View
+      style={[styles.qualityBadge, styles.directBadge, { backgroundColor: `${accentColor}15` }]}
+    >
       <Play size={10} color={colors.success} fill={colors.success} />
       <Text style={[styles.qualityText, styles.directPlayText]}>Direct Play</Text>
     </View>
@@ -117,10 +125,13 @@ function QualityBadge({ session }: { session: SessionWithDetails }) {
 
 // Progress bar component
 function ProgressBar({ progress }: { progress: number }) {
+  const { accentColor } = useTheme();
   return (
     <View style={styles.progressContainer}>
       <View style={styles.progressTrack}>
-        <View style={[styles.progressFill, { width: `${progress}%` }]} />
+        <View
+          style={[styles.progressFill, { width: `${progress}%`, backgroundColor: accentColor }]}
+        />
       </View>
       <Text style={styles.progressText}>{progress}%</Text>
     </View>
@@ -133,6 +144,7 @@ const POSTER_HEIGHT = 60;
 
 export function HistoryRow({ session, onPress }: HistoryRowProps) {
   const { serverUrl } = useAuthStore();
+  const { accentColor } = useTheme();
   const displayName = session.user?.identityName ?? session.user?.username ?? 'Unknown';
   const title = getContentTitle(session);
   const progress = getProgress(session);
@@ -299,7 +311,7 @@ const styles = StyleSheet.create({
     backgroundColor: `${colors.warning}20`,
   },
   directBadge: {
-    backgroundColor: `${colors.cyan.core}15`,
+    backgroundColor: `${colors.cyan.core}15`, // Fallback; overridden inline with accentColor
   },
   qualityText: {
     fontSize: 10,
@@ -309,7 +321,7 @@ const styles = StyleSheet.create({
     color: colors.warning,
   },
   directText: {
-    color: colors.cyan.core,
+    color: colors.cyan.core, // Fallback; overridden inline with accentColor
   },
   directPlayText: {
     color: colors.success,
@@ -329,7 +341,7 @@ const styles = StyleSheet.create({
   },
   progressFill: {
     height: '100%',
-    backgroundColor: colors.cyan.core,
+    backgroundColor: colors.cyan.core, // Fallback; overridden inline with accentColor
     borderRadius: 2,
   },
   progressText: {

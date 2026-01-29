@@ -13,6 +13,7 @@ import { DrawerActions, useNavigation } from '@react-navigation/native';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { useMediaServer } from '@/providers/MediaServerProvider';
+import { useTheme } from '@/providers/ThemeProvider';
 import { useResponsive } from '@/hooks/useResponsive';
 import { colors, spacing } from '@/lib/theme';
 import { Text } from '@/components/ui/text';
@@ -42,6 +43,7 @@ export default function ActivityScreen() {
   const navigation = useNavigation();
   const [period, setPeriod] = useState<StatsPeriod>('month');
   const { selectedServerId } = useMediaServer();
+  const { accentColor } = useTheme();
   const { isTablet, select } = useResponsive();
 
   // Responsive values
@@ -115,7 +117,7 @@ export default function ActivityScreen() {
           <RefreshControl
             refreshing={isRefetchingPlays}
             onRefresh={handleRefresh}
-            tintColor={colors.cyan.core}
+            tintColor={accentColor}
           />
         }
       >

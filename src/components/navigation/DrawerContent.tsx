@@ -12,6 +12,7 @@ import { Text } from '@/components/ui/text';
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { ServerSelector } from '@/components/ServerSelector';
 import { api } from '@/lib/api';
+import { useTheme } from '@/providers/ThemeProvider';
 import { colors, spacing, withAlpha } from '@/lib/theme';
 
 interface DrawerItemProps {
@@ -19,14 +20,15 @@ interface DrawerItemProps {
   label: string;
   onPress: () => void;
   showChevron?: boolean;
+  accentColor: string;
 }
 
-function DrawerItem({ icon, label, onPress, showChevron = true }: DrawerItemProps) {
+function DrawerItem({ icon, label, onPress, showChevron = true, accentColor }: DrawerItemProps) {
   return (
     <Pressable
       onPress={onPress}
       style={styles.drawerItem}
-      android_ripple={{ color: withAlpha(colors.cyan.core, '20') }}
+      android_ripple={{ color: withAlpha(accentColor, '20') }}
     >
       <View style={styles.drawerItemLeft}>
         {icon}
@@ -49,6 +51,7 @@ function DrawerSection({ title, children }: { title: string; children: React.Rea
 export function DrawerContent(props: DrawerContentComponentProps) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { accentColor } = useTheme();
 
   // Fetch current user profile
   const { data: user, isLoading: userLoading } = useQuery({
@@ -72,7 +75,7 @@ export function DrawerContent(props: DrawerContentComponentProps) {
       >
         {/* App Title */}
         <View style={styles.header}>
-          <Text style={styles.appTitle}>Tracearr</Text>
+          <Text style={[styles.appTitle, { color: accentColor }]}>Tracearr</Text>
         </View>
 
         {/* Server Section - uses existing ServerSelector */}
@@ -88,6 +91,7 @@ export function DrawerContent(props: DrawerContentComponentProps) {
             icon={<Settings size={20} color={colors.text.secondary.dark} />}
             label="Settings"
             onPress={handleSettingsPress}
+            accentColor={accentColor}
           />
         </DrawerSection>
       </ScrollView>
@@ -95,7 +99,7 @@ export function DrawerContent(props: DrawerContentComponentProps) {
       {/* User Profile Section - fixed at bottom */}
       <View style={[styles.userSection, { paddingBottom: insets.bottom + (spacing.md as number) }]}>
         {userLoading ? (
-          <ActivityIndicator size="small" color={colors.cyan.core} />
+          <ActivityIndicator size="small" color={accentColor} />
         ) : user ? (
           <View style={styles.userInfo}>
             <UserAvatar thumbUrl={user.thumbUrl} username={user.username} size={40} />
