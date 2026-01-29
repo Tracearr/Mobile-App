@@ -4,7 +4,6 @@
  */
 import { useState, useMemo, useCallback, useRef } from 'react';
 import { View, FlatList, RefreshControl, ActivityIndicator, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { Play } from 'lucide-react-native';
@@ -167,13 +166,14 @@ export default function HistoryScreen() {
   const keyExtractor = useCallback((item: SessionWithDetails) => item.id, []);
 
   return (
-    <SafeAreaView style={styles.container} edges={['left', 'right', 'bottom']}>
+    <View style={styles.container}>
       <FlatList
         data={sessions}
         keyExtractor={keyExtractor}
         renderItem={renderItem}
         ItemSeparatorComponent={HistoryRowSeparator}
         contentContainerStyle={styles.listContent}
+        contentInsetAdjustmentBehavior="automatic"
         onEndReached={handleEndReached}
         onEndReachedThreshold={0.5}
         refreshControl={
@@ -234,7 +234,7 @@ export default function HistoryScreen() {
         filters={advancedFilters}
         onFiltersChange={setAdvancedFilters}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 

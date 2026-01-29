@@ -8,7 +8,6 @@
  */
 import { useState } from 'react';
 import { View, ScrollView, RefreshControl } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { useMediaServer } from '@/providers/MediaServerProvider';
@@ -100,96 +99,91 @@ export default function ActivityScreen() {
   };
 
   return (
-    <SafeAreaView
-      style={{ flex: 1, backgroundColor: colors.background.dark }}
-      edges={['left', 'right', 'bottom']}
+    <ScrollView
+      style={{ flex: 1 }}
+      contentContainerStyle={{
+        paddingHorizontal: horizontalPadding,
+        paddingTop: spacing.sm,
+        paddingBottom: spacing.xl,
+      }}
+      contentInsetAdjustmentBehavior="automatic"
+      refreshControl={
+        <RefreshControl
+          refreshing={isRefetchingPlays}
+          onRefresh={handleRefresh}
+          tintColor={colors.cyan.core}
+        />
+      }
     >
-      <ScrollView
-        className="flex-1"
-        contentContainerStyle={{
-          paddingHorizontal: horizontalPadding,
-          paddingTop: spacing.sm,
-          paddingBottom: spacing.xl,
+      {/* Header with Period Selector */}
+      <View className="mb-4 flex-row items-center justify-between">
+        <View>
+          <Text className="text-muted-foreground text-sm">{periodLabels[period]}</Text>
+        </View>
+        <PeriodSelector value={period} onChange={setPeriod} />
+      </View>
+
+      {/* Plays & Concurrent - side by side on tablets */}
+      <View
+        style={{
+          flexDirection: isTablet ? 'row' : 'column',
+          gap: isTablet ? spacing.md : spacing.sm,
+          marginBottom: isTablet ? spacing.md : spacing.sm,
         }}
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefetchingPlays}
-            onRefresh={handleRefresh}
-            tintColor={colors.cyan.core}
-          />
-        }
       >
-        {/* Header with Period Selector */}
-        <View className="mb-4 flex-row items-center justify-between">
-          <View>
-            <Text className="text-lg font-semibold">Activity</Text>
-            <Text className="text-muted-foreground text-sm">{periodLabels[period]}</Text>
-          </View>
-          <PeriodSelector value={period} onChange={setPeriod} />
-        </View>
+        <ChartSection title="Plays Over Time">
+          <PlaysChart data={playsData?.data || []} height={chartHeightLarge} />
+        </ChartSection>
 
-        {/* Plays & Concurrent - side by side on tablets */}
-        <View
-          style={{
-            flexDirection: isTablet ? 'row' : 'column',
-            gap: isTablet ? spacing.md : spacing.sm,
-            marginBottom: isTablet ? spacing.md : spacing.sm,
-          }}
-        >
-          <ChartSection title="Plays Over Time">
-            <PlaysChart data={playsData?.data || []} height={chartHeightLarge} />
-          </ChartSection>
+        <ChartSection title="Concurrent Streams">
+          <ConcurrentChart data={concurrentData?.data || []} height={chartHeightLarge} />
+        </ChartSection>
+      </View>
 
-          <ChartSection title="Concurrent Streams">
-            <ConcurrentChart data={concurrentData?.data || []} height={chartHeightLarge} />
-          </ChartSection>
-        </View>
+      {/* Day of Week & Hour of Day - side by side on tablets */}
+      <View
+        style={{
+          flexDirection: isTablet ? 'row' : 'column',
+          gap: isTablet ? spacing.md : spacing.sm,
+          marginBottom: isTablet ? spacing.md : spacing.sm,
+        }}
+      >
+        <ChartSection title="By Day">
+          <DayOfWeekChart data={dayOfWeekData?.data || []} height={chartHeightSmall} />
+        </ChartSection>
 
-        {/* Day of Week & Hour of Day - side by side on tablets */}
-        <View
-          style={{
-            flexDirection: isTablet ? 'row' : 'column',
-            gap: isTablet ? spacing.md : spacing.sm,
-            marginBottom: isTablet ? spacing.md : spacing.sm,
-          }}
-        >
-          <ChartSection title="By Day">
-            <DayOfWeekChart data={dayOfWeekData?.data || []} height={chartHeightSmall} />
-          </ChartSection>
+        <ChartSection title="By Hour">
+          <HourOfDayChart data={hourOfDayData?.data || []} height={chartHeightSmall} />
+        </ChartSection>
+      </View>
 
-          <ChartSection title="By Hour">
-            <HourOfDayChart data={hourOfDayData?.data || []} height={chartHeightSmall} />
-          </ChartSection>
-        </View>
+      {/* Platform & Quality - side by side on tablets */}
+      <View
+        style={{
+          flexDirection: isTablet ? 'row' : 'column',
+          gap: isTablet ? spacing.md : spacing.sm,
+        }}
+      >
+        <ChartSection title="Platforms">
+          <PlatformChart data={platformsData?.data || []} height={chartHeightSmall} />
+        </ChartSection>
 
-        {/* Platform & Quality - side by side on tablets */}
-        <View
-          style={{
-            flexDirection: isTablet ? 'row' : 'column',
-            gap: isTablet ? spacing.md : spacing.sm,
-          }}
-        >
-          <ChartSection title="Platforms">
-            <PlatformChart data={platformsData?.data || []} height={chartHeightSmall} />
-          </ChartSection>
-
-          <ChartSection title="Playback Quality">
-            {qualityData ? (
-              <QualityChart
-                directPlay={qualityData.directPlay}
-                transcode={qualityData.transcode}
-                directPlayPercent={qualityData.directPlayPercent}
-                transcodePercent={qualityData.transcodePercent}
-                height={qualityHeight}
-              />
-            ) : (
-              <Card style={{ height: qualityHeight }} className="items-center justify-center">
-                <Text className="text-muted-foreground">Loading...</Text>
-              </Card>
-            )}
-          </ChartSection>
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+        <ChartSection title="Playback Quality">
+          {qualityData ? (
+            <QualityChart
+              directPlay={qualityData.directPlay}
+              transcode={qualityData.transcode}
+              directPlayPercent={qualityData.directPlayPercent}
+              transcodePercent={qualityData.transcodePercent}
+              height={qualityHeight}
+            />
+          ) : (
+            <Card style={{ height: qualityHeight }} className="items-center justify-center">
+              <Text className="text-muted-foreground">Loading...</Text>
+            </Card>
+          )}
+        </ChartSection>
+      </View>
+    </ScrollView>
   );
 }
