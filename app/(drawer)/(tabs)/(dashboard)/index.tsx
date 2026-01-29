@@ -7,8 +7,9 @@
  * - Tablet (md+): 2-column grid for Now Playing, larger map
  * - Large tablet (lg+): 3-column grid for Now Playing
  */
-import { View, ScrollView, RefreshControl } from 'react-native';
-import { useRouter } from 'expo-router';
+import { View, ScrollView, RefreshControl, Platform } from 'react-native';
+import { useRouter, Stack } from 'expo-router';
+import { DrawerActions, useNavigation } from '@react-navigation/native';
 import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '@/lib/api';
@@ -59,6 +60,7 @@ function StatPill({
 
 export default function DashboardScreen() {
   const router = useRouter();
+  const navigation = useNavigation();
   const { selectedServerId, selectedServer } = useMediaServer();
   const { isTablet, columns, select } = useResponsive();
 
@@ -94,152 +96,174 @@ export default function DashboardScreen() {
   const nowPlayingColumns = columns.cards; // 1 on phone, 2 on tablet, 3 on large tablet
 
   return (
-    <ScrollView
-      style={{ flex: 1 }}
-      contentContainerClassName="pb-8"
-      contentInsetAdjustmentBehavior="automatic"
-      refreshControl={
-        <RefreshControl
-          refreshing={isRefetching}
-          onRefresh={refetch}
-          tintColor={colors.cyan.core}
-        />
-      }
-    >
-      {/* Today's Stats Bar */}
-      {stats && (
-        <View style={{ paddingHorizontal: horizontalPadding, paddingTop: 12, paddingBottom: 8 }}>
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              flexWrap: 'wrap',
-              gap: isTablet ? 12 : 8,
-            }}
-          >
-            <Text
-              style={{
-                fontSize: 11,
-                color: colors.text.muted.dark,
-                fontWeight: '600',
-                marginRight: 2,
-              }}
-            >
-              TODAY
-            </Text>
-            <StatPill icon="play-circle-outline" value={stats.todayPlays} unit="plays" />
-            <StatPill icon="time-outline" value={stats.watchTimeHours} unit="hrs" />
-            {isTablet && (
-              <StatPill icon="people-outline" value={stats.activeUsersToday} unit="users" />
-            )}
-            <StatPill
-              icon="warning-outline"
-              value={stats.alertsLast24h}
-              unit="alerts"
-              color={stats.alertsLast24h > 0 ? colors.warning : colors.text.muted.dark}
-            />
-          </View>
-        </View>
-      )}
-
-      {/* Now Playing - Active Streams */}
-      <View style={{ marginBottom: spacing.md, paddingHorizontal: horizontalPadding }}>
-        <View className="mb-3 flex-row items-center justify-between">
-          <View className="flex-row items-center gap-2">
-            <Ionicons name="tv-outline" size={18} color={colors.cyan.core} />
-            <Text className="text-muted-foreground text-sm font-semibold tracking-wide uppercase">
-              Now Playing
-            </Text>
-          </View>
-          {activeSessions && activeSessions.length > 0 && (
+    <>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerClassName="pb-8"
+        contentInsetAdjustmentBehavior="automatic"
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefetching}
+            onRefresh={refetch}
+            tintColor={colors.cyan.core}
+          />
+        }
+      >
+        {/* Today's Stats Bar */}
+        {stats && (
+          <View style={{ paddingHorizontal: horizontalPadding, paddingTop: 12, paddingBottom: 8 }}>
             <View
               style={{
-                backgroundColor: 'rgba(24, 209, 231, 0.15)',
-                paddingHorizontal: 8,
-                paddingVertical: 2,
-                borderRadius: 12,
+                flexDirection: 'row',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: isTablet ? 12 : 8,
               }}
             >
-              <Text style={{ color: colors.cyan.core, fontSize: 12, fontWeight: '600' }}>
-                {activeSessions.length} {activeSessions.length === 1 ? 'stream' : 'streams'}
+              <Text
+                style={{
+                  fontSize: 11,
+                  color: colors.text.muted.dark,
+                  fontWeight: '600',
+                  marginRight: 2,
+                }}
+              >
+                TODAY
+              </Text>
+              <StatPill icon="play-circle-outline" value={stats.todayPlays} unit="plays" />
+              <StatPill icon="time-outline" value={stats.watchTimeHours} unit="hrs" />
+              {isTablet && (
+                <StatPill icon="people-outline" value={stats.activeUsersToday} unit="users" />
+              )}
+              <StatPill
+                icon="warning-outline"
+                value={stats.alertsLast24h}
+                unit="alerts"
+                color={stats.alertsLast24h > 0 ? colors.warning : colors.text.muted.dark}
+              />
+            </View>
+          </View>
+        )}
+
+        {/* Now Playing - Active Streams */}
+        <View style={{ marginBottom: spacing.md, paddingHorizontal: horizontalPadding }}>
+          <View className="mb-3 flex-row items-center justify-between">
+            <View className="flex-row items-center gap-2">
+              <Ionicons name="tv-outline" size={18} color={colors.cyan.core} />
+              <Text className="text-muted-foreground text-sm font-semibold tracking-wide uppercase">
+                Now Playing
               </Text>
             </View>
+            {activeSessions && activeSessions.length > 0 && (
+              <View
+                style={{
+                  backgroundColor: 'rgba(24, 209, 231, 0.15)',
+                  paddingHorizontal: 8,
+                  paddingVertical: 2,
+                  borderRadius: 12,
+                }}
+              >
+                <Text style={{ color: colors.cyan.core, fontSize: 12, fontWeight: '600' }}>
+                  {activeSessions.length} {activeSessions.length === 1 ? 'stream' : 'streams'}
+                </Text>
+              </View>
+            )}
+          </View>
+          {activeSessions && activeSessions.length > 0 ? (
+            <View
+              style={{
+                flexDirection: 'row',
+                flexWrap: 'wrap',
+                marginHorizontal: isTablet ? -spacing.sm / 2 : 0,
+              }}
+            >
+              {activeSessions.map((session) => (
+                <View
+                  key={session.id}
+                  style={{
+                    width: isTablet ? `${100 / nowPlayingColumns}%` : '100%',
+                    paddingHorizontal: isTablet ? spacing.sm / 2 : 0,
+                  }}
+                >
+                  <NowPlayingCard
+                    session={session}
+                    onPress={() => router.push(`/session/${session.id}` as never)}
+                  />
+                </View>
+              ))}
+            </View>
+          ) : (
+            <Card className="py-8">
+              <View className="items-center">
+                <View
+                  style={{
+                    backgroundColor: colors.surface.dark,
+                    padding: 16,
+                    borderRadius: 999,
+                    marginBottom: 12,
+                  }}
+                >
+                  <Ionicons name="tv-outline" size={32} color={colors.text.muted.dark} />
+                </View>
+                <Text className="text-base font-semibold">No active streams</Text>
+                <Text className="text-muted-foreground mt-1 text-sm">
+                  Streams will appear here when users start watching
+                </Text>
+              </View>
+            </Card>
           )}
         </View>
-        {activeSessions && activeSessions.length > 0 ? (
-          <View
-            style={{
-              flexDirection: 'row',
-              flexWrap: 'wrap',
-              marginHorizontal: isTablet ? -spacing.sm / 2 : 0,
-            }}
-          >
-            {activeSessions.map((session) => (
-              <View
-                key={session.id}
-                style={{
-                  width: isTablet ? `${100 / nowPlayingColumns}%` : '100%',
-                  paddingHorizontal: isTablet ? spacing.sm / 2 : 0,
-                }}
-              >
-                <NowPlayingCard
-                  session={session}
-                  onPress={() => router.push(`/session/${session.id}` as never)}
-                />
-              </View>
-            ))}
-          </View>
-        ) : (
-          <Card className="py-8">
-            <View className="items-center">
-              <View
-                style={{
-                  backgroundColor: colors.surface.dark,
-                  padding: 16,
-                  borderRadius: 999,
-                  marginBottom: 12,
-                }}
-              >
-                <Ionicons name="tv-outline" size={32} color={colors.text.muted.dark} />
-              </View>
-              <Text className="text-base font-semibold">No active streams</Text>
-              <Text className="text-muted-foreground mt-1 text-sm">
-                Streams will appear here when users start watching
+
+        {/* Stream Map - only show when there are active streams */}
+        {activeSessions && activeSessions.length > 0 && (
+          <View style={{ marginBottom: spacing.md, paddingHorizontal: horizontalPadding }}>
+            <View className="mb-3 flex-row items-center gap-2">
+              <Ionicons name="location-outline" size={18} color={colors.cyan.core} />
+              <Text className="text-muted-foreground text-sm font-semibold tracking-wide uppercase">
+                Stream Locations
               </Text>
             </View>
-          </Card>
+            <StreamMap sessions={activeSessions} height={mapHeight} />
+          </View>
         )}
-      </View>
 
-      {/* Stream Map - only show when there are active streams */}
-      {activeSessions && activeSessions.length > 0 && (
-        <View style={{ marginBottom: spacing.md, paddingHorizontal: horizontalPadding }}>
-          <View className="mb-3 flex-row items-center gap-2">
-            <Ionicons name="location-outline" size={18} color={colors.cyan.core} />
-            <Text className="text-muted-foreground text-sm font-semibold tracking-wide uppercase">
-              Stream Locations
-            </Text>
+        {/* Server Resources - only show if Plex server is active */}
+        {isPlexServer && (
+          <View style={{ paddingHorizontal: horizontalPadding }}>
+            <View className="mb-3 flex-row items-center gap-2">
+              <Ionicons name="server-outline" size={18} color={colors.cyan.core} />
+              <Text className="text-muted-foreground text-sm font-semibold tracking-wide uppercase">
+                Server Resources
+              </Text>
+            </View>
+            <ServerResourceCard
+              latest={serverResources}
+              isLoading={resourcesLoading}
+              error={resourcesError}
+            />
           </View>
-          <StreamMap sessions={activeSessions} height={mapHeight} />
-        </View>
-      )}
+        )}
+      </ScrollView>
 
-      {/* Server Resources - only show if Plex server is active */}
-      {isPlexServer && (
-        <View style={{ paddingHorizontal: horizontalPadding }}>
-          <View className="mb-3 flex-row items-center gap-2">
-            <Ionicons name="server-outline" size={18} color={colors.cyan.core} />
-            <Text className="text-muted-foreground text-sm font-semibold tracking-wide uppercase">
-              Server Resources
-            </Text>
-          </View>
-          <ServerResourceCard
-            latest={serverResources}
-            isLoading={resourcesLoading}
-            error={resourcesError}
-          />
-        </View>
+      {/* iOS Native Toolbar */}
+      {Platform.OS === 'ios' && (
+        <>
+          <Stack.Toolbar placement="left">
+            <Stack.Toolbar.Button
+              icon="line.3.horizontal"
+              onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
+            />
+          </Stack.Toolbar>
+          <Stack.Toolbar placement="right">
+            <Stack.Toolbar.Button icon="bell" onPress={() => router.push('/alerts')} />
+            <Stack.Toolbar.Menu icon="ellipsis">
+              <Stack.Toolbar.MenuAction icon="arrow.clockwise" onPress={() => refetch()}>
+                Refresh
+              </Stack.Toolbar.MenuAction>
+            </Stack.Toolbar.Menu>
+          </Stack.Toolbar>
+        </>
       )}
-    </ScrollView>
+    </>
   );
 }
