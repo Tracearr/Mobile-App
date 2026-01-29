@@ -7,7 +7,9 @@
  * - Tablet (md+): 2-column grid, taller charts, increased padding
  */
 import { useState } from 'react';
-import { View, ScrollView, RefreshControl } from 'react-native';
+import { View, ScrollView, RefreshControl, Platform } from 'react-native';
+import { Stack } from 'expo-router';
+import { DrawerActions, useNavigation } from '@react-navigation/native';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { useMediaServer } from '@/providers/MediaServerProvider';
@@ -37,6 +39,7 @@ function ChartSection({ title, children }: { title: string; children: React.Reac
 }
 
 export default function ActivityScreen() {
+  const navigation = useNavigation();
   const [period, setPeriod] = useState<StatsPeriod>('month');
   const { selectedServerId } = useMediaServer();
   const { isTablet, select } = useResponsive();
@@ -99,91 +102,112 @@ export default function ActivityScreen() {
   };
 
   return (
-    <ScrollView
-      style={{ flex: 1 }}
-      contentContainerStyle={{
-        paddingHorizontal: horizontalPadding,
-        paddingTop: spacing.sm,
-        paddingBottom: spacing.xl,
-      }}
-      contentInsetAdjustmentBehavior="automatic"
-      refreshControl={
-        <RefreshControl
-          refreshing={isRefetchingPlays}
-          onRefresh={handleRefresh}
-          tintColor={colors.cyan.core}
-        />
-      }
-    >
-      {/* Header with Period Selector */}
-      <View className="mb-4 flex-row items-center justify-between">
-        <View>
-          <Text className="text-muted-foreground text-sm">{periodLabels[period]}</Text>
+    <>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{
+          paddingHorizontal: horizontalPadding,
+          paddingTop: spacing.sm,
+          paddingBottom: spacing.xl,
+        }}
+        contentInsetAdjustmentBehavior="automatic"
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefetchingPlays}
+            onRefresh={handleRefresh}
+            tintColor={colors.cyan.core}
+          />
+        }
+      >
+        {/* Header with Period Selector */}
+        <View className="mb-4 flex-row items-center justify-between">
+          <View>
+            <Text className="text-muted-foreground text-sm">{periodLabels[period]}</Text>
+          </View>
+          <PeriodSelector value={period} onChange={setPeriod} />
         </View>
-        <PeriodSelector value={period} onChange={setPeriod} />
-      </View>
 
-      {/* Plays & Concurrent - side by side on tablets */}
-      <View
-        style={{
-          flexDirection: isTablet ? 'row' : 'column',
-          gap: isTablet ? spacing.md : spacing.sm,
-          marginBottom: isTablet ? spacing.md : spacing.sm,
-        }}
-      >
-        <ChartSection title="Plays Over Time">
-          <PlaysChart data={playsData?.data || []} height={chartHeightLarge} />
-        </ChartSection>
+        {/* Plays & Concurrent - side by side on tablets */}
+        <View
+          style={{
+            flexDirection: isTablet ? 'row' : 'column',
+            gap: isTablet ? spacing.md : spacing.sm,
+            marginBottom: isTablet ? spacing.md : spacing.sm,
+          }}
+        >
+          <ChartSection title="Plays Over Time">
+            <PlaysChart data={playsData?.data || []} height={chartHeightLarge} />
+          </ChartSection>
 
-        <ChartSection title="Concurrent Streams">
-          <ConcurrentChart data={concurrentData?.data || []} height={chartHeightLarge} />
-        </ChartSection>
-      </View>
+          <ChartSection title="Concurrent Streams">
+            <ConcurrentChart data={concurrentData?.data || []} height={chartHeightLarge} />
+          </ChartSection>
+        </View>
 
-      {/* Day of Week & Hour of Day - side by side on tablets */}
-      <View
-        style={{
-          flexDirection: isTablet ? 'row' : 'column',
-          gap: isTablet ? spacing.md : spacing.sm,
-          marginBottom: isTablet ? spacing.md : spacing.sm,
-        }}
-      >
-        <ChartSection title="By Day">
-          <DayOfWeekChart data={dayOfWeekData?.data || []} height={chartHeightSmall} />
-        </ChartSection>
+        {/* Day of Week & Hour of Day - side by side on tablets */}
+        <View
+          style={{
+            flexDirection: isTablet ? 'row' : 'column',
+            gap: isTablet ? spacing.md : spacing.sm,
+            marginBottom: isTablet ? spacing.md : spacing.sm,
+          }}
+        >
+          <ChartSection title="By Day">
+            <DayOfWeekChart data={dayOfWeekData?.data || []} height={chartHeightSmall} />
+          </ChartSection>
 
-        <ChartSection title="By Hour">
-          <HourOfDayChart data={hourOfDayData?.data || []} height={chartHeightSmall} />
-        </ChartSection>
-      </View>
+          <ChartSection title="By Hour">
+            <HourOfDayChart data={hourOfDayData?.data || []} height={chartHeightSmall} />
+          </ChartSection>
+        </View>
 
-      {/* Platform & Quality - side by side on tablets */}
-      <View
-        style={{
-          flexDirection: isTablet ? 'row' : 'column',
-          gap: isTablet ? spacing.md : spacing.sm,
-        }}
-      >
-        <ChartSection title="Platforms">
-          <PlatformChart data={platformsData?.data || []} height={chartHeightSmall} />
-        </ChartSection>
+        {/* Platform & Quality - side by side on tablets */}
+        <View
+          style={{
+            flexDirection: isTablet ? 'row' : 'column',
+            gap: isTablet ? spacing.md : spacing.sm,
+          }}
+        >
+          <ChartSection title="Platforms">
+            <PlatformChart data={platformsData?.data || []} height={chartHeightSmall} />
+          </ChartSection>
 
-        <ChartSection title="Playback Quality">
-          {qualityData ? (
-            <QualityChart
-              directPlay={qualityData.directPlay}
-              transcode={qualityData.transcode}
-              directPlayPercent={qualityData.directPlayPercent}
-              transcodePercent={qualityData.transcodePercent}
-              height={qualityHeight}
+          <ChartSection title="Playback Quality">
+            {qualityData ? (
+              <QualityChart
+                directPlay={qualityData.directPlay}
+                transcode={qualityData.transcode}
+                directPlayPercent={qualityData.directPlayPercent}
+                transcodePercent={qualityData.transcodePercent}
+                height={qualityHeight}
+              />
+            ) : (
+              <Card style={{ height: qualityHeight }} className="items-center justify-center">
+                <Text className="text-muted-foreground">Loading...</Text>
+              </Card>
+            )}
+          </ChartSection>
+        </View>
+      </ScrollView>
+
+      {/* iOS Native Toolbar */}
+      {Platform.OS === 'ios' && (
+        <>
+          <Stack.Toolbar placement="left">
+            <Stack.Toolbar.Button
+              icon="line.3.horizontal"
+              onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
             />
-          ) : (
-            <Card style={{ height: qualityHeight }} className="items-center justify-center">
-              <Text className="text-muted-foreground">Loading...</Text>
-            </Card>
-          )}
-        </ChartSection>
-      </View>
-    </ScrollView>
+          </Stack.Toolbar>
+          <Stack.Toolbar placement="right">
+            <Stack.Toolbar.Menu icon="ellipsis">
+              <Stack.Toolbar.MenuAction icon="arrow.clockwise" onPress={() => handleRefresh()}>
+                Refresh
+              </Stack.Toolbar.MenuAction>
+            </Stack.Toolbar.Menu>
+          </Stack.Toolbar>
+        </>
+      )}
+    </>
   );
 }

@@ -14,9 +14,11 @@ import {
   Pressable,
   ActivityIndicator,
   TextInput,
+  Platform,
 } from 'react-native';
 import { useInfiniteQuery } from '@tanstack/react-query';
-import { useRouter } from 'expo-router';
+import { useRouter, Stack } from 'expo-router';
+import { DrawerActions, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { formatDistanceToNow } from 'date-fns';
 import { api } from '@/lib/api';
@@ -111,6 +113,7 @@ function UserCard({
 
 export default function UsersScreen() {
   const router = useRouter();
+  const navigation = useNavigation();
   const { selectedServerId } = useMediaServer();
   const { isTablet, select } = useResponsive();
   const [searchQuery, setSearchQuery] = useState('');
@@ -159,109 +162,131 @@ export default function UsersScreen() {
   };
 
   return (
-    <FlatList
-      data={users}
-      keyExtractor={(item) => item.id}
-      numColumns={numColumns}
-      key={numColumns} // Force re-render when columns change
-      contentInsetAdjustmentBehavior="automatic"
-      renderItem={({ item, index }) => (
-        <View
-          style={{
-            flex: 1,
-            paddingLeft: isTablet && index % 2 === 1 ? spacing.sm / 2 : 0,
-            paddingRight: isTablet && index % 2 === 0 ? spacing.sm / 2 : 0,
-          }}
-        >
-          <UserCard
-            user={item}
-            onPress={() => router.push(`/user/${item.id}` as never)}
-            isTablet={isTablet}
+    <>
+      <FlatList
+        data={users}
+        keyExtractor={(item) => item.id}
+        numColumns={numColumns}
+        key={numColumns} // Force re-render when columns change
+        contentInsetAdjustmentBehavior="automatic"
+        renderItem={({ item, index }) => (
+          <View
+            style={{
+              flex: 1,
+              paddingLeft: isTablet && index % 2 === 1 ? spacing.sm / 2 : 0,
+              paddingRight: isTablet && index % 2 === 0 ? spacing.sm / 2 : 0,
+            }}
+          >
+            <UserCard
+              user={item}
+              onPress={() => router.push(`/user/${item.id}` as never)}
+              isTablet={isTablet}
+            />
+          </View>
+        )}
+        contentContainerStyle={{
+          paddingHorizontal: horizontalPadding,
+          paddingTop: spacing.sm,
+          paddingBottom: spacing.xl,
+        }}
+        onEndReached={handleEndReached}
+        onEndReachedThreshold={0.5}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefetching}
+            onRefresh={refetch}
+            tintColor={colors.cyan.core}
           />
-        </View>
-      )}
-      contentContainerStyle={{
-        paddingHorizontal: horizontalPadding,
-        paddingTop: spacing.sm,
-        paddingBottom: spacing.xl,
-      }}
-      onEndReached={handleEndReached}
-      onEndReachedThreshold={0.5}
-      refreshControl={
-        <RefreshControl
-          refreshing={isRefetching}
-          onRefresh={refetch}
-          tintColor={colors.cyan.core}
-        />
-      }
-      ListHeaderComponent={
-        <View style={{ marginBottom: spacing.md }}>
-          {/* Title row */}
-          <View className="mb-3 flex-row items-center justify-between">
-            <Text className="text-muted-foreground text-sm">
-              {searchQuery ? `${users.length} of ${total}` : total} {total === 1 ? 'user' : 'users'}
+        }
+        ListHeaderComponent={
+          <View style={{ marginBottom: spacing.md }}>
+            {/* Title row */}
+            <View className="mb-3 flex-row items-center justify-between">
+              <Text className="text-muted-foreground text-sm">
+                {searchQuery ? `${users.length} of ${total}` : total}{' '}
+                {total === 1 ? 'user' : 'users'}
+              </Text>
+            </View>
+            {/* Search bar - tablet only */}
+            {isTablet && (
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  backgroundColor: colors.card.dark,
+                  borderRadius: borderRadius.lg,
+                  paddingHorizontal: spacing.md,
+                  paddingVertical: spacing.sm,
+                  borderWidth: 1,
+                  borderColor: colors.border.dark,
+                }}
+              >
+                <Ionicons name="search" size={18} color={colors.text.muted.dark} />
+                <TextInput
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  placeholder="Search users..."
+                  placeholderTextColor={colors.text.muted.dark}
+                  style={{
+                    flex: 1,
+                    marginLeft: spacing.sm,
+                    color: colors.text.primary.dark,
+                    fontSize: 14,
+                  }}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+                {searchQuery.length > 0 && (
+                  <Pressable onPress={() => setSearchQuery('')}>
+                    <Ionicons name="close-circle" size={18} color={colors.text.muted.dark} />
+                  </Pressable>
+                )}
+              </View>
+            )}
+          </View>
+        }
+        ListFooterComponent={
+          isFetchingNextPage ? (
+            <View className="items-center py-4">
+              <ActivityIndicator size="small" color={colors.cyan.core} />
+            </View>
+          ) : null
+        }
+        ListEmptyComponent={
+          <View className="items-center py-12">
+            <View className="bg-card border-border mb-4 h-16 w-16 items-center justify-center rounded-full border">
+              <Ionicons name="people-outline" size={32} color={colors.text.muted.dark} />
+            </View>
+            <Text className="mb-1 text-lg font-semibold">
+              {searchQuery ? 'No Results' : 'No Users'}
+            </Text>
+            <Text className="text-muted-foreground px-4 text-center text-sm">
+              {searchQuery
+                ? `No users match "${searchQuery}"`
+                : 'Users will appear here after syncing with your media server'}
             </Text>
           </View>
-          {/* Search bar - tablet only */}
-          {isTablet && (
-            <View
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                backgroundColor: colors.card.dark,
-                borderRadius: borderRadius.lg,
-                paddingHorizontal: spacing.md,
-                paddingVertical: spacing.sm,
-                borderWidth: 1,
-                borderColor: colors.border.dark,
-              }}
-            >
-              <Ionicons name="search" size={18} color={colors.text.muted.dark} />
-              <TextInput
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                placeholder="Search users..."
-                placeholderTextColor={colors.text.muted.dark}
-                style={{
-                  flex: 1,
-                  marginLeft: spacing.sm,
-                  color: colors.text.primary.dark,
-                  fontSize: 14,
-                }}
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
-              {searchQuery.length > 0 && (
-                <Pressable onPress={() => setSearchQuery('')}>
-                  <Ionicons name="close-circle" size={18} color={colors.text.muted.dark} />
-                </Pressable>
-              )}
-            </View>
-          )}
-        </View>
-      }
-      ListFooterComponent={
-        isFetchingNextPage ? (
-          <View className="items-center py-4">
-            <ActivityIndicator size="small" color={colors.cyan.core} />
-          </View>
-        ) : null
-      }
-      ListEmptyComponent={
-        <View className="items-center py-12">
-          <View className="bg-card border-border mb-4 h-16 w-16 items-center justify-center rounded-full border">
-            <Ionicons name="people-outline" size={32} color={colors.text.muted.dark} />
-          </View>
-          <Text className="mb-1 text-lg font-semibold">
-            {searchQuery ? 'No Results' : 'No Users'}
-          </Text>
-          <Text className="text-muted-foreground px-4 text-center text-sm">
-            {searchQuery
-              ? `No users match "${searchQuery}"`
-              : 'Users will appear here after syncing with your media server'}
-          </Text>
-        </View>
-      }
-    />
+        }
+      />
+
+      {/* iOS Native Toolbar */}
+      {Platform.OS === 'ios' && (
+        <>
+          <Stack.Toolbar placement="left">
+            <Stack.Toolbar.Button
+              icon="line.3.horizontal"
+              onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
+            />
+          </Stack.Toolbar>
+          <Stack.Toolbar placement="right">
+            <Stack.Toolbar.Menu icon="ellipsis">
+              <Stack.Toolbar.MenuAction icon="arrow.clockwise" onPress={() => refetch()}>
+                Refresh
+              </Stack.Toolbar.MenuAction>
+            </Stack.Toolbar.Menu>
+          </Stack.Toolbar>
+        </>
+      )}
+    </>
   );
 }

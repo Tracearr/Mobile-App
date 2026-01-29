@@ -3,9 +3,17 @@
  * Matches web UI quality with proper filtering and aggregates
  */
 import { useState, useMemo, useCallback, useRef } from 'react';
-import { View, FlatList, RefreshControl, ActivityIndicator, StyleSheet } from 'react-native';
+import {
+  View,
+  FlatList,
+  RefreshControl,
+  ActivityIndicator,
+  StyleSheet,
+  Platform,
+} from 'react-native';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
-import { useRouter } from 'expo-router';
+import { useRouter, Stack } from 'expo-router';
+import { DrawerActions, useNavigation } from '@react-navigation/native';
 import { Play } from 'lucide-react-native';
 import { api } from '@/lib/api';
 import { useMediaServer } from '@/providers/MediaServerProvider';
@@ -47,6 +55,7 @@ function getDateRange(period: TimePeriod): { startDate: Date; endDate: Date } {
 
 export default function HistoryScreen() {
   const router = useRouter();
+  const navigation = useNavigation();
   const { selectedServerId } = useMediaServer();
   const filterSheetRef = useRef<FilterBottomSheetRef>(null);
 
@@ -166,75 +175,96 @@ export default function HistoryScreen() {
   const keyExtractor = useCallback((item: SessionWithDetails) => item.id, []);
 
   return (
-    <View style={styles.container}>
-      <FlatList
-        data={sessions}
-        keyExtractor={keyExtractor}
-        renderItem={renderItem}
-        ItemSeparatorComponent={HistoryRowSeparator}
-        contentContainerStyle={styles.listContent}
-        contentInsetAdjustmentBehavior="automatic"
-        onEndReached={handleEndReached}
-        onEndReachedThreshold={0.5}
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefetching}
-            onRefresh={refetch}
-            tintColor={colors.cyan.core}
-          />
-        }
-        ListHeaderComponent={
-          <View style={styles.header}>
-            {/* Filters */}
-            <HistoryFilters
-              period={period}
-              onPeriodChange={setPeriod}
-              search={search}
-              onSearchChange={setSearch}
-              activeFilterCount={activeFilterCount}
-              onFilterPress={handleFilterPress}
+    <>
+      <View style={styles.container}>
+        <FlatList
+          data={sessions}
+          keyExtractor={keyExtractor}
+          renderItem={renderItem}
+          ItemSeparatorComponent={HistoryRowSeparator}
+          contentContainerStyle={styles.listContent}
+          contentInsetAdjustmentBehavior="automatic"
+          onEndReached={handleEndReached}
+          onEndReachedThreshold={0.5}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefetching}
+              onRefresh={refetch}
+              tintColor={colors.cyan.core}
             />
+          }
+          ListHeaderComponent={
+            <View style={styles.header}>
+              {/* Filters */}
+              <HistoryFilters
+                period={period}
+                onPeriodChange={setPeriod}
+                search={search}
+                onSearchChange={setSearch}
+                activeFilterCount={activeFilterCount}
+                onFilterPress={handleFilterPress}
+              />
 
-            {/* Aggregates */}
-            <HistoryAggregates aggregates={aggregates} isLoading={isLoadingAggregates} />
-          </View>
-        }
-        ListFooterComponent={
-          isFetchingNextPage ? (
-            <View style={styles.footer}>
-              <ActivityIndicator size="small" color={colors.cyan.core} />
+              {/* Aggregates */}
+              <HistoryAggregates aggregates={aggregates} isLoading={isLoadingAggregates} />
             </View>
-          ) : null
-        }
-        ListEmptyComponent={
-          isLoading ? (
-            <View style={styles.empty}>
-              <ActivityIndicator size="large" color={colors.cyan.core} />
-            </View>
-          ) : (
-            <View style={styles.empty}>
-              <View style={styles.emptyIcon}>
-                <Play size={32} color={colors.text.muted.dark} />
+          }
+          ListFooterComponent={
+            isFetchingNextPage ? (
+              <View style={styles.footer}>
+                <ActivityIndicator size="small" color={colors.cyan.core} />
               </View>
-              <Text style={styles.emptyTitle}>No History Found</Text>
-              <Text style={styles.emptySubtitle}>
-                {search || activeFilterCount > 0
-                  ? 'Try adjusting your filters'
-                  : 'Session history will appear here once users start streaming'}
-              </Text>
-            </View>
-          )
-        }
-      />
+            ) : null
+          }
+          ListEmptyComponent={
+            isLoading ? (
+              <View style={styles.empty}>
+                <ActivityIndicator size="large" color={colors.cyan.core} />
+              </View>
+            ) : (
+              <View style={styles.empty}>
+                <View style={styles.emptyIcon}>
+                  <Play size={32} color={colors.text.muted.dark} />
+                </View>
+                <Text style={styles.emptyTitle}>No History Found</Text>
+                <Text style={styles.emptySubtitle}>
+                  {search || activeFilterCount > 0
+                    ? 'Try adjusting your filters'
+                    : 'Session history will appear here once users start streaming'}
+                </Text>
+              </View>
+            )
+          }
+        />
 
-      {/* Filter Bottom Sheet */}
-      <FilterBottomSheet
-        ref={filterSheetRef}
-        filterOptions={filterOptions}
-        filters={advancedFilters}
-        onFiltersChange={setAdvancedFilters}
-      />
-    </View>
+        {/* Filter Bottom Sheet */}
+        <FilterBottomSheet
+          ref={filterSheetRef}
+          filterOptions={filterOptions}
+          filters={advancedFilters}
+          onFiltersChange={setAdvancedFilters}
+        />
+      </View>
+
+      {/* iOS Native Toolbar */}
+      {Platform.OS === 'ios' && (
+        <>
+          <Stack.Toolbar placement="left">
+            <Stack.Toolbar.Button
+              icon="line.3.horizontal"
+              onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
+            />
+          </Stack.Toolbar>
+          <Stack.Toolbar placement="right">
+            <Stack.Toolbar.Menu icon="ellipsis">
+              <Stack.Toolbar.MenuAction icon="arrow.clockwise" onPress={() => refetch()}>
+                Refresh
+              </Stack.Toolbar.MenuAction>
+            </Stack.Toolbar.Menu>
+          </Stack.Toolbar>
+        </>
+      )}
+    </>
   );
 }
 
