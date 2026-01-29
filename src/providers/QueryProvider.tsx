@@ -8,11 +8,22 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 1000 * 60, // 1 minute
-      retry: 2,
+      retry: (failureCount, error) => {
+        // Don't retry on auth errors - the API interceptor handles these
+        if (error instanceof Error && error.message === 'Session expired') {
+          return false;
+        }
+        return failureCount < 2;
+      },
       refetchOnWindowFocus: true,
     },
     mutations: {
-      retry: 1,
+      retry: (failureCount, error) => {
+        if (error instanceof Error && error.message === 'Session expired') {
+          return false;
+        }
+        return failureCount < 1;
+      },
     },
   },
 });

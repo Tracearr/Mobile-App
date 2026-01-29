@@ -5,10 +5,10 @@ export default function HistoryStack() {
   return (
     <Stack
       screenOptions={{
-        headerStyle: { backgroundColor: colors.background.dark },
         headerTintColor: colors.text.primary.dark,
         headerTitleStyle: { fontWeight: '600' },
         headerShadowVisible: false,
+        headerStyle: { backgroundColor: colors.background.dark },
         contentStyle: { backgroundColor: colors.background.dark },
       }}
     >
@@ -16,7 +16,6 @@ export default function HistoryStack() {
         name="index"
         options={{
           title: 'History',
-          headerLargeTitle: true,
         }}
       />
     </Stack>

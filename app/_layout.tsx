@@ -4,6 +4,11 @@
 import { Buffer } from 'buffer';
 global.Buffer = Buffer;
 
+// Force dark mode immediately at app startup to prevent NativeTabs/header flash
+// Must be before any navigation imports. See: https://github.com/expo/expo/issues/40389
+import { Appearance } from 'react-native';
+Appearance.setColorScheme('dark');
+
 import '../global.css';
 import { useEffect, useState, useRef } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';

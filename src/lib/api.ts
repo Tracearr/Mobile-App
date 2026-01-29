@@ -132,9 +132,15 @@ export function createApiClient(baseURL: string, serverId: string): AxiosInstanc
         } catch {
           // Refresh failed - token is invalid, mark as unauthenticated
           apiClients.delete(serverId);
+
+          // Get server info from storage for the unauthenticated screen
+          const activeServer = await storage.getActiveServer();
+          const serverUrl = activeServer?.url ?? '';
+          const serverName = activeServer?.name ?? null;
+
           const { setUnauthenticated } = useConnectionStore.getState();
-          const serverUrlBase = client.defaults.baseURL?.replace('/api/v1', '') ?? '';
-          setUnauthenticated(serverUrlBase, null);
+          setUnauthenticated(serverUrl, serverName);
+
           throw new Error('Session expired');
         }
       }

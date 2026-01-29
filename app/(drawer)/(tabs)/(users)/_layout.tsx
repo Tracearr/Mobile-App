@@ -5,10 +5,10 @@ export default function UsersStack() {
   return (
     <Stack
       screenOptions={{
-        headerStyle: { backgroundColor: colors.background.dark },
         headerTintColor: colors.text.primary.dark,
         headerTitleStyle: { fontWeight: '600' },
         headerShadowVisible: false,
+        headerStyle: { backgroundColor: colors.background.dark },
         contentStyle: { backgroundColor: colors.background.dark },
       }}
     >
@@ -16,7 +16,6 @@ export default function UsersStack() {
         name="index"
         options={{
           title: 'Users',
-          headerLargeTitle: true,
         }}
       />
     </Stack>

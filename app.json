@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "tracearr",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "dark",
     "splash": {
       "image": "./assets/splash-icon-transparent.png",
       "resizeMode": "contain",
