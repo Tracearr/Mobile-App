@@ -43,7 +43,7 @@ import {
 import { api, getServerUrl } from '@/lib/api';
 import { useMediaServer } from '@/providers/MediaServerProvider';
 import { useTheme } from '@/providers/ThemeProvider';
-import { useConnectionStore } from '@/stores/connectionStore';
+import { useAuthStateStore } from '@/lib/authStateStore';
 import { colors, spacing, borderRadius, withAlpha } from '@/lib/theme';
 import { Text } from '@/components/ui/text';
 import { Badge } from '@/components/ui/badge';
@@ -234,7 +234,7 @@ export default function SessionDetailScreen() {
   const queryClient = useQueryClient();
   const { selectedServerId } = useMediaServer();
   const { accentColor } = useTheme();
-  const { state: connectionState } = useConnectionStore();
+  const connectionState = useAuthStateStore((s) => s.connectionState);
   const isOffline = connectionState !== 'connected';
   const [serverUrl, setServerUrl] = useState<string | null>(null);
 

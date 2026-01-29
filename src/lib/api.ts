@@ -7,7 +7,7 @@ import axios from 'axios';
 import type { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { Platform } from 'react-native';
 import { storage } from './storage';
-import { useConnectionStore } from '../stores/connectionStore';
+import { useAuthStateStore } from './authStateStore';
 import type {
   ActiveSession,
   DashboardStats,
@@ -96,8 +96,9 @@ export function createApiClient(baseURL: string, serverId: string): AxiosInstanc
   client.interceptors.response.use(
     (response) => {
       // If we were disconnected and now succeeded, mark as connected
-      const { state, setConnected } = useConnectionStore.getState();
-      if (state === 'disconnected') {
+      // But don't overwrite 'unauthenticated' state - that requires re-authentication
+      const { connectionState, setConnected } = useAuthStateStore.getState();
+      if (connectionState === 'disconnected') {
         setConnected();
       }
       return response;
@@ -110,6 +111,9 @@ export function createApiClient(baseURL: string, serverId: string): AxiosInstanc
         originalRequest._retry = true;
 
         try {
+          // Mark token as refreshing
+          useAuthStateStore.getState().setTokenRefreshing();
+
           const credentials = await storage.getServerCredentials(serverId);
           if (!credentials?.refreshToken) {
             throw new Error('No refresh token');
@@ -126,31 +130,31 @@ export function createApiClient(baseURL: string, serverId: string): AxiosInstanc
             response.data.refreshToken
           );
 
+          // Mark token as valid
+          useAuthStateStore.getState().setTokenValid();
+
           // Retry original request with new token
           originalRequest.headers.Authorization = `Bearer ${response.data.accessToken}`;
           return await client(originalRequest);
         } catch {
-          // Refresh failed - token is invalid, mark as unauthenticated
+          // Refresh failed - token is invalid, use unified auth failure handler
           apiClients.delete(serverId);
-
-          // Get server info from storage for the unauthenticated screen
-          const activeServer = await storage.getActiveServer();
-          const serverUrl = activeServer?.url ?? '';
-          const serverName = activeServer?.name ?? null;
-
-          const { setUnauthenticated } = useConnectionStore.getState();
-          setUnauthenticated(serverUrl, serverName);
-
+          useAuthStateStore.getState().handleAuthFailure();
           throw new Error('Session expired');
         }
       }
 
       // Network error = server unreachable
+      // But don't overwrite 'unauthenticated' state - that takes priority
       if (error.code === 'ERR_NETWORK' || error.code === 'ECONNABORTED') {
-        const { setDisconnected } = useConnectionStore.getState();
-        setDisconnected(
-          error.code === 'ECONNABORTED' ? 'Connection timed out' : 'Server unreachable'
-        );
+        const currentState = useAuthStateStore.getState().connectionState;
+        if (currentState !== 'unauthenticated') {
+          useAuthStateStore
+            .getState()
+            .setDisconnected(
+              error.code === 'ECONNABORTED' ? 'Connection timed out' : 'Server unreachable'
+            );
+        }
       }
 
       return Promise.reject(error);

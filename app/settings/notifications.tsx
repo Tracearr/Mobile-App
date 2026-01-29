@@ -24,7 +24,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { api } from '@/lib/api';
-import { useAuthStore } from '@/lib/authStore';
+import { useAuthStateStore } from '@/lib/authStateStore';
 import { useTheme } from '@/providers/ThemeProvider';
 import { colors } from '@/lib/theme';
 import type { NotificationPreferences } from '@tracearr/shared';
@@ -256,7 +256,7 @@ function RateLimitStatus({
 
 export default function NotificationSettingsScreen() {
   const queryClient = useQueryClient();
-  const { activeServerId } = useAuthStore();
+  const activeServerId = useAuthStateStore((s) => s.activeServerId);
   const { accentColor } = useTheme();
 
   // Fetch current preferences (per-device, not per-server)

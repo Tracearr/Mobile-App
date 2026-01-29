@@ -4,7 +4,6 @@
  */
 import React from 'react';
 import { View, Pressable, Image, StyleSheet } from 'react-native';
-import { format, isToday, isYesterday } from 'date-fns';
 import {
   Film,
   Tv,
@@ -16,26 +15,15 @@ import {
   ChevronRight,
 } from 'lucide-react-native';
 import { Text } from '@/components/ui/text';
-import { useAuthStore } from '@/lib/authStore';
+import { useImageUrl } from '@/hooks/useImageUrl';
 import { useTheme } from '@/providers/ThemeProvider';
 import { colors, spacing, borderRadius } from '@/lib/theme';
+import { formatDuration, formatListTimestamp } from '@/lib/formatters';
 import type { SessionWithDetails, MediaType } from '@tracearr/shared';
 
 interface HistoryRowProps {
   session: SessionWithDetails;
   onPress: () => void;
-}
-
-// Format duration from milliseconds to compact string
-function formatDuration(ms: number | null): string {
-  if (!ms) return '-';
-  const totalSeconds = Math.floor(ms / 1000);
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-
-  if (hours > 0) return `${hours}h ${minutes}m`;
-  if (minutes > 0) return `${minutes}m`;
-  return '<1m';
 }
 
 // Calculate progress percentage (playback position)
@@ -143,35 +131,25 @@ const POSTER_WIDTH = 40;
 const POSTER_HEIGHT = 60;
 
 export function HistoryRow({ session, onPress }: HistoryRowProps) {
-  const { serverUrl } = useAuthStore();
+  const getImageUrl = useImageUrl();
   const displayName = session.user?.identityName ?? session.user?.username ?? 'Unknown';
   const title = getContentTitle(session);
   const progress = getProgress(session);
 
   // Format date - show "Today 2:30 PM", "Yesterday 9:15 AM", or "Jan 12, 2:30 PM"
-  const startedAt = session.startedAt ? new Date(session.startedAt) : null;
-  const isValidDate = startedAt && !isNaN(startedAt.getTime());
-  let dateTimeStr = '-';
-  if (isValidDate) {
-    const timeStr = format(startedAt, 'h:mm a');
-    if (isToday(startedAt)) {
-      dateTimeStr = `Today ${timeStr}`;
-    } else if (isYesterday(startedAt)) {
-      dateTimeStr = `Yesterday ${timeStr}`;
-    } else {
-      dateTimeStr = format(startedAt, 'MMM d, h:mm a');
-    }
-  }
+  const dateTimeStr = formatListTimestamp(session.startedAt);
   const duration = formatDuration(session.durationMs);
 
   // Platform info
   const platform = session.platform || session.product;
 
   // Build poster URL using image proxy
-  const posterUrl =
-    serverUrl && session.thumbPath
-      ? `${serverUrl}/api/v1/images/proxy?server=${session.serverId}&url=${encodeURIComponent(session.thumbPath)}&width=${POSTER_WIDTH * 2}&height=${POSTER_HEIGHT * 2}`
-      : null;
+  const posterUrl = getImageUrl({
+    serverId: session.serverId,
+    path: session.thumbPath,
+    width: POSTER_WIDTH * 2,
+    height: POSTER_HEIGHT * 2,
+  });
 
   return (
     <Pressable onPress={onPress} style={styles.container}>

@@ -24,22 +24,25 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { OfflineBanner } from '@/components/OfflineBanner';
 import { UnauthenticatedScreen } from '@/components/UnauthenticatedScreen';
 import { Toast } from '@/components/Toast';
-import { useAuthStore } from '@/lib/authStore';
-import { useConnectionStore } from '@/stores/connectionStore';
+import { useAuthStateStore } from '@/lib/authStateStore';
 import { useConnectionValidator } from '@/hooks/useConnectionValidator';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { colors } from '@/lib/theme';
 
 function RootLayoutNav() {
-  const {
-    isAuthenticated,
-    isLoading,
-    initialize,
-    storageAvailable,
-    retryStorageAccess,
-    resetStorageState,
-  } = useAuthStore();
-  const { state: connectionState } = useConnectionStore();
+  // Use consolidated auth state store
+  const servers = useAuthStateStore((s) => s.servers);
+  const activeServer = useAuthStateStore((s) => s.activeServer);
+  const isInitializing = useAuthStateStore((s) => s.isInitializing);
+  const storageAvailable = useAuthStateStore((s) => s.storageAvailable);
+  const connectionState = useAuthStateStore((s) => s.connectionState);
+  const initialize = useAuthStateStore((s) => s.initialize);
+  const retryStorageAccess = useAuthStateStore((s) => s.retryStorageAccess);
+  const resetStorageState = useAuthStateStore((s) => s.resetStorageState);
+
+  // Derived auth state
+  const isAuthenticated = servers.length > 0 && activeServer !== null;
+
   const { validate } = useConnectionValidator();
   const segments = useSegments();
   const router = useRouter();
@@ -62,17 +65,27 @@ function RootLayoutNav() {
   }, [initialize]);
 
   // Handle navigation based on auth state
+  // Don't redirect if unauthenticated - we show UnauthenticatedScreen instead
   useEffect(() => {
-    if (isLoading || !hasInitialized || !storageAvailable) return;
+    if (isInitializing || !hasInitialized || !storageAvailable) return;
+    if (connectionState === 'unauthenticated') return;
 
     const inAuthGroup = segments[0] === '(auth)';
 
     if (!isAuthenticated && !inAuthGroup) {
       router.replace('/(auth)/pair');
     }
-  }, [isAuthenticated, isLoading, hasInitialized, storageAvailable, segments, router]);
+  }, [
+    isAuthenticated,
+    isInitializing,
+    hasInitialized,
+    storageAvailable,
+    segments,
+    router,
+    connectionState,
+  ]);
 
-  if (isLoading) {
+  if (isInitializing) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={colors.cyan.core} />

@@ -13,32 +13,17 @@ import { View, Image, Pressable, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Text } from '@/components/ui/text';
 import { UserAvatar } from '@/components/ui/user-avatar';
-import { useAuthStore } from '@/lib/authStore';
+import { useImageUrl } from '@/hooks/useImageUrl';
 import { useEstimatedProgress } from '@/hooks/useEstimatedProgress';
 import { useResponsive } from '@/hooks/useResponsive';
 import { useTheme } from '@/providers/ThemeProvider';
 import { colors, spacing, borderRadius, typography } from '@/lib/theme';
+import { formatDuration } from '@/lib/formatters';
 import type { ActiveSession } from '@tracearr/shared';
 
 interface NowPlayingCardProps {
   session: ActiveSession;
   onPress?: (session: ActiveSession) => void;
-}
-
-/**
- * Format duration in ms to readable string (HH:MM:SS or MM:SS)
- */
-function formatDuration(ms: number | null): string {
-  if (!ms) return '--:--';
-  const seconds = Math.floor(ms / 1000);
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  const secs = seconds % 60;
-
-  if (hours > 0) {
-    return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  }
-  return `${minutes}:${secs.toString().padStart(2, '0')}`;
 }
 
 /**
@@ -165,7 +150,7 @@ function getLocationString(session: ActiveSession): string | null {
 }
 
 export function NowPlayingCard({ session, onPress }: NowPlayingCardProps) {
-  const { serverUrl } = useAuthStore();
+  const getImageUrl = useImageUrl();
   const { accentColor } = useTheme();
   const { isTablet, select } = useResponsive();
   const { title, subtitle } = getMediaDisplay(session);
@@ -179,10 +164,12 @@ export function NowPlayingCard({ session, onPress }: NowPlayingCardProps) {
   const avatarSize = select({ base: 16, md: 20 });
 
   // Build poster URL using image proxy (request larger size for tablets)
-  const posterUrl =
-    serverUrl && session.thumbPath
-      ? `${serverUrl}/api/v1/images/proxy?server=${session.serverId}&url=${encodeURIComponent(session.thumbPath)}&width=${posterWidth * 2}&height=${posterHeight * 2}`
-      : null;
+  const posterUrl = getImageUrl({
+    serverId: session.serverId,
+    path: session.thumbPath,
+    width: posterWidth * 2,
+    height: posterHeight * 2,
+  });
 
   const isPaused = session.state === 'paused';
   const username = session.user?.username ?? 'Unknown';
@@ -283,7 +270,7 @@ export function NowPlayingCard({ session, onPress }: NowPlayingCardProps) {
               <Text style={[styles.timeText, isPaused && styles.pausedText]}>
                 {isPaused
                   ? 'Paused'
-                  : `${formatDuration(estimatedProgressMs)} / ${formatDuration(session.totalDurationMs)}`}
+                  : `${formatDuration(estimatedProgressMs, { style: 'clock' })} / ${formatDuration(session.totalDurationMs, { style: 'clock' })}`}
               </Text>
             </View>
           </View>

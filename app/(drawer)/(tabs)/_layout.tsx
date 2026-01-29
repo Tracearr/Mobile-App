@@ -3,32 +3,62 @@
  * Uses Native Tabs for platform-native experience
  * 4 tabs: Dashboard, Activity, Users, History
  */
+import { Platform } from 'react-native';
 import { NativeTabs } from 'expo-router/unstable-native-tabs';
+import { VectorIcon } from 'expo-router';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useTheme } from '@/providers/ThemeProvider';
 
 export default function TabLayout() {
   const { accentColor } = useTheme();
 
+  // On iOS, use SF Symbols. On Android, use Material Community Icons via VectorIcon.
+  const isIOS = Platform.OS === 'ios';
+
   return (
     <NativeTabs tintColor={accentColor} minimizeBehavior="onScrollDown">
       <NativeTabs.Trigger name="(dashboard)">
-        <NativeTabs.Trigger.Icon
-          sf={{ default: 'rectangle.3.group', selected: 'rectangle.3.group.fill' }}
-        />
+        {isIOS ? (
+          <NativeTabs.Trigger.Icon
+            sf={{ default: 'rectangle.3.group', selected: 'rectangle.3.group.fill' }}
+          />
+        ) : (
+          <NativeTabs.Trigger.Icon
+            src={<VectorIcon family={MaterialCommunityIcons} name="view-dashboard" />}
+          />
+        )}
         <NativeTabs.Trigger.Label>Dashboard</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="(activity)">
-        <NativeTabs.Trigger.Icon
-          sf={{ default: 'waveform.path.ecg', selected: 'waveform.path.ecg' }}
-        />
+        {isIOS ? (
+          <NativeTabs.Trigger.Icon
+            sf={{ default: 'waveform.path.ecg', selected: 'waveform.path.ecg' }}
+          />
+        ) : (
+          <NativeTabs.Trigger.Icon
+            src={<VectorIcon family={MaterialCommunityIcons} name="pulse" />}
+          />
+        )}
         <NativeTabs.Trigger.Label>Activity</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="(users)">
-        <NativeTabs.Trigger.Icon sf={{ default: 'person.2', selected: 'person.2.fill' }} />
+        {isIOS ? (
+          <NativeTabs.Trigger.Icon sf={{ default: 'person.2', selected: 'person.2.fill' }} />
+        ) : (
+          <NativeTabs.Trigger.Icon
+            src={<VectorIcon family={MaterialCommunityIcons} name="account-group" />}
+          />
+        )}
         <NativeTabs.Trigger.Label>Users</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="(history)">
-        <NativeTabs.Trigger.Icon sf={{ default: 'clock', selected: 'clock.fill' }} />
+        {isIOS ? (
+          <NativeTabs.Trigger.Icon sf={{ default: 'clock', selected: 'clock.fill' }} />
+        ) : (
+          <NativeTabs.Trigger.Icon
+            src={<VectorIcon family={MaterialCommunityIcons} name="history" />}
+          />
+        )}
         <NativeTabs.Trigger.Label>History</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
     </NativeTabs>

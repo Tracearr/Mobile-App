@@ -16,7 +16,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import * as SecureStore from 'expo-secure-store';
 import type { Server } from '@tracearr/shared';
 import { api } from '../lib/api';
-import { useAuthStore } from '../lib/authStore';
+import { useAuthStateStore } from '../lib/authStateStore';
 
 const SELECTED_SERVER_KEY = 'tracearr_selected_media_server';
 
@@ -32,7 +32,13 @@ interface MediaServerContextValue {
 const MediaServerContext = createContext<MediaServerContextValue | null>(null);
 
 export function MediaServerProvider({ children }: { children: ReactNode }) {
-  const { isAuthenticated, activeServerId: tracearrBackendId } = useAuthStore();
+  // Use consolidated auth state store for auth status (not media servers)
+  const tracearrServers = useAuthStateStore((s) => s.servers);
+  const activeTracearrServer = useAuthStateStore((s) => s.activeServer);
+  const tracearrBackendId = useAuthStateStore((s) => s.activeServerId);
+
+  // Derived state - are we authenticated to Tracearr backend?
+  const isAuthenticated = tracearrServers.length > 0 && activeTracearrServer !== null;
   const queryClient = useQueryClient();
   const [selectedServerId, setSelectedServerId] = useState<string | null>(null);
   const [initialized, setInitialized] = useState(false);
@@ -47,9 +53,9 @@ export function MediaServerProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  // Fetch available servers from API
+  // Fetch available MEDIA servers (Plex/Jellyfin) from API
   const {
-    data: servers = [],
+    data: mediaServers = [],
     isLoading,
     refetch,
   } = useQuery({
@@ -59,11 +65,11 @@ export function MediaServerProvider({ children }: { children: ReactNode }) {
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
-  // Validate selection when servers load
+  // Validate selection when media servers load
   useEffect(() => {
     if (!initialized || isLoading) return;
 
-    if (servers.length === 0) {
+    if (mediaServers.length === 0) {
       if (selectedServerId) {
         setSelectedServerId(null);
         void SecureStore.deleteItemAsync(SELECTED_SERVER_KEY);
@@ -72,8 +78,8 @@ export function MediaServerProvider({ children }: { children: ReactNode }) {
     }
 
     // If selection is invalid (server no longer exists), select first
-    if (selectedServerId && !servers.some((s) => s.id === selectedServerId)) {
-      const firstServer = servers[0];
+    if (selectedServerId && !mediaServers.some((s) => s.id === selectedServerId)) {
+      const firstServer = mediaServers[0];
       if (firstServer) {
         setSelectedServerId(firstServer.id);
         void SecureStore.setItemAsync(SELECTED_SERVER_KEY, firstServer.id);
@@ -81,14 +87,14 @@ export function MediaServerProvider({ children }: { children: ReactNode }) {
     }
 
     // If no selection but servers exist, select first
-    if (!selectedServerId && servers.length > 0) {
-      const firstServer = servers[0];
+    if (!selectedServerId && mediaServers.length > 0) {
+      const firstServer = mediaServers[0];
       if (firstServer) {
         setSelectedServerId(firstServer.id);
         void SecureStore.setItemAsync(SELECTED_SERVER_KEY, firstServer.id);
       }
     }
-  }, [servers, selectedServerId, initialized, isLoading]);
+  }, [mediaServers, selectedServerId, initialized, isLoading]);
 
   // Clear selection on logout
   useEffect(() => {
@@ -119,19 +125,19 @@ export function MediaServerProvider({ children }: { children: ReactNode }) {
 
   const selectedServer = useMemo(() => {
     if (!selectedServerId) return null;
-    return servers.find((s) => s.id === selectedServerId) ?? null;
-  }, [servers, selectedServerId]);
+    return mediaServers.find((s) => s.id === selectedServerId) ?? null;
+  }, [mediaServers, selectedServerId]);
 
   const value = useMemo<MediaServerContextValue>(
     () => ({
-      servers,
+      servers: mediaServers,
       selectedServer,
       selectedServerId,
       isLoading,
       selectServer,
       refetch,
     }),
-    [servers, selectedServer, selectedServerId, isLoading, selectServer, refetch]
+    [mediaServers, selectedServer, selectedServerId, isLoading, selectServer, refetch]
   );
 
   return <MediaServerContext.Provider value={value}>{children}</MediaServerContext.Provider>;

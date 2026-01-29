@@ -18,7 +18,7 @@ import {
 import Constants from 'expo-constants';
 import { Text } from '@/components/ui/text';
 import { AccentColorPicker } from '@/components/settings/AccentColorPicker';
-import { useAuthStore } from '@/lib/authStore';
+import { useAuthStateStore } from '@/lib/authStateStore';
 import { colors, spacing, borderRadius } from '@/lib/theme';
 
 const DISCORD_URL = 'https://discord.gg/a7n3sFd2Yw';
@@ -66,7 +66,8 @@ function SettingsRow({
 
 export default function SettingsScreen() {
   const router = useRouter();
-  const { removeActiveServer, activeServer } = useAuthStore();
+  const activeServer = useAuthStateStore((s) => s.activeServer);
+  const removeServer = useAuthStateStore((s) => s.removeServer);
   const appVersion = Constants.expoConfig?.version || '1.0.0';
   const buildNumber = (Constants.expoConfig?.extra?.buildNumber as string | undefined) ?? 'dev';
 
@@ -83,7 +84,9 @@ export default function SettingsScreen() {
           style: 'destructive',
           onPress: () => {
             void (async () => {
-              await removeActiveServer();
+              if (activeServer) {
+                await removeServer(activeServer.id);
+              }
               router.replace('/(auth)/pair');
             })();
           },

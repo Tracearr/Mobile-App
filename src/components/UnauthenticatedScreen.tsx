@@ -8,20 +8,26 @@ import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Unlink } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
-import { useConnectionStore } from '../stores/connectionStore';
+import { useAuthStateStore } from '../lib/authStateStore';
 import { useTheme } from '../providers/ThemeProvider';
 import { colors, spacing, borderRadius, typography } from '../lib/theme';
 
 export function UnauthenticatedScreen() {
   const router = useRouter();
   const { accentColor } = useTheme();
-  const { cachedServerUrl, cachedServerName } = useConnectionStore();
+  const cachedServerUrl = useAuthStateStore((s) => s.cachedServerUrl);
+  const cachedServerName = useAuthStateStore((s) => s.cachedServerName);
+  const logout = useAuthStateStore((s) => s.logout);
 
-  const handleScanQR = () => {
+  const handleScanQR = async () => {
+    // Remove the revoked server and reset state before navigating
+    await logout();
     router.replace('/(auth)/pair');
   };
 
-  const handleManualEntry = () => {
+  const handleManualEntry = async () => {
+    // Remove the revoked server and reset state before navigating
+    await logout();
     router.replace({
       pathname: '/(auth)/pair',
       params: { prefillUrl: cachedServerUrl ?? '' },
@@ -45,12 +51,12 @@ export function UnauthenticatedScreen() {
 
         <Pressable
           style={[styles.primaryButton, { backgroundColor: accentColor }]}
-          onPress={handleScanQR}
+          onPress={() => void handleScanQR()}
         >
           <Text style={styles.primaryButtonText}>Scan QR Code</Text>
         </Pressable>
 
-        <Pressable style={styles.secondaryButton} onPress={handleManualEntry}>
+        <Pressable style={styles.secondaryButton} onPress={() => void handleManualEntry()}>
           <Text style={styles.secondaryButtonText}>Enter Manually</Text>
         </Pressable>
       </View>

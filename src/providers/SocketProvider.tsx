@@ -9,7 +9,7 @@ import { AppState } from 'react-native';
 import type { AppStateStatus } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
 import { storage } from '../lib/storage';
-import { useAuthStore } from '../lib/authStore';
+import { useAuthStateStore } from '../lib/authStateStore';
 import type {
   ServerToClientEvents,
   ClientToServerEvents,
@@ -37,7 +37,13 @@ export function useSocket() {
 }
 
 export function SocketProvider({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, activeServerId, serverUrl } = useAuthStore();
+  // Use the consolidated auth state store
+  const isAuthenticated = useAuthStateStore((s) => s.servers.length > 0 && s.activeServer !== null);
+  const activeServerId = useAuthStateStore((s) => s.activeServerId);
+  const serverUrl = useAuthStateStore((s) => s.activeServer?.url ?? null);
+  const connectionState = useAuthStateStore((s) => s.connectionState);
+  const isInitializing = useAuthStateStore((s) => s.isInitializing);
+
   const queryClient = useQueryClient();
   const socketRef = useRef<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null);
   const [socket, setSocket] = useState<Socket<ServerToClientEvents, ClientToServerEvents> | null>(
@@ -48,7 +54,24 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
   const connectedServerIdRef = useRef<string | null>(null);
 
   const connectSocket = useCallback(async () => {
-    if (!isAuthenticated || !serverUrl || !activeServerId) return;
+    // Don't try to connect during initialization or if not authenticated
+    console.log('[Socket] connectSocket called:', {
+      isInitializing,
+      isAuthenticated,
+      serverUrl,
+      activeServerId,
+      connectionState,
+    });
+    if (isInitializing || !isAuthenticated || !serverUrl || !activeServerId) {
+      console.log('[Socket] Skipping connection - not ready');
+      return;
+    }
+
+    // Don't connect if already unauthenticated
+    if (connectionState === 'unauthenticated') {
+      console.log('[Socket] Skipping connection - unauthenticated');
+      return;
+    }
 
     // If already connected to this backend, skip
     if (connectedServerIdRef.current === activeServerId && socketRef.current?.connected) {
@@ -91,6 +114,18 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     newSocket.on('connect_error', (error) => {
       console.error('Socket connection error:', error.message);
       setIsConnected(false);
+
+      // Check if this is an authentication failure
+      if (error.message === 'Authentication failed' || error.message === 'Invalid token') {
+        // Stop reconnection attempts immediately
+        newSocket.disconnect();
+        socketRef.current = null;
+        setSocket(null);
+        connectedServerIdRef.current = null;
+
+        // Use unified auth failure handler (synchronous, prevents duplicate handling)
+        useAuthStateStore.getState().handleAuthFailure();
+      }
     });
 
     // Handle real-time events
@@ -122,10 +157,35 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
 
     socketRef.current = newSocket;
     setSocket(newSocket);
-  }, [isAuthenticated, serverUrl, activeServerId, queryClient]);
+  }, [isInitializing, isAuthenticated, serverUrl, activeServerId, queryClient, connectionState]);
 
-  // Connect/disconnect based on auth state
+  // Connect/disconnect based on auth state and connection state
   useEffect(() => {
+    console.log('[Socket] Effect triggered:', {
+      isInitializing,
+      isAuthenticated,
+      serverUrl,
+      activeServerId,
+      connectionState,
+    });
+
+    // Don't try to connect during initialization
+    if (isInitializing) {
+      console.log('[Socket] Still initializing, skipping');
+      return;
+    }
+
+    // Don't try to connect if we're in unauthenticated state (token was revoked)
+    if (connectionState === 'unauthenticated') {
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+        socketRef.current = null;
+        setSocket(null);
+        connectedServerIdRef.current = null;
+      }
+      return;
+    }
+
     if (isAuthenticated && serverUrl && activeServerId) {
       void connectSocket();
     } else if (socketRef.current) {
@@ -143,12 +203,18 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
         connectedServerIdRef.current = null;
       }
     };
-  }, [isAuthenticated, serverUrl, activeServerId, connectSocket]);
+  }, [isInitializing, isAuthenticated, serverUrl, activeServerId, connectSocket, connectionState]);
 
   // Handle app state changes (background/foreground)
   useEffect(() => {
     const handleAppStateChange = (nextState: AppStateStatus) => {
-      if (nextState === 'active' && isAuthenticated && !isConnected) {
+      const currentConnectionState = useAuthStateStore.getState().connectionState;
+      if (
+        nextState === 'active' &&
+        isAuthenticated &&
+        !isConnected &&
+        currentConnectionState !== 'unauthenticated'
+      ) {
         // Reconnect when app comes to foreground
         void connectSocket();
       }

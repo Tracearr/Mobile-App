@@ -18,7 +18,7 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { ChevronLeft } from 'lucide-react-native';
-import { useAuthStore } from '@/lib/authStore';
+import { useAuthStateStore } from '@/lib/authStateStore';
 import { isInternalUrl } from '@/lib/utils';
 import { colors, spacing, borderRadius, typography } from '@/lib/theme';
 
@@ -37,7 +37,17 @@ export default function PairScreen() {
   const [scanned, setScanned] = useState(false);
   const scanLockRef = useRef(false); // Synchronous lock to prevent race conditions
 
-  const { addServer, isAuthenticated, servers, isLoading, error, clearError } = useAuthStore();
+  // Use consolidated auth state store
+  const servers = useAuthStateStore((s) => s.servers);
+  const activeServer = useAuthStateStore((s) => s.activeServer);
+  const isInitializing = useAuthStateStore((s) => s.isInitializing);
+  const error = useAuthStateStore((s) => s.error);
+  const addServer = useAuthStateStore((s) => s.addServer);
+  const clearError = useAuthStateStore((s) => s.clearError);
+
+  // Derived state
+  const isAuthenticated = servers.length > 0 && activeServer !== null;
+  const isLoading = isInitializing;
 
   // Check if this is adding an additional server vs first-time pairing
   const isAddingServer = isAuthenticated && servers.length > 0;
@@ -302,15 +312,16 @@ export default function PairScreen() {
 
       <View style={styles.cameraContainer}>
         {permission?.granted ? (
-          <CameraView
-            style={styles.camera}
-            barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
-            onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
-          >
+          <View style={styles.camera}>
+            <CameraView
+              style={StyleSheet.absoluteFill}
+              barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
+              onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
+            />
             <View style={styles.overlay}>
               <View style={styles.scanFrame} />
             </View>
-          </CameraView>
+          </View>
         ) : (
           <View style={styles.permissionContainer}>
             <Text style={styles.permissionText}>
@@ -387,7 +398,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   overlay: {
-    flex: 1,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'rgba(0,0,0,0.3)',

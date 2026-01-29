@@ -6,7 +6,7 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Text, Pressable, StyleSheet, Animated } from 'react-native';
 import { WifiOff } from 'lucide-react-native';
-import { useConnectionStore } from '../stores/connectionStore';
+import { useAuthStateStore } from '../lib/authStateStore';
 import { colors, spacing, borderRadius, typography, withAlpha } from '../lib/theme';
 
 interface OfflineBannerProps {
@@ -14,11 +14,11 @@ interface OfflineBannerProps {
 }
 
 export function OfflineBanner({ onRetry }: OfflineBannerProps) {
-  const { state } = useConnectionStore();
+  const connectionState = useAuthStateStore((s) => s.connectionState);
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    if (state === 'disconnected') {
+    if (connectionState === 'disconnected') {
       const pulse = Animated.loop(
         Animated.sequence([
           Animated.timing(pulseAnim, {
@@ -36,9 +36,9 @@ export function OfflineBanner({ onRetry }: OfflineBannerProps) {
       pulse.start();
       return () => pulse.stop();
     }
-  }, [state, pulseAnim]);
+  }, [connectionState, pulseAnim]);
 
-  if (state !== 'disconnected') return null;
+  if (connectionState !== 'disconnected') return null;
 
   return (
     <View style={styles.banner}>
