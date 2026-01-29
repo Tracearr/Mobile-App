@@ -89,11 +89,11 @@ export function ServerSelector() {
                     />
                     <View className="ml-3 flex-1">
                       <Text
-                        className={`text-base ${
-                          server.id === selectedServerId
-                            ? 'font-medium text-cyan-400'
-                            : 'text-white'
-                        }`}
+                        className="text-base"
+                        style={{
+                          fontWeight: server.id === selectedServerId ? '500' : '400',
+                          color: server.id === selectedServerId ? accentColor : 'white',
+                        }}
                         numberOfLines={1}
                       >
                         {server.name}

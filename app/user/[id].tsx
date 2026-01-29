@@ -191,7 +191,10 @@ function LocationCard({ location }: { location: UserLocation }) {
 
   return (
     <View className="border-border flex-row items-center gap-3 border-b py-3">
-      <View className="bg-cyan-core/10 h-8 w-8 items-center justify-center rounded-full">
+      <View
+        className="h-8 w-8 items-center justify-center rounded-full"
+        style={{ backgroundColor: `${accentColor}1A` }}
+      >
         <MapPin size={16} color={accentColor} />
       </View>
       <View className="flex-1">
@@ -213,7 +216,10 @@ function DeviceCard({ device }: { device: UserDevice }) {
 
   return (
     <View className="border-border flex-row items-center gap-3 border-b py-3">
-      <View className="bg-cyan-core/10 h-8 w-8 items-center justify-center rounded-full">
+      <View
+        className="h-8 w-8 items-center justify-center rounded-full"
+        style={{ backgroundColor: `${accentColor}1A` }}
+      >
         <Smartphone size={16} color={accentColor} />
       </View>
       <View className="flex-1">
@@ -352,11 +358,14 @@ function ViolationCard({
       </View>
       {!violation.acknowledgedAt ? (
         <Pressable
-          className="bg-cyan-core/15 mt-2 flex-row items-center justify-center gap-1.5 rounded-md py-2 active:opacity-70"
+          className="mt-2 flex-row items-center justify-center gap-1.5 rounded-md py-2 active:opacity-70"
+          style={{ backgroundColor: `${accentColor}26` }}
           onPress={onAcknowledge}
         >
           <Check size={14} color={accentColor} />
-          <Text className="text-cyan-core text-xs font-semibold">Acknowledge</Text>
+          <Text className="text-xs font-semibold" style={{ color: accentColor }}>
+            Acknowledge
+          </Text>
         </Pressable>
       ) : (
         <View className="mt-2 flex-row items-center gap-1.5">
@@ -783,7 +792,9 @@ export default function UserDetailScreen() {
                       <ActivityIndicator size="small" color={accentColor} />
                     ) : (
                       <View className="flex-row items-center gap-1">
-                        <Text className="text-cyan-core text-sm font-medium">Load More</Text>
+                        <Text className="text-sm font-medium" style={{ color: accentColor }}>
+                          Load More
+                        </Text>
                         <ChevronRight size={16} color={accentColor} />
                       </View>
                     )}
@@ -828,7 +839,9 @@ export default function UserDetailScreen() {
                       <ActivityIndicator size="small" color={accentColor} />
                     ) : (
                       <View className="flex-row items-center gap-1">
-                        <Text className="text-cyan-core text-sm font-medium">Load More</Text>
+                        <Text className="text-sm font-medium" style={{ color: accentColor }}>
+                          Load More
+                        </Text>
                         <ChevronRight size={16} color={accentColor} />
                       </View>
                     )}
@@ -875,7 +888,9 @@ export default function UserDetailScreen() {
                       <ActivityIndicator size="small" color={accentColor} />
                     ) : (
                       <View className="flex-row items-center gap-1">
-                        <Text className="text-cyan-core text-sm font-medium">Load More</Text>
+                        <Text className="text-sm font-medium" style={{ color: accentColor }}>
+                          Load More
+                        </Text>
                         <ChevronRight size={16} color={accentColor} />
                       </View>
                     )}

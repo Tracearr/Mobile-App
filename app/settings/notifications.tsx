@@ -167,6 +167,8 @@ function MultiSelectRow({
   onChange: (values: string[]) => void;
   disabled?: boolean;
 }) {
+  const { accentColor } = useTheme();
+
   const toggleValue = (value: string) => {
     if (disabled) return;
     if (selectedValues.includes(value)) {
@@ -184,11 +186,12 @@ function MultiSelectRow({
         <Pressable
           onPress={() => onChange([])}
           disabled={disabled}
-          className={cn(
-            'rounded-full border px-3 py-1.5',
-            allSelected ? 'bg-cyan-core border-cyan-core' : 'border-border bg-card',
-            disabled && 'opacity-50'
-          )}
+          className={cn('rounded-full border px-3 py-1.5', disabled && 'opacity-50')}
+          style={
+            allSelected
+              ? { backgroundColor: accentColor, borderColor: accentColor }
+              : { borderColor: colors.border.dark, backgroundColor: colors.card.dark }
+          }
         >
           <Text className={cn('text-sm', allSelected ? 'text-background' : 'text-foreground')}>
             All Types
@@ -201,11 +204,12 @@ function MultiSelectRow({
               key={option.value}
               onPress={() => toggleValue(option.value)}
               disabled={disabled}
-              className={cn(
-                'rounded-full border px-3 py-1.5',
-                isSelected ? 'bg-cyan-core border-cyan-core' : 'border-border bg-card',
-                disabled && 'opacity-50'
-              )}
+              className={cn('rounded-full border px-3 py-1.5', disabled && 'opacity-50')}
+              style={
+                isSelected
+                  ? { backgroundColor: accentColor, borderColor: accentColor }
+                  : { borderColor: colors.border.dark, backgroundColor: colors.card.dark }
+              }
             >
               <Text className={cn('text-sm', isSelected ? 'text-background' : 'text-foreground')}>
                 {option.label}

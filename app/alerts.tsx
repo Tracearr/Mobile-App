@@ -244,7 +244,9 @@ function ViolationCard({
         <View className="mb-3 flex-row items-start gap-3">
           <RuleIcon ruleType={ruleType} />
           <View className="flex-1">
-            <Text className="text-cyan-core mb-1 text-sm font-medium">{ruleName}</Text>
+            <Text className="mb-1 text-sm font-medium" style={{ color: accentColor }}>
+              {ruleName}
+            </Text>
             <Text className="text-secondary text-sm leading-5" numberOfLines={2}>
               {description}
             </Text>
@@ -254,14 +256,17 @@ function ViolationCard({
         {/* Action Button */}
         {!violation.acknowledgedAt ? (
           <Pressable
-            className="bg-cyan-core/15 flex-row items-center justify-center gap-2 rounded-lg py-2.5 active:opacity-70"
+            className="flex-row items-center justify-center gap-2 rounded-lg py-2.5 active:opacity-70"
+            style={{ backgroundColor: `${accentColor}26` }}
             onPress={(e) => {
               e.stopPropagation();
               onAcknowledge();
             }}
           >
             <Check size={16} color={accentColor} />
-            <Text className="text-cyan-core text-sm font-semibold">Acknowledge</Text>
+            <Text className="text-sm font-semibold" style={{ color: accentColor }}>
+              Acknowledge
+            </Text>
           </Pressable>
         ) : (
           <View className="bg-success/10 flex-row items-center justify-center gap-2 rounded-lg py-2.5">
