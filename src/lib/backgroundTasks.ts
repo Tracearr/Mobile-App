@@ -114,7 +114,7 @@ TaskManager.defineTask(
       }
 
       // Process the payload (decrypt if encrypted)
-      const payload = await processPayload(notificationData as Record<string, unknown>);
+      const payload = await processPayload(notificationData);
       if (!payload) {
         console.error('[BackgroundTask] Failed to process payload');
         return;

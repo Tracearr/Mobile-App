@@ -76,7 +76,8 @@ export function usePushNotifications() {
 
     // Get Expo push token
     try {
-      const projectId = Constants.expoConfig?.extra?.eas?.projectId;
+      const projectId = (Constants.expoConfig?.extra as { eas?: { projectId?: string } })?.eas
+        ?.projectId;
       if (!projectId) {
         console.error('No EAS project ID found in app config');
         return null;
@@ -171,7 +172,7 @@ export function usePushNotifications() {
         const rawData = receivedNotification.request.content.data;
         if (rawData && typeof rawData === 'object') {
           void (async () => {
-            const processedData = await processNotificationData(rawData as Record<string, unknown>);
+            const processedData = await processNotificationData(rawData);
             // Update the notification with processed data
             const processedNotification = {
               ...receivedNotification,

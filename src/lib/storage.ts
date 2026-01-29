@@ -123,7 +123,7 @@ export const storage = {
       if (filtered.length > 0) {
         const setOk = await ResilientStorage.setItemAsync(
           STORAGE_KEYS.ACTIVE_SERVER,
-          filtered[0]!.id
+          filtered[0].id
         );
         if (!setOk) console.warn('[Storage] Failed to update active server after removal');
       } else {
@@ -143,7 +143,7 @@ export const storage = {
     const servers = await this.getServers();
     const index = servers.findIndex((s) => s.id === serverId);
     if (index >= 0) {
-      servers[index] = { ...servers[index]!, ...updates };
+      servers[index] = { ...servers[index], ...updates };
       return await ResilientStorage.setItemAsync(STORAGE_KEYS.SERVERS, JSON.stringify(servers));
     }
     return false;

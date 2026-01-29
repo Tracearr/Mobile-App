@@ -67,7 +67,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   // Load saved accent hue on mount
   useEffect(() => {
-    SecureStore.getItemAsync(ACCENT_STORAGE_KEY).then((stored) => {
+    void SecureStore.getItemAsync(ACCENT_STORAGE_KEY).then((stored) => {
       if (stored) {
         const parsed = parseInt(stored, 10);
         if (!isNaN(parsed) && parsed >= 0 && parsed < 360) {
@@ -81,7 +81,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const setAccentHue = (hue: number) => {
     const normalizedHue = ((hue % 360) + 360) % 360;
     setAccentHueState(normalizedHue);
-    SecureStore.setItemAsync(ACCENT_STORAGE_KEY, String(normalizedHue));
+    void SecureStore.setItemAsync(ACCENT_STORAGE_KEY, String(normalizedHue));
   };
 
   const accent = getAccentFromHue(accentHue);
