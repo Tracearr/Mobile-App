@@ -35,12 +35,7 @@
       },
       "edgeToEdgeEnabled": true,
       "package": "com.tracearr.app",
-      "permissions": [
-        "RECEIVE_BOOT_COMPLETED",
-        "VIBRATE",
-        "android.permission.CAMERA",
-        "android.permission.POST_NOTIFICATIONS"
-      ]
+      "permissions": ["android.permission.CAMERA", "android.permission.POST_NOTIFICATIONS"]
     },
     "plugins": [
       [
