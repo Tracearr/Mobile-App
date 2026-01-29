@@ -15,7 +15,7 @@ import { api } from '@/lib/api';
 import { useMediaServer } from '@/providers/MediaServerProvider';
 import { useTheme } from '@/providers/ThemeProvider';
 import { useResponsive } from '@/hooks/useResponsive';
-import { colors, spacing } from '@/lib/theme';
+import { spacing } from '@/lib/theme';
 import { Text } from '@/components/ui/text';
 import { Card } from '@/components/ui/card';
 import { PeriodSelector, type StatsPeriod } from '@/components/ui/period-selector';

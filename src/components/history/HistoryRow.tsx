@@ -144,7 +144,6 @@ const POSTER_HEIGHT = 60;
 
 export function HistoryRow({ session, onPress }: HistoryRowProps) {
   const { serverUrl } = useAuthStore();
-  const { accentColor } = useTheme();
   const displayName = session.user?.identityName ?? session.user?.username ?? 'Unknown';
   const title = getContentTitle(session);
   const progress = getProgress(session);
