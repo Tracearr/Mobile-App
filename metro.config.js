@@ -17,10 +17,7 @@ config.resolver.nodeModulesPaths = [
   path.resolve(monorepoRoot, 'node_modules'),
 ];
 
-// 3. Enable symlink support for pnpm
-config.resolver.unstable_enableSymlinks = true;
-
-// 4. Handle .js imports that should resolve to .ts files (NodeNext compatibility)
+// 3. Handle .js imports that should resolve to .ts files (NodeNext compatibility)
 // TypeScript with moduleResolution: NodeNext requires .js extensions in imports
 // even for .ts source files. Metro needs help resolving these correctly.
 config.resolver.resolveRequest = (context, moduleName, platform) => {
