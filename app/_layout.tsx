@@ -14,6 +14,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { QueryProvider } from '@/providers/QueryProvider';
 import { SocketProvider } from '@/providers/SocketProvider';
 import { MediaServerProvider } from '@/providers/MediaServerProvider';
+import { ThemeProvider } from '@/providers/ThemeProvider';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { OfflineBanner } from '@/components/OfflineBanner';
 import { UnauthenticatedScreen } from '@/components/UnauthenticatedScreen';
@@ -160,15 +161,17 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={styles.container}>
       <SafeAreaProvider>
-        <ErrorBoundary>
-          <QueryProvider>
-            <SocketProvider>
-              <MediaServerProvider>
-                <RootLayoutNav />
-              </MediaServerProvider>
-            </SocketProvider>
-          </QueryProvider>
-        </ErrorBoundary>
+        <ThemeProvider>
+          <ErrorBoundary>
+            <QueryProvider>
+              <SocketProvider>
+                <MediaServerProvider>
+                  <RootLayoutNav />
+                </MediaServerProvider>
+              </SocketProvider>
+            </QueryProvider>
+          </ErrorBoundary>
+        </ThemeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
