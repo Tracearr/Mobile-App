@@ -1,497 +1,306 @@
 /**
- * Unified authentication and connection state store
- *
- * This is the single source of truth for:
- * - Server identity (paired servers, active server)
- * - Token validity (valid, revoked, refreshing)
- * - Connection state (connected, disconnected, unauthenticated)
- * - Storage availability
- *
- * Replaces the fragmented state across authStore.ts and connectionStore.ts
+ * Auth state management with Zustand
+ * Single-server model - Tracearr mobile connects to ONE server
  */
 import { create } from 'zustand';
-import { storage, type ServerInfo } from './storage';
-import { api, resetApiClient } from './api';
+import { createJSONStorage, persist } from 'zustand/middleware';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
+import { zustandStorage } from './storage';
+import * as ResilientStorage from './resilientStorage';
+import { api, resetApiClient } from './api';
 import { isEncryptionAvailable, getDeviceSecret } from './crypto';
 
-type TokenStatus = 'valid' | 'revoked' | 'refreshing' | 'unknown';
+// Types
+export interface StoredServer {
+  id: string;
+  url: string;
+  name: string;
+  type: 'plex' | 'jellyfin' | 'emby';
+  pairedAt: string;
+}
+
+export interface UserInfo {
+  id: string;
+  username: string;
+  role: 'admin' | 'owner' | 'user';
+}
+
 type ConnectionState = 'connected' | 'disconnected' | 'unauthenticated';
+type TokenStatus = 'valid' | 'revoked' | 'refreshing' | 'unknown';
 
-interface AuthStateStore {
-  // Server identity
-  servers: ServerInfo[];
-  activeServerId: string | null;
-  activeServer: ServerInfo | null;
+interface AuthState {
+  // Core state (single server)
+  server: StoredServer | null;
+  user: UserInfo | null;
 
-  // Token validity
+  // Connection status
+  connectionState: ConnectionState;
   tokenStatus: TokenStatus;
 
-  // Connection state
-  connectionState: ConnectionState;
-  lastConnectionError: string | null;
-  retryCount: number;
-  retryTimerId: ReturnType<typeof setTimeout> | null;
-
-  // For UnauthenticatedScreen display
-  cachedServerUrl: string | null;
-  cachedServerName: string | null;
-
-  // Initialization
+  // UI state
   isInitializing: boolean;
-  storageAvailable: boolean;
   error: string | null;
 
-  // Derived (computed from servers/activeServer)
+  // Cached values for unauthenticated screen
+  _cachedServerUrl: string | null;
+  _cachedServerName: string | null;
+
+  // Actions
+  pairServer: (url: string, token: string) => Promise<void>;
+  unpairServer: () => Promise<void>;
+  setConnectionState: (state: ConnectionState) => void;
+  setTokenStatus: (status: TokenStatus) => void;
+  setUser: (user: UserInfo | null) => void;
+  clearError: () => void;
+  handleAuthFailure: () => void;
+  setInitializing: (isInitializing: boolean) => void;
+  setError: (error: string | null) => void;
+
+  // Derived (getters)
   readonly isAuthenticated: boolean;
   readonly serverUrl: string | null;
   readonly serverName: string | null;
-
-  // Actions - Initialization
-  initialize: () => Promise<void>;
-  retryStorageAccess: () => Promise<void>;
-  resetStorageState: () => void;
-
-  // Actions - Server management
-  pair: (serverUrl: string, token: string) => Promise<void>;
-  addServer: (serverUrl: string, token: string) => Promise<void>;
-  selectServer: (serverId: string) => Promise<void>;
-  removeServer: (serverId: string) => Promise<void>;
-  logout: () => Promise<void>;
-
-  // Actions - Token state
-  setTokenValid: () => void;
-  setTokenRefreshing: () => void;
-  setTokenRevoked: (serverUrl?: string, serverName?: string | null) => void;
-
-  // Actions - Connection state
-  setConnected: () => void;
-  setDisconnected: (error: string) => void;
-  scheduleRetry: (retryFn: () => Promise<unknown>) => void;
-  cancelRetry: () => void;
-
-  // Actions - Unified auth failure handler
-  handleAuthFailure: (serverUrl?: string, serverName?: string | null) => void;
-
-  // Actions - Error handling
-  clearError: () => void;
-
-  // Actions - Full reset
-  reset: () => void;
 }
 
-export const useAuthStateStore = create<AuthStateStore>((set, get) => ({
-  // Initial state
-  servers: [],
-  activeServerId: null,
-  activeServer: null,
-  tokenStatus: 'unknown',
-  connectionState: 'disconnected', // Start disconnected until we verify auth
-  lastConnectionError: null,
-  retryCount: 0,
-  retryTimerId: null,
-  cachedServerUrl: null,
-  cachedServerName: null,
-  isInitializing: true,
-  storageAvailable: true,
-  error: null,
+// Storage keys for tokens (stored separately from Zustand state)
+const STORAGE_KEYS = {
+  ACCESS_TOKEN: 'tracearr_access_token',
+  REFRESH_TOKEN: 'tracearr_refresh_token',
+} as const;
 
-  // Derived getters (computed on access)
-  get isAuthenticated() {
-    const state = get();
-    return state.servers.length > 0 && state.activeServer !== null;
-  },
+// Helper: Normalize URL (ensure trailing slash removed, add https if missing)
+function normalizeUrl(url: string): string {
+  let normalized = url.trim();
+  if (!normalized.startsWith('http://') && !normalized.startsWith('https://')) {
+    normalized = `https://${normalized}`;
+  }
+  return normalized.replace(/\/+$/, '');
+}
 
-  get serverUrl() {
-    return get().activeServer?.url ?? null;
-  },
+// Helper: Get device name for pairing
+function getDeviceName(): string {
+  return Device.deviceName || `${Device.brand || 'Unknown'} ${Device.modelName || 'Device'}`;
+}
 
-  get serverName() {
-    return get().activeServer?.name ?? null;
-  },
+// Helper: Get device ID for pairing
+function getDeviceId(): string {
+  return Device.osBuildId || `${Platform.OS}-${Date.now()}`;
+}
 
-  // ==================== Initialization ====================
+// Helper: Get platform
+function getPlatform(): 'ios' | 'android' {
+  return Platform.OS === 'ios' ? 'ios' : 'android';
+}
 
-  initialize: async () => {
-    try {
-      set({ isInitializing: true, error: null });
-
-      const available = await storage.checkStorageAvailability();
-      if (!available) {
-        console.warn('[AuthState] Storage unavailable');
-        set({ storageAvailable: false, isInitializing: false });
-        return;
-      }
-
-      await storage.migrateFromLegacy();
-
-      const [servers, activeServerId] = await Promise.all([
-        storage.getServers(),
-        storage.getActiveServerId(),
-      ]);
-
-      let activeServer = activeServerId
-        ? (servers.find((s) => s.id === activeServerId) ?? null)
-        : null;
-
-      // Auto-select first server if none active
-      if (servers.length > 0 && !activeServer) {
-        const firstServer = servers[0]!;
-        await storage.setActiveServerId(firstServer.id);
-        activeServer = firstServer;
-      }
-
-      console.log('[AuthState] Initialization complete:', {
-        serverCount: servers.length,
-        activeServerId: activeServer?.id ?? null,
-      });
-
-      // Don't overwrite 'unauthenticated' state - that means token was revoked
-      // and we should stay in that state until user re-authenticates
-      const currentConnectionState = get().connectionState;
-      const newConnectionState =
-        currentConnectionState === 'unauthenticated'
-          ? 'unauthenticated'
-          : activeServer
-            ? 'connected'
-            : 'disconnected';
-
-      set({
-        servers,
-        activeServerId: activeServer?.id ?? null,
-        activeServer,
-        storageAvailable: true,
-        tokenStatus:
-          currentConnectionState === 'unauthenticated'
-            ? 'revoked'
-            : activeServer
-              ? 'valid'
-              : 'unknown',
-        connectionState: newConnectionState,
-        isInitializing: false,
-      });
-    } catch (error) {
-      console.error('[AuthState] Initialization failed:', error);
-      set({
-        servers: [],
-        activeServerId: null,
-        activeServer: null,
-        storageAvailable: true,
-        isInitializing: false,
-        error: 'Failed to initialize authentication',
-      });
-    }
-  },
-
-  retryStorageAccess: async () => {
-    if (get().isInitializing) return;
-    set({ isInitializing: true });
-    await get().initialize();
-  },
-
-  resetStorageState: () => {
-    storage.resetFailureCount();
-    set({
-      storageAvailable: true,
-      isInitializing: false,
-      error: null,
-    });
-  },
-
-  // ==================== Server Management ====================
-
-  pair: async (serverUrl: string, token: string) => {
-    await get().addServer(serverUrl, token);
-  },
-
-  addServer: async (serverUrl: string, token: string) => {
-    try {
-      set({ isInitializing: true, error: null });
-
-      const deviceName =
-        Device.deviceName || `${Device.brand || 'Unknown'} ${Device.modelName || 'Device'}`;
-      const deviceId = Device.osBuildId || `${Platform.OS}-${Date.now()}`;
-      const platform = Platform.OS === 'ios' ? 'ios' : 'android';
-      const normalizedUrl = serverUrl.replace(/\/$/, '');
-
-      let deviceSecret: string | undefined;
-      if (isEncryptionAvailable()) {
-        try {
-          deviceSecret = await getDeviceSecret();
-        } catch (error) {
-          console.warn('[AuthState] Failed to get device secret:', error);
-        }
-      }
-
-      const response = await api.pair(
-        normalizedUrl,
-        token,
-        deviceName,
-        deviceId,
-        platform,
-        deviceSecret
-      );
-
-      const serverInfo: ServerInfo = {
-        id: response.server.id,
-        url: normalizedUrl,
-        name: response.server.name,
-        type: response.server.type,
-        addedAt: new Date().toISOString(),
-      };
-
-      const addOk = await storage.addServer(serverInfo, {
-        accessToken: response.accessToken,
-        refreshToken: response.refreshToken,
-      });
-
-      if (!addOk) {
-        throw new Error('Failed to store server credentials');
-      }
-
-      await storage.setActiveServerId(serverInfo.id);
-      resetApiClient();
-
-      const servers = await storage.getServers();
-
-      set({
-        servers,
-        activeServerId: serverInfo.id,
-        activeServer: serverInfo,
-        storageAvailable: true,
-        tokenStatus: 'valid',
-        connectionState: 'connected',
-        isInitializing: false,
-        error: null,
-      });
-    } catch (error) {
-      console.error('[AuthState] Add server failed:', error);
-      set({
-        isInitializing: false,
-        error: error instanceof Error ? error.message : 'Failed to add server',
-      });
-      throw error;
-    }
-  },
-
-  selectServer: async (serverId: string) => {
-    try {
-      const { servers } = get();
-      const server = servers.find((s) => s.id === serverId);
-
-      if (!server) {
-        throw new Error('Server not found');
-      }
-
-      await storage.setActiveServerId(serverId);
-      resetApiClient();
-
-      // Reset connection state when switching servers
-      const { retryTimerId } = get();
-      if (retryTimerId) clearTimeout(retryTimerId);
-
-      set({
-        activeServerId: serverId,
-        activeServer: server,
-        tokenStatus: 'valid',
-        connectionState: 'connected',
-        lastConnectionError: null,
-        retryCount: 0,
-        retryTimerId: null,
-      });
-    } catch (error) {
-      console.error('[AuthState] Select server failed:', error);
-      set({ error: 'Failed to switch server' });
-    }
-  },
-
-  removeServer: async (serverId: string) => {
-    try {
-      set({ isInitializing: true });
-
-      await storage.removeServer(serverId);
-      resetApiClient();
-
-      const servers = await storage.getServers();
-      const activeServerId = await storage.getActiveServerId();
-      const activeServer = activeServerId
-        ? (servers.find((s) => s.id === activeServerId) ?? null)
-        : null;
-
-      const { retryTimerId } = get();
-      if (retryTimerId) clearTimeout(retryTimerId);
-
-      if (servers.length === 0) {
-        set({
-          servers: [],
-          activeServerId: null,
-          activeServer: null,
-          tokenStatus: 'unknown',
-          connectionState: 'connected',
-          lastConnectionError: null,
-          retryCount: 0,
-          retryTimerId: null,
-          isInitializing: false,
-          error: null,
-        });
-      } else {
-        set({
-          servers,
-          activeServerId,
-          activeServer,
-          isInitializing: false,
-        });
-      }
-    } catch (error) {
-      console.error('[AuthState] Remove server failed:', error);
-      set({ isInitializing: false, error: 'Failed to remove server' });
-    }
-  },
-
-  logout: async () => {
-    const { activeServerId } = get();
-    if (activeServerId) {
-      await get().removeServer(activeServerId);
-    }
-  },
-
-  // ==================== Token State ====================
-
-  setTokenValid: () => {
-    set({ tokenStatus: 'valid' });
-  },
-
-  setTokenRefreshing: () => {
-    set({ tokenStatus: 'refreshing' });
-  },
-
-  setTokenRevoked: (serverUrl?: string, serverName?: string | null) => {
-    const { activeServer, retryTimerId } = get();
-    if (retryTimerId) clearTimeout(retryTimerId);
-
-    set({
-      tokenStatus: 'revoked',
-      connectionState: 'unauthenticated',
-      lastConnectionError: null,
-      retryCount: 0,
-      retryTimerId: null,
-      cachedServerUrl: serverUrl ?? activeServer?.url ?? null,
-      cachedServerName: serverName ?? activeServer?.name ?? null,
-    });
-  },
-
-  // ==================== Connection State ====================
-
-  setConnected: () => {
-    // Don't overwrite 'unauthenticated' state - that requires re-authentication
-    const { connectionState, retryTimerId } = get();
-    if (connectionState === 'unauthenticated') {
-      return;
-    }
-    if (retryTimerId) clearTimeout(retryTimerId);
-
-    set({
-      connectionState: 'connected',
-      lastConnectionError: null,
-      retryCount: 0,
-      retryTimerId: null,
-    });
-  },
-
-  setDisconnected: (error: string) => {
-    // Don't overwrite 'unauthenticated' state - that requires re-authentication
-    const currentState = get().connectionState;
-    if (currentState === 'unauthenticated') {
-      return;
-    }
-    set((prev) => ({
+export const useAuthStateStore = create<AuthState>()(
+  persist(
+    (set, get) => ({
+      // Initial state
+      server: null,
+      user: null,
       connectionState: 'disconnected',
-      lastConnectionError: error,
-      retryCount: prev.retryCount + 1,
-    }));
-  },
-
-  scheduleRetry: (retryFn: () => Promise<unknown>) => {
-    // Don't schedule retries if unauthenticated - user needs to re-pair
-    const { connectionState, retryTimerId } = get();
-    if (connectionState === 'unauthenticated') {
-      return;
-    }
-    if (retryTimerId) clearTimeout(retryTimerId);
-
-    const timerId = setTimeout(() => {
-      void retryFn();
-    }, 30000);
-
-    set({ retryTimerId: timerId });
-  },
-
-  cancelRetry: () => {
-    const { retryTimerId } = get();
-    if (retryTimerId) {
-      clearTimeout(retryTimerId);
-      set({ retryTimerId: null });
-    }
-  },
-
-  // ==================== Unified Auth Failure Handler ====================
-
-  handleAuthFailure: (serverUrl?: string, serverName?: string | null) => {
-    const { activeServer, activeServerId, retryTimerId, connectionState } = get();
-
-    // Prevent duplicate handling
-    if (connectionState === 'unauthenticated') {
-      return;
-    }
-
-    if (retryTimerId) clearTimeout(retryTimerId);
-
-    // Clear API client for this server
-    if (activeServerId) {
-      resetApiClient();
-    }
-
-    set({
-      tokenStatus: 'revoked',
-      connectionState: 'unauthenticated',
-      lastConnectionError: null,
-      retryCount: 0,
-      retryTimerId: null,
-      cachedServerUrl: serverUrl ?? activeServer?.url ?? null,
-      cachedServerName: serverName ?? activeServer?.name ?? null,
-    });
-  },
-
-  // ==================== Error Handling ====================
-
-  clearError: () => {
-    set({ error: null });
-  },
-
-  // ==================== Full Reset ====================
-
-  reset: () => {
-    const { retryTimerId } = get();
-    if (retryTimerId) clearTimeout(retryTimerId);
-
-    set({
-      servers: [],
-      activeServerId: null,
-      activeServer: null,
       tokenStatus: 'unknown',
-      connectionState: 'connected',
-      lastConnectionError: null,
-      retryCount: 0,
-      retryTimerId: null,
-      cachedServerUrl: null,
-      cachedServerName: null,
-      isInitializing: false,
-      storageAvailable: true,
+      isInitializing: true,
       error: null,
-    });
-  },
-}));
+      _cachedServerUrl: null,
+      _cachedServerName: null,
+
+      // Derived getters
+      get isAuthenticated() {
+        const state = get();
+        return state.server !== null && state.tokenStatus !== 'revoked';
+      },
+
+      get serverUrl() {
+        return get().server?.url ?? null;
+      },
+
+      get serverName() {
+        return get().server?.name ?? null;
+      },
+
+      // Actions
+      pairServer: async (url: string, token: string) => {
+        set({ isInitializing: true, error: null });
+
+        try {
+          const normalizedUrl = normalizeUrl(url);
+          const deviceName = getDeviceName();
+          const deviceId = getDeviceId();
+          const platform = getPlatform();
+
+          // Get device secret for encrypted push notifications (optional)
+          let deviceSecret: string | undefined;
+          if (isEncryptionAvailable()) {
+            try {
+              deviceSecret = await getDeviceSecret();
+            } catch (error) {
+              console.warn('[AuthState] Failed to get device secret:', error);
+            }
+          }
+
+          // Call pairing API
+          const response = await api.pair(
+            normalizedUrl,
+            token,
+            deviceName,
+            deviceId,
+            platform,
+            deviceSecret
+          );
+
+          // Store tokens using resilient storage (with retry logic and Android fallback)
+          const accessOk = await ResilientStorage.setItemAsync(
+            STORAGE_KEYS.ACCESS_TOKEN,
+            response.accessToken
+          );
+          const refreshOk = await ResilientStorage.setItemAsync(
+            STORAGE_KEYS.REFRESH_TOKEN,
+            response.refreshToken
+          );
+
+          if (!accessOk || !refreshOk) {
+            throw new Error('Failed to store credentials securely');
+          }
+
+          // Create server record from response
+          const server: StoredServer = {
+            id: response.server.id,
+            url: normalizedUrl,
+            name: response.server.name,
+            type: response.server.type,
+            pairedAt: new Date().toISOString(),
+          };
+
+          // Create user record from response
+          const user: UserInfo = {
+            id: response.user.userId,
+            username: response.user.username,
+            role: response.user.role,
+          };
+
+          // Reset API client cache so it picks up new server
+          resetApiClient();
+
+          set({
+            server,
+            user,
+            connectionState: 'connected',
+            tokenStatus: 'valid',
+            isInitializing: false,
+            error: null,
+            _cachedServerUrl: normalizedUrl,
+            _cachedServerName: server.name,
+          });
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Failed to pair with server';
+          set({
+            isInitializing: false,
+            error: message,
+          });
+          throw error;
+        }
+      },
+
+      unpairServer: async () => {
+        // Clear tokens using resilient storage
+        await ResilientStorage.deleteItemAsync(STORAGE_KEYS.ACCESS_TOKEN);
+        await ResilientStorage.deleteItemAsync(STORAGE_KEYS.REFRESH_TOKEN);
+
+        // Reset API client cache
+        resetApiClient();
+
+        // Reset state
+        set({
+          server: null,
+          user: null,
+          connectionState: 'disconnected',
+          tokenStatus: 'unknown',
+          error: null,
+          _cachedServerUrl: null,
+          _cachedServerName: null,
+        });
+      },
+
+      setConnectionState: (connectionState) => {
+        const current = get();
+        // Don't overwrite 'unauthenticated' with 'disconnected'
+        if (current.connectionState === 'unauthenticated' && connectionState === 'disconnected') {
+          return;
+        }
+        set({ connectionState });
+      },
+
+      setTokenStatus: (tokenStatus) => set({ tokenStatus }),
+
+      setUser: (user) => set({ user }),
+
+      clearError: () => set({ error: null }),
+
+      setInitializing: (isInitializing) => set({ isInitializing }),
+
+      setError: (error) => set({ error }),
+
+      handleAuthFailure: () => {
+        const current = get();
+        // Cache server info for unauthenticated screen
+        set({
+          connectionState: 'unauthenticated',
+          tokenStatus: 'revoked',
+          _cachedServerUrl: current.server?.url ?? current._cachedServerUrl,
+          _cachedServerName: current.server?.name ?? current._cachedServerName,
+        });
+      },
+    }),
+    {
+      name: 'tracearr-auth-v2', // New key to force logout existing users
+      storage: createJSONStorage(() => zustandStorage),
+      partialize: (state) => ({
+        server: state.server,
+        user: state.user,
+        _cachedServerUrl: state._cachedServerUrl,
+        _cachedServerName: state._cachedServerName,
+      }),
+      onRehydrateStorage: () => (state) => {
+        // Called after hydration completes - mark initialization as done
+        if (state) {
+          state.setInitializing(false);
+        }
+      },
+    }
+  )
+);
+
+// Selectors for optimized subscriptions
+export const authSelectors = {
+  server: (s: AuthState) => s.server,
+  user: (s: AuthState) => s.user,
+  isAuthenticated: (s: AuthState) => s.server !== null && s.tokenStatus !== 'revoked',
+  connectionState: (s: AuthState) => s.connectionState,
+  tokenStatus: (s: AuthState) => s.tokenStatus,
+  isInitializing: (s: AuthState) => s.isInitializing,
+  error: (s: AuthState) => s.error,
+  serverUrl: (s: AuthState) => s.server?.url ?? null,
+  serverName: (s: AuthState) => s.server?.name ?? null,
+  // Cached values for unauthenticated screen (when server is null but we need display info)
+  cachedServerUrl: (s: AuthState) => s._cachedServerUrl,
+  cachedServerName: (s: AuthState) => s._cachedServerName,
+};
+
+// Token access for API client (uses resilient storage)
+export async function getAccessToken(): Promise<string | null> {
+  return ResilientStorage.getItemAsync(STORAGE_KEYS.ACCESS_TOKEN);
+}
+
+export async function getRefreshToken(): Promise<string | null> {
+  return ResilientStorage.getItemAsync(STORAGE_KEYS.REFRESH_TOKEN);
+}
+
+export async function setTokens(access: string, refresh: string): Promise<void> {
+  await ResilientStorage.setItemAsync(STORAGE_KEYS.ACCESS_TOKEN, access);
+  await ResilientStorage.setItemAsync(STORAGE_KEYS.REFRESH_TOKEN, refresh);
+}
 
 // Re-export for backwards compatibility during migration
 export { useAuthStateStore as useAuthStore };
