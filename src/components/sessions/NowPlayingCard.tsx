@@ -313,10 +313,9 @@ export function NowPlayingCard({ session, onPress }: NowPlayingCardProps) {
       </View>
 
       {/* Bottom progress bar - full width */}
-      <View className="bg-card h-[3px]">
+      <View style={{ height: 3, backgroundColor: colors.surface.dark }}>
         <View
-          className="h-full"
-          style={{ width: `${progressPercent}%`, backgroundColor: ACCENT_COLOR }}
+          style={{ height: '100%', width: `${progressPercent}%`, backgroundColor: ACCENT_COLOR }}
         />
       </View>
     </Pressable>
