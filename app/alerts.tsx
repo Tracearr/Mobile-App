@@ -483,52 +483,104 @@ export default function AlertsScreen() {
           ) : null
         }
         ListEmptyComponent={
-          <View className="items-center px-6 py-16">
+          <View
+            style={{
+              flex: 1,
+              alignItems: 'center',
+              justifyContent: 'center',
+              paddingHorizontal: 24,
+              paddingVertical: 80,
+            }}
+          >
             {hasActiveFilters ? (
               <>
                 {/* No matches for current filters */}
                 <View
-                  className="mb-5 h-20 w-20 items-center justify-center rounded-2xl"
-                  style={{ backgroundColor: colors.surface.dark }}
+                  style={{
+                    width: 72,
+                    height: 72,
+                    borderRadius: 36,
+                    backgroundColor: colors.surface.dark,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginBottom: 20,
+                  }}
                 >
-                  <Filter size={36} color={colors.text.muted.dark} />
+                  <Filter size={32} color={colors.text.muted.dark} />
                 </View>
-                <Text className="mb-2 text-xl font-semibold">No Matches</Text>
-                <Text className="text-muted-foreground mb-6 max-w-[260px] text-center text-sm leading-5">
-                  No alerts match your current filters. Try adjusting the severity or status.
+                <Text
+                  style={{
+                    fontSize: 20,
+                    fontWeight: '600',
+                    color: colors.text.primary.dark,
+                    marginBottom: 8,
+                  }}
+                >
+                  No Matches
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 14,
+                    color: colors.text.muted.dark,
+                    textAlign: 'center',
+                    marginBottom: 24,
+                    lineHeight: 20,
+                  }}
+                >
+                  Try adjusting your filters
                 </Text>
                 <Pressable
                   onPress={() => {
                     setSeverityFilter('all');
                     setStatusFilter('all');
                   }}
-                  className="rounded-lg px-5 py-2.5"
-                  style={{ backgroundColor: colors.surface.dark }}
+                  style={{
+                    backgroundColor: colors.surface.dark,
+                    paddingHorizontal: 20,
+                    paddingVertical: 10,
+                    borderRadius: 8,
+                  }}
                 >
-                  <Text className="text-primary text-sm font-semibold">Clear Filters</Text>
+                  <Text style={{ color: ACCENT_COLOR, fontSize: 14, fontWeight: '600' }}>
+                    Clear Filters
+                  </Text>
                 </Pressable>
               </>
             ) : (
               <>
-                {/* All clear - no violations */}
+                {/* All clear - simple centered design */}
                 <View
-                  className="mb-5 h-24 w-24 items-center justify-center rounded-3xl"
-                  style={{ backgroundColor: `${colors.success}15` }}
+                  style={{
+                    width: 80,
+                    height: 80,
+                    borderRadius: 40,
+                    backgroundColor: `${colors.success}20`,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginBottom: 24,
+                  }}
                 >
-                  <View
-                    className="h-14 w-14 items-center justify-center rounded-full"
-                    style={{ backgroundColor: `${colors.success}25` }}
-                  >
-                    <Check size={28} color={colors.success} strokeWidth={3} />
-                  </View>
+                  <Check size={40} color={colors.success} strokeWidth={2.5} />
                 </View>
-                <Text className="mb-2 text-xl font-bold">All Clear</Text>
-                <Text className="text-muted-foreground mb-1 max-w-[280px] text-center text-base leading-6">
-                  No rule violations detected
+                <Text
+                  style={{
+                    fontSize: 22,
+                    fontWeight: '700',
+                    color: colors.text.primary.dark,
+                    marginBottom: 8,
+                  }}
+                >
+                  All Clear
                 </Text>
-                <Text className="text-muted-foreground max-w-[280px] text-center text-sm">
-                  Your media server is running smoothly. Alerts will appear here when suspicious
-                  activity is detected.
+                <Text
+                  style={{
+                    fontSize: 14,
+                    color: colors.text.muted.dark,
+                    textAlign: 'center',
+                    lineHeight: 20,
+                  }}
+                >
+                  No rule violations detected
                 </Text>
               </>
             )}
