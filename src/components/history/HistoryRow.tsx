@@ -211,7 +211,14 @@ export function HistoryRow({ session, onPress }: HistoryRowProps) {
       </View>
 
       {/* Row 2: Quality badge + Progress bar */}
-      <View className="ml-12 flex-row items-center gap-2">
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          marginLeft: 48,
+          gap: 8,
+        }}
+      >
         <QualityBadge session={session} />
         <ProgressBar progress={progress} />
         <ChevronRight size={14} color={colors.icon.default} />
