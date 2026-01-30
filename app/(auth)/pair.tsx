@@ -1,8 +1,8 @@
 /**
  * Pairing screen - QR code scanner or manual entry
- * Supports both initial pairing and adding additional servers
+ * Single-server model - one Tracearr server per mobile app
  */
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -17,9 +17,9 @@ import {
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { ChevronLeft } from 'lucide-react-native';
 import { useAuthStateStore } from '@/lib/authStateStore';
-import { isInternalUrl } from '@/lib/utils';
+import { validateServerUrl, isInternalUrl } from '@/lib/validation';
+import { ROUTES } from '@/lib/routes';
 import { colors, spacing, borderRadius, typography } from '@/lib/theme';
 
 interface QRPairingPayload {
@@ -35,34 +35,51 @@ export default function PairScreen() {
   const [serverUrl, setServerUrl] = useState(prefillUrl ?? '');
   const [token, setToken] = useState('');
   const [scanned, setScanned] = useState(false);
-  const scanLockRef = useRef(false); // Synchronous lock to prevent race conditions
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const scanLockRef = useRef(false);
 
-  // Use consolidated auth state store
-  const servers = useAuthStateStore((s) => s.servers);
-  const activeServer = useAuthStateStore((s) => s.activeServer);
+  // Single-server auth model
   const isInitializing = useAuthStateStore((s) => s.isInitializing);
   const error = useAuthStateStore((s) => s.error);
-  const addServer = useAuthStateStore((s) => s.addServer);
+  const pairServer = useAuthStateStore((s) => s.pairServer);
   const clearError = useAuthStateStore((s) => s.clearError);
 
-  // Derived state
-  const isAuthenticated = servers.length > 0 && activeServer !== null;
-  const isLoading = isInitializing;
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      scanLockRef.current = false;
+    };
+  }, []);
 
-  // Check if this is adding an additional server vs first-time pairing
-  const isAddingServer = isAuthenticated && servers.length > 0;
+  // Clear error when user starts typing
+  const handleServerUrlChange = useCallback(
+    (text: string) => {
+      setServerUrl(text);
+      if (error) clearError();
+    },
+    [error, clearError]
+  );
+
+  const handleTokenChange = useCallback(
+    (text: string) => {
+      setToken(text);
+      if (error) clearError();
+    },
+    [error, clearError]
+  );
+
+  const isLoading = isInitializing || isSubmitting;
 
   const handleBarCodeScanned = async ({ data }: { data: string }) => {
     // Use ref for synchronous check - state updates are async and cause race conditions
     if (scanLockRef.current || isLoading) return;
-    scanLockRef.current = true; // Immediate synchronous lock
+    scanLockRef.current = true;
     setScanned(true);
 
     try {
       // Parse tracearr://pair?data=<base64>
-      // First check if it even looks like our URL format
       if (!data.startsWith('tracearr://pair')) {
-        // Silently ignore non-Tracearr QR codes (don't spam alerts)
+        // Silently ignore non-Tracearr QR codes
         setTimeout(() => {
           scanLockRef.current = false;
           setScanned(false);
@@ -76,7 +93,7 @@ export default function PairScreen() {
         throw new Error('Invalid QR code: missing pairing data');
       }
 
-      // Decode and parse payload with proper error handling
+      // Decode and parse payload
       let payload: QRPairingPayload;
       try {
         const decoded = atob(base64Data);
@@ -85,7 +102,7 @@ export default function PairScreen() {
         throw new Error('Invalid QR code format. Please generate a new code.');
       }
 
-      // Validate payload has required fields
+      // Validate payload fields
       if (!payload.url || typeof payload.url !== 'string') {
         throw new Error('Invalid QR code: missing server URL');
       }
@@ -93,9 +110,10 @@ export default function PairScreen() {
         throw new Error('Invalid QR code: missing pairing token');
       }
 
-      // Validate URL format
-      if (!payload.url.startsWith('http://') && !payload.url.startsWith('https://')) {
-        throw new Error('Invalid server URL in QR code');
+      // Use shared validation
+      const validation = validateServerUrl(payload.url);
+      if (!validation.valid) {
+        throw new Error(validation.error);
       }
 
       // Check for internal/localhost URL and warn
@@ -119,10 +137,10 @@ export default function PairScreen() {
               onPress: () => {
                 void (async () => {
                   try {
-                    await addServer(payload.url, payload.token);
-                    router.replace('/(drawer)/(tabs)' as never);
-                  } catch (e) {
-                    Alert.alert('Pairing Failed', e instanceof Error ? e.message : 'Unknown error');
+                    await pairServer(payload.url, payload.token);
+                    router.replace(ROUTES.TABS);
+                  } catch {
+                    // Error is stored in auth store - stay on screen
                     setTimeout(() => {
                       scanLockRef.current = false;
                       setScanned(false);
@@ -136,13 +154,10 @@ export default function PairScreen() {
         return;
       }
 
-      await addServer(payload.url, payload.token);
-
-      // Navigate to tabs after successful pairing
-      router.replace('/(drawer)/(tabs)' as never);
+      await pairServer(payload.url, payload.token);
+      router.replace(ROUTES.TABS);
     } catch (err) {
       Alert.alert('Pairing Failed', err instanceof Error ? err.message : 'Invalid QR code');
-      // Add cooldown before allowing another scan
       setTimeout(() => {
         scanLockRef.current = false;
         setScanned(false);
@@ -151,24 +166,25 @@ export default function PairScreen() {
   };
 
   const handleManualPair = async () => {
-    if (!serverUrl.trim() || !token.trim()) {
-      Alert.alert('Missing Fields', 'Please enter both server URL and token');
-      return;
-    }
+    if (isSubmitting || isInitializing) return;
+    setIsSubmitting(true);
+    clearError();
 
     const trimmedUrl = serverUrl.trim();
+    const trimmedToken = token.trim();
 
-    // Validate URL format
-    if (!trimmedUrl.startsWith('http://') && !trimmedUrl.startsWith('https://')) {
-      Alert.alert('Invalid URL', 'Server URL must start with http:// or https://');
+    // Validate URL
+    const urlValidation = validateServerUrl(trimmedUrl);
+    if (!urlValidation.valid) {
+      Alert.alert('Invalid URL', urlValidation.error ?? 'Please enter a valid server URL');
+      setIsSubmitting(false);
       return;
     }
 
-    // Validate URL is well-formed
-    try {
-      new URL(trimmedUrl);
-    } catch {
-      Alert.alert('Invalid URL', 'Please enter a valid server URL');
+    // Validate token
+    if (!trimmedToken) {
+      Alert.alert('Missing Token', 'Please enter your access token');
+      setIsSubmitting(false);
       return;
     }
 
@@ -178,39 +194,40 @@ export default function PairScreen() {
         'Internal URL Detected',
         'This appears to be a local network address that may not work outside your home network.\n\nSet an External URL in Settings → General on your Tracearr web dashboard to enable remote access.',
         [
-          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Cancel',
+            style: 'cancel',
+            onPress: () => setIsSubmitting(false),
+          },
           {
             text: 'Continue Anyway',
             onPress: () => {
               void (async () => {
-                clearError();
                 try {
-                  await addServer(trimmedUrl, token.trim());
-                  router.replace('/(drawer)/(tabs)' as never);
+                  await pairServer(trimmedUrl, trimmedToken);
+                  router.replace(ROUTES.TABS);
                 } catch {
-                  // Error is handled by the store
+                  // Error stored in auth store - displayed below inputs
+                } finally {
+                  setIsSubmitting(false);
                 }
               })();
             },
           },
         ]
       );
+      // Keep isSubmitting true while alert is visible - callbacks will reset it
       return;
     }
 
-    clearError();
     try {
-      await addServer(trimmedUrl, token.trim());
-
-      // Navigate to tabs after successful pairing
-      router.replace('/(drawer)/(tabs)' as never);
+      await pairServer(trimmedUrl, trimmedToken);
+      router.replace(ROUTES.TABS);
     } catch {
-      // Error is handled by the store
+      // Error is stored in auth store - stay on screen to show error
+    } finally {
+      setIsSubmitting(false);
     }
-  };
-
-  const handleBack = () => {
-    router.back();
   };
 
   if (manualMode) {
@@ -221,18 +238,8 @@ export default function PairScreen() {
           style={styles.keyboardView}
         >
           <ScrollView contentContainerStyle={styles.scrollContent}>
-            {/* Back button for adding servers */}
-            {isAddingServer && (
-              <Pressable style={styles.backButton} onPress={handleBack}>
-                <ChevronLeft size={24} color={colors.text.primary.dark} />
-                <Text style={styles.backText}>Back</Text>
-              </Pressable>
-            )}
-
             <View style={styles.header}>
-              <Text style={styles.title}>
-                {isAddingServer ? 'Add Server' : 'Connect to Server'}
-              </Text>
+              <Text style={styles.title}>Connect to Server</Text>
               <Text style={styles.subtitle}>
                 Enter your Tracearr server URL and mobile access token
               </Text>
@@ -244,7 +251,7 @@ export default function PairScreen() {
                 <TextInput
                   style={styles.input}
                   value={serverUrl}
-                  onChangeText={setServerUrl}
+                  onChangeText={handleServerUrlChange}
                   placeholder="https://tracearr.example.com"
                   placeholderTextColor={colors.text.muted.dark}
                   autoCapitalize="none"
@@ -259,7 +266,7 @@ export default function PairScreen() {
                 <TextInput
                   style={styles.input}
                   value={token}
-                  onChangeText={setToken}
+                  onChangeText={handleTokenChange}
                   placeholder="trr_mob_..."
                   placeholderTextColor={colors.text.muted.dark}
                   autoCapitalize="none"
@@ -295,16 +302,8 @@ export default function PairScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      {/* Back button for adding servers */}
-      {isAddingServer && (
-        <Pressable style={styles.backButton} onPress={handleBack}>
-          <ChevronLeft size={24} color={colors.text.primary.dark} />
-          <Text style={styles.backText}>Back</Text>
-        </Pressable>
-      )}
-
       <View style={styles.header}>
-        <Text style={styles.title}>{isAddingServer ? 'Add Server' : 'Welcome to Tracearr'}</Text>
+        <Text style={styles.title}>Welcome to Tracearr</Text>
         <Text style={styles.subtitle}>
           Open Settings → Mobile App in your Tracearr dashboard and scan the QR code
         </Text>
@@ -354,18 +353,6 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     padding: spacing.lg,
-  },
-  backButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    marginTop: spacing.sm,
-  },
-  backText: {
-    fontSize: typography.fontSize.base,
-    color: colors.text.primary.dark,
-    marginLeft: spacing.xs,
   },
   header: {
     paddingHorizontal: spacing.lg,
