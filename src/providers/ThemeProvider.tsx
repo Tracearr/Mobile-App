@@ -1,9 +1,9 @@
 /**
- * Theme provider with hue-based accent colors (matching web app)
- * Supports user-configurable theme preference (system/light/dark)
+ * Theme provider using NativeWind's VariableContextProvider for runtime theming
+ * Supports system/light/dark theme preference and user-configurable accent colors
  */
-import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
-import { useColorScheme, Appearance } from 'react-native';
+import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
+import { VariableContextProvider, useColorScheme } from 'nativewind';
 import * as SecureStore from 'expo-secure-store';
 
 // Default accent hue (cyan = 187) - matches web app
@@ -25,6 +25,76 @@ export const ACCENT_PRESETS = [
   { name: 'Green', hue: 150, hex: '#22C55E' },
   { name: 'Teal', hue: 175, hex: '#14B8A6' },
 ] as const;
+
+// Dark theme colors (shadcn neutral dark mode)
+const darkTheme = {
+  '--background': '#09090B',
+  '--foreground': '#FAFAFA',
+  '--card': '#09090B',
+  '--card-foreground': '#FAFAFA',
+  '--surface': '#18181B',
+  '--popover': '#09090B',
+  '--popover-foreground': '#FAFAFA',
+  '--muted': '#27272A',
+  '--muted-foreground': '#A1A1AA',
+  '--primary': '#18D1E7',
+  '--primary-foreground': '#18181B',
+  '--secondary': '#27272A',
+  '--secondary-foreground': '#FAFAFA',
+  '--accent': '#27272A',
+  '--accent-foreground': '#FAFAFA',
+  '--input': '#27272A',
+  '--ring': '#18D1E7',
+  '--border': '#27272A',
+  '--destructive': '#DC2626',
+  '--destructive-foreground': '#FAFAFA',
+  '--success': '#22C55E',
+  '--warning': '#F59E0B',
+  '--danger': '#DC2626',
+  '--icon': '#A1A1AA',
+  '--icon-active': '#18D1E7',
+  '--icon-danger': '#FF6666',
+  '--chart-1': '#18D1E7',
+  '--chart-2': '#5DD3E4',
+  '--chart-3': '#6B8A99',
+  '--chart-4': '#D4A745',
+  '--chart-5': '#D95555',
+};
+
+// Light theme colors (shadcn neutral light mode)
+const lightTheme = {
+  '--background': '#FFFFFF',
+  '--foreground': '#09090B',
+  '--card': '#FFFFFF',
+  '--card-foreground': '#09090B',
+  '--surface': '#F4F4F5',
+  '--popover': '#FFFFFF',
+  '--popover-foreground': '#09090B',
+  '--muted': '#F4F4F5',
+  '--muted-foreground': '#71717A',
+  '--primary': '#0891B2',
+  '--primary-foreground': '#FFFFFF',
+  '--secondary': '#F4F4F5',
+  '--secondary-foreground': '#18181B',
+  '--accent': '#F4F4F5',
+  '--accent-foreground': '#18181B',
+  '--input': '#E4E4E7',
+  '--ring': '#0891B2',
+  '--border': '#E4E4E7',
+  '--destructive': '#DC2626',
+  '--destructive-foreground': '#FFFFFF',
+  '--success': '#22C55E',
+  '--warning': '#F59E0B',
+  '--danger': '#DC2626',
+  '--icon': '#71717A',
+  '--icon-active': '#0891B2',
+  '--icon-danger': '#DC2626',
+  '--chart-1': '#0891B2',
+  '--chart-2': '#22D3EE',
+  '--chart-3': '#3F3F46',
+  '--chart-4': '#CA8A04',
+  '--chart-5': '#DC2626',
+};
 
 interface ThemeContextValue {
   isDark: boolean;
@@ -66,16 +136,20 @@ function getAccentFromHue(hue: number): { core: string; deep: string } {
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const systemColorScheme = useColorScheme();
+  // eslint-disable-next-line @typescript-eslint/no-deprecated -- NativeWind's useColorScheme provides setColorScheme
+  const colorSchemeResult = useColorScheme();
+  const { colorScheme } = colorSchemeResult;
   const [themePreference, setThemePreferenceState] = useState<ThemePreference>('system');
   const [accentHue, setAccentHueState] = useState(DEFAULT_ACCENT_HUE);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // Determine actual dark mode based on preference
-  const isDark =
-    themePreference === 'system'
-      ? systemColorScheme !== 'light' // Default to dark if system preference unclear
-      : themePreference === 'dark';
+  // Stable wrapper for setColorScheme to avoid unbound-method lint errors
+  const applyColorScheme = useCallback(
+    (scheme: 'light' | 'dark') => {
+      colorSchemeResult.setColorScheme(scheme);
+    },
+    [colorSchemeResult]
+  );
 
   // Load saved preferences on mount
   useEffect(() => {
@@ -91,23 +165,29 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       }
       if (storedTheme && ['system', 'light', 'dark'].includes(storedTheme)) {
         setThemePreferenceState(storedTheme as ThemePreference);
+        // Apply non-system preference immediately
+        if (storedTheme === 'light' || storedTheme === 'dark') {
+          applyColorScheme(storedTheme);
+        }
       }
       setIsLoaded(true);
     });
-  }, []);
+  }, [applyColorScheme]);
 
-  // Update system appearance when preference changes (for native components)
+  // Sync explicit theme preference with NativeWind's color scheme
+  // When preference is 'system', let NativeWind follow the system setting
   useEffect(() => {
     if (!isLoaded) return;
-
-    // Set color scheme for native components (null = follow system)
-    if (themePreference === 'system') {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      Appearance.setColorScheme(null as any);
-    } else {
-      Appearance.setColorScheme(themePreference);
+    if (themePreference !== 'system') {
+      applyColorScheme(themePreference);
     }
-  }, [themePreference, isLoaded]);
+  }, [themePreference, isLoaded, applyColorScheme]);
+
+  // Determine actual dark mode based on preference and system setting
+  const isDark =
+    themePreference === 'system'
+      ? colorScheme !== 'light' // Default to dark if system preference unclear
+      : themePreference === 'dark';
 
   const setThemePreference = (preference: ThemePreference) => {
     setThemePreferenceState(preference);
@@ -135,7 +215,14 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   // Don't render until we've loaded the stored preferences to prevent flash
   if (!isLoaded) return null;
 
-  return <ThemeContext value={value}>{children}</ThemeContext>;
+  // Select theme based on isDark
+  const themeVars = isDark ? darkTheme : lightTheme;
+
+  return (
+    <ThemeContext value={value}>
+      <VariableContextProvider value={themeVars}>{children}</VariableContextProvider>
+    </ThemeContext>
+  );
 }
 
 export function useTheme() {

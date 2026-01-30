@@ -140,18 +140,20 @@ function RootLayoutNav() {
 
 export default function RootLayout() {
   return (
-    <GestureHandlerRootView className="bg-background flex-1">
+    <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <ThemeProvider>
-          <ErrorBoundary>
-            <QueryProvider>
-              <SocketProvider>
-                <MediaServerProvider>
-                  <RootLayoutNav />
-                </MediaServerProvider>
-              </SocketProvider>
-            </QueryProvider>
-          </ErrorBoundary>
+          <View className="bg-background flex-1">
+            <ErrorBoundary>
+              <QueryProvider>
+                <SocketProvider>
+                  <MediaServerProvider>
+                    <RootLayoutNav />
+                  </MediaServerProvider>
+                </SocketProvider>
+              </QueryProvider>
+            </ErrorBoundary>
+          </View>
         </ThemeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

@@ -3,9 +3,9 @@
 @import "tailwindcss/utilities.css";
 @import "nativewind/theme";
 
-/* Tracearr Mobile Theme - Aligned with Web Dark Mode
-   Note: Mobile uses static HSL values since NativeWind processes @theme at build time.
-   Web uses dynamic --accent-hue for runtime theme switching. */
+/* Tracearr Mobile Theme - Using NativeWind VariableContextProvider for runtime theming
+   Actual color values are defined in ThemeProvider.tsx and applied via VariableContextProvider.
+   These placeholder values are required for Tailwind to generate the utility classes. */
 @theme {
   /* Brand Colors - Cyan accent (hue 187) */
   --color-cyan-core: hsl(187 80% 50%);
@@ -15,54 +15,54 @@
   --color-blue-steel: hsl(213 47% 17%);
   --color-blue-soft: hsl(212 49% 24%);
 
-  /* Background colors - shadcn neutral dark mode */
-  --color-background: hsl(240 10% 4%);
-  --color-foreground: hsl(0 0% 98%);
-  --color-card: hsl(240 10% 4%);
-  --color-card-foreground: hsl(0 0% 98%);
-  --color-surface: hsl(240 6% 10%);
-  --color-popover: hsl(240 10% 4%);
-  --color-popover-foreground: hsl(0 0% 98%);
+  /* Theme colors - placeholders for VariableContextProvider */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-surface: var(--surface);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
 
   /* Muted colors */
-  --color-muted: hsl(240 4% 16%);
-  --color-muted-foreground: hsl(240 5% 65%);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
 
   /* Primary (cyan accent) */
-  --color-primary: hsl(187 80% 50%);
-  --color-primary-foreground: hsl(240 6% 10%);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
 
   /* Secondary */
-  --color-secondary: hsl(240 4% 16%);
-  --color-secondary-foreground: hsl(0 0% 98%);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
 
   /* Accent (neutral for hover states) */
-  --color-accent: hsl(240 4% 16%);
-  --color-accent-foreground: hsl(0 0% 98%);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
 
   /* Form inputs */
-  --color-input: hsl(240 4% 16%);
-  --color-ring: hsl(187 80% 50%);
-  --color-border: hsl(240 4% 16%);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-border: var(--border);
 
   /* Semantic colors */
-  --color-destructive: hsl(0 62% 50%);
-  --color-destructive-foreground: hsl(0 0% 98%);
-  --color-success: hsl(142 76% 36%);
-  --color-warning: hsl(38 92% 50%);
-  --color-danger: hsl(0 62% 50%);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
 
   /* Icon colors */
-  --color-icon: hsl(240 5% 65%);
-  --color-icon-active: hsl(187 80% 50%);
-  --color-icon-danger: hsl(0 100% 65%);
+  --color-icon: var(--icon);
+  --color-icon-active: var(--icon-active);
+  --color-icon-danger: var(--icon-danger);
 
   /* Chart colors */
-  --color-chart-1: hsl(187 80% 50%);
-  --color-chart-2: hsl(187 70% 60%);
-  --color-chart-3: hsl(197 37% 50%);
-  --color-chart-4: hsl(43 80% 55%);
-  --color-chart-5: hsl(0 75% 55%);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
 
   /* Border radius */
   --radius: 0.5rem;
@@ -70,68 +70,44 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
 
-  /* Responsive breakpoints - optimized for mobile devices
-     Base (0px)   → Phone portrait (single column)
-     sm (480px)   → Large phone / phone landscape
-     md (768px)   → Tablet portrait (2 columns) - iPad Mini+
-     lg (1024px)  → Tablet landscape / large tablet (3+ columns)
-     xl (1280px)  → Extra large tablets in landscape */
+  /* Responsive breakpoints */
   --breakpoint-sm: 480px;
   --breakpoint-md: 768px;
   --breakpoint-lg: 1024px;
   --breakpoint-xl: 1280px;
 }
 
-/* Light mode overrides */
-@media (prefers-color-scheme: light) {
-  @theme {
-    /* Background colors - shadcn neutral light mode */
-    --color-background: hsl(0 0% 100%);
-    --color-foreground: hsl(240 10% 4%);
-    --color-card: hsl(0 0% 100%);
-    --color-card-foreground: hsl(240 10% 4%);
-    --color-surface: hsl(0 0% 98%);
-    --color-popover: hsl(0 0% 100%);
-    --color-popover-foreground: hsl(240 10% 4%);
-
-    /* Muted colors */
-    --color-muted: hsl(240 5% 96%);
-    --color-muted-foreground: hsl(240 4% 46%);
-
-    /* Primary (cyan accent - slightly darker for light bg) */
-    --color-primary: hsl(187 85% 38%);
-    --color-primary-foreground: hsl(0 0% 100%);
-
-    /* Secondary */
-    --color-secondary: hsl(240 5% 96%);
-    --color-secondary-foreground: hsl(240 6% 10%);
-
-    /* Accent (neutral for hover states) */
-    --color-accent: hsl(240 5% 96%);
-    --color-accent-foreground: hsl(240 6% 10%);
-
-    /* Form inputs */
-    --color-input: hsl(240 6% 90%);
-    --color-ring: hsl(187 85% 38%);
-    --color-border: hsl(240 6% 90%);
-
-    /* Semantic colors */
-    --color-destructive: hsl(0 84% 60%);
-    --color-destructive-foreground: hsl(0 0% 100%);
-    --color-success: hsl(142 76% 36%);
-    --color-warning: hsl(38 92% 50%);
-    --color-danger: hsl(0 84% 60%);
-
-    /* Icon colors */
-    --color-icon: hsl(240 4% 46%);
-    --color-icon-active: hsl(187 85% 38%);
-    --color-icon-danger: hsl(0 72% 51%);
-
-    /* Chart colors */
-    --color-chart-1: hsl(187 85% 38%);
-    --color-chart-2: hsl(187 70% 50%);
-    --color-chart-3: hsl(197 37% 24%);
-    --color-chart-4: hsl(43 90% 45%);
-    --color-chart-5: hsl(0 72% 51%);
-  }
+/* Default values required for VariableContextProvider - actual values set at runtime */
+:root {
+  --background: #09090B;
+  --foreground: #FAFAFA;
+  --card: #09090B;
+  --card-foreground: #FAFAFA;
+  --surface: #18181B;
+  --popover: #09090B;
+  --popover-foreground: #FAFAFA;
+  --muted: #27272A;
+  --muted-foreground: #A1A1AA;
+  --primary: #18D1E7;
+  --primary-foreground: #18181B;
+  --secondary: #27272A;
+  --secondary-foreground: #FAFAFA;
+  --accent: #27272A;
+  --accent-foreground: #FAFAFA;
+  --input: #27272A;
+  --ring: #18D1E7;
+  --border: #27272A;
+  --destructive: #DC2626;
+  --destructive-foreground: #FAFAFA;
+  --success: #22C55E;
+  --warning: #F59E0B;
+  --danger: #DC2626;
+  --icon: #A1A1AA;
+  --icon-active: #18D1E7;
+  --icon-danger: #FF6666;
+  --chart-1: #18D1E7;
+  --chart-2: #5DD3E4;
+  --chart-3: #6B8A99;
+  --chart-4: #D4A745;
+  --chart-5: #D95555;
 }
