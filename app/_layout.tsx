@@ -4,11 +4,6 @@
 import { Buffer } from 'buffer';
 global.Buffer = Buffer;
 
-// Force dark mode immediately at app startup to prevent NativeTabs/header flash
-// Must be before any navigation imports. See: https://github.com/expo/expo/issues/40389
-import { Appearance } from 'react-native';
-Appearance.setColorScheme('dark');
-
 import '../global.css';
 import { useEffect, useState, useRef } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
@@ -80,7 +75,7 @@ function RootLayoutNav() {
   if (connectionState === 'unauthenticated') {
     return (
       <>
-        <StatusBar style="light" backgroundColor={colors.background.dark} translucent={false} />
+        <StatusBar style="auto" backgroundColor={colors.background.dark} translucent={false} />
         <UnauthenticatedScreen />
       </>
     );
@@ -88,7 +83,7 @@ function RootLayoutNav() {
 
   return (
     <>
-      <StatusBar style="light" backgroundColor={colors.background.dark} translucent={false} />
+      <StatusBar style="auto" backgroundColor={colors.background.dark} translucent={false} />
       <OfflineBanner onRetry={validate} />
       <Toast
         message="Reconnected"
