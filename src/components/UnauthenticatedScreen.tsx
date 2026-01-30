@@ -4,7 +4,8 @@
  * Provides QR scan and manual entry options for re-pairing
  */
 import React from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { View, Pressable } from 'react-native';
+import { Text } from '@/components/ui/text';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Unlink } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
@@ -50,7 +51,8 @@ export function UnauthenticatedScreen() {
         </Text>
 
         <Pressable
-          style={[styles.primaryButton, { backgroundColor: accentColor }]}
+          className="mb-4 w-full items-center rounded-md px-8 py-4"
+          style={{ backgroundColor: accentColor }}
           onPress={() => void handleScanQR()}
         >
           <Text className="text-background text-base font-semibold">Scan QR Code</Text>
@@ -63,15 +65,3 @@ export function UnauthenticatedScreen() {
     </SafeAreaView>
   );
 }
-
-// Keep StyleSheet for dynamic accentColor background
-const styles = StyleSheet.create({
-  primaryButton: {
-    paddingVertical: 16,
-    paddingHorizontal: 32,
-    borderRadius: 6,
-    width: '100%',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-});

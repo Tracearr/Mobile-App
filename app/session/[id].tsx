@@ -4,15 +4,7 @@
  * Matches the design of web/src/components/history/SessionDetailSheet.tsx
  */
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import {
-  View,
-  ScrollView,
-  Pressable,
-  ActivityIndicator,
-  Image,
-  Alert,
-  StyleSheet,
-} from 'react-native';
+import { View, ScrollView, Pressable, ActivityIndicator, Image, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format, formatDistanceToNow } from 'date-fns';
@@ -357,11 +349,8 @@ export default function SessionDetailScreen() {
             <Pressable
               onPress={handleTerminate}
               disabled={terminateMutation.isPending || isOffline}
-              className="h-8 w-8 items-center justify-center rounded-full"
-              style={[
-                { backgroundColor: withAlpha(colors.error, '15') },
-                (terminateMutation.isPending || isOffline) && styles.disabledButton,
-              ]}
+              className={`h-8 w-8 items-center justify-center rounded-full ${terminateMutation.isPending || isOffline ? 'opacity-50' : ''}`}
+              style={{ backgroundColor: withAlpha(colors.error, '15') }}
             >
               <X size={18} color={colors.error} />
             </Pressable>
@@ -371,7 +360,12 @@ export default function SessionDetailScreen() {
         {/* Media Info - Hero section */}
         <View className="border-border flex-row gap-2 rounded-xl border p-2">
           {posterUrl && (
-            <Image source={{ uri: posterUrl }} style={styles.poster} resizeMode="cover" />
+            <Image
+              source={{ uri: posterUrl }}
+              className="bg-surface rounded-lg"
+              style={{ width: 56, height: 80 }}
+              resizeMode="cover"
+            />
           )}
           <View className="min-w-0 flex-1">
             <View className="mb-1 flex-row items-center gap-1">
@@ -560,16 +554,3 @@ export default function SessionDetailScreen() {
     </SafeAreaView>
   );
 }
-
-// Keep minimal StyleSheet for styles that can't be expressed in NativeWind
-const styles = StyleSheet.create({
-  disabledButton: {
-    opacity: 0.5,
-  },
-  poster: {
-    width: 56,
-    height: 80,
-    borderRadius: 8,
-    backgroundColor: colors.surface.dark,
-  },
-});

@@ -6,7 +6,7 @@
  * match the web's dark theme exactly. Using default map styles.
  */
 import React, { Component, type ReactNode } from 'react';
-import { View, StyleSheet, Platform } from 'react-native';
+import { View, Platform } from 'react-native';
 import { AppleMaps, GoogleMaps } from 'expo-maps';
 import { Ionicons } from '@expo/vector-icons';
 import type { ActiveSession } from '@tracearr/shared';
@@ -161,7 +161,7 @@ export function StreamMap({ sessions, height = 300 }: StreamMapProps) {
     <MapErrorBoundary height={height}>
       <View className="bg-card overflow-hidden rounded-xl" style={{ height }}>
         <MapComponent
-          style={styles.map}
+          style={{ flex: 1 }}
           cameraPosition={cameraPosition}
           markers={markers.map((m) => ({
             id: m.id,
@@ -182,10 +182,3 @@ export function StreamMap({ sessions, height = 300 }: StreamMapProps) {
     </MapErrorBoundary>
   );
 }
-
-// Keep StyleSheet for map-specific styling
-const styles = StyleSheet.create({
-  map: {
-    flex: 1,
-  },
-});

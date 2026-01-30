@@ -8,7 +8,7 @@
  * - Increased padding and spacing
  * - Slightly larger text
  */
-import { View, Animated, StyleSheet } from 'react-native';
+import { View, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useRef } from 'react';
 import { Text } from '@/components/ui/text';
@@ -76,16 +76,15 @@ function ResourceBar({ label, processValue, systemValue, icon, isTablet }: Resou
         </View>
         <View className="bg-card overflow-hidden rounded-sm" style={{ height: barHeight }}>
           <Animated.View
-            style={[
-              styles.barFill,
-              {
-                backgroundColor: BAR_COLORS.process,
-                width: processWidth.interpolate({
-                  inputRange: [0, 100],
-                  outputRange: ['0%', '100%'],
-                }),
-              },
-            ]}
+            style={{
+              height: '100%',
+              borderRadius: 2,
+              backgroundColor: BAR_COLORS.process,
+              width: processWidth.interpolate({
+                inputRange: [0, 100],
+                outputRange: ['0%', '100%'],
+              }),
+            }}
           />
         </View>
       </View>
@@ -102,16 +101,15 @@ function ResourceBar({ label, processValue, systemValue, icon, isTablet }: Resou
         </View>
         <View className="bg-card overflow-hidden rounded-sm" style={{ height: barHeight }}>
           <Animated.View
-            style={[
-              styles.barFill,
-              {
-                backgroundColor: BAR_COLORS.system,
-                width: systemWidth.interpolate({
-                  inputRange: [0, 100],
-                  outputRange: ['0%', '100%'],
-                }),
-              },
-            ]}
+            style={{
+              height: '100%',
+              borderRadius: 2,
+              backgroundColor: BAR_COLORS.system,
+              width: systemWidth.interpolate({
+                inputRange: [0, 100],
+                outputRange: ['0%', '100%'],
+              }),
+            }}
           />
         </View>
       </View>
@@ -194,11 +192,3 @@ export function ServerResourceCard({ latest, isLoading, error }: ServerResourceC
     </View>
   );
 }
-
-// Keep StyleSheet for animated styles
-const styles = StyleSheet.create({
-  barFill: {
-    height: '100%',
-    borderRadius: 2,
-  },
-});

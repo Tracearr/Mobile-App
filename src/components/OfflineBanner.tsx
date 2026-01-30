@@ -4,7 +4,8 @@
  * Includes pulsing animation and manual retry button
  */
 import React, { useEffect, useRef } from 'react';
-import { View, Text, Pressable, StyleSheet, Animated } from 'react-native';
+import { View, Pressable, Animated } from 'react-native';
+import { Text } from '@/components/ui/text';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WifiOff } from 'lucide-react-native';
 import { useAuthStateStore } from '../lib/authStateStore';
@@ -48,9 +49,15 @@ export function OfflineBanner({ onRetry }: OfflineBannerProps) {
 
   if (connectionState !== 'disconnected' || !isAuthenticated) return null;
 
-  // Must keep StyleSheet for dynamic paddingTop and Animated.View opacity
   return (
-    <View style={[styles.banner, { paddingTop: insets.top + spacing.sm }]}>
+    <View
+      className="flex-row items-center justify-between border-b px-4 py-3"
+      style={{
+        paddingTop: insets.top + spacing.sm,
+        backgroundColor: withAlpha(colors.warning, '20'),
+        borderBottomColor: withAlpha(colors.warning, '40'),
+      }}
+    >
       <View className="flex-row items-center gap-3">
         <Animated.View style={{ opacity: pulseAnim }}>
           <WifiOff size={16} color={colors.warning} />
@@ -63,17 +70,3 @@ export function OfflineBanner({ onRetry }: OfflineBannerProps) {
     </View>
   );
 }
-
-// Keep StyleSheet for styles that require dynamic values or theme colors not in NativeWind
-const styles = StyleSheet.create({
-  banner: {
-    backgroundColor: withAlpha(colors.warning, '20'),
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: withAlpha(colors.warning, '40'),
-  },
-});
