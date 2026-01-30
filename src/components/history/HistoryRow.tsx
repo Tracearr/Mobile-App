@@ -115,11 +115,28 @@ function QualityBadge({ session }: { session: SessionWithDetails }) {
 // Progress bar component
 function ProgressBar({ progress }: { progress: number }) {
   return (
-    <View className="flex-1 flex-row items-center gap-1.5">
-      <View className="bg-card h-1 flex-1 overflow-hidden rounded-sm">
-        <View className="bg-primary h-full rounded-sm" style={{ width: `${progress}%` }} />
+    <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+      <View
+        style={{
+          flex: 1,
+          height: 4,
+          backgroundColor: colors.surface.dark,
+          borderRadius: 2,
+          overflow: 'hidden',
+        }}
+      >
+        <View
+          style={{
+            height: '100%',
+            width: `${progress}%`,
+            backgroundColor: ACCENT_COLOR,
+            borderRadius: 2,
+          }}
+        />
       </View>
-      <Text className="text-muted-foreground w-7 text-right text-[10px]">{progress}%</Text>
+      <Text style={{ fontSize: 10, color: colors.text.muted.dark, width: 28, textAlign: 'right' }}>
+        {progress}%
+      </Text>
     </View>
   );
 }
@@ -157,6 +174,7 @@ export function HistoryRow({ session, onPress }: HistoryRowProps) {
         paddingHorizontal: 16,
         paddingVertical: 10,
         flexDirection: 'row',
+        alignItems: 'center',
         gap: 10,
       }}
     >
