@@ -6,8 +6,7 @@ import React from 'react';
 import { View } from 'react-native';
 import { Pie, PolarChart } from 'victory-native';
 import { Text } from '@/components/ui/text';
-import { colors } from '../../lib/theme';
-import { useTheme } from '../../providers/ThemeProvider';
+import { colors, ACCENT_COLOR } from '../../lib/theme';
 
 interface PlatformChartProps {
   data: { platform: string; count: number }[];
@@ -15,12 +14,10 @@ interface PlatformChartProps {
 }
 
 export function PlatformChart({ data, height }: PlatformChartProps) {
-  const { accentColor } = useTheme();
-
   // Colors for pie slices - all visible against dark card background
   // Using dynamic accent color as the primary color
   const chartColors = [
-    accentColor, // Primary accent color
+    ACCENT_COLOR, // Primary accent color
     colors.info, // #3B82F6 - Bright Blue
     colors.success, // #22C55E - Green
     colors.warning, // #F59E0B - Orange/Yellow

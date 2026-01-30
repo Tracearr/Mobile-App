@@ -16,8 +16,7 @@ import { UserAvatar } from '@/components/ui/user-avatar';
 import { useImageUrl } from '@/hooks/useImageUrl';
 import { useEstimatedProgress } from '@/hooks/useEstimatedProgress';
 import { useResponsive } from '@/hooks/useResponsive';
-import { useTheme } from '@/providers/ThemeProvider';
-import { colors, spacing } from '@/lib/theme';
+import { ACCENT_COLOR, colors, spacing } from '@/lib/theme';
 import { formatDuration } from '@/lib/formatters';
 import type { ActiveSession } from '@tracearr/shared';
 
@@ -151,7 +150,6 @@ function getLocationString(session: ActiveSession): string | null {
 
 export function NowPlayingCard({ session, onPress }: NowPlayingCardProps) {
   const getImageUrl = useImageUrl();
-  const { accentColor } = useTheme();
   const { isTablet, select } = useResponsive();
   const { title, subtitle } = getMediaDisplay(session);
 
@@ -274,13 +272,13 @@ export function NowPlayingCard({ session, onPress }: NowPlayingCardProps) {
               <View
                 className="h-3 w-3 items-center justify-center rounded-full"
                 style={{
-                  backgroundColor: isPaused ? 'rgba(245, 158, 11, 0.15)' : `${accentColor}15`,
+                  backgroundColor: isPaused ? 'rgba(245, 158, 11, 0.15)' : `${ACCENT_COLOR}15`,
                 }}
               >
                 <Ionicons
                   name={isPaused ? 'pause' : 'play'}
                   size={6}
-                  color={isPaused ? colors.warning : accentColor}
+                  color={isPaused ? colors.warning : ACCENT_COLOR}
                 />
               </View>
               <Text className={`text-muted-foreground text-xs ${isPaused ? 'text-warning' : ''}`}>
@@ -316,7 +314,7 @@ export function NowPlayingCard({ session, onPress }: NowPlayingCardProps) {
       <View className="bg-card h-[3px]">
         <View
           className="h-full"
-          style={{ width: `${progressPercent}%`, backgroundColor: accentColor }}
+          style={{ width: `${progressPercent}%`, backgroundColor: ACCENT_COLOR }}
         />
       </View>
     </Pressable>

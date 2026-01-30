@@ -3,111 +3,59 @@
 @import "tailwindcss/utilities.css";
 @import "nativewind/theme";
 
-/* Tracearr Mobile Theme - Using NativeWind VariableContextProvider for runtime theming
-   Actual color values are defined in ThemeProvider.tsx and applied via VariableContextProvider.
-   These placeholder values are required for Tailwind to generate the utility classes. */
+/* Tracearr Mobile Theme - Dark Mode Only
+   Colors match web app's .dark {} block exactly (shadcn neutral dark) */
 @theme {
-  /* Brand Colors - Cyan accent (hue 187) */
-  --color-cyan-core: hsl(187 80% 50%);
-  --color-cyan-deep: hsl(187 86% 42%);
-  --color-cyan-dark: hsl(187 85% 31%);
-  --color-blue-core: hsl(213 62% 11%);
-  --color-blue-steel: hsl(213 47% 17%);
-  --color-blue-soft: hsl(212 49% 24%);
+  /* Brand Colors - Tracearr identity */
+  --color-cyan-core: #18D1E7;  /* hsl(187 80% 50%) */
+  --color-cyan-deep: #0891B2;  /* hsl(187 86% 42%) */
+  --color-cyan-dark: #0E7490;  /* hsl(187 85% 31%) */
+  --color-blue-core: #0B1A2E;  /* hsl(213 62% 11%) */
+  --color-blue-steel: #162840; /* hsl(213 47% 17%) */
+  --color-blue-soft: #1E3A5C;  /* hsl(212 49% 24%) */
 
-  /* Theme colors - placeholders for VariableContextProvider */
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-  --color-surface: var(--surface);
-  --color-popover: var(--popover);
-  --color-popover-foreground: var(--popover-foreground);
+  /* Semantic Colors - shadcn neutral dark mode */
+  --color-background: #09090B;           /* hsl(240 10% 4%) */
+  --color-foreground: #FAFAFA;           /* hsl(0 0% 98%) */
+  --color-card: #09090B;                 /* same as background */
+  --color-card-foreground: #FAFAFA;
+  --color-popover: #09090B;
+  --color-popover-foreground: #FAFAFA;
+  --color-primary: #18D1E7;              /* hsl(187 80% 50%) - cyan accent */
+  --color-primary-foreground: #18181B;   /* hsl(240 6% 10%) */
+  --color-secondary: #27272A;            /* hsl(240 4% 16%) */
+  --color-secondary-foreground: #FAFAFA;
+  --color-muted: #27272A;                /* hsl(240 4% 16%) */
+  --color-muted-foreground: #A1A1AA;     /* hsl(240 5% 65%) */
+  --color-accent: #27272A;               /* hsl(240 4% 16%) */
+  --color-accent-foreground: #FAFAFA;
+  --color-destructive: #B91C1C;          /* hsl(0 62% 42%) - darker for dark mode */
+  --color-destructive-foreground: #FAFAFA;
+  --color-border: #27272A;               /* hsl(240 4% 16%) */
+  --color-input: #27272A;
+  --color-ring: #18D1E7;                 /* matches primary */
 
-  /* Muted colors */
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-
-  /* Primary (cyan accent) */
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-
-  /* Secondary */
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
-
-  /* Accent (neutral for hover states) */
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-
-  /* Form inputs */
-  --color-input: var(--input);
-  --color-ring: var(--ring);
-  --color-border: var(--border);
-
-  /* Semantic colors */
-  --color-destructive: var(--destructive);
-  --color-destructive-foreground: var(--destructive-foreground);
-  --color-success: var(--success);
-  --color-warning: var(--warning);
-  --color-danger: var(--danger);
+  /* Additional semantic colors */
+  --color-surface: #18181B;              /* hsl(240 6% 10%) - for elevated surfaces */
+  --color-success: #22C55E;
+  --color-warning: #F59E0B;
+  --color-danger: #DC2626;
 
   /* Icon colors */
-  --color-icon: var(--icon);
-  --color-icon-active: var(--icon-active);
-  --color-icon-danger: var(--icon-danger);
+  --color-icon: #A1A1AA;                 /* matches muted-foreground */
+  --color-icon-active: #18D1E7;          /* matches primary */
+  --color-icon-danger: #FCA5A5;          /* hsl(0 93% 82%) - lighter red for visibility */
 
-  /* Chart colors */
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
+  /* Chart colors - matches web */
+  --color-chart-1: #18D1E7;              /* primary accent */
+  --color-chart-2: #22D3EE;              /* lighter cyan */
+  --color-chart-3: #6B7280;              /* neutral */
+  --color-chart-4: #FBBF24;              /* amber */
+  --color-chart-5: #EF4444;              /* red */
 
   /* Border radius */
   --radius: 0.5rem;
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
-
-  /* Responsive breakpoints */
-  --breakpoint-sm: 480px;
-  --breakpoint-md: 768px;
-  --breakpoint-lg: 1024px;
-  --breakpoint-xl: 1280px;
-}
-
-/* Default values required for VariableContextProvider - actual values set at runtime */
-:root {
-  --background: #09090B;
-  --foreground: #FAFAFA;
-  --card: #09090B;
-  --card-foreground: #FAFAFA;
-  --surface: #18181B;
-  --popover: #09090B;
-  --popover-foreground: #FAFAFA;
-  --muted: #27272A;
-  --muted-foreground: #A1A1AA;
-  --primary: #18D1E7;
-  --primary-foreground: #18181B;
-  --secondary: #27272A;
-  --secondary-foreground: #FAFAFA;
-  --accent: #27272A;
-  --accent-foreground: #FAFAFA;
-  --input: #27272A;
-  --ring: #18D1E7;
-  --border: #27272A;
-  --destructive: #DC2626;
-  --destructive-foreground: #FAFAFA;
-  --success: #22C55E;
-  --warning: #F59E0B;
-  --danger: #DC2626;
-  --icon: #A1A1AA;
-  --icon-active: #18D1E7;
-  --icon-danger: #FF6666;
-  --chart-1: #18D1E7;
-  --chart-2: #5DD3E4;
-  --chart-3: #6B8A99;
-  --chart-4: #D4A745;
-  --chart-5: #D95555;
 }

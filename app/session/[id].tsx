@@ -33,9 +33,8 @@ import {
 } from 'lucide-react-native';
 import { api, getServerUrl } from '@/lib/api';
 import { useMediaServer } from '@/providers/MediaServerProvider';
-import { useTheme } from '@/providers/ThemeProvider';
 import { useAuthStateStore } from '@/lib/authStateStore';
-import { colors, withAlpha } from '@/lib/theme';
+import { colors, withAlpha, ACCENT_COLOR } from '@/lib/theme';
 import { Text } from '@/components/ui/text';
 import { Badge } from '@/components/ui/badge';
 import { UserAvatar } from '@/components/ui/user-avatar';
@@ -166,16 +165,12 @@ function Section({
   badge?: React.ReactNode;
   children: React.ReactNode;
 }) {
-  const { accentColor } = useTheme();
   return (
     <View className="border-border rounded-xl border p-2">
       <View className="mb-2 flex-row items-center justify-between">
         <View className="flex-row items-center gap-2">
-          <View
-            className="h-6 w-6 items-center justify-center rounded-full"
-            style={{ backgroundColor: withAlpha(accentColor, '15') }}
-          >
-            <Icon size={14} color={accentColor} />
+          <View className="bg-primary/15 h-6 w-6 items-center justify-center rounded-full">
+            <Icon size={14} color={ACCENT_COLOR} />
           </View>
           <Text className="text-foreground text-sm font-medium">{title}</Text>
         </View>
@@ -222,7 +217,6 @@ export default function SessionDetailScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { selectedServerId } = useMediaServer();
-  const { accentColor } = useTheme();
   const connectionState = useAuthStateStore((s) => s.connectionState);
   const isOffline = connectionState !== 'connected';
   const serverUrl = getServerUrl();
@@ -277,7 +271,7 @@ export default function SessionDetailScreen() {
         className="bg-background flex-1 items-center justify-center"
         edges={['left', 'right', 'bottom']}
       >
-        <ActivityIndicator size="large" color={accentColor} />
+        <ActivityIndicator size="large" color={ACCENT_COLOR} />
       </SafeAreaView>
     );
   }
@@ -389,10 +383,7 @@ export default function SessionDetailScreen() {
             {/* Progress inline */}
             <View className="mt-2 flex-row items-center gap-2">
               <View className="bg-border h-1.5 flex-1 overflow-hidden rounded-sm">
-                <View
-                  className="h-full rounded-sm"
-                  style={{ width: `${progress}%`, backgroundColor: accentColor }}
-                />
+                <View className="bg-primary h-full rounded-sm" style={{ width: `${progress}%` }} />
               </View>
               <Text className="text-muted-foreground w-8 text-[11px]">{progress}%</Text>
             </View>

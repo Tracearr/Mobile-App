@@ -14,7 +14,6 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { QueryProvider } from '@/providers/QueryProvider';
 import { SocketProvider } from '@/providers/SocketProvider';
 import { MediaServerProvider } from '@/providers/MediaServerProvider';
-import { ThemeProvider } from '@/providers/ThemeProvider';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { OfflineBanner } from '@/components/OfflineBanner';
 import { UnauthenticatedScreen } from '@/components/UnauthenticatedScreen';
@@ -23,7 +22,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { useAuthStateStore } from '@/lib/authStateStore';
 import { useConnectionValidator } from '@/hooks/useConnectionValidator';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
-import { useTheme } from '@/providers/ThemeProvider';
+import { ACCENT_COLOR } from '@/lib/theme';
 
 function RootLayoutNav() {
   // Use single-server auth state store with shallow compare for performance
@@ -35,7 +34,6 @@ function RootLayoutNav() {
       tokenStatus: s.tokenStatus,
     }))
   );
-  const { accentColor } = useTheme();
 
   // Derived auth state
   const isAuthenticated = server !== null && tokenStatus !== 'revoked';
@@ -72,7 +70,7 @@ function RootLayoutNav() {
   if (isInitializing) {
     return (
       <View className="bg-background flex-1 items-center justify-center">
-        <ActivityIndicator size="large" color={accentColor} />
+        <ActivityIndicator size="large" color={ACCENT_COLOR} />
       </View>
     );
   }
@@ -142,19 +140,17 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <ThemeProvider>
-          <View className="bg-background flex-1">
-            <ErrorBoundary>
-              <QueryProvider>
-                <SocketProvider>
-                  <MediaServerProvider>
-                    <RootLayoutNav />
-                  </MediaServerProvider>
-                </SocketProvider>
-              </QueryProvider>
-            </ErrorBoundary>
-          </View>
-        </ThemeProvider>
+        <View className="bg-background flex-1">
+          <ErrorBoundary>
+            <QueryProvider>
+              <SocketProvider>
+                <MediaServerProvider>
+                  <RootLayoutNav />
+                </MediaServerProvider>
+              </SocketProvider>
+            </QueryProvider>
+          </ErrorBoundary>
+        </View>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

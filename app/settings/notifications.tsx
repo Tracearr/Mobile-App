@@ -25,8 +25,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { api } from '@/lib/api';
 import { useAuthStateStore } from '@/lib/authStateStore';
-import { useTheme } from '@/providers/ThemeProvider';
-import { colors } from '@/lib/theme';
+import { colors, ACCENT_COLOR } from '@/lib/theme';
 import type { NotificationPreferences } from '@tracearr/shared';
 
 // Rule types for violation filtering
@@ -167,8 +166,6 @@ function MultiSelectRow({
   onChange: (values: string[]) => void;
   disabled?: boolean;
 }) {
-  const { accentColor } = useTheme();
-
   const toggleValue = (value: string) => {
     if (disabled) return;
     if (selectedValues.includes(value)) {
@@ -189,7 +186,7 @@ function MultiSelectRow({
           className={cn('rounded-full border px-3 py-1.5', disabled && 'opacity-50')}
           style={
             allSelected
-              ? { backgroundColor: accentColor, borderColor: accentColor }
+              ? { backgroundColor: ACCENT_COLOR, borderColor: ACCENT_COLOR }
               : { borderColor: colors.border.dark, backgroundColor: colors.card.dark }
           }
         >
@@ -207,7 +204,7 @@ function MultiSelectRow({
               className={cn('rounded-full border px-3 py-1.5', disabled && 'opacity-50')}
               style={
                 isSelected
-                  ? { backgroundColor: accentColor, borderColor: accentColor }
+                  ? { backgroundColor: ACCENT_COLOR, borderColor: ACCENT_COLOR }
                   : { borderColor: colors.border.dark, backgroundColor: colors.card.dark }
               }
             >
@@ -257,7 +254,6 @@ function RateLimitStatus({
 export default function NotificationSettingsScreen() {
   const queryClient = useQueryClient();
   const server = useAuthStateStore((s) => s.server);
-  const { accentColor } = useTheme();
 
   // Fetch current preferences (per-device, not per-server)
   const {
@@ -320,7 +316,7 @@ export default function NotificationSettingsScreen() {
         edges={['left', 'right', 'bottom']}
       >
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color={accentColor} />
+          <ActivityIndicator size="large" color={ACCENT_COLOR} />
           <Text className="text-muted-foreground mt-4">Loading preferences...</Text>
         </View>
       </SafeAreaView>

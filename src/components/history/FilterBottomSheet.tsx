@@ -24,8 +24,7 @@ import {
   ChevronRight,
 } from 'lucide-react-native';
 import { Text } from '@/components/ui/text';
-import { useTheme } from '@/providers/ThemeProvider';
-import { colors } from '@/lib/theme';
+import { ACCENT_COLOR, colors } from '@/lib/theme';
 import type { HistoryFilterOptions, UserFilterOption, FilterOptionItem } from '@tracearr/shared';
 
 export type MediaType = 'movie' | 'episode' | 'track' | 'live';
@@ -68,7 +67,6 @@ const TRANSCODE_OPTIONS: { value: TranscodeDecision; label: string; icon: React.
 export const FilterBottomSheet = forwardRef<FilterBottomSheetRef, FilterBottomSheetProps>(
   ({ filterOptions, filters, onFiltersChange }, ref) => {
     const bottomSheetRef = useRef<BottomSheet>(null);
-    const { accentColor } = useTheme();
     const [activeSection, setActiveSection] = React.useState<FilterSection>('main');
 
     const snapPoints = useMemo(() => ['60%', '90%'], []);
@@ -224,9 +222,7 @@ export const FilterBottomSheet = forwardRef<FilterBottomSheetRef, FilterBottomSh
           <Text className="flex-1 text-lg font-semibold">{title}</Text>
           {count > 0 && (
             <Pressable onPress={() => clearSection(section)} className="px-2 py-1">
-              <Text className="text-[13px]" style={{ color: accentColor }}>
-                Clear ({count})
-              </Text>
+              <Text className="text-primary text-[13px]">Clear ({count})</Text>
             </Pressable>
           )}
         </View>
@@ -243,7 +239,7 @@ export const FilterBottomSheet = forwardRef<FilterBottomSheetRef, FilterBottomSh
           key={user.id}
           onPress={() => toggleUser(user.id)}
           className={`border-border flex-row items-center border-b py-3 ${isSelected ? '' : ''}`}
-          style={isSelected ? { backgroundColor: `${accentColor}10` } : undefined}
+          style={isSelected ? { backgroundColor: `${ACCENT_COLOR}10` } : undefined}
         >
           <View className="mr-2">
             {user.thumbUrl ? (
@@ -257,13 +253,12 @@ export const FilterBottomSheet = forwardRef<FilterBottomSheetRef, FilterBottomSh
             )}
           </View>
           <Text
-            className={`flex-1 text-[15px] ${isSelected ? 'font-medium' : ''}`}
-            style={isSelected ? { color: accentColor } : undefined}
+            className={`flex-1 text-[15px] ${isSelected ? 'text-primary font-medium' : ''}`}
             numberOfLines={1}
           >
             {displayName}
           </Text>
-          {isSelected && <Check size={18} color={accentColor} />}
+          {isSelected && <Check size={18} color={ACCENT_COLOR} />}
         </Pressable>
       );
     };
@@ -278,11 +273,10 @@ export const FilterBottomSheet = forwardRef<FilterBottomSheetRef, FilterBottomSh
         key={item.value}
         onPress={onToggle}
         className="border-border flex-row items-center border-b py-3"
-        style={isSelected ? { backgroundColor: `${accentColor}10` } : undefined}
+        style={isSelected ? { backgroundColor: `${ACCENT_COLOR}10` } : undefined}
       >
         <Text
-          className={`flex-1 text-[15px] ${isSelected ? 'font-medium' : ''}`}
-          style={isSelected ? { color: accentColor } : undefined}
+          className={`flex-1 text-[15px] ${isSelected ? 'text-primary font-medium' : ''}`}
           numberOfLines={1}
         >
           {item.value}
@@ -291,7 +285,7 @@ export const FilterBottomSheet = forwardRef<FilterBottomSheetRef, FilterBottomSh
           <Text className="bg-background text-muted-foreground rounded-full px-2 py-0.5 text-xs">
             {item.count}
           </Text>
-          {isSelected && <Check size={18} color={accentColor} />}
+          {isSelected && <Check size={18} color={ACCENT_COLOR} />}
         </View>
       </Pressable>
     );
@@ -325,11 +319,8 @@ export const FilterBottomSheet = forwardRef<FilterBottomSheetRef, FilterBottomSh
             <Text className="ml-2 flex-1 text-[15px]">Users</Text>
             <View className="flex-row items-center gap-2">
               {filters.serverUserIds.length > 0 && (
-                <View
-                  className="min-w-[22px] items-center rounded-full px-2 py-0.5"
-                  style={{ backgroundColor: accentColor }}
-                >
-                  <Text className="text-background text-xs font-semibold">
+                <View className="bg-primary min-w-[22px] items-center rounded-full px-2 py-0.5">
+                  <Text className="text-primary-foreground text-xs font-semibold">
                     {filters.serverUserIds.length}
                   </Text>
                 </View>
@@ -347,11 +338,8 @@ export const FilterBottomSheet = forwardRef<FilterBottomSheetRef, FilterBottomSh
             <Text className="ml-2 flex-1 text-[15px]">Platforms</Text>
             <View className="flex-row items-center gap-2">
               {filters.platforms.length > 0 && (
-                <View
-                  className="min-w-[22px] items-center rounded-full px-2 py-0.5"
-                  style={{ backgroundColor: accentColor }}
-                >
-                  <Text className="text-background text-xs font-semibold">
+                <View className="bg-primary min-w-[22px] items-center rounded-full px-2 py-0.5">
+                  <Text className="text-primary-foreground text-xs font-semibold">
                     {filters.platforms.length}
                   </Text>
                 </View>
@@ -369,11 +357,8 @@ export const FilterBottomSheet = forwardRef<FilterBottomSheetRef, FilterBottomSh
             <Text className="ml-2 flex-1 text-[15px]">Countries</Text>
             <View className="flex-row items-center gap-2">
               {filters.geoCountries.length > 0 && (
-                <View
-                  className="min-w-[22px] items-center rounded-full px-2 py-0.5"
-                  style={{ backgroundColor: accentColor }}
-                >
-                  <Text className="text-background text-xs font-semibold">
+                <View className="bg-primary min-w-[22px] items-center rounded-full px-2 py-0.5">
+                  <Text className="text-primary-foreground text-xs font-semibold">
                     {filters.geoCountries.length}
                   </Text>
                 </View>
@@ -398,14 +383,13 @@ export const FilterBottomSheet = forwardRef<FilterBottomSheetRef, FilterBottomSh
                   className={`flex-row items-center gap-1.5 rounded-lg border px-3 py-2 ${isSelected ? '' : 'border-border bg-background'}`}
                   style={
                     isSelected
-                      ? { borderColor: accentColor, backgroundColor: `${accentColor}15` }
+                      ? { borderColor: ACCENT_COLOR, backgroundColor: `${ACCENT_COLOR}15` }
                       : undefined
                   }
                 >
-                  <Icon size={16} color={isSelected ? accentColor : colors.text.muted.dark} />
+                  <Icon size={16} color={isSelected ? ACCENT_COLOR : colors.text.muted.dark} />
                   <Text
-                    className={`text-[13px] ${isSelected ? '' : 'text-muted-foreground'}`}
-                    style={isSelected ? { color: accentColor } : undefined}
+                    className={`text-[13px] ${isSelected ? 'text-primary' : 'text-muted-foreground'}`}
                   >
                     {label}
                   </Text>
@@ -430,14 +414,13 @@ export const FilterBottomSheet = forwardRef<FilterBottomSheetRef, FilterBottomSh
                   className={`flex-row items-center gap-1.5 rounded-lg border px-3 py-2 ${isSelected ? '' : 'border-border bg-background'}`}
                   style={
                     isSelected
-                      ? { borderColor: accentColor, backgroundColor: `${accentColor}15` }
+                      ? { borderColor: ACCENT_COLOR, backgroundColor: `${ACCENT_COLOR}15` }
                       : undefined
                   }
                 >
-                  <Icon size={16} color={isSelected ? accentColor : colors.text.muted.dark} />
+                  <Icon size={16} color={isSelected ? ACCENT_COLOR : colors.text.muted.dark} />
                   <Text
-                    className={`text-[13px] ${isSelected ? '' : 'text-muted-foreground'}`}
-                    style={isSelected ? { color: accentColor } : undefined}
+                    className={`text-[13px] ${isSelected ? 'text-primary' : 'text-muted-foreground'}`}
                   >
                     {label}
                   </Text>

@@ -9,8 +9,7 @@ import { Circle } from '@shopify/react-native-skia';
 import { useAnimatedReaction, runOnJS } from 'react-native-reanimated';
 import type { SharedValue } from 'react-native-reanimated';
 import { Text } from '@/components/ui/text';
-import { colors } from '../../lib/theme';
-import { useTheme } from '../../providers/ThemeProvider';
+import { colors, ACCENT_COLOR } from '../../lib/theme';
 import { useChartFont } from './useChartFont';
 
 interface DayOfWeekChartProps {
@@ -34,7 +33,6 @@ function ToolTip({
 
 export function DayOfWeekChart({ data, height = 180 }: DayOfWeekChartProps) {
   const font = useChartFont(10);
-  const { accentColor } = useTheme();
   const { state, isActive } = useChartPressState({ x: 0, y: { count: 0 } });
 
   // React state to display values (synced from SharedValues)
@@ -93,7 +91,7 @@ export function DayOfWeekChart({ data, height = 180 }: DayOfWeekChartProps) {
       <View className="mb-1 min-h-[18px] flex-row items-center justify-between px-1">
         {displayValue && selectedDay ? (
           <>
-            <Text className="text-sm font-semibold" style={{ color: accentColor }}>
+            <Text className="text-sm font-semibold" style={{ color: ACCENT_COLOR }}>
               {displayValue.count} plays
             </Text>
             <Text className="text-muted-foreground text-xs">{selectedDay.name}</Text>
@@ -121,12 +119,12 @@ export function DayOfWeekChart({ data, height = 180 }: DayOfWeekChartProps) {
             <Bar
               points={points.count}
               chartBounds={chartBounds}
-              color={accentColor}
+              color={ACCENT_COLOR}
               roundedCorners={{ topLeft: 4, topRight: 4 }}
               animate={{ type: 'timing', duration: 500 }}
             />
             {isActive && (
-              <ToolTip x={state.x.position} y={state.y.count.position} color={accentColor} />
+              <ToolTip x={state.x.position} y={state.y.count.position} color={ACCENT_COLOR} />
             )}
           </>
         )}

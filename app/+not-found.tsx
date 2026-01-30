@@ -6,12 +6,10 @@ import { Stack, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AlertCircle } from 'lucide-react-native';
 import { Text } from '@/components/ui/text';
-import { useTheme } from '@/providers/ThemeProvider';
 import { colors } from '@/lib/theme';
 
 export default function NotFoundScreen() {
   const router = useRouter();
-  const { accentColor } = useTheme();
 
   return (
     <>
@@ -26,8 +24,7 @@ export default function NotFoundScreen() {
             The page you&apos;re looking for doesn&apos;t exist or has been moved.
           </Text>
           <Pressable
-            className="rounded-lg px-6 py-3"
-            style={{ backgroundColor: accentColor }}
+            className="bg-primary rounded-lg px-6 py-3"
             onPress={() => router.replace('/')}
           >
             <Text className="font-semibold text-white">Go Home</Text>

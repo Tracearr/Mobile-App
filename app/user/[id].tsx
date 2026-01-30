@@ -43,14 +43,13 @@ import {
 import { useEffect } from 'react';
 import { api, getServerUrl } from '@/lib/api';
 import { useMediaServer } from '@/providers/MediaServerProvider';
-import { useTheme } from '@/providers/ThemeProvider';
 import { useResponsive } from '@/hooks/useResponsive';
 import { Text } from '@/components/ui/text';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { cn } from '@/lib/utils';
-import { colors, spacing } from '@/lib/theme';
+import { colors, spacing, ACCENT_COLOR } from '@/lib/theme';
 import type {
   Session,
   ViolationWithDetails,
@@ -184,18 +183,14 @@ function formatDuration(ms: number | null): string {
 }
 
 function LocationCard({ location }: { location: UserLocation }) {
-  const { accentColor } = useTheme();
   const locationText =
     [location.city, location.region, location.country].filter(Boolean).join(', ') ||
     'Unknown Location';
 
   return (
     <View className="border-border flex-row items-center gap-3 border-b py-3">
-      <View
-        className="h-8 w-8 items-center justify-center rounded-full"
-        style={{ backgroundColor: `${accentColor}1A` }}
-      >
-        <MapPin size={16} color={accentColor} />
+      <View className="bg-primary/10 h-8 w-8 items-center justify-center rounded-full">
+        <MapPin size={16} color={ACCENT_COLOR} />
       </View>
       <View className="flex-1">
         <Text className="text-sm font-medium">{locationText}</Text>
@@ -210,17 +205,13 @@ function LocationCard({ location }: { location: UserLocation }) {
 }
 
 function DeviceCard({ device }: { device: UserDevice }) {
-  const { accentColor } = useTheme();
   const deviceName = device.playerName || device.device || device.product || 'Unknown Device';
   const platform = device.platform || 'Unknown Platform';
 
   return (
     <View className="border-border flex-row items-center gap-3 border-b py-3">
-      <View
-        className="h-8 w-8 items-center justify-center rounded-full"
-        style={{ backgroundColor: `${accentColor}1A` }}
-      >
-        <Smartphone size={16} color={accentColor} />
+      <View className="bg-primary/10 h-8 w-8 items-center justify-center rounded-full">
+        <Smartphone size={16} color={ACCENT_COLOR} />
       </View>
       <View className="flex-1">
         <Text className="text-sm font-medium">{deviceName}</Text>
@@ -336,7 +327,6 @@ function ViolationCard({
   violation: ViolationWithDetails;
   onAcknowledge: () => void;
 }) {
-  const { accentColor } = useTheme();
   const ruleType = violation.rule?.type as RuleType | undefined;
   const ruleName = ruleType ? ruleLabels[ruleType] : violation.rule?.name || 'Unknown Rule';
   const IconComponent = ruleType ? ruleIcons[ruleType] : AlertTriangle;
@@ -347,7 +337,7 @@ function ViolationCard({
       <View className="mb-2 flex-row items-start justify-between">
         <View className="flex-1 flex-row items-center gap-2">
           <View className="bg-surface h-7 w-7 items-center justify-center rounded-md">
-            <IconComponent size={14} color={accentColor} />
+            <IconComponent size={14} color={ACCENT_COLOR} />
           </View>
           <View className="flex-1">
             <Text className="text-sm font-medium">{ruleName}</Text>
@@ -358,14 +348,11 @@ function ViolationCard({
       </View>
       {!violation.acknowledgedAt ? (
         <Pressable
-          className="mt-2 flex-row items-center justify-center gap-1.5 rounded-md py-2 active:opacity-70"
-          style={{ backgroundColor: `${accentColor}26` }}
+          className="bg-primary/15 mt-2 flex-row items-center justify-center gap-1.5 rounded-md py-2 active:opacity-70"
           onPress={onAcknowledge}
         >
-          <Check size={14} color={accentColor} />
-          <Text className="text-xs font-semibold" style={{ color: accentColor }}>
-            Acknowledge
-          </Text>
+          <Check size={14} color={ACCENT_COLOR} />
+          <Text className="text-primary text-xs font-semibold">Acknowledge</Text>
         </Pressable>
       ) : (
         <View className="mt-2 flex-row items-center gap-1.5">
@@ -378,7 +365,6 @@ function ViolationCard({
 }
 
 function TerminationCard({ termination }: { termination: TerminationLogWithDetails }) {
-  const { accentColor } = useTheme();
   const timeAgo = safeFormatDistanceToNow(termination.createdAt);
   const isManual = termination.trigger === 'manual';
 
@@ -388,9 +374,9 @@ function TerminationCard({ termination }: { termination: TerminationLogWithDetai
         <View className="flex-1 flex-row items-center gap-2">
           <View className="bg-surface h-7 w-7 items-center justify-center rounded-md">
             {isManual ? (
-              <User size={14} color={accentColor} />
+              <User size={14} color={ACCENT_COLOR} />
             ) : (
-              <Bot size={14} color={accentColor} />
+              <Bot size={14} color={ACCENT_COLOR} />
             )}
           </View>
           <View className="flex-1">
@@ -439,7 +425,6 @@ export default function UserDetailScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { selectedServerId } = useMediaServer();
-  const { accentColor } = useTheme();
   const { isTablet, select } = useResponsive();
   const serverUrl = getServerUrl();
 
@@ -584,7 +569,7 @@ export default function UserDetailScreen() {
         edges={['left', 'right', 'bottom']}
       >
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color={accentColor} />
+          <ActivityIndicator size="large" color={ACCENT_COLOR} />
         </View>
       </SafeAreaView>
     );
@@ -625,7 +610,7 @@ export default function UserDetailScreen() {
           <RefreshControl
             refreshing={userRefetching}
             onRefresh={handleRefresh}
-            tintColor={accentColor}
+            tintColor={ACCENT_COLOR}
           />
         }
       >
@@ -699,7 +684,7 @@ export default function UserDetailScreen() {
             </CardHeader>
             <CardContent>
               {locationsLoading ? (
-                <ActivityIndicator size="small" color={accentColor} />
+                <ActivityIndicator size="small" color={ACCENT_COLOR} />
               ) : locations && locations.length > 0 ? (
                 locations
                   .slice(0, 5)
@@ -736,7 +721,7 @@ export default function UserDetailScreen() {
             </CardHeader>
             <CardContent>
               {devicesLoading ? (
-                <ActivityIndicator size="small" color={accentColor} />
+                <ActivityIndicator size="small" color={ACCENT_COLOR} />
               ) : devices && devices.length > 0 ? (
                 devices
                   .slice(0, 5)
@@ -769,7 +754,7 @@ export default function UserDetailScreen() {
           </CardHeader>
           <CardContent>
             {sessionsLoading ? (
-              <ActivityIndicator size="small" color={accentColor} />
+              <ActivityIndicator size="small" color={ACCENT_COLOR} />
             ) : sessions.length > 0 ? (
               <>
                 {sessions.map((session) => (
@@ -787,13 +772,11 @@ export default function UserDetailScreen() {
                     disabled={fetchingMoreSessions}
                   >
                     {fetchingMoreSessions ? (
-                      <ActivityIndicator size="small" color={accentColor} />
+                      <ActivityIndicator size="small" color={ACCENT_COLOR} />
                     ) : (
                       <View className="flex-row items-center gap-1">
-                        <Text className="text-sm font-medium" style={{ color: accentColor }}>
-                          Load More
-                        </Text>
-                        <ChevronRight size={16} color={accentColor} />
+                        <Text className="text-primary text-sm font-medium">Load More</Text>
+                        <ChevronRight size={16} color={ACCENT_COLOR} />
                       </View>
                     )}
                   </Pressable>
@@ -817,7 +800,7 @@ export default function UserDetailScreen() {
           </CardHeader>
           <CardContent>
             {violationsLoading ? (
-              <ActivityIndicator size="small" color={accentColor} />
+              <ActivityIndicator size="small" color={ACCENT_COLOR} />
             ) : violations.length > 0 ? (
               <>
                 {violations.map((violation) => (
@@ -834,13 +817,11 @@ export default function UserDetailScreen() {
                     disabled={fetchingMoreViolations}
                   >
                     {fetchingMoreViolations ? (
-                      <ActivityIndicator size="small" color={accentColor} />
+                      <ActivityIndicator size="small" color={ACCENT_COLOR} />
                     ) : (
                       <View className="flex-row items-center gap-1">
-                        <Text className="text-sm font-medium" style={{ color: accentColor }}>
-                          Load More
-                        </Text>
-                        <ChevronRight size={16} color={accentColor} />
+                        <Text className="text-primary text-sm font-medium">Load More</Text>
+                        <ChevronRight size={16} color={ACCENT_COLOR} />
                       </View>
                     )}
                   </Pressable>
@@ -870,7 +851,7 @@ export default function UserDetailScreen() {
           </CardHeader>
           <CardContent>
             {terminationsLoading ? (
-              <ActivityIndicator size="small" color={accentColor} />
+              <ActivityIndicator size="small" color={ACCENT_COLOR} />
             ) : terminations.length > 0 ? (
               <>
                 {terminations.map((termination) => (
@@ -883,13 +864,11 @@ export default function UserDetailScreen() {
                     disabled={fetchingMoreTerminations}
                   >
                     {fetchingMoreTerminations ? (
-                      <ActivityIndicator size="small" color={accentColor} />
+                      <ActivityIndicator size="small" color={ACCENT_COLOR} />
                     ) : (
                       <View className="flex-row items-center gap-1">
-                        <Text className="text-sm font-medium" style={{ color: accentColor }}>
-                          Load More
-                        </Text>
-                        <ChevronRight size={16} color={accentColor} />
+                        <Text className="text-primary text-sm font-medium">Load More</Text>
+                        <ChevronRight size={16} color={ACCENT_COLOR} />
                       </View>
                     )}
                   </Pressable>

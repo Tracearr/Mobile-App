@@ -20,8 +20,8 @@ import { useAuthStateStore } from '@/lib/authStateStore';
 import { validateServerUrl, isInternalUrl, showInternalUrlWarning } from '@/lib/validation';
 import { ROUTES } from '@/lib/routes';
 import { Text } from '@/components/ui/text';
-import { useTheme } from '@/providers/ThemeProvider';
 import { colors } from '@/lib/theme';
+import { cn } from '@/lib/utils';
 
 interface QRPairingPayload {
   url: string;
@@ -38,7 +38,6 @@ export default function PairScreen() {
   const [scanned, setScanned] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const scanLockRef = useRef(false);
-  const { accentColor } = useTheme();
 
   // Single-server auth model
   const isInitializing = useAuthStateStore((s) => s.isInitializing);
@@ -256,12 +255,14 @@ export default function PairScreen() {
               {error && <Text className="text-destructive text-center text-sm">{error}</Text>}
 
               <Pressable
-                className="mt-2 items-center rounded-md px-6 py-4"
-                style={{ backgroundColor: accentColor, opacity: isLoading ? 0.6 : 1 }}
+                className={cn(
+                  'bg-primary mt-2 items-center rounded-md px-6 py-4',
+                  isLoading && 'opacity-60'
+                )}
                 onPress={handleManualPair}
                 disabled={isLoading}
               >
-                <Text className="text-base font-semibold" style={{ color: '#0d1117' }}>
+                <Text className="text-primary-foreground text-base font-semibold">
                   {isLoading ? 'Connecting...' : 'Connect'}
                 </Text>
               </Pressable>
@@ -271,9 +272,7 @@ export default function PairScreen() {
                 onPress={() => setManualMode(false)}
                 disabled={isLoading}
               >
-                <Text className="text-base" style={{ color: accentColor }}>
-                  Scan QR Code Instead
-                </Text>
+                <Text className="text-primary text-base">Scan QR Code Instead</Text>
               </Pressable>
             </View>
           </ScrollView>
@@ -302,10 +301,7 @@ export default function PairScreen() {
               onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
             />
             <View className="absolute inset-0 items-center justify-center bg-black/30">
-              <View
-                className="h-[250] w-[250] rounded-lg border-2"
-                style={{ borderColor: accentColor }}
-              />
+              <View className="border-primary h-[250] w-[250] rounded-lg border-2" />
             </View>
           </View>
         ) : (
@@ -314,11 +310,10 @@ export default function PairScreen() {
               Camera permission is required to scan QR codes
             </Text>
             <Pressable
-              className="items-center rounded-md px-6 py-4"
-              style={{ backgroundColor: accentColor }}
+              className="bg-primary items-center rounded-md px-6 py-4"
               onPress={requestPermission}
             >
-              <Text className="text-base font-semibold" style={{ color: '#0d1117' }}>
+              <Text className="text-primary-foreground text-base font-semibold">
                 Grant Permission
               </Text>
             </Pressable>
@@ -328,9 +323,7 @@ export default function PairScreen() {
 
       <View className="items-center px-6 pb-6">
         <Pressable className="items-center py-4" onPress={() => setManualMode(true)}>
-          <Text className="text-base" style={{ color: accentColor }}>
-            Enter URL and Token Manually
-          </Text>
+          <Text className="text-primary text-base">Enter URL and Token Manually</Text>
         </Pressable>
       </View>
     </SafeAreaView>

@@ -29,13 +29,12 @@ import {
 } from 'lucide-react-native';
 import { api } from '@/lib/api';
 import { useMediaServer } from '@/providers/MediaServerProvider';
-import { useTheme } from '@/providers/ThemeProvider';
 import { useResponsive } from '@/hooks/useResponsive';
 import { Text } from '@/components/ui/text';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { UserAvatar } from '@/components/ui/user-avatar';
-import { colors, spacing } from '@/lib/theme';
+import { colors, spacing, ACCENT_COLOR } from '@/lib/theme';
 import type {
   ViolationWithDetails,
   RuleType,
@@ -146,11 +145,10 @@ function SeverityBadge({ severity }: { severity: string }) {
 }
 
 function RuleIcon({ ruleType }: { ruleType: RuleType | undefined }) {
-  const { accentColor } = useTheme();
   const IconComponent = ruleType ? ruleIcons[ruleType] : AlertTriangle;
   return (
     <View className="bg-surface h-8 w-8 items-center justify-center rounded-lg">
-      <IconComponent size={16} color={accentColor} />
+      <IconComponent size={16} color={ACCENT_COLOR} />
     </View>
   );
 }
@@ -162,14 +160,13 @@ interface FilterChipProps {
 }
 
 function FilterChip({ label, active, onPress }: FilterChipProps) {
-  const { accentColor } = useTheme();
   return (
     <Pressable
       onPress={onPress}
       className="rounded-full border px-4 py-1"
       style={{
-        backgroundColor: active ? accentColor : colors.card.dark,
-        borderColor: active ? accentColor : colors.border.dark,
+        backgroundColor: active ? ACCENT_COLOR : colors.card.dark,
+        borderColor: active ? ACCENT_COLOR : colors.border.dark,
       }}
     >
       <Text
@@ -198,7 +195,6 @@ function ViolationCard({
   unitSystem: UnitSystem;
   isTablet?: boolean;
 }) {
-  const { accentColor } = useTheme();
   const displayName = violation.user?.identityName ?? violation.user?.username ?? 'Unknown User';
   const username = violation.user?.username ?? 'Unknown';
   const ruleType = violation.rule?.type as RuleType | undefined;
@@ -234,9 +230,7 @@ function ViolationCard({
         <View className="mb-3 flex-row items-start gap-3">
           <RuleIcon ruleType={ruleType} />
           <View className="flex-1">
-            <Text className="mb-1 text-sm font-medium" style={{ color: accentColor }}>
-              {ruleName}
-            </Text>
+            <Text className="text-primary mb-1 text-sm font-medium">{ruleName}</Text>
             <Text className="text-secondary text-sm leading-5" numberOfLines={2}>
               {description}
             </Text>
@@ -246,17 +240,14 @@ function ViolationCard({
         {/* Action Button */}
         {!violation.acknowledgedAt ? (
           <Pressable
-            className="flex-row items-center justify-center gap-2 rounded-lg py-2.5 active:opacity-70"
-            style={{ backgroundColor: `${accentColor}26` }}
+            className="bg-primary/15 flex-row items-center justify-center gap-2 rounded-lg py-2.5 active:opacity-70"
             onPress={(e) => {
               e.stopPropagation();
               onAcknowledge();
             }}
           >
-            <Check size={16} color={accentColor} />
-            <Text className="text-sm font-semibold" style={{ color: accentColor }}>
-              Acknowledge
-            </Text>
+            <Check size={16} color={ACCENT_COLOR} />
+            <Text className="text-primary text-sm font-semibold">Acknowledge</Text>
           </Pressable>
         ) : (
           <View className="bg-success/10 flex-row items-center justify-center gap-2 rounded-lg py-2.5">
@@ -273,7 +264,6 @@ export default function AlertsScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { selectedServerId } = useMediaServer();
-  const { accentColor } = useTheme();
   const { isTablet, select } = useResponsive();
   const insets = useSafeAreaInsets();
 
@@ -407,7 +397,7 @@ export default function AlertsScreen() {
         onEndReached={handleEndReached}
         onEndReachedThreshold={0.5}
         refreshControl={
-          <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={accentColor} />
+          <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={ACCENT_COLOR} />
         }
         ListHeaderComponent={
           <View className="mb-4">
@@ -476,7 +466,7 @@ export default function AlertsScreen() {
         ListFooterComponent={
           isFetchingNextPage ? (
             <View className="items-center py-4">
-              <ActivityIndicator size="small" color={accentColor} />
+              <ActivityIndicator size="small" color={ACCENT_COLOR} />
             </View>
           ) : null
         }

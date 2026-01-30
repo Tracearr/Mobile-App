@@ -32,14 +32,13 @@ import {
 } from 'lucide-react-native';
 import { api } from '@/lib/api';
 import { useMediaServer } from '@/providers/MediaServerProvider';
-import { useTheme } from '@/providers/ThemeProvider';
 import { useResponsive } from '@/hooks/useResponsive';
 import { Text } from '@/components/ui/text';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { ActionResultsList } from '@/components/violations/ActionResultsList';
-import { colors, spacing } from '@/lib/theme';
+import { colors, spacing, ACCENT_COLOR } from '@/lib/theme';
 import { formatSpeed } from '@tracearr/shared';
 import type {
   ViolationWithDetails,
@@ -177,7 +176,6 @@ interface StreamCardProps {
 }
 
 function StreamCard({ session, index, isTriggering, userHistory }: StreamCardProps) {
-  const { accentColor } = useTheme();
   const MediaIcon = getMediaIcon(session.mediaType);
 
   // Check if values are new (not seen before)
@@ -200,7 +198,7 @@ function StreamCard({ session, index, isTriggering, userHistory }: StreamCardPro
   return (
     <Card
       className={isTriggering ? 'bg-surface/50' : ''}
-      style={isTriggering ? { borderColor: `${accentColor}80` } : undefined}
+      style={isTriggering ? { borderColor: `${ACCENT_COLOR}80` } : undefined}
     >
       {/* Header */}
       <View className="mb-3">
@@ -209,10 +207,8 @@ function StreamCard({ session, index, isTriggering, userHistory }: StreamCardPro
             {isTriggering ? 'Triggering Stream' : `Stream #${index + 1}`}
           </Text>
           {isTriggering && (
-            <View className="rounded px-1.5 py-0.5" style={{ backgroundColor: `${accentColor}33` }}>
-              <Text className="text-xs" style={{ color: accentColor }}>
-                Primary
-              </Text>
+            <View className="bg-primary/20 rounded px-1.5 py-0.5">
+              <Text className="text-primary text-xs">Primary</Text>
             </View>
           )}
         </View>
@@ -319,7 +315,6 @@ export default function ViolationDetailScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { selectedServerId } = useMediaServer();
-  const { accentColor } = useTheme();
   const { isTablet, select } = useResponsive();
 
   // Responsive values
@@ -452,11 +447,7 @@ export default function ViolationDetailScreen() {
           <Text className="text-muted-foreground text-center text-sm">
             This violation may have been dismissed or is no longer available.
           </Text>
-          <Pressable
-            className="mt-6 rounded-lg px-6 py-3"
-            style={{ backgroundColor: accentColor }}
-            onPress={() => router.back()}
-          >
+          <Pressable className="bg-primary mt-6 rounded-lg px-6 py-3" onPress={() => router.back()}>
             <Text className="font-semibold text-white">Go Back</Text>
           </Pressable>
         </View>
@@ -508,11 +499,8 @@ export default function ViolationDetailScreen() {
         {/* Rule Info */}
         <Card className="mb-4">
           <View className="mb-3 flex-row items-center gap-3">
-            <View
-              className="h-10 w-10 items-center justify-center rounded-lg"
-              style={{ backgroundColor: `${accentColor}26` }}
-            >
-              <IconComponent size={20} color={accentColor} />
+            <View className="bg-primary/15 h-10 w-10 items-center justify-center rounded-lg">
+              <IconComponent size={20} color={ACCENT_COLOR} />
             </View>
             <View className="flex-1">
               <Text className="text-base font-semibold">{violation.rule?.name || ruleName}</Text>
@@ -625,8 +613,7 @@ export default function ViolationDetailScreen() {
         <View style={{ flexDirection: isTablet ? 'row' : 'column', gap: spacing.sm }}>
           {isPending && (
             <Pressable
-              className="flex-1 flex-row items-center justify-center gap-2 rounded-lg py-3.5"
-              style={{ backgroundColor: accentColor }}
+              className="bg-primary flex-1 flex-row items-center justify-center gap-2 rounded-lg py-3.5"
               onPress={handleAcknowledge}
               disabled={acknowledgeMutation.isPending}
             >

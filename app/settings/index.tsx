@@ -13,13 +13,9 @@ import {
   Server,
   MessageCircle,
   Code2,
-  Palette,
-  Moon,
 } from 'lucide-react-native';
 import Constants from 'expo-constants';
 import { Text } from '@/components/ui/text';
-import { AccentColorPicker } from '@/components/settings/AccentColorPicker';
-import { ThemePreferencePicker } from '@/components/settings/ThemePreferencePicker';
 import { useAuthStateStore } from '@/lib/authStateStore';
 
 const DISCORD_URL = 'https://discord.gg/a7n3sFd2Yw';
@@ -119,25 +115,6 @@ export default function SettingsScreen() {
             description="Configure push notification preferences"
             onPress={() => router.push('/settings/notifications')}
           />
-        </SettingsSection>
-
-        {/* Appearance */}
-        <SettingsSection title="Appearance">
-          <View className="p-4">
-            <View className="mb-4 flex-row items-center gap-4">
-              <Moon size={20} className="text-muted-foreground" />
-              <Text className="text-[15px] font-medium">Theme</Text>
-            </View>
-            <ThemePreferencePicker />
-          </View>
-          <View className="bg-border mx-4 h-px" />
-          <View className="p-4">
-            <View className="mb-4 flex-row items-center gap-4">
-              <Palette size={20} className="text-muted-foreground" />
-              <Text className="text-[15px] font-medium">Accent Color</Text>
-            </View>
-            <AccentColorPicker />
-          </View>
         </SettingsSection>
 
         {/* Links */}

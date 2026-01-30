@@ -16,8 +16,7 @@ import {
 } from 'lucide-react-native';
 import { Text } from '@/components/ui/text';
 import { useImageUrl } from '@/hooks/useImageUrl';
-import { useTheme } from '@/providers/ThemeProvider';
-import { colors } from '@/lib/theme';
+import { ACCENT_COLOR, colors } from '@/lib/theme';
 import { formatDuration, formatListTimestamp } from '@/lib/formatters';
 import type { SessionWithDetails, MediaType } from '@tracearr/shared';
 
@@ -75,7 +74,6 @@ function MediaTypeIcon({ type }: { type: MediaType }) {
 
 // Quality badge showing transcode status
 function QualityBadge({ session }: { session: SessionWithDetails }) {
-  const { accentColor } = useTheme();
   const isTranscode = session.isTranscode ?? false;
   const isCopy = session.videoDecision === 'copy' || session.audioDecision === 'copy';
 
@@ -97,12 +95,10 @@ function QualityBadge({ session }: { session: SessionWithDetails }) {
     return (
       <View
         className="flex-row items-center gap-1 rounded-sm px-1.5 py-0.5"
-        style={{ backgroundColor: `${accentColor}15` }}
+        style={{ backgroundColor: `${ACCENT_COLOR}15` }}
       >
-        <MonitorPlay size={10} color={accentColor} />
-        <Text className="text-[10px] font-semibold" style={{ color: accentColor }}>
-          Direct Stream
-        </Text>
+        <MonitorPlay size={10} color={ACCENT_COLOR} />
+        <Text className="text-primary text-[10px] font-semibold">Direct Stream</Text>
       </View>
     );
   }
@@ -110,7 +106,7 @@ function QualityBadge({ session }: { session: SessionWithDetails }) {
   return (
     <View
       className="flex-row items-center gap-1 rounded-sm px-1.5 py-0.5"
-      style={{ backgroundColor: `${accentColor}15` }}
+      style={{ backgroundColor: `${ACCENT_COLOR}15` }}
     >
       <Play size={10} color={colors.success} fill={colors.success} />
       <Text className="text-[10px] font-semibold" style={{ color: colors.success }}>
@@ -122,14 +118,10 @@ function QualityBadge({ session }: { session: SessionWithDetails }) {
 
 // Progress bar component
 function ProgressBar({ progress }: { progress: number }) {
-  const { accentColor } = useTheme();
   return (
     <View className="flex-1 flex-row items-center gap-1.5">
       <View className="bg-card h-1 flex-1 overflow-hidden rounded-sm">
-        <View
-          className="h-full rounded-sm"
-          style={{ width: `${progress}%`, backgroundColor: accentColor }}
-        />
+        <View className="bg-primary h-full rounded-sm" style={{ width: `${progress}%` }} />
       </View>
       <Text className="text-muted-foreground w-7 text-right text-[10px]">{progress}%</Text>
     </View>

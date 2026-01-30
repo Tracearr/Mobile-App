@@ -6,7 +6,6 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { View, Pressable, TextInput } from 'react-native';
 import { Search, X, SlidersHorizontal } from 'lucide-react-native';
 import { Text } from '@/components/ui/text';
-import { useTheme } from '@/providers/ThemeProvider';
 import { colors } from '@/lib/theme';
 
 export type TimePeriod = '7d' | '30d' | '90d' | '1y' | 'all';
@@ -67,7 +66,6 @@ export function HistoryFilters({
   activeFilterCount,
   onFilterPress,
 }: HistoryFiltersProps) {
-  const { accentColor } = useTheme();
   const [localSearch, setLocalSearch] = useState(search);
 
   // Sync with external search value
@@ -123,11 +121,10 @@ export function HistoryFilters({
         >
           <SlidersHorizontal size={18} className="text-foreground" />
           {activeFilterCount > 0 && (
-            <View
-              className="absolute top-1 right-1 min-w-4 items-center justify-center rounded-full px-1"
-              style={{ backgroundColor: accentColor }}
-            >
-              <Text className="bg-background text-[10px] font-bold">{activeFilterCount}</Text>
+            <View className="bg-primary absolute top-1 right-1 min-w-4 items-center justify-center rounded-full px-1">
+              <Text className="text-primary-foreground text-[10px] font-bold">
+                {activeFilterCount}
+              </Text>
             </View>
           )}
         </Pressable>

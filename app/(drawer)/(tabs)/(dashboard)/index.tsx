@@ -14,7 +14,6 @@ import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '@/lib/api';
 import { useMediaServer } from '@/providers/MediaServerProvider';
-import { useTheme } from '@/providers/ThemeProvider';
 import { useServerStatistics } from '@/hooks/useServerStatistics';
 import { useResponsive } from '@/hooks/useResponsive';
 import { StreamMap } from '@/components/map/StreamMap';
@@ -22,7 +21,7 @@ import { NowPlayingCard } from '@/components/sessions';
 import { ServerResourceCard } from '@/components/server/ServerResourceCard';
 import { Text } from '@/components/ui/text';
 import { Card } from '@/components/ui/card';
-import { colors, spacing } from '@/lib/theme';
+import { colors, spacing, ACCENT_COLOR } from '@/lib/theme';
 
 /**
  * Compact stat pill for dashboard summary bar
@@ -63,7 +62,6 @@ export default function DashboardScreen() {
   const router = useRouter();
   const navigation = useNavigation();
   const { selectedServerId, selectedServer } = useMediaServer();
-  const { accentColor } = useTheme();
   const { isTablet, columns, select } = useResponsive();
 
   const {
@@ -104,7 +102,7 @@ export default function DashboardScreen() {
         contentContainerClassName="pb-8"
         contentInsetAdjustmentBehavior="automatic"
         refreshControl={
-          <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={accentColor} />
+          <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={ACCENT_COLOR} />
         }
       >
         {/* Today's Stats Bar */}
@@ -147,7 +145,7 @@ export default function DashboardScreen() {
         <View style={{ marginBottom: spacing.md, paddingHorizontal: horizontalPadding }}>
           <View className="mb-3 flex-row items-center justify-between">
             <View className="flex-row items-center gap-2">
-              <Ionicons name="tv-outline" size={18} color={accentColor} />
+              <Ionicons name="tv-outline" size={18} color={ACCENT_COLOR} />
               <Text className="text-muted-foreground text-sm font-semibold tracking-wide uppercase">
                 Now Playing
               </Text>
@@ -161,7 +159,7 @@ export default function DashboardScreen() {
                   borderRadius: 12,
                 }}
               >
-                <Text style={{ color: accentColor, fontSize: 12, fontWeight: '600' }}>
+                <Text style={{ color: ACCENT_COLOR, fontSize: 12, fontWeight: '600' }}>
                   {activeSessions.length} {activeSessions.length === 1 ? 'stream' : 'streams'}
                 </Text>
               </View>
@@ -216,7 +214,7 @@ export default function DashboardScreen() {
         {activeSessions && activeSessions.length > 0 && (
           <View style={{ marginBottom: spacing.md, paddingHorizontal: horizontalPadding }}>
             <View className="mb-3 flex-row items-center gap-2">
-              <Ionicons name="location-outline" size={18} color={accentColor} />
+              <Ionicons name="location-outline" size={18} color={ACCENT_COLOR} />
               <Text className="text-muted-foreground text-sm font-semibold tracking-wide uppercase">
                 Stream Locations
               </Text>
@@ -229,7 +227,7 @@ export default function DashboardScreen() {
         {isPlexServer && (
           <View style={{ paddingHorizontal: horizontalPadding }}>
             <View className="mb-3 flex-row items-center gap-2">
-              <Ionicons name="server-outline" size={18} color={accentColor} />
+              <Ionicons name="server-outline" size={18} color={ACCENT_COLOR} />
               <Text className="text-muted-foreground text-sm font-semibold tracking-wide uppercase">
                 Server Resources
               </Text>

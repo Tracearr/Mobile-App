@@ -9,8 +9,7 @@ import { Circle } from '@shopify/react-native-skia';
 import { useAnimatedReaction, runOnJS } from 'react-native-reanimated';
 import type { SharedValue } from 'react-native-reanimated';
 import { Text } from '@/components/ui/text';
-import { colors } from '../../lib/theme';
-import { useTheme } from '../../providers/ThemeProvider';
+import { colors, ACCENT_COLOR } from '../../lib/theme';
 import { useChartFont } from './useChartFont';
 
 interface PlaysChartProps {
@@ -32,7 +31,6 @@ function ToolTip({
 
 export function PlaysChart({ data, height = 200 }: PlaysChartProps) {
   const font = useChartFont(10);
-  const { accentColor } = useTheme();
   const { state, isActive } = useChartPressState({ x: 0, y: { count: 0 } });
 
   // React state to display values (synced from SharedValues)
@@ -97,7 +95,7 @@ export function PlaysChart({ data, height = 200 }: PlaysChartProps) {
       <View className="mb-1 min-h-[20px] flex-row items-center justify-between px-1">
         {displayValue ? (
           <>
-            <Text className="text-sm font-semibold" style={{ color: accentColor }}>
+            <Text className="text-sm font-semibold" style={{ color: ACCENT_COLOR }}>
               {displayValue.count} plays
             </Text>
             <Text className="text-muted-foreground text-xs">{dateLabel}</Text>
@@ -130,12 +128,12 @@ export function PlaysChart({ data, height = 200 }: PlaysChartProps) {
             <Area
               points={points.count}
               y0={chartBounds.bottom}
-              color={accentColor}
+              color={ACCENT_COLOR}
               opacity={0.6}
               animate={{ type: 'timing', duration: 500 }}
             />
             {isActive && (
-              <ToolTip x={state.x.position} y={state.y.count.position} color={accentColor} />
+              <ToolTip x={state.x.position} y={state.y.count.position} color={ACCENT_COLOR} />
             )}
           </>
         )}

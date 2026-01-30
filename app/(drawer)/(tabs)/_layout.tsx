@@ -7,16 +7,14 @@ import { Platform } from 'react-native';
 import { NativeTabs } from 'expo-router/unstable-native-tabs';
 import { VectorIcon } from 'expo-router';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { useTheme } from '@/providers/ThemeProvider';
+import { ACCENT_COLOR } from '@/lib/theme';
 
 export default function TabLayout() {
-  const { accentColor } = useTheme();
-
   // On iOS, use SF Symbols. On Android, use Material Community Icons via VectorIcon.
   const isIOS = Platform.OS === 'ios';
 
   return (
-    <NativeTabs tintColor={accentColor} minimizeBehavior="onScrollDown">
+    <NativeTabs tintColor={ACCENT_COLOR} minimizeBehavior="onScrollDown">
       <NativeTabs.Trigger name="(dashboard)">
         {isIOS ? (
           <NativeTabs.Trigger.Icon

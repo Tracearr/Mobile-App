@@ -6,12 +6,10 @@ import { useState } from 'react';
 import { View, Text, TouchableOpacity, Modal, Pressable, ActivityIndicator } from 'react-native';
 import { Server, ChevronDown, Check } from 'lucide-react-native';
 import { useMediaServer } from '../providers/MediaServerProvider';
-import { useTheme } from '../providers/ThemeProvider';
-import { colors } from '../lib/theme';
+import { ACCENT_COLOR, colors } from '../lib/theme';
 
 export function ServerSelector() {
   const { servers, selectedServer, selectedServerId, selectServer, isLoading } = useMediaServer();
-  const { accentColor } = useTheme();
   const [modalVisible, setModalVisible] = useState(false);
 
   // Don't show if loading or no servers
@@ -50,7 +48,7 @@ export function ServerSelector() {
         className="flex-row items-center px-3 py-2"
         activeOpacity={0.7}
       >
-        <Server size={16} color={accentColor} />
+        <Server size={16} color={ACCENT_COLOR} />
         <Text className="ml-2 text-sm font-medium text-white" numberOfLines={1}>
           {selectedServer?.name ?? 'Select Server'}
         </Text>
@@ -85,14 +83,14 @@ export function ServerSelector() {
                   <View className="flex-1 flex-row items-center">
                     <Server
                       size={20}
-                      color={server.id === selectedServerId ? accentColor : colors.text.muted.dark}
+                      color={server.id === selectedServerId ? ACCENT_COLOR : colors.text.muted.dark}
                     />
                     <View className="ml-3 flex-1">
                       <Text
                         className="text-base"
                         style={{
                           fontWeight: server.id === selectedServerId ? '500' : '400',
-                          color: server.id === selectedServerId ? accentColor : 'white',
+                          color: server.id === selectedServerId ? ACCENT_COLOR : 'white',
                         }}
                         numberOfLines={1}
                       >
@@ -101,7 +99,7 @@ export function ServerSelector() {
                       <Text className="text-xs text-gray-500 capitalize">{server.type}</Text>
                     </View>
                   </View>
-                  {server.id === selectedServerId && <Check size={20} color={accentColor} />}
+                  {server.id === selectedServerId && <Check size={20} color={ACCENT_COLOR} />}
                 </TouchableOpacity>
               ))}
             </View>

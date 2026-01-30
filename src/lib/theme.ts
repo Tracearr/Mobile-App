@@ -10,6 +10,14 @@
  * - hsl(240 6% 10%)  = #18181B (surface/sidebar)
  */
 
+/**
+ * Primary accent color - use for native components that need a color prop
+ * (ActivityIndicator, charts, etc.) where Tailwind classes don't work.
+ * For UI elements, prefer using className="bg-primary" or "text-primary".
+ * Matches --color-primary in global.css
+ */
+export const ACCENT_COLOR = '#18D1E7';
+
 export const colors = {
   // Brand colors (Tracearr identity - cyan accent hue 187)
   cyan: {

@@ -12,23 +12,21 @@ import { Text } from '@/components/ui/text';
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { ServerSelector } from '@/components/ServerSelector';
 import { api } from '@/lib/api';
-import { useTheme } from '@/providers/ThemeProvider';
-import { spacing, withAlpha } from '@/lib/theme';
+import { ACCENT_COLOR, spacing, withAlpha } from '@/lib/theme';
 
 interface DrawerItemProps {
   icon: React.ReactNode;
   label: string;
   onPress: () => void;
   showChevron?: boolean;
-  accentColor: string;
 }
 
-function DrawerItem({ icon, label, onPress, showChevron = true, accentColor }: DrawerItemProps) {
+function DrawerItem({ icon, label, onPress, showChevron = true }: DrawerItemProps) {
   return (
     <Pressable
       onPress={onPress}
       className="flex-row items-center justify-between px-4 py-3.5"
-      android_ripple={{ color: withAlpha(accentColor, '20') }}
+      android_ripple={{ color: withAlpha(ACCENT_COLOR, '20') }}
     >
       <View className="flex-row items-center gap-4">
         {icon}
@@ -53,7 +51,6 @@ function DrawerSection({ title, children }: { title: string; children: React.Rea
 export function DrawerContent(props: DrawerContentComponentProps) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { accentColor } = useTheme();
 
   // Fetch current user profile
   const { data: user, isLoading: userLoading } = useQuery({
@@ -73,9 +70,7 @@ export function DrawerContent(props: DrawerContentComponentProps) {
       <ScrollView className="flex-1" contentContainerStyle={{ paddingTop: spacing.md }}>
         {/* App Title */}
         <View className="border-border mb-4 border-b px-6 pb-6">
-          <Text className="text-2xl font-bold" style={{ color: accentColor }}>
-            Tracearr
-          </Text>
+          <Text className="text-primary text-2xl font-bold">Tracearr</Text>
         </View>
 
         {/* Server Section - uses existing ServerSelector */}
@@ -91,7 +86,6 @@ export function DrawerContent(props: DrawerContentComponentProps) {
             icon={<Settings size={20} className="text-muted-foreground" />}
             label="Settings"
             onPress={handleSettingsPress}
-            accentColor={accentColor}
           />
         </DrawerSection>
       </ScrollView>
@@ -102,7 +96,7 @@ export function DrawerContent(props: DrawerContentComponentProps) {
         style={{ paddingBottom: insets.bottom + (spacing.md as number) }}
       >
         {userLoading ? (
-          <ActivityIndicator size="small" color={accentColor} />
+          <ActivityIndicator size="small" color={ACCENT_COLOR} />
         ) : user ? (
           <View className="flex-row items-center gap-4">
             <UserAvatar thumbUrl={user.thumbUrl} username={user.username} size={40} />

@@ -11,12 +11,10 @@ import { Unlink } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useShallow } from 'zustand/react/shallow';
 import { useAuthStateStore } from '../lib/authStateStore';
-import { useTheme } from '../providers/ThemeProvider';
 import { colors } from '../lib/theme';
 
 export function UnauthenticatedScreen() {
   const router = useRouter();
-  const { accentColor } = useTheme();
   const { cachedServerUrl, cachedServerName } = useAuthStateStore(
     useShallow((s) => ({
       cachedServerUrl: s._cachedServerUrl,
@@ -56,11 +54,10 @@ export function UnauthenticatedScreen() {
         </Text>
 
         <Pressable
-          className="mb-4 w-full items-center rounded-md px-8 py-4"
-          style={{ backgroundColor: accentColor }}
+          className="bg-primary mb-4 w-full items-center rounded-md px-8 py-4"
           onPress={() => void handleScanQR()}
         >
-          <Text className="text-background text-base font-semibold">Scan QR Code</Text>
+          <Text className="text-primary-foreground text-base font-semibold">Scan QR Code</Text>
         </Pressable>
 
         <Pressable className="py-4" onPress={() => void handleManualEntry()}>
