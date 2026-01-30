@@ -8,6 +8,7 @@ import { View, Pressable, Animated } from 'react-native';
 import { Text } from '@/components/ui/text';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WifiOff } from 'lucide-react-native';
+import { useShallow } from 'zustand/react/shallow';
 import { useAuthStateStore } from '../lib/authStateStore';
 import { colors, spacing, withAlpha } from '../lib/theme';
 
@@ -16,9 +17,13 @@ interface OfflineBannerProps {
 }
 
 export function OfflineBanner({ onRetry }: OfflineBannerProps) {
-  const connectionState = useAuthStateStore((s) => s.connectionState);
-  const server = useAuthStateStore((s) => s.server);
-  const tokenStatus = useAuthStateStore((s) => s.tokenStatus);
+  const { connectionState, server, tokenStatus } = useAuthStateStore(
+    useShallow((s) => ({
+      connectionState: s.connectionState,
+      server: s.server,
+      tokenStatus: s.tokenStatus,
+    }))
+  );
   const insets = useSafeAreaInsets();
   const pulseAnim = useRef(new Animated.Value(1)).current;
 

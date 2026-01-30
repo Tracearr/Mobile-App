@@ -6,6 +6,7 @@
 import { useEffect, useCallback, useRef } from 'react';
 import { AppState } from 'react-native';
 import type { AppStateStatus } from 'react-native';
+import { useShallow } from 'zustand/react/shallow';
 import { useAuthStateStore } from '../lib/authStateStore';
 import { api } from '../lib/api';
 import type { AxiosError } from 'axios';
@@ -13,9 +14,14 @@ import type { AxiosError } from 'axios';
 type ValidationResult = 'connected' | 'reconnected' | 'disconnected' | 'unauthenticated' | 'error';
 
 export function useConnectionValidator() {
-  // Use single-server auth state store
-  const connectionState = useAuthStateStore((s) => s.connectionState);
-  const server = useAuthStateStore((s) => s.server);
+  // Use single-server auth state store with shallow compare for state values
+  const { connectionState, server } = useAuthStateStore(
+    useShallow((s) => ({
+      connectionState: s.connectionState,
+      server: s.server,
+    }))
+  );
+  // Actions are stable references, no need for shallow compare
   const setConnectionState = useAuthStateStore((s) => s.setConnectionState);
   const setError = useAuthStateStore((s) => s.setError);
   const handleAuthFailure = useAuthStateStore((s) => s.handleAuthFailure);

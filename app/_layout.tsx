@@ -19,17 +19,22 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { OfflineBanner } from '@/components/OfflineBanner';
 import { UnauthenticatedScreen } from '@/components/UnauthenticatedScreen';
 import { Toast } from '@/components/Toast';
+import { useShallow } from 'zustand/react/shallow';
 import { useAuthStateStore } from '@/lib/authStateStore';
 import { useConnectionValidator } from '@/hooks/useConnectionValidator';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { useTheme } from '@/providers/ThemeProvider';
 
 function RootLayoutNav() {
-  // Use single-server auth state store
-  const server = useAuthStateStore((s) => s.server);
-  const isInitializing = useAuthStateStore((s) => s.isInitializing);
-  const connectionState = useAuthStateStore((s) => s.connectionState);
-  const tokenStatus = useAuthStateStore((s) => s.tokenStatus);
+  // Use single-server auth state store with shallow compare for performance
+  const { server, isInitializing, connectionState, tokenStatus } = useAuthStateStore(
+    useShallow((s) => ({
+      server: s.server,
+      isInitializing: s.isInitializing,
+      connectionState: s.connectionState,
+      tokenStatus: s.tokenStatus,
+    }))
+  );
   const { accentColor } = useTheme();
 
   // Derived auth state

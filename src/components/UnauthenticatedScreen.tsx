@@ -9,6 +9,7 @@ import { Text } from '@/components/ui/text';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Unlink } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
+import { useShallow } from 'zustand/react/shallow';
 import { useAuthStateStore } from '../lib/authStateStore';
 import { useTheme } from '../providers/ThemeProvider';
 import { colors } from '../lib/theme';
@@ -16,8 +17,12 @@ import { colors } from '../lib/theme';
 export function UnauthenticatedScreen() {
   const router = useRouter();
   const { accentColor } = useTheme();
-  const cachedServerUrl = useAuthStateStore((s) => s._cachedServerUrl);
-  const cachedServerName = useAuthStateStore((s) => s._cachedServerName);
+  const { cachedServerUrl, cachedServerName } = useAuthStateStore(
+    useShallow((s) => ({
+      cachedServerUrl: s._cachedServerUrl,
+      cachedServerName: s._cachedServerName,
+    }))
+  );
   const unpairServer = useAuthStateStore((s) => s.unpairServer);
 
   const handleScanQR = async () => {

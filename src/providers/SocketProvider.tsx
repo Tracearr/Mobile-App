@@ -8,6 +8,7 @@ import type { Socket } from 'socket.io-client';
 import { AppState } from 'react-native';
 import type { AppStateStatus } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
+import { useShallow } from 'zustand/react/shallow';
 import { useAuthStateStore, getAccessToken } from '../lib/authStateStore';
 import type {
   ServerToClientEvents,
@@ -36,14 +37,18 @@ export function useSocket() {
 }
 
 export function SocketProvider({ children }: { children: React.ReactNode }) {
-  // Use the single-server auth state store
-  const server = useAuthStateStore((s) => s.server);
-  const tokenStatus = useAuthStateStore((s) => s.tokenStatus);
+  // Use the single-server auth state store with shallow compare
+  const { server, tokenStatus, connectionState, isInitializing } = useAuthStateStore(
+    useShallow((s) => ({
+      server: s.server,
+      tokenStatus: s.tokenStatus,
+      connectionState: s.connectionState,
+      isInitializing: s.isInitializing,
+    }))
+  );
   const isAuthenticated = server !== null && tokenStatus !== 'revoked';
   const serverId = server?.id ?? null;
   const serverUrl = server?.url ?? null;
-  const connectionState = useAuthStateStore((s) => s.connectionState);
-  const isInitializing = useAuthStateStore((s) => s.isInitializing);
 
   const queryClient = useQueryClient();
   const socketRef = useRef<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null);
