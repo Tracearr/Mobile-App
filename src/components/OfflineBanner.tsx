@@ -5,6 +5,7 @@
  */
 import React, { useEffect, useRef } from 'react';
 import { View, Text, Pressable, StyleSheet, Animated } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WifiOff } from 'lucide-react-native';
 import { useAuthStateStore } from '../lib/authStateStore';
 import { colors, spacing, borderRadius, typography, withAlpha } from '../lib/theme';
@@ -15,7 +16,14 @@ interface OfflineBannerProps {
 
 export function OfflineBanner({ onRetry }: OfflineBannerProps) {
   const connectionState = useAuthStateStore((s) => s.connectionState);
+  const servers = useAuthStateStore((s) => s.servers);
+  const activeServer = useAuthStateStore((s) => s.activeServer);
+  const insets = useSafeAreaInsets();
   const pulseAnim = useRef(new Animated.Value(1)).current;
+
+  // Only show offline banner if user is authenticated (has paired servers)
+  // and connection is lost. Don't show on fresh install or during pairing.
+  const isAuthenticated = servers.length > 0 && activeServer !== null;
 
   useEffect(() => {
     if (connectionState === 'disconnected') {
@@ -38,18 +46,18 @@ export function OfflineBanner({ onRetry }: OfflineBannerProps) {
     }
   }, [connectionState, pulseAnim]);
 
-  if (connectionState !== 'disconnected') return null;
+  if (connectionState !== 'disconnected' || !isAuthenticated) return null;
 
   return (
-    <View style={styles.banner}>
+    <View style={[styles.banner, { paddingTop: insets.top + spacing.sm }]}>
       <View style={styles.left}>
         <Animated.View style={{ opacity: pulseAnim }}>
           <WifiOff size={16} color={colors.warning} />
         </Animated.View>
-        <Text style={styles.text}>Offline - data may be stale</Text>
+        <Text style={styles.text}>Connection lost</Text>
       </View>
       <Pressable onPress={onRetry} style={styles.button}>
-        <Text style={styles.buttonText}>Try Now</Text>
+        <Text style={styles.buttonText}>Retry</Text>
       </Pressable>
     </View>
   );

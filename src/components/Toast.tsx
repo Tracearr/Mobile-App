@@ -4,6 +4,7 @@
  */
 import React, { useEffect, useState, useCallback } from 'react';
 import { Text, StyleSheet, Animated } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Check, AlertCircle, Info } from 'lucide-react-native';
 import { colors, spacing, borderRadius, typography } from '../lib/theme';
 
@@ -16,6 +17,7 @@ interface ToastProps {
 }
 
 export function Toast({ message, visible, onHide, duration = 2000, type = 'success' }: ToastProps) {
+  const insets = useSafeAreaInsets();
   const [fadeAnim] = useState(new Animated.Value(0));
 
   const hideCallback = useCallback(() => {
@@ -50,7 +52,12 @@ export function Toast({ message, visible, onHide, duration = 2000, type = 'succe
   const IconComponent = type === 'success' ? Check : type === 'error' ? AlertCircle : Info;
 
   return (
-    <Animated.View style={[styles.container, { backgroundColor, opacity: fadeAnim }]}>
+    <Animated.View
+      style={[
+        styles.container,
+        { backgroundColor, opacity: fadeAnim, top: insets.top + spacing.sm },
+      ]}
+    >
       <IconComponent size={16} color={colors.background.dark} />
       <Text style={styles.text}>{message}</Text>
     </Animated.View>
@@ -60,7 +67,7 @@ export function Toast({ message, visible, onHide, duration = 2000, type = 'succe
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    top: 50,
+    // top is set dynamically via insets.top + spacing.sm
     left: spacing.md,
     right: spacing.md,
     flexDirection: 'row',
