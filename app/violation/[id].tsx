@@ -445,9 +445,11 @@ export default function ViolationDetailScreen() {
         edges={['left', 'right', 'bottom']}
       >
         <View className="flex-1 items-center justify-center px-8">
-          <AlertTriangle size={48} color={colors.text.muted.dark} />
-          <Text className="mt-4 text-center text-xl font-semibold">Violation Not Found</Text>
-          <Text className="text-muted-foreground mt-2 text-center">
+          <View className="bg-card border-border mb-4 h-20 w-20 items-center justify-center rounded-full border">
+            <AlertTriangle size={32} color={colors.text.muted.dark} />
+          </View>
+          <Text className="mb-1 text-center text-xl font-semibold">Violation Not Found</Text>
+          <Text className="text-muted-foreground text-center text-sm">
             This violation may have been dismissed or is no longer available.
           </Text>
           <Pressable

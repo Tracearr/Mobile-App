@@ -216,16 +216,16 @@ export default function HistoryScreen() {
           }
           ListEmptyComponent={
             isLoading ? (
-              <View style={styles.empty}>
+              <View className="items-center py-12">
                 <ActivityIndicator size="large" color={accentColor} />
               </View>
             ) : (
-              <View style={styles.empty}>
-                <View style={styles.emptyIcon}>
+              <View className="items-center px-4 py-12">
+                <View className="bg-card border-border mb-4 h-20 w-20 items-center justify-center rounded-full border">
                   <Play size={32} color={colors.text.muted.dark} />
                 </View>
-                <Text style={styles.emptyTitle}>No History Found</Text>
-                <Text style={styles.emptySubtitle}>
+                <Text className="mb-1 text-lg font-semibold">No History Found</Text>
+                <Text className="text-muted-foreground text-center text-sm">
                   {search || activeFilterCount > 0
                     ? 'Try adjusting your filters'
                     : 'Session history will appear here once users start streaming'}
@@ -281,31 +281,5 @@ const styles = StyleSheet.create({
   footer: {
     alignItems: 'center',
     paddingVertical: spacing.md,
-  },
-  empty: {
-    alignItems: 'center',
-    paddingVertical: spacing.xxl,
-    paddingHorizontal: spacing.lg,
-  },
-  emptyIcon: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: colors.surface.dark,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.md,
-  },
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: colors.text.primary.dark,
-    marginBottom: spacing.xs,
-  },
-  emptySubtitle: {
-    fontSize: 14,
-    color: colors.text.muted.dark,
-    textAlign: 'center',
-    lineHeight: 20,
   },
 });

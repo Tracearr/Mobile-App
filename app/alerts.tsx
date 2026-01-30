@@ -42,7 +42,7 @@ import { Text } from '@/components/ui/text';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { UserAvatar } from '@/components/ui/user-avatar';
-import { colors, spacing, borderRadius, withAlpha } from '@/lib/theme';
+import { colors, spacing, borderRadius } from '@/lib/theme';
 import type {
   ViolationWithDetails,
   RuleType,
@@ -498,12 +498,14 @@ export default function AlertsScreen() {
           ) : null
         }
         ListEmptyComponent={
-          <View style={emptyStyles.container}>
-            <View style={emptyStyles.icon}>
+          <View className="items-center px-4 py-12">
+            <View className="bg-card border-border mb-4 h-20 w-20 items-center justify-center rounded-full border">
               <Check size={32} color={colors.success} />
             </View>
-            <Text style={emptyStyles.title}>{hasActiveFilters ? 'No Matches' : 'All Clear'}</Text>
-            <Text style={emptyStyles.subtitle}>
+            <Text className="mb-1 text-lg font-semibold">
+              {hasActiveFilters ? 'No Matches' : 'All Clear'}
+            </Text>
+            <Text className="text-muted-foreground text-center text-sm">
               {hasActiveFilters ? 'Try adjusting your filters' : 'No rule violations detected'}
             </Text>
           </View>
@@ -512,34 +514,6 @@ export default function AlertsScreen() {
     </SafeAreaView>
   );
 }
-
-const emptyStyles = StyleSheet.create({
-  container: {
-    alignItems: 'center',
-    paddingVertical: spacing.xxl,
-    paddingHorizontal: spacing.lg,
-  },
-  icon: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: withAlpha(colors.success, '15'),
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.md,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: colors.text.primary.dark,
-    marginBottom: spacing.xs,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: colors.text.muted.dark,
-    textAlign: 'center',
-  },
-});
 
 const headerStyles = StyleSheet.create({
   container: {

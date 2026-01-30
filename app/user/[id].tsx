@@ -602,8 +602,11 @@ export default function UserDetailScreen() {
         edges={['left', 'right', 'bottom']}
       >
         <View className="flex-1 items-center justify-center px-8">
-          <Text className="mb-2 text-center text-xl font-semibold">User Not Found</Text>
-          <Text className="text-muted-foreground text-center">
+          <View className="bg-card border-border mb-4 h-20 w-20 items-center justify-center rounded-full border">
+            <User size={32} color={colors.text.muted.dark} />
+          </View>
+          <Text className="mb-1 text-center text-lg font-semibold">User Not Found</Text>
+          <Text className="text-muted-foreground text-center text-sm">
             This user may have been removed.
           </Text>
         </View>
