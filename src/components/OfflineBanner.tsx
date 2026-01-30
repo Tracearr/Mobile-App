@@ -8,7 +8,7 @@ import { View, Text, Pressable, StyleSheet, Animated } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WifiOff } from 'lucide-react-native';
 import { useAuthStateStore } from '../lib/authStateStore';
-import { colors, spacing, borderRadius, typography, withAlpha } from '../lib/theme';
+import { colors, spacing, withAlpha } from '../lib/theme';
 
 interface OfflineBannerProps {
   onRetry: () => void;
@@ -48,51 +48,32 @@ export function OfflineBanner({ onRetry }: OfflineBannerProps) {
 
   if (connectionState !== 'disconnected' || !isAuthenticated) return null;
 
+  // Must keep StyleSheet for dynamic paddingTop and Animated.View opacity
   return (
     <View style={[styles.banner, { paddingTop: insets.top + spacing.sm }]}>
-      <View style={styles.left}>
+      <View className="flex-row items-center gap-3">
         <Animated.View style={{ opacity: pulseAnim }}>
           <WifiOff size={16} color={colors.warning} />
         </Animated.View>
-        <Text style={styles.text}>Connection lost</Text>
+        <Text className="text-warning text-sm font-medium">Connection lost</Text>
       </View>
-      <Pressable onPress={onRetry} style={styles.button}>
-        <Text style={styles.buttonText}>Retry</Text>
+      <Pressable onPress={onRetry} className="bg-warning rounded-sm px-3 py-2">
+        <Text className="text-background text-xs font-semibold">Retry</Text>
       </Pressable>
     </View>
   );
 }
 
+// Keep StyleSheet for styles that require dynamic values or theme colors not in NativeWind
 const styles = StyleSheet.create({
   banner: {
     backgroundColor: withAlpha(colors.warning, '20'),
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
     borderBottomWidth: 1,
     borderBottomColor: withAlpha(colors.warning, '40'),
-  },
-  left: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  text: {
-    color: colors.warning,
-    fontSize: typography.fontSize.sm,
-    fontWeight: '500',
-  },
-  button: {
-    backgroundColor: colors.warning,
-    paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.sm,
-    borderRadius: borderRadius.sm,
-  },
-  buttonText: {
-    color: colors.background.dark,
-    fontSize: typography.fontSize.xs,
-    fontWeight: '600',
   },
 });

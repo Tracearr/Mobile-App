@@ -6,7 +6,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { Text, StyleSheet, Animated } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Check, AlertCircle, Info } from 'lucide-react-native';
-import { colors, spacing, borderRadius, typography } from '../lib/theme';
+import { colors, spacing } from '../lib/theme';
 
 interface ToastProps {
   message: string;
@@ -51,6 +51,7 @@ export function Toast({ message, visible, onHide, duration = 2000, type = 'succe
 
   const IconComponent = type === 'success' ? Check : type === 'error' ? AlertCircle : Info;
 
+  // Must keep StyleSheet for Animated.View styles (opacity, position, backgroundColor)
   return (
     <Animated.View
       style={[
@@ -64,24 +65,24 @@ export function Toast({ message, visible, onHide, duration = 2000, type = 'succe
   );
 }
 
+// Keep StyleSheet for animated styles - NativeWind cannot be used with Animated.View
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    // top is set dynamically via insets.top + spacing.sm
-    left: spacing.md,
-    right: spacing.md,
+    left: 16,
+    right: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: spacing.xs,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    borderRadius: borderRadius.md,
+    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 6,
     zIndex: 1000,
   },
   text: {
     color: colors.background.dark,
-    fontSize: typography.fontSize.sm,
+    fontSize: 14,
     fontWeight: '500',
   },
 });

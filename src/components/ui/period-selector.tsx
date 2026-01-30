@@ -2,9 +2,9 @@
  * Segmented control for selecting time periods (7d, 30d, 1y)
  */
 import React from 'react';
-import { View, Pressable, StyleSheet } from 'react-native';
+import { View, Pressable } from 'react-native';
 import { Text } from './text';
-import { colors, spacing, borderRadius } from '@/lib/theme';
+import { cn } from '@/lib/utils';
 
 export type StatsPeriod = 'week' | 'month' | 'year';
 
@@ -21,16 +21,21 @@ const PERIODS: { value: StatsPeriod; label: string }[] = [
 
 export function PeriodSelector({ value, onChange }: PeriodSelectorProps) {
   return (
-    <View style={styles.container}>
+    <View className="bg-surface flex-row rounded-lg p-1">
       {PERIODS.map((period) => {
         const isSelected = value === period.value;
         return (
           <Pressable
             key={period.value}
             onPress={() => onChange(period.value)}
-            style={[styles.button, isSelected && styles.buttonSelected]}
+            className={cn('rounded-md px-4 py-1.5', isSelected && 'bg-card')}
           >
-            <Text style={[styles.buttonText, isSelected && styles.buttonTextSelected]}>
+            <Text
+              className={cn(
+                'text-[13px] font-medium',
+                isSelected ? 'text-foreground' : 'text-muted-foreground'
+              )}
+            >
               {period.label}
             </Text>
           </Pressable>
@@ -39,28 +44,3 @@ export function PeriodSelector({ value, onChange }: PeriodSelectorProps) {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    backgroundColor: colors.surface.dark,
-    borderRadius: borderRadius.lg,
-    padding: 4,
-  },
-  button: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: (spacing.xs as number) + 2,
-    borderRadius: borderRadius.md,
-  },
-  buttonSelected: {
-    backgroundColor: colors.card.dark,
-  },
-  buttonText: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: colors.text.muted.dark,
-  },
-  buttonTextSelected: {
-    color: colors.text.primary.dark,
-  },
-});

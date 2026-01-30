@@ -57,7 +57,8 @@ export class ErrorBoundary extends Component<Props, State> {
         return this.props.fallback;
       }
 
-      // Default error UI
+      // Default error UI - Note: class components cannot use NativeWind className
+      // Keep StyleSheet for all styles in this class component
       return (
         <View style={styles.container}>
           <View style={styles.content}>
@@ -91,6 +92,7 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 }
 
+// Keep StyleSheet - NativeWind className does not work in class components
 const styles = StyleSheet.create({
   container: {
     flex: 1,
