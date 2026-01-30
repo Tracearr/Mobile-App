@@ -37,17 +37,19 @@ function TimeRangePicker({
   onChange: (value: TimePeriod) => void;
 }) {
   return (
-    <View className="bg-card flex-row rounded-xl p-[3px]">
+    <View className="flex-row rounded-lg p-1" style={{ backgroundColor: colors.surface.dark }}>
       {PERIODS.map((period) => {
         const isSelected = value === period.value;
         return (
           <Pressable
             key={period.value}
             onPress={() => onChange(period.value)}
-            className={`flex-1 items-center rounded-lg px-2 py-1.5 ${isSelected ? 'bg-card' : ''}`}
+            className="flex-1 items-center rounded-md px-3 py-1.5"
+            style={isSelected ? { backgroundColor: colors.card.dark } : undefined}
           >
             <Text
-              className={`text-[13px] font-medium ${isSelected ? 'text-foreground' : 'text-muted-foreground'}`}
+              className="text-[13px] font-medium"
+              style={{ color: isSelected ? colors.text.primary.dark : colors.text.muted.dark }}
             >
               {period.label}
             </Text>

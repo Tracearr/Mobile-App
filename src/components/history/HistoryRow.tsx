@@ -80,7 +80,7 @@ function QualityBadge({ session }: { session: SessionWithDetails }) {
   if (isTranscode) {
     return (
       <View
-        className="flex-row items-center gap-1 rounded-sm px-1.5 py-0.5"
+        className="flex-row items-center gap-1 rounded-full px-2 py-0.5"
         style={{ backgroundColor: `${colors.warning}20` }}
       >
         <Repeat2 size={10} color={colors.warning} />
@@ -94,7 +94,7 @@ function QualityBadge({ session }: { session: SessionWithDetails }) {
   if (isCopy) {
     return (
       <View
-        className="flex-row items-center gap-1 rounded-sm px-1.5 py-0.5"
+        className="flex-row items-center gap-1 rounded-full px-2 py-0.5"
         style={{ backgroundColor: `${ACCENT_COLOR}15` }}
       >
         <MonitorPlay size={10} color={ACCENT_COLOR} />
@@ -105,7 +105,7 @@ function QualityBadge({ session }: { session: SessionWithDetails }) {
 
   return (
     <View
-      className="flex-row items-center gap-1 rounded-sm px-1.5 py-0.5"
+      className="flex-row items-center gap-1 rounded-full px-2 py-0.5"
       style={{ backgroundColor: `${ACCENT_COLOR}15` }}
     >
       <Play size={10} color={colors.success} fill={colors.success} />

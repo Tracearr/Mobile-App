@@ -153,34 +153,52 @@ function RuleIcon({ ruleType }: { ruleType: RuleType | undefined }) {
   );
 }
 
-interface FilterChipProps {
-  label: string;
-  active: boolean;
-  onPress: () => void;
-}
-
-function FilterChip({ label, active, onPress }: FilterChipProps) {
+// Segmented control matching History page pattern
+function SegmentedControl<T extends string>({
+  options,
+  value,
+  onChange,
+}: {
+  options: { value: T; label: string }[];
+  value: T;
+  onChange: (value: T) => void;
+}) {
   return (
-    <Pressable
-      onPress={onPress}
-      className="rounded-full border px-4 py-1"
-      style={{
-        backgroundColor: active ? ACCENT_COLOR : colors.card.dark,
-        borderColor: active ? ACCENT_COLOR : colors.border.dark,
-      }}
-    >
-      <Text
-        className="text-[13px]"
-        style={{
-          fontWeight: active ? '600' : '400',
-          color: active ? 'white' : colors.text.secondary.dark,
-        }}
-      >
-        {label}
-      </Text>
-    </Pressable>
+    <View className="flex-row rounded-lg p-1" style={{ backgroundColor: colors.surface.dark }}>
+      {options.map((option) => {
+        const isSelected = value === option.value;
+        return (
+          <Pressable
+            key={option.value}
+            onPress={() => onChange(option.value)}
+            className="flex-1 items-center rounded-md px-3 py-1.5"
+            style={isSelected ? { backgroundColor: colors.card.dark } : undefined}
+          >
+            <Text
+              className="text-[13px] font-medium"
+              style={{ color: isSelected ? colors.text.primary.dark : colors.text.muted.dark }}
+            >
+              {option.label}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </View>
   );
 }
+
+const SEVERITY_OPTIONS: { value: ViolationSeverity | 'all'; label: string }[] = [
+  { value: 'all', label: 'All' },
+  { value: 'high', label: 'High' },
+  { value: 'warning', label: 'Warning' },
+  { value: 'low', label: 'Low' },
+];
+
+const STATUS_OPTIONS: { value: StatusFilter; label: string }[] = [
+  { value: 'all', label: 'All' },
+  { value: 'pending', label: 'Pending' },
+  { value: 'acknowledged', label: 'Done' },
+];
 
 function ViolationCard({
   violation,
@@ -403,65 +421,39 @@ export default function AlertsScreen() {
           <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={ACCENT_COLOR} />
         }
         ListHeaderComponent={
-          <View className="mb-4">
-            {/* Title row */}
-            <View className="mb-3 flex-row items-center justify-between">
-              <View>
-                <Text className="text-lg font-semibold">Alerts</Text>
-                <Text className="text-muted-foreground text-sm">
-                  {hasActiveFilters ? `${violations.length} of ` : ''}
-                  {total} {total === 1 ? 'violation' : 'violations'}
-                </Text>
-              </View>
+          <View className="mb-4 gap-3">
+            {/* Summary row */}
+            <View className="flex-row items-center justify-between">
+              <Text className="text-muted-foreground text-sm">
+                {hasActiveFilters ? `${violations.length} of ` : ''}
+                {total} {total === 1 ? 'alert' : 'alerts'}
+              </Text>
               {unacknowledgedCount > 0 && statusFilter !== 'acknowledged' && (
-                <View className="bg-destructive/20 rounded-lg px-3 py-1.5">
-                  <Text className="text-destructive text-sm font-medium">
+                <View className="bg-destructive/20 rounded-full px-3 py-1">
+                  <Text className="text-destructive text-xs font-semibold">
                     {unacknowledgedCount} pending
                   </Text>
                 </View>
               )}
             </View>
 
-            {/* Filters */}
-            <View className="mb-1 flex-row items-center gap-2">
-              <Filter size={14} color={colors.text.muted.dark} />
-              <Text className="text-muted-foreground text-xs font-medium">FILTERS</Text>
+            {/* Severity filter */}
+            <View className="gap-1.5">
+              <Text className="text-muted-foreground text-xs font-medium">Severity</Text>
+              <SegmentedControl
+                options={SEVERITY_OPTIONS}
+                value={severityFilter}
+                onChange={setSeverityFilter}
+              />
             </View>
-            <View className="flex-row flex-wrap gap-1">
-              {/* Severity filters */}
-              <FilterChip
-                label="All"
-                active={severityFilter === 'all'}
-                onPress={() => setSeverityFilter('all')}
-              />
-              <FilterChip
-                label="High"
-                active={severityFilter === 'high'}
-                onPress={() => setSeverityFilter('high')}
-              />
-              <FilterChip
-                label="Warning"
-                active={severityFilter === 'warning'}
-                onPress={() => setSeverityFilter('warning')}
-              />
-              <FilterChip
-                label="Low"
-                active={severityFilter === 'low'}
-                onPress={() => setSeverityFilter('low')}
-              />
-              <View className="w-2" />
-              {/* Status filters */}
-              <FilterChip
-                label="Pending"
-                active={statusFilter === 'pending'}
-                onPress={() => setStatusFilter(statusFilter === 'pending' ? 'all' : 'pending')}
-              />
-              <FilterChip
-                label="Acknowledged"
-                active={statusFilter === 'acknowledged'}
-                onPress={() =>
-                  setStatusFilter(statusFilter === 'acknowledged' ? 'all' : 'acknowledged')
-                }
+
+            {/* Status filter */}
+            <View className="gap-1.5">
+              <Text className="text-muted-foreground text-xs font-medium">Status</Text>
+              <SegmentedControl
+                options={STATUS_OPTIONS}
+                value={statusFilter}
+                onChange={setStatusFilter}
               />
             </View>
           </View>
@@ -474,16 +466,55 @@ export default function AlertsScreen() {
           ) : null
         }
         ListEmptyComponent={
-          <View className="items-center px-4 py-12">
-            <View className="bg-card border-border mb-4 h-20 w-20 items-center justify-center rounded-full border">
-              <Check size={32} color={colors.success} />
-            </View>
-            <Text className="mb-1 text-lg font-semibold">
-              {hasActiveFilters ? 'No Matches' : 'All Clear'}
-            </Text>
-            <Text className="text-muted-foreground text-center text-sm">
-              {hasActiveFilters ? 'Try adjusting your filters' : 'No rule violations detected'}
-            </Text>
+          <View className="items-center px-6 py-16">
+            {hasActiveFilters ? (
+              <>
+                {/* No matches for current filters */}
+                <View
+                  className="mb-5 h-20 w-20 items-center justify-center rounded-2xl"
+                  style={{ backgroundColor: colors.surface.dark }}
+                >
+                  <Filter size={36} color={colors.text.muted.dark} />
+                </View>
+                <Text className="mb-2 text-xl font-semibold">No Matches</Text>
+                <Text className="text-muted-foreground mb-6 max-w-[260px] text-center text-sm leading-5">
+                  No alerts match your current filters. Try adjusting the severity or status.
+                </Text>
+                <Pressable
+                  onPress={() => {
+                    setSeverityFilter('all');
+                    setStatusFilter('all');
+                  }}
+                  className="rounded-lg px-5 py-2.5"
+                  style={{ backgroundColor: colors.surface.dark }}
+                >
+                  <Text className="text-primary text-sm font-semibold">Clear Filters</Text>
+                </Pressable>
+              </>
+            ) : (
+              <>
+                {/* All clear - no violations */}
+                <View
+                  className="mb-5 h-24 w-24 items-center justify-center rounded-3xl"
+                  style={{ backgroundColor: `${colors.success}15` }}
+                >
+                  <View
+                    className="h-14 w-14 items-center justify-center rounded-full"
+                    style={{ backgroundColor: `${colors.success}25` }}
+                  >
+                    <Check size={28} color={colors.success} strokeWidth={3} />
+                  </View>
+                </View>
+                <Text className="mb-2 text-xl font-bold">All Clear</Text>
+                <Text className="text-muted-foreground mb-1 max-w-[280px] text-center text-base leading-6">
+                  No rule violations detected
+                </Text>
+                <Text className="text-muted-foreground max-w-[280px] text-center text-sm">
+                  Your media server is running smoothly. Alerts will appear here when suspicious
+                  activity is detected.
+                </Text>
+              </>
+            )}
           </View>
         }
       />

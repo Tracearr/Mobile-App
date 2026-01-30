@@ -185,12 +185,12 @@ export function NowPlayingCard({ session, onPress }: NowPlayingCardProps) {
       style={({ pressed }) => pressed && { opacity: 0.7 }}
       onPress={() => onPress?.(session)}
     >
-      {/* Background with poster blur - matches web */}
+      {/* Background with poster blur - matches web's blur-xl */}
       {posterUrl && (
         <Image
           source={{ uri: posterUrl }}
-          style={[StyleSheet.absoluteFill, { opacity: 0.2 }]}
-          blurRadius={24}
+          style={[StyleSheet.absoluteFill, { opacity: 0.25 }]}
+          blurRadius={40}
           resizeMode="cover"
         />
       )}

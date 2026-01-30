@@ -509,9 +509,13 @@ FilterBottomSheet.displayName = 'FilterBottomSheet';
 
 // Style constants for BottomSheet component props
 const bottomSheetBackground: ViewStyle = {
-  backgroundColor: colors.surface.dark,
+  backgroundColor: colors.card.dark,
   borderTopLeftRadius: 16,
   borderTopRightRadius: 16,
+  borderTopWidth: 1,
+  borderLeftWidth: 1,
+  borderRightWidth: 1,
+  borderColor: colors.border.dark,
 };
 
 const handleIndicator: ViewStyle = {
