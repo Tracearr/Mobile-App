@@ -3,9 +3,10 @@
  * Note: Touch interactions not yet supported on PolarChart (victory-native issue #252)
  */
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View } from 'react-native';
 import { Pie, PolarChart } from 'victory-native';
-import { colors, spacing, borderRadius, typography } from '../../lib/theme';
+import { Text } from '@/components/ui/text';
+import { colors } from '../../lib/theme';
 import { useTheme } from '../../providers/ThemeProvider';
 
 interface PlatformChartProps {
@@ -38,8 +39,8 @@ export function PlatformChart({ data, height }: PlatformChartProps) {
 
   if (sortedData.length === 0) {
     return (
-      <View style={[styles.container, styles.emptyContainer]}>
-        <Text style={styles.emptyText}>No platform data available</Text>
+      <View className="bg-card min-h-[150px] items-center justify-center rounded-xl p-2">
+        <Text className="text-muted-foreground text-sm">No platform data available</Text>
       </View>
     );
   }
@@ -47,76 +48,28 @@ export function PlatformChart({ data, height }: PlatformChartProps) {
   const total = sortedData.reduce((sum, item) => sum + item.value, 0);
 
   return (
-    <View style={styles.container}>
+    <View className="bg-card rounded-xl p-2">
       {/* Pie Chart */}
-      <View style={[styles.chartContainer, height ? { height: height - 60 } : undefined]}>
+      <View style={{ height: height ? height - 60 : 160 }}>
         <PolarChart data={sortedData} labelKey="label" valueKey="value" colorKey="color">
           <Pie.Chart innerRadius="50%" circleSweepDegrees={360} startAngle={0} />
         </PolarChart>
       </View>
 
       {/* Legend with percentages */}
-      <View style={styles.legend}>
+      <View className="border-border mt-2 flex-row flex-wrap justify-center gap-4 border-t pt-2">
         {sortedData.map((item) => (
-          <View key={item.label} style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: item.color }]} />
-            <Text style={styles.legendText} numberOfLines={1}>
+          <View key={item.label} className="flex-row items-center gap-1">
+            <View className="h-2 w-2 rounded-full" style={{ backgroundColor: item.color }} />
+            <Text className="text-muted-foreground max-w-[60px] text-xs" numberOfLines={1}>
               {item.label}
             </Text>
-            <Text style={styles.legendPercent}>{Math.round((item.value / total) * 100)}%</Text>
+            <Text className="text-secondary-foreground text-xs font-medium">
+              {Math.round((item.value / total) * 100)}%
+            </Text>
           </View>
         ))}
       </View>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    backgroundColor: colors.card.dark,
-    borderRadius: borderRadius.lg,
-    padding: spacing.sm,
-  },
-  emptyContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    minHeight: 150,
-  },
-  emptyText: {
-    color: colors.text.muted.dark,
-    fontSize: typography.fontSize.sm,
-  },
-  chartContainer: {
-    height: 160, // default, can be overridden via style prop
-  },
-  legend: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    gap: spacing.md,
-    marginTop: spacing.sm,
-    paddingTop: spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: colors.border.dark,
-  },
-  legendItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-  },
-  legendDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  legendText: {
-    fontSize: typography.fontSize.xs,
-    color: colors.text.muted.dark,
-    maxWidth: 60,
-  },
-  legendPercent: {
-    fontSize: typography.fontSize.xs,
-    color: colors.text.secondary.dark,
-    fontWeight: '500',
-  },
-});

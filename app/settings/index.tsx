@@ -2,7 +2,7 @@
  * Settings Index Screen
  * Main settings page with links to sub-settings, external links, and disconnect option
  */
-import { View, Pressable, Alert, StyleSheet, ScrollView, Linking } from 'react-native';
+import { View, Pressable, Alert, ScrollView, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import {
@@ -19,16 +19,17 @@ import Constants from 'expo-constants';
 import { Text } from '@/components/ui/text';
 import { AccentColorPicker } from '@/components/settings/AccentColorPicker';
 import { useAuthStateStore } from '@/lib/authStateStore';
-import { colors, spacing, borderRadius } from '@/lib/theme';
 
 const DISCORD_URL = 'https://discord.gg/a7n3sFd2Yw';
 const GITHUB_URL = 'https://github.com/connorgallopo/Tracearr';
 
 function SettingsSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <View style={styles.section}>
-      <Text style={styles.sectionTitle}>{title}</Text>
-      <View style={styles.sectionContent}>{children}</View>
+    <View className="mb-6">
+      <Text className="text-muted-foreground mb-2 ml-1 text-[11px] font-semibold tracking-wider uppercase">
+        {title}
+      </Text>
+      <View className="bg-card overflow-hidden rounded-xl">{children}</View>
     </View>
   );
 }
@@ -51,15 +52,19 @@ function SettingsRow({
   external?: boolean;
 }) {
   return (
-    <Pressable onPress={onPress} style={styles.row}>
-      <View style={styles.rowLeft}>
+    <Pressable onPress={onPress} className="flex-row items-center justify-between px-4 py-3.5">
+      <View className="flex-1 flex-row items-center gap-4">
         {icon}
-        <View style={styles.rowText}>
-          <Text style={[styles.rowLabel, destructive && styles.destructiveText]}>{label}</Text>
-          {description && <Text style={styles.rowDescription}>{description}</Text>}
+        <View className="flex-1">
+          <Text className={`text-[15px] font-medium ${destructive ? 'text-destructive' : ''}`}>
+            {label}
+          </Text>
+          {description && (
+            <Text className="text-muted-foreground mt-0.5 text-xs">{description}</Text>
+          )}
         </View>
       </View>
-      {showChevron && !external && <ChevronRight size={20} color={colors.text.muted.dark} />}
+      {showChevron && !external && <ChevronRight size={20} className="text-muted-foreground" />}
     </Pressable>
   );
 }
@@ -102,12 +107,12 @@ export default function SettingsScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['left', 'right', 'bottom']}>
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+    <SafeAreaView className="bg-background flex-1" edges={['left', 'right', 'bottom']}>
+      <ScrollView className="flex-1" contentContainerStyle={{ flexGrow: 1, padding: 16 }}>
         {/* Notifications */}
         <SettingsSection title="Preferences">
           <SettingsRow
-            icon={<Bell size={20} color={colors.text.secondary.dark} />}
+            icon={<Bell size={20} className="text-muted-foreground" />}
             label="Notifications"
             description="Configure push notification preferences"
             onPress={() => router.push('/settings/notifications')}
@@ -116,10 +121,10 @@ export default function SettingsScreen() {
 
         {/* Appearance */}
         <SettingsSection title="Appearance">
-          <View style={styles.appearanceContent}>
-            <View style={styles.appearanceHeader}>
-              <Palette size={20} color={colors.text.secondary.dark} />
-              <Text style={styles.rowLabel}>Accent Color</Text>
+          <View className="p-4">
+            <View className="mb-4 flex-row items-center gap-4">
+              <Palette size={20} className="text-muted-foreground" />
+              <Text className="text-[15px] font-medium">Accent Color</Text>
             </View>
             <AccentColorPicker />
           </View>
@@ -135,9 +140,9 @@ export default function SettingsScreen() {
             showChevron={false}
             external
           />
-          <View style={styles.divider} />
+          <View className="bg-border ml-14 h-px" />
           <SettingsRow
-            icon={<Code2 size={20} color={colors.text.secondary.dark} />}
+            icon={<Code2 size={20} className="text-muted-foreground" />}
             label="GitHub"
             description="View source code"
             onPress={handleGithubPress}
@@ -149,7 +154,7 @@ export default function SettingsScreen() {
         {/* Account */}
         <SettingsSection title="Account">
           <SettingsRow
-            icon={<LogOut size={20} color={colors.error} />}
+            icon={<LogOut size={20} className="text-destructive" />}
             label="Disconnect"
             description={server ? `Currently connected to ${server.name}` : undefined}
             onPress={handleDisconnect}
@@ -159,112 +164,20 @@ export default function SettingsScreen() {
         </SettingsSection>
 
         {/* Spacer to push About to bottom */}
-        <View style={styles.spacer} />
+        <View className="min-h-8 flex-1" />
 
         {/* About - at very bottom */}
-        <View style={styles.aboutSection}>
-          <View style={styles.aboutRow}>
-            <Info size={16} color={colors.text.muted.dark} />
-            <Text style={styles.aboutText}>Version {appVersion}</Text>
+        <View className="items-center gap-1 py-6">
+          <View className="flex-row items-center gap-2">
+            <Info size={16} className="text-muted-foreground" />
+            <Text className="text-muted-foreground text-xs">Version {appVersion}</Text>
           </View>
-          <View style={styles.aboutRow}>
-            <Server size={16} color={colors.text.muted.dark} />
-            <Text style={styles.aboutText}>Build {buildNumber}</Text>
+          <View className="flex-row items-center gap-2">
+            <Server size={16} className="text-muted-foreground" />
+            <Text className="text-muted-foreground text-xs">Build {buildNumber}</Text>
           </View>
         </View>
       </ScrollView>
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background.dark,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    padding: spacing.md,
-  },
-  section: {
-    marginBottom: spacing.lg,
-  },
-  sectionTitle: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: colors.text.muted.dark,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: spacing.sm,
-    marginLeft: spacing.xs,
-  },
-  sectionContent: {
-    backgroundColor: colors.card.dark,
-    borderRadius: borderRadius.lg,
-    overflow: 'hidden',
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.md,
-  },
-  rowLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    gap: spacing.md,
-  },
-  rowText: {
-    flex: 1,
-  },
-  rowLabel: {
-    fontSize: 15,
-    fontWeight: '500',
-    color: colors.text.primary.dark,
-  },
-  rowDescription: {
-    fontSize: 12,
-    color: colors.text.muted.dark,
-    marginTop: 2,
-  },
-  destructiveText: {
-    color: colors.error,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: colors.border.dark,
-    marginLeft: (spacing.md as number) + 20 + (spacing.md as number), // icon width + gaps
-  },
-  appearanceContent: {
-    padding: spacing.md,
-  },
-  appearanceHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    marginBottom: spacing.md,
-  },
-  spacer: {
-    flex: 1,
-    minHeight: spacing.xl,
-  },
-  aboutSection: {
-    alignItems: 'center',
-    paddingVertical: spacing.lg,
-    gap: spacing.xs,
-  },
-  aboutRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  aboutText: {
-    fontSize: 12,
-    color: colors.text.muted.dark,
-  },
-});

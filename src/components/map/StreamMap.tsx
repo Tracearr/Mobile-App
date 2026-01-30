@@ -6,12 +6,12 @@
  * match the web's dark theme exactly. Using default map styles.
  */
 import React, { Component, type ReactNode } from 'react';
-import { View, Text, StyleSheet, Platform } from 'react-native';
+import { View, StyleSheet, Platform } from 'react-native';
 import { AppleMaps, GoogleMaps } from 'expo-maps';
 import { Ionicons } from '@expo/vector-icons';
 import type { ActiveSession } from '@tracearr/shared';
 import { useTheme } from '../../providers/ThemeProvider';
-import { colors, borderRadius, typography } from '../../lib/theme';
+import { Text } from '@/components/ui/text';
 
 /**
  * Error boundary to catch map crashes (e.g., missing Google Maps API key on Android)
@@ -38,11 +38,16 @@ class MapErrorBoundary extends Component<
   render() {
     if (this.state.hasError) {
       return (
-        <View style={[styles.container, styles.errorContainer, { height: this.props.height }]}>
-          <Ionicons name="map-outline" size={32} color={colors.text.muted.dark} />
-          <Text style={styles.errorText}>Map unavailable</Text>
+        <View
+          className="bg-card items-center justify-center gap-2 overflow-hidden rounded-xl"
+          style={{ height: this.props.height }}
+        >
+          <Ionicons name="map-outline" size={32} className="text-muted-foreground" />
+          <Text className="text-muted-foreground text-sm">Map unavailable</Text>
           {__DEV__ && this.state.error && (
-            <Text style={styles.errorDetail}>{this.state.error.message}</Text>
+            <Text className="text-destructive px-4 text-center text-xs">
+              {this.state.error.message}
+            </Text>
           )}
         </View>
       );
@@ -74,8 +79,11 @@ export function StreamMap({ sessions, height = 300 }: StreamMapProps) {
 
   if (sessionsWithLocation.length === 0) {
     return (
-      <View style={[styles.container, styles.emptyContainer, { height }]}>
-        <Text style={styles.emptyText}>No location data available</Text>
+      <View
+        className="bg-card items-center justify-center overflow-hidden rounded-xl"
+        style={{ height }}
+      >
+        <Text className="text-muted-foreground text-sm">No location data available</Text>
       </View>
     );
   }
@@ -151,7 +159,7 @@ export function StreamMap({ sessions, height = 300 }: StreamMapProps) {
 
   return (
     <MapErrorBoundary height={height}>
-      <View style={[styles.container, { height }]}>
+      <View className="bg-card overflow-hidden rounded-xl" style={{ height }}>
         <MapComponent
           style={styles.map}
           cameraPosition={cameraPosition}
@@ -175,38 +183,9 @@ export function StreamMap({ sessions, height = 300 }: StreamMapProps) {
   );
 }
 
+// Keep StyleSheet for map-specific styling
 const styles = StyleSheet.create({
-  container: {
-    borderRadius: borderRadius.lg,
-    overflow: 'hidden',
-    backgroundColor: colors.card.dark,
-  },
   map: {
     flex: 1,
-  },
-  emptyContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  emptyText: {
-    color: colors.text.muted.dark,
-    fontSize: typography.fontSize.sm,
-  },
-  errorContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 8,
-  },
-  errorText: {
-    color: colors.text.muted.dark,
-    fontSize: typography.fontSize.sm,
-    fontWeight: '500',
-  },
-  errorDetail: {
-    color: colors.error,
-    fontSize: typography.fontSize.xs,
-    textAlign: 'center',
-    paddingHorizontal: 16,
-    marginTop: 4,
   },
 });

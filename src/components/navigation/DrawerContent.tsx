@@ -2,7 +2,7 @@
  * Custom drawer content for the hamburger menu
  * Contains: Server Switcher, Settings link, User profile section at bottom
  */
-import { View, Pressable, StyleSheet, ActivityIndicator, ScrollView } from 'react-native';
+import { View, Pressable, ActivityIndicator, ScrollView } from 'react-native';
 import type { DrawerContentComponentProps } from '@react-navigation/drawer';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -13,7 +13,7 @@ import { UserAvatar } from '@/components/ui/user-avatar';
 import { ServerSelector } from '@/components/ServerSelector';
 import { api } from '@/lib/api';
 import { useTheme } from '@/providers/ThemeProvider';
-import { colors, spacing, withAlpha } from '@/lib/theme';
+import { spacing, withAlpha } from '@/lib/theme';
 
 interface DrawerItemProps {
   icon: React.ReactNode;
@@ -27,23 +27,25 @@ function DrawerItem({ icon, label, onPress, showChevron = true, accentColor }: D
   return (
     <Pressable
       onPress={onPress}
-      style={styles.drawerItem}
+      className="flex-row items-center justify-between px-4 py-3.5"
       android_ripple={{ color: withAlpha(accentColor, '20') }}
     >
-      <View style={styles.drawerItemLeft}>
+      <View className="flex-row items-center gap-4">
         {icon}
-        <Text style={styles.drawerItemLabel}>{label}</Text>
+        <Text className="text-[15px] font-medium">{label}</Text>
       </View>
-      {showChevron && <ChevronRight size={20} color={colors.text.muted.dark} />}
+      {showChevron && <ChevronRight size={20} className="text-muted-foreground" />}
     </Pressable>
   );
 }
 
 function DrawerSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <View style={styles.section}>
-      <Text style={styles.sectionTitle}>{title}</Text>
-      <View style={styles.sectionContent}>{children}</View>
+    <View className="mb-6 px-4">
+      <Text className="text-muted-foreground mb-2 ml-2 text-[11px] font-semibold tracking-wider uppercase">
+        {title}
+      </Text>
+      <View className="bg-card overflow-hidden rounded-xl">{children}</View>
     </View>
   );
 }
@@ -66,21 +68,19 @@ export function DrawerContent(props: DrawerContentComponentProps) {
   };
 
   return (
-    <View style={[styles.drawer, { paddingTop: insets.top }]}>
+    <View className="bg-background flex-1" style={{ paddingTop: insets.top }}>
       {/* Scrollable content area */}
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
+      <ScrollView className="flex-1" contentContainerStyle={{ paddingTop: spacing.md }}>
         {/* App Title */}
-        <View style={styles.header}>
-          <Text style={[styles.appTitle, { color: accentColor }]}>Tracearr</Text>
+        <View className="border-border mb-4 border-b px-6 pb-6">
+          <Text className="text-2xl font-bold" style={{ color: accentColor }}>
+            Tracearr
+          </Text>
         </View>
 
         {/* Server Section - uses existing ServerSelector */}
         <DrawerSection title="Server">
-          <View style={styles.serverSelectorWrapper}>
+          <View className="py-2">
             <ServerSelector />
           </View>
         </DrawerSection>
@@ -88,7 +88,7 @@ export function DrawerContent(props: DrawerContentComponentProps) {
         {/* Navigation Section */}
         <DrawerSection title="Navigation">
           <DrawerItem
-            icon={<Settings size={20} color={colors.text.secondary.dark} />}
+            icon={<Settings size={20} className="text-muted-foreground" />}
             label="Settings"
             onPress={handleSettingsPress}
             accentColor={accentColor}
@@ -97,17 +97,20 @@ export function DrawerContent(props: DrawerContentComponentProps) {
       </ScrollView>
 
       {/* User Profile Section - fixed at bottom */}
-      <View style={[styles.userSection, { paddingBottom: insets.bottom + (spacing.md as number) }]}>
+      <View
+        className="border-border border-t px-4 pt-4"
+        style={{ paddingBottom: insets.bottom + (spacing.md as number) }}
+      >
         {userLoading ? (
           <ActivityIndicator size="small" color={accentColor} />
         ) : user ? (
-          <View style={styles.userInfo}>
+          <View className="flex-row items-center gap-4">
             <UserAvatar thumbUrl={user.thumbUrl} username={user.username} size={40} />
-            <View style={styles.userText}>
-              <Text style={styles.userName} numberOfLines={1}>
+            <View className="flex-1">
+              <Text className="text-[15px] font-semibold" numberOfLines={1}>
                 {user.friendlyName}
               </Text>
-              <Text style={styles.userRole}>{user.role}</Text>
+              <Text className="text-muted-foreground text-xs capitalize">{user.role}</Text>
             </View>
           </View>
         ) : null}
@@ -115,90 +118,3 @@ export function DrawerContent(props: DrawerContentComponentProps) {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  drawer: {
-    flex: 1,
-    backgroundColor: colors.background.dark,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingTop: spacing.md,
-  },
-  header: {
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.lg,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.dark,
-    marginBottom: spacing.md,
-  },
-  appTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: colors.cyan.core,
-  },
-  section: {
-    marginBottom: spacing.lg,
-    paddingHorizontal: spacing.md,
-  },
-  sectionTitle: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: colors.text.muted.dark,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: spacing.sm,
-    marginLeft: spacing.sm,
-  },
-  sectionContent: {
-    backgroundColor: colors.card.dark,
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  serverSelectorWrapper: {
-    paddingVertical: spacing.sm,
-  },
-  drawerItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.md,
-  },
-  drawerItemLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-  },
-  drawerItemLabel: {
-    fontSize: 15,
-    color: colors.text.primary.dark,
-    fontWeight: '500',
-  },
-  userSection: {
-    paddingHorizontal: spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: colors.border.dark,
-    paddingTop: spacing.md,
-  },
-  userInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-  },
-  userText: {
-    flex: 1,
-  },
-  userName: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: colors.text.primary.dark,
-  },
-  userRole: {
-    fontSize: 12,
-    color: colors.text.muted.dark,
-    textTransform: 'capitalize',
-  },
-});

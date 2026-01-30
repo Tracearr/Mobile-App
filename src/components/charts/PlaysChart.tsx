@@ -3,12 +3,13 @@
  * Area chart showing plays over time with touch-to-reveal tooltip
  */
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View } from 'react-native';
 import { CartesianChart, Area, useChartPressState } from 'victory-native';
 import { Circle } from '@shopify/react-native-skia';
 import { useAnimatedReaction, runOnJS } from 'react-native-reanimated';
 import type { SharedValue } from 'react-native-reanimated';
-import { colors, spacing, borderRadius, typography } from '../../lib/theme';
+import { Text } from '@/components/ui/text';
+import { colors } from '../../lib/theme';
 import { useTheme } from '../../providers/ThemeProvider';
 import { useChartFont } from './useChartFont';
 
@@ -75,8 +76,8 @@ export function PlaysChart({ data, height = 200 }: PlaysChartProps) {
 
   if (chartData.length === 0) {
     return (
-      <View style={[styles.container, styles.emptyContainer, { height }]}>
-        <Text style={styles.emptyText}>No play data available</Text>
+      <View className="bg-card items-center justify-center rounded-xl p-2" style={{ height }}>
+        <Text className="text-muted-foreground text-sm">No play data available</Text>
       </View>
     );
   }
@@ -91,15 +92,15 @@ export function PlaysChart({ data, height = 200 }: PlaysChartProps) {
       : '';
 
   return (
-    <View style={[styles.container, { height }]}>
+    <View className="bg-card rounded-xl p-2" style={{ height }}>
       {/* Active value display */}
-      <View style={styles.valueDisplay}>
+      <View className="mb-1 min-h-[20px] flex-row items-center justify-between px-1">
         {displayValue ? (
           <>
-            <Text style={[styles.valueText, { color: accentColor }]}>
+            <Text className="text-sm font-semibold" style={{ color: accentColor }}>
               {displayValue.count} plays
             </Text>
-            <Text style={styles.dateText}>{dateLabel}</Text>
+            <Text className="text-muted-foreground text-xs">{dateLabel}</Text>
           </>
         ) : null}
       </View>
@@ -142,36 +143,3 @@ export function PlaysChart({ data, height = 200 }: PlaysChartProps) {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    backgroundColor: colors.card.dark,
-    borderRadius: borderRadius.lg,
-    padding: spacing.sm,
-  },
-  emptyContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  emptyText: {
-    color: colors.text.muted.dark,
-    fontSize: typography.fontSize.sm,
-  },
-  valueDisplay: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: spacing.xs,
-    marginBottom: spacing.xs,
-    minHeight: 20,
-  },
-  valueText: {
-    color: colors.cyan.core,
-    fontSize: typography.fontSize.sm,
-    fontWeight: '600',
-  },
-  dateText: {
-    color: colors.text.muted.dark,
-    fontSize: typography.fontSize.xs,
-  },
-});

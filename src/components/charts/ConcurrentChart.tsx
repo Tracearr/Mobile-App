@@ -3,12 +3,13 @@
  * Stacked area chart showing concurrent streams over time with direct/transcode breakdown
  */
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View } from 'react-native';
 import { CartesianChart, StackedArea, useChartPressState } from 'victory-native';
 import { Circle, LinearGradient, vec } from '@shopify/react-native-skia';
 import { useAnimatedReaction, runOnJS } from 'react-native-reanimated';
 import type { SharedValue } from 'react-native-reanimated';
-import { colors, spacing, borderRadius, typography } from '../../lib/theme';
+import { Text } from '@/components/ui/text';
+import { colors } from '../../lib/theme';
 import { useChartFont } from './useChartFont';
 
 interface ConcurrentChartProps {
@@ -89,8 +90,8 @@ export function ConcurrentChart({ data, height = 200 }: ConcurrentChartProps) {
 
   if (chartData.length === 0) {
     return (
-      <View style={[styles.container, styles.emptyContainer, { height }]}>
-        <Text style={styles.emptyText}>No concurrent stream data available</Text>
+      <View className="bg-card items-center justify-center rounded-xl p-2" style={{ height }}>
+        <Text className="text-muted-foreground text-sm">No concurrent stream data available</Text>
       </View>
     );
   }
@@ -107,28 +108,31 @@ export function ConcurrentChart({ data, height = 200 }: ConcurrentChartProps) {
   const total = displayValue ? displayValue.direct + displayValue.transcode : 0;
 
   return (
-    <View style={[styles.container, { height }]}>
+    <View className="bg-card rounded-xl p-2" style={{ height }}>
       {/* Legend */}
-      <View style={styles.legend}>
-        <View style={styles.legendItem}>
-          <View style={[styles.legendDot, { backgroundColor: CHART_COLORS.direct }]} />
-          <Text style={styles.legendText}>Direct</Text>
+      <View className="mb-1 flex-row justify-end gap-4 px-1">
+        <View className="flex-row items-center gap-1">
+          <View className="h-2 w-2 rounded-full" style={{ backgroundColor: CHART_COLORS.direct }} />
+          <Text className="text-muted-foreground text-xs">Direct</Text>
         </View>
-        <View style={styles.legendItem}>
-          <View style={[styles.legendDot, { backgroundColor: CHART_COLORS.transcode }]} />
-          <Text style={styles.legendText}>Transcode</Text>
+        <View className="flex-row items-center gap-1">
+          <View
+            className="h-2 w-2 rounded-full"
+            style={{ backgroundColor: CHART_COLORS.transcode }}
+          />
+          <Text className="text-muted-foreground text-xs">Transcode</Text>
         </View>
       </View>
 
       {/* Active value display */}
-      <View style={styles.valueDisplay}>
+      <View className="mb-1 min-h-9 flex-row items-center justify-between px-1">
         {displayValue && currentItem ? (
           <>
-            <View style={styles.valueBreakdown}>
-              <Text style={styles.valueText}>
+            <View className="flex-col">
+              <Text className="text-sm font-semibold">
                 {total} stream{total !== 1 ? 's' : ''}
               </Text>
-              <Text style={styles.breakdownText}>
+              <Text className="text-xs">
                 <Text style={{ color: CHART_COLORS.direct }}>{displayValue.direct} direct</Text>
                 {' · '}
                 <Text style={{ color: CHART_COLORS.transcode }}>
@@ -136,7 +140,7 @@ export function ConcurrentChart({ data, height = 200 }: ConcurrentChartProps) {
                 </Text>
               </Text>
             </View>
-            <Text style={styles.dateText}>{dateLabel}</Text>
+            <Text className="text-muted-foreground text-xs">{dateLabel}</Text>
           </>
         ) : null}
       </View>
@@ -189,63 +193,3 @@ export function ConcurrentChart({ data, height = 200 }: ConcurrentChartProps) {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    backgroundColor: colors.card.dark,
-    borderRadius: borderRadius.lg,
-    padding: spacing.sm,
-  },
-  emptyContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  emptyText: {
-    color: colors.text.muted.dark,
-    fontSize: typography.fontSize.sm,
-  },
-  legend: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: spacing.md,
-    paddingHorizontal: spacing.xs,
-    marginBottom: spacing.xs,
-  },
-  legendItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-  },
-  legendDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  legendText: {
-    color: colors.text.muted.dark,
-    fontSize: typography.fontSize.xs,
-  },
-  valueDisplay: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: spacing.xs,
-    marginBottom: spacing.xs,
-    minHeight: 36,
-  },
-  valueBreakdown: {
-    flexDirection: 'column',
-  },
-  valueText: {
-    color: colors.text.primary.dark,
-    fontSize: typography.fontSize.sm,
-    fontWeight: '600',
-  },
-  breakdownText: {
-    fontSize: typography.fontSize.xs,
-  },
-  dateText: {
-    color: colors.text.muted.dark,
-    fontSize: typography.fontSize.xs,
-  },
-});

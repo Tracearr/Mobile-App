@@ -25,7 +25,7 @@ import {
 } from 'lucide-react-native';
 import { Text } from '@/components/ui/text';
 import { useTheme } from '@/providers/ThemeProvider';
-import { colors, spacing, borderRadius } from '@/lib/theme';
+import { colors } from '@/lib/theme';
 import type { HistoryFilterOptions, UserFilterOption, FilterOptionItem } from '@tracearr/shared';
 
 export type MediaType = 'movie' | 'episode' | 'track' | 'live';
@@ -213,18 +213,20 @@ export const FilterBottomSheet = forwardRef<FilterBottomSheetRef, FilterBottomSh
       }
 
       return (
-        <View style={styles.sectionHeader}>
-          <Pressable onPress={() => setActiveSection('main')} style={styles.backButton}>
+        <View className="border-border flex-row items-center border-b px-4 py-4">
+          <Pressable onPress={() => setActiveSection('main')} className="mr-1 p-1">
             <ChevronRight
               size={20}
-              color={colors.text.primary.dark}
+              className="text-foreground"
               style={{ transform: [{ rotate: '180deg' }] }}
             />
           </Pressable>
-          <Text style={styles.sectionTitle}>{title}</Text>
+          <Text className="flex-1 text-lg font-semibold">{title}</Text>
           {count > 0 && (
-            <Pressable onPress={() => clearSection(section)} style={styles.clearSectionButton}>
-              <Text style={[styles.clearSectionText, { color: accentColor }]}>Clear ({count})</Text>
+            <Pressable onPress={() => clearSection(section)} className="px-2 py-1">
+              <Text className="text-[13px]" style={{ color: accentColor }}>
+                Clear ({count})
+              </Text>
             </Pressable>
           )}
         </View>
@@ -240,25 +242,23 @@ export const FilterBottomSheet = forwardRef<FilterBottomSheetRef, FilterBottomSh
         <Pressable
           key={user.id}
           onPress={() => toggleUser(user.id)}
-          style={[
-            styles.listItem,
-            isSelected && [styles.listItemSelected, { backgroundColor: `${accentColor}10` }],
-          ]}
+          className={`border-border flex-row items-center border-b py-3 ${isSelected ? '' : ''}`}
+          style={isSelected ? { backgroundColor: `${accentColor}10` } : undefined}
         >
-          <View style={styles.userAvatar}>
+          <View className="mr-2">
             {user.thumbUrl ? (
-              <Image source={{ uri: user.thumbUrl }} style={styles.avatarImage} />
+              <Image source={{ uri: user.thumbUrl }} className="h-8 w-8 rounded-full" />
             ) : (
-              <View style={styles.avatarPlaceholder}>
-                <Text style={styles.avatarText}>{displayName[0]?.toUpperCase() ?? '?'}</Text>
+              <View className="bg-background h-8 w-8 items-center justify-center rounded-full">
+                <Text className="text-muted-foreground text-sm font-semibold">
+                  {displayName[0]?.toUpperCase() ?? '?'}
+                </Text>
               </View>
             )}
           </View>
           <Text
-            style={[
-              styles.listItemText,
-              isSelected && [styles.listItemTextSelected, { color: accentColor }],
-            ]}
+            className={`flex-1 text-[15px] ${isSelected ? 'font-medium' : ''}`}
+            style={isSelected ? { color: accentColor } : undefined}
             numberOfLines={1}
           >
             {displayName}
@@ -277,22 +277,20 @@ export const FilterBottomSheet = forwardRef<FilterBottomSheetRef, FilterBottomSh
       <Pressable
         key={item.value}
         onPress={onToggle}
-        style={[
-          styles.listItem,
-          isSelected && [styles.listItemSelected, { backgroundColor: `${accentColor}10` }],
-        ]}
+        className="border-border flex-row items-center border-b py-3"
+        style={isSelected ? { backgroundColor: `${accentColor}10` } : undefined}
       >
         <Text
-          style={[
-            styles.listItemText,
-            isSelected && [styles.listItemTextSelected, { color: accentColor }],
-          ]}
+          className={`flex-1 text-[15px] ${isSelected ? 'font-medium' : ''}`}
+          style={isSelected ? { color: accentColor } : undefined}
           numberOfLines={1}
         >
           {item.value}
         </Text>
-        <View style={styles.listItemRight}>
-          <Text style={styles.countBadge}>{item.count}</Text>
+        <View className="flex-row items-center gap-2">
+          <Text className="bg-background text-muted-foreground rounded-full px-2 py-0.5 text-xs">
+            {item.count}
+          </Text>
           {isSelected && <Check size={18} color={accentColor} />}
         </View>
       </Pressable>
@@ -302,87 +300,112 @@ export const FilterBottomSheet = forwardRef<FilterBottomSheetRef, FilterBottomSh
     const renderMainMenu = () => (
       <BottomSheetScrollView contentContainerStyle={styles.scrollContent}>
         {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.title}>Filters</Text>
+        <View className="border-border flex-row items-center justify-between border-b px-4 pt-2 pb-4">
+          <Text className="text-lg font-semibold">Filters</Text>
           {activeFilterCount > 0 && (
-            <Pressable onPress={clearAllFilters} style={styles.clearAllButton}>
-              <X size={14} color={colors.text.muted.dark} />
-              <Text style={styles.clearAllText}>Clear all</Text>
+            <Pressable onPress={clearAllFilters} className="flex-row items-center gap-1 px-2 py-1">
+              <X size={14} className="text-muted-foreground" />
+              <Text className="text-muted-foreground text-[13px]">Clear all</Text>
             </Pressable>
           )}
         </View>
 
         {/* Sub-menu navigation items */}
-        <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Filter by</Text>
+        <View className="px-4 pt-4">
+          <Text className="text-muted-foreground mb-2 text-xs font-semibold tracking-wider uppercase">
+            Filter by
+          </Text>
 
           {/* Users */}
-          <Pressable onPress={() => setActiveSection('users')} style={styles.menuItem}>
-            <User size={18} color={colors.text.muted.dark} />
-            <Text style={styles.menuItemText}>Users</Text>
-            <View style={styles.menuItemRight}>
+          <Pressable
+            onPress={() => setActiveSection('users')}
+            className="border-border flex-row items-center border-b py-3.5"
+          >
+            <User size={18} className="text-muted-foreground" />
+            <Text className="ml-2 flex-1 text-[15px]">Users</Text>
+            <View className="flex-row items-center gap-2">
               {filters.serverUserIds.length > 0 && (
-                <View style={[styles.badge, { backgroundColor: accentColor }]}>
-                  <Text style={styles.badgeText}>{filters.serverUserIds.length}</Text>
+                <View
+                  className="min-w-[22px] items-center rounded-full px-2 py-0.5"
+                  style={{ backgroundColor: accentColor }}
+                >
+                  <Text className="text-background text-xs font-semibold">
+                    {filters.serverUserIds.length}
+                  </Text>
                 </View>
               )}
-              <ChevronRight size={18} color={colors.text.muted.dark} />
+              <ChevronRight size={18} className="text-muted-foreground" />
             </View>
           </Pressable>
 
           {/* Platforms */}
-          <Pressable onPress={() => setActiveSection('platforms')} style={styles.menuItem}>
-            <Monitor size={18} color={colors.text.muted.dark} />
-            <Text style={styles.menuItemText}>Platforms</Text>
-            <View style={styles.menuItemRight}>
+          <Pressable
+            onPress={() => setActiveSection('platforms')}
+            className="border-border flex-row items-center border-b py-3.5"
+          >
+            <Monitor size={18} className="text-muted-foreground" />
+            <Text className="ml-2 flex-1 text-[15px]">Platforms</Text>
+            <View className="flex-row items-center gap-2">
               {filters.platforms.length > 0 && (
-                <View style={[styles.badge, { backgroundColor: accentColor }]}>
-                  <Text style={styles.badgeText}>{filters.platforms.length}</Text>
+                <View
+                  className="min-w-[22px] items-center rounded-full px-2 py-0.5"
+                  style={{ backgroundColor: accentColor }}
+                >
+                  <Text className="text-background text-xs font-semibold">
+                    {filters.platforms.length}
+                  </Text>
                 </View>
               )}
-              <ChevronRight size={18} color={colors.text.muted.dark} />
+              <ChevronRight size={18} className="text-muted-foreground" />
             </View>
           </Pressable>
 
           {/* Countries */}
-          <Pressable onPress={() => setActiveSection('countries')} style={styles.menuItem}>
-            <Globe size={18} color={colors.text.muted.dark} />
-            <Text style={styles.menuItemText}>Countries</Text>
-            <View style={styles.menuItemRight}>
+          <Pressable
+            onPress={() => setActiveSection('countries')}
+            className="border-border flex-row items-center border-b py-3.5"
+          >
+            <Globe size={18} className="text-muted-foreground" />
+            <Text className="ml-2 flex-1 text-[15px]">Countries</Text>
+            <View className="flex-row items-center gap-2">
               {filters.geoCountries.length > 0 && (
-                <View style={[styles.badge, { backgroundColor: accentColor }]}>
-                  <Text style={styles.badgeText}>{filters.geoCountries.length}</Text>
+                <View
+                  className="min-w-[22px] items-center rounded-full px-2 py-0.5"
+                  style={{ backgroundColor: accentColor }}
+                >
+                  <Text className="text-background text-xs font-semibold">
+                    {filters.geoCountries.length}
+                  </Text>
                 </View>
               )}
-              <ChevronRight size={18} color={colors.text.muted.dark} />
+              <ChevronRight size={18} className="text-muted-foreground" />
             </View>
           </Pressable>
         </View>
 
         {/* Media Types - inline checkboxes */}
-        <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Media Type</Text>
-          <View style={styles.checkboxGrid}>
+        <View className="px-4 pt-4">
+          <Text className="text-muted-foreground mb-2 text-xs font-semibold tracking-wider uppercase">
+            Media Type
+          </Text>
+          <View className="flex-row flex-wrap gap-2">
             {MEDIA_TYPES.map(({ value, label, icon: Icon }) => {
               const isSelected = filters.mediaTypes.includes(value);
               return (
                 <Pressable
                   key={value}
                   onPress={() => toggleMediaType(value)}
-                  style={[
-                    styles.checkboxItem,
-                    isSelected && [
-                      styles.checkboxItemSelected,
-                      { borderColor: accentColor, backgroundColor: `${accentColor}15` },
-                    ],
-                  ]}
+                  className={`flex-row items-center gap-1.5 rounded-lg border px-3 py-2 ${isSelected ? '' : 'border-border bg-background'}`}
+                  style={
+                    isSelected
+                      ? { borderColor: accentColor, backgroundColor: `${accentColor}15` }
+                      : undefined
+                  }
                 >
                   <Icon size={16} color={isSelected ? accentColor : colors.text.muted.dark} />
                   <Text
-                    style={[
-                      styles.checkboxText,
-                      isSelected && [styles.checkboxTextSelected, { color: accentColor }],
-                    ]}
+                    className={`text-[13px] ${isSelected ? '' : 'text-muted-foreground'}`}
+                    style={isSelected ? { color: accentColor } : undefined}
                   >
                     {label}
                   </Text>
@@ -393,29 +416,28 @@ export const FilterBottomSheet = forwardRef<FilterBottomSheetRef, FilterBottomSh
         </View>
 
         {/* Quality/Transcode - inline checkboxes */}
-        <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Quality</Text>
-          <View style={styles.checkboxGrid}>
+        <View className="px-4 pt-4">
+          <Text className="text-muted-foreground mb-2 text-xs font-semibold tracking-wider uppercase">
+            Quality
+          </Text>
+          <View className="flex-row flex-wrap gap-2">
             {TRANSCODE_OPTIONS.map(({ value, label, icon: Icon }) => {
               const isSelected = filters.transcodeDecisions.includes(value);
               return (
                 <Pressable
                   key={value}
                   onPress={() => toggleTranscode(value)}
-                  style={[
-                    styles.checkboxItem,
-                    isSelected && [
-                      styles.checkboxItemSelected,
-                      { borderColor: accentColor, backgroundColor: `${accentColor}15` },
-                    ],
-                  ]}
+                  className={`flex-row items-center gap-1.5 rounded-lg border px-3 py-2 ${isSelected ? '' : 'border-border bg-background'}`}
+                  style={
+                    isSelected
+                      ? { borderColor: accentColor, backgroundColor: `${accentColor}15` }
+                      : undefined
+                  }
                 >
                   <Icon size={16} color={isSelected ? accentColor : colors.text.muted.dark} />
                   <Text
-                    style={[
-                      styles.checkboxText,
-                      isSelected && [styles.checkboxTextSelected, { color: accentColor }],
-                    ]}
+                    className={`text-[13px] ${isSelected ? '' : 'text-muted-foreground'}`}
+                    style={isSelected ? { color: accentColor } : undefined}
                   >
                     {label}
                   </Text>
@@ -429,18 +451,22 @@ export const FilterBottomSheet = forwardRef<FilterBottomSheetRef, FilterBottomSh
 
     // Users sub-menu
     const renderUsersSection = () => (
-      <View style={styles.subSection}>
+      <View className="flex-1">
         {renderSectionHeader('Users', 'users')}
         <ScrollView contentContainerStyle={styles.listContent}>
           {sortedUsers.map(renderUserItem)}
-          {sortedUsers.length === 0 && <Text style={styles.emptyText}>No users available</Text>}
+          {sortedUsers.length === 0 && (
+            <Text className="text-muted-foreground py-8 text-center text-sm">
+              No users available
+            </Text>
+          )}
         </ScrollView>
       </View>
     );
 
     // Platforms sub-menu
     const renderPlatformsSection = () => (
-      <View style={styles.subSection}>
+      <View className="flex-1">
         {renderSectionHeader('Platforms', 'platforms')}
         <ScrollView contentContainerStyle={styles.listContent}>
           {filterOptions?.platforms?.map((item) =>
@@ -449,7 +475,9 @@ export const FilterBottomSheet = forwardRef<FilterBottomSheetRef, FilterBottomSh
             )
           )}
           {(!filterOptions?.platforms || filterOptions.platforms.length === 0) && (
-            <Text style={styles.emptyText}>No platforms available</Text>
+            <Text className="text-muted-foreground py-8 text-center text-sm">
+              No platforms available
+            </Text>
           )}
         </ScrollView>
       </View>
@@ -457,7 +485,7 @@ export const FilterBottomSheet = forwardRef<FilterBottomSheetRef, FilterBottomSh
 
     // Countries sub-menu
     const renderCountriesSection = () => (
-      <View style={styles.subSection}>
+      <View className="flex-1">
         {renderSectionHeader('Countries', 'countries')}
         <ScrollView contentContainerStyle={styles.listContent}>
           {filterOptions?.countries?.map((item) =>
@@ -466,7 +494,9 @@ export const FilterBottomSheet = forwardRef<FilterBottomSheetRef, FilterBottomSh
             )
           )}
           {(!filterOptions?.countries || filterOptions.countries.length === 0) && (
-            <Text style={styles.emptyText}>No countries available</Text>
+            <Text className="text-muted-foreground py-8 text-center text-sm">
+              No countries available
+            </Text>
           )}
         </ScrollView>
       </View>
@@ -494,206 +524,22 @@ export const FilterBottomSheet = forwardRef<FilterBottomSheetRef, FilterBottomSh
 
 FilterBottomSheet.displayName = 'FilterBottomSheet';
 
+// Keep StyleSheet for bottom sheet specific styling
 const styles = StyleSheet.create({
   bottomSheetBackground: {
     backgroundColor: colors.surface.dark,
-    borderTopLeftRadius: borderRadius.xl,
-    borderTopRightRadius: borderRadius.xl,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
   },
   handleIndicator: {
     backgroundColor: colors.border.dark,
     width: 40,
   },
   scrollContent: {
-    paddingBottom: spacing.xxl,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.dark,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.text.primary.dark,
-  },
-  clearAllButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-  },
-  clearAllText: {
-    fontSize: 13,
-    color: colors.text.muted.dark,
-  },
-  section: {
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.md,
-  },
-  sectionLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.text.muted.dark,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: spacing.sm,
-  },
-  menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.dark,
-  },
-  menuItemText: {
-    flex: 1,
-    fontSize: 15,
-    color: colors.text.primary.dark,
-    marginLeft: spacing.sm,
-  },
-  menuItemRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  badge: {
-    backgroundColor: colors.cyan.core, // Fallback; overridden inline with accentColor
-    borderRadius: borderRadius.full,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    minWidth: 22,
-    alignItems: 'center',
-  },
-  badgeText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.background.dark,
-  },
-  checkboxGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-  },
-  checkboxItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.background.dark,
-    borderWidth: 1,
-    borderColor: colors.border.dark,
-    gap: 6,
-  },
-  checkboxItemSelected: {
-    borderColor: colors.cyan.core, // Fallback; overridden inline with accentColor
-    backgroundColor: `${colors.cyan.core}15`, // Fallback; overridden inline with accentColor
-  },
-  checkboxText: {
-    fontSize: 13,
-    color: colors.text.muted.dark,
-  },
-  checkboxTextSelected: {
-    color: colors.cyan.core, // Fallback; overridden inline with accentColor
-  },
-  // Sub-section styles
-  subSection: {
-    flex: 1,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.dark,
-  },
-  backButton: {
-    padding: spacing.xs,
-    marginRight: spacing.xs,
-  },
-  sectionTitle: {
-    flex: 1,
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.text.primary.dark,
-  },
-  clearSectionButton: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-  },
-  clearSectionText: {
-    fontSize: 13,
-    color: colors.cyan.core, // Fallback; overridden inline with accentColor
+    paddingBottom: 48,
   },
   listContent: {
-    paddingHorizontal: spacing.md,
-    paddingBottom: spacing.xxl,
-  },
-  listItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.dark,
-  },
-  listItemSelected: {
-    backgroundColor: `${colors.cyan.core}10`, // Fallback; overridden inline with accentColor
-  },
-  listItemText: {
-    flex: 1,
-    fontSize: 15,
-    color: colors.text.primary.dark,
-  },
-  listItemTextSelected: {
-    color: colors.cyan.core, // Fallback; overridden inline with accentColor
-    fontWeight: '500',
-  },
-  listItemRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  countBadge: {
-    fontSize: 12,
-    color: colors.text.muted.dark,
-    backgroundColor: colors.background.dark,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: borderRadius.full,
-  },
-  userAvatar: {
-    marginRight: spacing.sm,
-  },
-  avatarImage: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-  },
-  avatarPlaceholder: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: colors.background.dark,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text.muted.dark,
-  },
-  emptyText: {
-    fontSize: 14,
-    color: colors.text.muted.dark,
-    textAlign: 'center',
-    paddingVertical: spacing.xl,
+    paddingHorizontal: 16,
+    paddingBottom: 48,
   },
 });

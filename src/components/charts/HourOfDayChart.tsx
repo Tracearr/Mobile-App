@@ -3,12 +3,13 @@
  * Bar chart showing plays by hour of day with touch interaction
  */
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View } from 'react-native';
 import { CartesianChart, Bar, useChartPressState } from 'victory-native';
 import { Circle } from '@shopify/react-native-skia';
 import { useAnimatedReaction, runOnJS } from 'react-native-reanimated';
 import type { SharedValue } from 'react-native-reanimated';
-import { colors, spacing, borderRadius, typography } from '../../lib/theme';
+import { Text } from '@/components/ui/text';
+import { colors } from '../../lib/theme';
 import { useChartFont } from './useChartFont';
 
 interface HourOfDayChartProps {
@@ -70,20 +71,22 @@ export function HourOfDayChart({ data, height = 180 }: HourOfDayChartProps) {
 
   if (chartData.length === 0) {
     return (
-      <View style={[styles.container, styles.emptyContainer, { height }]}>
-        <Text style={styles.emptyText}>No data available</Text>
+      <View className="bg-card items-center justify-center rounded-xl p-2" style={{ height }}>
+        <Text className="text-muted-foreground text-sm">No data available</Text>
       </View>
     );
   }
 
   return (
-    <View style={[styles.container, { height }]}>
+    <View className="bg-card rounded-xl p-2" style={{ height }}>
       {/* Active value display */}
-      <View style={styles.valueDisplay}>
+      <View className="mb-1 min-h-[18px] flex-row items-center justify-between px-1">
         {displayValue ? (
           <>
-            <Text style={styles.valueText}>{displayValue.count} plays</Text>
-            <Text style={styles.hourText}>{formatHour(displayValue.hour)}</Text>
+            <Text className="text-sm font-semibold" style={{ color: colors.purple }}>
+              {displayValue.count} plays
+            </Text>
+            <Text className="text-muted-foreground text-xs">{formatHour(displayValue.hour)}</Text>
           </>
         ) : null}
       </View>
@@ -126,36 +129,3 @@ export function HourOfDayChart({ data, height = 180 }: HourOfDayChartProps) {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    backgroundColor: colors.card.dark,
-    borderRadius: borderRadius.lg,
-    padding: spacing.sm,
-  },
-  emptyContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  emptyText: {
-    color: colors.text.muted.dark,
-    fontSize: typography.fontSize.sm,
-  },
-  valueDisplay: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: spacing.xs,
-    marginBottom: spacing.xs,
-    minHeight: 18,
-  },
-  valueText: {
-    color: colors.purple,
-    fontSize: typography.fontSize.sm,
-    fontWeight: '600',
-  },
-  hourText: {
-    color: colors.text.muted.dark,
-    fontSize: typography.fontSize.xs,
-  },
-});

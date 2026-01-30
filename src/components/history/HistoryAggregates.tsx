@@ -3,11 +3,10 @@
  * Shows key stats: Total Plays, Watch Time, Unique Users, Unique Titles
  */
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View } from 'react-native';
 import { Play, Clock, Users, Film } from 'lucide-react-native';
 import { Text } from '@/components/ui/text';
 import { useTheme } from '@/providers/ThemeProvider';
-import { colors, spacing, borderRadius } from '@/lib/theme';
 import type { HistoryAggregates as AggregatesType } from '@tracearr/shared';
 
 interface HistoryAggregatesProps {
@@ -36,15 +35,18 @@ interface StatItemProps {
 
 function StatItem({ icon: Icon, label, value, isLoading, accentColor }: StatItemProps) {
   return (
-    <View style={styles.statItem}>
-      <View style={[styles.iconContainer, { backgroundColor: `${accentColor}15` }]}>
+    <View className="flex-1 flex-row items-center justify-center gap-1.5">
+      <View
+        className="h-5 w-5 items-center justify-center rounded-full"
+        style={{ backgroundColor: `${accentColor}15` }}
+      >
         <Icon size={12} color={accentColor} />
       </View>
-      <View style={styles.statContent}>
-        <Text style={styles.statValue}>
+      <View className="items-start">
+        <Text className="text-[13px] font-semibold">
           {isLoading ? '-' : typeof value === 'number' ? value.toLocaleString() : value}
         </Text>
-        <Text style={styles.statLabel}>{label}</Text>
+        <Text className="text-muted-foreground text-[10px]">{label}</Text>
       </View>
     </View>
   );
@@ -54,7 +56,7 @@ export function HistoryAggregates({ aggregates, isLoading }: HistoryAggregatesPr
   const { accentColor } = useTheme();
 
   return (
-    <View style={styles.container}>
+    <View className="bg-card mb-4 flex-row rounded-xl px-1 py-2">
       <StatItem
         icon={Play}
         label="Plays"
@@ -62,7 +64,7 @@ export function HistoryAggregates({ aggregates, isLoading }: HistoryAggregatesPr
         isLoading={isLoading}
         accentColor={accentColor}
       />
-      <View style={styles.divider} />
+      <View className="bg-border h-[80%] w-px self-center" />
       <StatItem
         icon={Clock}
         label="Watch Time"
@@ -70,7 +72,7 @@ export function HistoryAggregates({ aggregates, isLoading }: HistoryAggregatesPr
         isLoading={isLoading}
         accentColor={accentColor}
       />
-      <View style={styles.divider} />
+      <View className="bg-border h-[80%] w-px self-center" />
       <StatItem
         icon={Users}
         label="Users"
@@ -78,7 +80,7 @@ export function HistoryAggregates({ aggregates, isLoading }: HistoryAggregatesPr
         isLoading={isLoading}
         accentColor={accentColor}
       />
-      <View style={styles.divider} />
+      <View className="bg-border h-[80%] w-px self-center" />
       <StatItem
         icon={Film}
         label="Titles"
@@ -89,45 +91,3 @@ export function HistoryAggregates({ aggregates, isLoading }: HistoryAggregatesPr
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    backgroundColor: colors.surface.dark,
-    borderRadius: borderRadius.lg,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.xs,
-    marginBottom: spacing.md,
-  },
-  statItem: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-  },
-  iconContainer: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  statContent: {
-    alignItems: 'flex-start',
-  },
-  statValue: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.text.primary.dark,
-  },
-  statLabel: {
-    fontSize: 10,
-    color: colors.text.muted.dark,
-  },
-  divider: {
-    width: 1,
-    height: '80%',
-    backgroundColor: colors.border.dark,
-  },
-});

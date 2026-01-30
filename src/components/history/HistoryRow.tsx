@@ -17,7 +17,7 @@ import {
 import { Text } from '@/components/ui/text';
 import { useImageUrl } from '@/hooks/useImageUrl';
 import { useTheme } from '@/providers/ThemeProvider';
-import { colors, spacing, borderRadius } from '@/lib/theme';
+import { colors } from '@/lib/theme';
 import { formatDuration, formatListTimestamp } from '@/lib/formatters';
 import type { SessionWithDetails, MediaType } from '@tracearr/shared';
 
@@ -70,7 +70,7 @@ function MediaTypeIcon({ type }: { type: MediaType }) {
     live: Radio,
   };
   const Icon = icons[type] || Film;
-  return <Icon size={14} color={colors.text.muted.dark} />;
+  return <Icon size={14} className="text-muted-foreground" />;
 }
 
 // Quality badge showing transcode status
@@ -81,9 +81,14 @@ function QualityBadge({ session }: { session: SessionWithDetails }) {
 
   if (isTranscode) {
     return (
-      <View style={[styles.qualityBadge, styles.transcodeBadge]}>
+      <View
+        className="flex-row items-center gap-1 rounded-sm px-1.5 py-0.5"
+        style={styles.transcodeBadge}
+      >
         <Repeat2 size={10} color={colors.warning} />
-        <Text style={[styles.qualityText, styles.transcodeText]}>Transcode</Text>
+        <Text className="text-[10px] font-semibold" style={{ color: colors.warning }}>
+          Transcode
+        </Text>
       </View>
     );
   }
@@ -91,10 +96,11 @@ function QualityBadge({ session }: { session: SessionWithDetails }) {
   if (isCopy) {
     return (
       <View
-        style={[styles.qualityBadge, styles.directBadge, { backgroundColor: `${accentColor}15` }]}
+        className="flex-row items-center gap-1 rounded-sm px-1.5 py-0.5"
+        style={{ backgroundColor: `${accentColor}15` }}
       >
         <MonitorPlay size={10} color={accentColor} />
-        <Text style={[styles.qualityText, styles.directText, { color: accentColor }]}>
+        <Text className="text-[10px] font-semibold" style={{ color: accentColor }}>
           Direct Stream
         </Text>
       </View>
@@ -103,10 +109,13 @@ function QualityBadge({ session }: { session: SessionWithDetails }) {
 
   return (
     <View
-      style={[styles.qualityBadge, styles.directBadge, { backgroundColor: `${accentColor}15` }]}
+      className="flex-row items-center gap-1 rounded-sm px-1.5 py-0.5"
+      style={{ backgroundColor: `${accentColor}15` }}
     >
       <Play size={10} color={colors.success} fill={colors.success} />
-      <Text style={[styles.qualityText, styles.directPlayText]}>Direct Play</Text>
+      <Text className="text-[10px] font-semibold" style={{ color: colors.success }}>
+        Direct Play
+      </Text>
     </View>
   );
 }
@@ -115,13 +124,14 @@ function QualityBadge({ session }: { session: SessionWithDetails }) {
 function ProgressBar({ progress }: { progress: number }) {
   const { accentColor } = useTheme();
   return (
-    <View style={styles.progressContainer}>
-      <View style={styles.progressTrack}>
+    <View className="flex-1 flex-row items-center gap-1.5">
+      <View className="bg-card h-1 flex-1 overflow-hidden rounded-sm">
         <View
-          style={[styles.progressFill, { width: `${progress}%`, backgroundColor: accentColor }]}
+          className="h-full rounded-sm"
+          style={{ width: `${progress}%`, backgroundColor: accentColor }}
         />
       </View>
-      <Text style={styles.progressText}>{progress}%</Text>
+      <Text className="text-muted-foreground w-7 text-right text-[10px]">{progress}%</Text>
     </View>
   );
 }
@@ -152,54 +162,54 @@ export function HistoryRow({ session, onPress }: HistoryRowProps) {
   });
 
   return (
-    <Pressable onPress={onPress} style={styles.container}>
+    <Pressable onPress={onPress} className="bg-card gap-1 px-4 py-2">
       {/* Row 1: Poster + Content title + Duration */}
-      <View style={styles.mainRow}>
+      <View className="flex-row items-start gap-2">
         {/* Poster */}
         {posterUrl ? (
           <Image source={{ uri: posterUrl }} style={styles.poster} resizeMode="cover" />
         ) : (
           <View style={[styles.poster, styles.posterPlaceholder]}>
-            <Film size={18} color={colors.text.muted.dark} />
+            <Film size={18} className="text-muted-foreground" />
           </View>
         )}
 
         {/* Content info */}
-        <View style={styles.content}>
+        <View className="flex-1 gap-0.5">
           {/* Title with media type icon */}
-          <View style={styles.titleRow}>
+          <View className="flex-row items-center gap-1.5">
             <MediaTypeIcon type={session.mediaType || 'movie'} />
-            <Text style={styles.title} numberOfLines={1}>
+            <Text className="flex-1 text-sm font-semibold" numberOfLines={1}>
               {title.primary}
             </Text>
           </View>
 
           {/* Secondary info (episode name, year, etc) */}
           {title.secondary && (
-            <Text style={styles.secondary} numberOfLines={1}>
+            <Text className="text-muted-foreground ml-5 text-xs" numberOfLines={1}>
               {title.secondary}
             </Text>
           )}
 
           {/* User and platform */}
-          <Text style={styles.userLine} numberOfLines={1}>
+          <Text className="text-muted-foreground ml-5 text-[11px]" numberOfLines={1}>
             {displayName}
             {platform ? ` · ${platform}` : ''}
           </Text>
         </View>
 
         {/* Right side: Duration + Time */}
-        <View style={styles.rightMeta}>
-          <Text style={styles.duration}>{duration}</Text>
-          <Text style={styles.time}>{dateTimeStr}</Text>
+        <View className="items-end gap-0.5">
+          <Text className="text-[13px] font-semibold">{duration}</Text>
+          <Text className="text-muted-foreground text-[11px]">{dateTimeStr}</Text>
         </View>
       </View>
 
       {/* Row 2: Quality badge + Progress bar */}
-      <View style={styles.bottomRow}>
+      <View className="ml-12 flex-row items-center gap-2">
         <QualityBadge session={session} />
         <ProgressBar progress={progress} />
-        <ChevronRight size={14} color={colors.text.muted.dark} />
+        <ChevronRight size={14} className="text-muted-foreground" />
       </View>
     </Pressable>
   );
@@ -207,128 +217,22 @@ export function HistoryRow({ session, onPress }: HistoryRowProps) {
 
 // For list separators
 export function HistoryRowSeparator() {
-  return <View style={styles.separator} />;
+  return <View className="bg-border h-px" />;
 }
 
+// Keep StyleSheet for dimensions and complex positioning
 const styles = StyleSheet.create({
-  container: {
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    backgroundColor: colors.card.dark,
-    gap: spacing.xs,
-  },
-  mainRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing.sm,
-  },
   poster: {
     width: POSTER_WIDTH,
     height: POSTER_HEIGHT,
-    borderRadius: borderRadius.sm,
+    borderRadius: 4,
     backgroundColor: colors.surface.dark,
   },
   posterPlaceholder: {
     justifyContent: 'center',
     alignItems: 'center',
   },
-  content: {
-    flex: 1,
-    gap: 2,
-  },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  title: {
-    flex: 1,
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text.primary.dark,
-  },
-  secondary: {
-    fontSize: 12,
-    color: colors.text.secondary.dark,
-    marginLeft: 20, // Align with title (icon width + gap)
-  },
-  userLine: {
-    fontSize: 11,
-    color: colors.text.muted.dark,
-    marginLeft: 20,
-  },
-  rightMeta: {
-    alignItems: 'flex-end',
-    gap: 2,
-  },
-  duration: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.text.primary.dark,
-  },
-  time: {
-    fontSize: 11,
-    color: colors.text.muted.dark,
-  },
-  bottomRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    marginLeft: 48, // Align with content (avatar width + gap)
-  },
-  qualityBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 6,
-    paddingVertical: 3,
-    borderRadius: borderRadius.sm,
-  },
   transcodeBadge: {
     backgroundColor: `${colors.warning}20`,
-  },
-  directBadge: {
-    backgroundColor: `${colors.cyan.core}15`, // Fallback; overridden inline with accentColor
-  },
-  qualityText: {
-    fontSize: 10,
-    fontWeight: '600',
-  },
-  transcodeText: {
-    color: colors.warning,
-  },
-  directText: {
-    color: colors.cyan.core, // Fallback; overridden inline with accentColor
-  },
-  directPlayText: {
-    color: colors.success,
-  },
-  progressContainer: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  progressTrack: {
-    flex: 1,
-    height: 4,
-    backgroundColor: colors.surface.dark,
-    borderRadius: 2,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: colors.cyan.core, // Fallback; overridden inline with accentColor
-    borderRadius: 2,
-  },
-  progressText: {
-    fontSize: 10,
-    color: colors.text.muted.dark,
-    width: 28,
-    textAlign: 'right',
-  },
-  separator: {
-    height: 1,
-    backgroundColor: colors.border.dark,
   },
 });

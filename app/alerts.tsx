@@ -8,14 +8,7 @@
  * - Tablet (md+): 2-column grid, filters row, larger avatars
  */
 import { useState, useMemo } from 'react';
-import {
-  View,
-  FlatList,
-  RefreshControl,
-  Pressable,
-  ActivityIndicator,
-  StyleSheet,
-} from 'react-native';
+import { View, FlatList, RefreshControl, Pressable, ActivityIndicator } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useInfiniteQuery, useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
@@ -42,7 +35,7 @@ import { Text } from '@/components/ui/text';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { UserAvatar } from '@/components/ui/user-avatar';
-import { colors, spacing, borderRadius } from '@/lib/theme';
+import { colors, spacing } from '@/lib/theme';
 import type {
   ViolationWithDetails,
   RuleType,
@@ -173,18 +166,15 @@ function FilterChip({ label, active, onPress }: FilterChipProps) {
   return (
     <Pressable
       onPress={onPress}
+      className="rounded-full border px-4 py-1"
       style={{
-        paddingHorizontal: spacing.md,
-        paddingVertical: spacing.xs,
-        borderRadius: borderRadius.full,
         backgroundColor: active ? accentColor : colors.card.dark,
-        borderWidth: 1,
         borderColor: active ? accentColor : colors.border.dark,
       }}
     >
       <Text
+        className="text-[13px]"
         style={{
-          fontSize: 13,
           fontWeight: active ? '600' : '400',
           color: active ? 'white' : colors.text.secondary.dark,
         }}
@@ -285,6 +275,7 @@ export default function AlertsScreen() {
   const { selectedServerId } = useMediaServer();
   const { accentColor } = useTheme();
   const { isTablet, select } = useResponsive();
+  const insets = useSafeAreaInsets();
 
   // Filter state
   const [severityFilter, setSeverityFilter] = useState<ViolationSeverity | 'all'>('all');
@@ -356,7 +347,6 @@ export default function AlertsScreen() {
   };
 
   const hasActiveFilters = severityFilter !== 'all' || statusFilter !== 'all';
-  const insets = useSafeAreaInsets();
 
   const handleBack = () => {
     if (router.canGoBack()) {
@@ -368,22 +358,22 @@ export default function AlertsScreen() {
   };
 
   return (
-    <SafeAreaView
-      style={{ flex: 1, backgroundColor: colors.background.dark }}
-      edges={['left', 'right', 'bottom']}
-    >
+    <SafeAreaView className="bg-background flex-1" edges={['left', 'right', 'bottom']}>
       {/* Header with back button */}
-      <View style={[headerStyles.container, { paddingTop: insets.top }]}>
-        <View style={headerStyles.content}>
+      <View
+        className="border-border border-b"
+        style={{ paddingTop: insets.top, backgroundColor: colors.background.dark }}
+      >
+        <View className="h-14 flex-row items-center justify-between px-4">
           <Pressable
             onPress={handleBack}
-            style={headerStyles.backButton}
+            className="h-11 w-11 items-center justify-center rounded-lg"
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             <ChevronLeft size={24} color={colors.text.primary.dark} />
           </Pressable>
-          <Text style={headerStyles.title}>Alerts</Text>
-          <View style={headerStyles.spacer} />
+          <Text className="text-[17px] font-semibold">Alerts</Text>
+          <View className="w-11" />
         </View>
       </View>
 
@@ -420,7 +410,7 @@ export default function AlertsScreen() {
           <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={accentColor} />
         }
         ListHeaderComponent={
-          <View style={{ marginBottom: spacing.md }}>
+          <View className="mb-4">
             {/* Title row */}
             <View className="mb-3 flex-row items-center justify-between">
               <View>
@@ -440,18 +430,11 @@ export default function AlertsScreen() {
             </View>
 
             {/* Filters */}
-            <View
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: spacing.sm,
-                marginBottom: spacing.xs,
-              }}
-            >
+            <View className="mb-1 flex-row items-center gap-2">
               <Filter size={14} color={colors.text.muted.dark} />
               <Text className="text-muted-foreground text-xs font-medium">FILTERS</Text>
             </View>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs }}>
+            <View className="flex-row flex-wrap gap-1">
               {/* Severity filters */}
               <FilterChip
                 label="All"
@@ -473,7 +456,7 @@ export default function AlertsScreen() {
                 active={severityFilter === 'low'}
                 onPress={() => setSeverityFilter('low')}
               />
-              <View style={{ width: spacing.sm }} />
+              <View className="w-2" />
               {/* Status filters */}
               <FilterChip
                 label="Pending"
@@ -514,33 +497,3 @@ export default function AlertsScreen() {
     </SafeAreaView>
   );
 }
-
-const headerStyles = StyleSheet.create({
-  container: {
-    backgroundColor: colors.background.dark,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.dark,
-  },
-  content: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    height: 56,
-    paddingHorizontal: spacing.md,
-  },
-  backButton: {
-    width: 44,
-    height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 8,
-  },
-  title: {
-    fontSize: 17,
-    fontWeight: '600',
-    color: colors.text.primary.dark,
-  },
-  spacer: {
-    width: 44,
-  },
-});

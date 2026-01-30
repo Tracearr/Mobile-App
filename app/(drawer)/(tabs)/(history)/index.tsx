@@ -3,14 +3,7 @@
  * Matches web UI quality with proper filtering and aggregates
  */
 import { useState, useMemo, useCallback, useRef } from 'react';
-import {
-  View,
-  FlatList,
-  RefreshControl,
-  ActivityIndicator,
-  StyleSheet,
-  Platform,
-} from 'react-native';
+import { View, FlatList, RefreshControl, ActivityIndicator, Platform } from 'react-native';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { useRouter, Stack } from 'expo-router';
 import { DrawerActions, useNavigation } from '@react-navigation/native';
@@ -29,7 +22,6 @@ import {
   type FilterBottomSheetRef,
   type FilterState,
 } from '@/components/history';
-import { colors, spacing } from '@/lib/theme';
 import type { SessionWithDetails } from '@tracearr/shared';
 
 const PAGE_SIZE = 50;
@@ -178,13 +170,13 @@ export default function HistoryScreen() {
 
   return (
     <>
-      <View style={styles.container}>
+      <View className="bg-background flex-1">
         <FlatList
           data={sessions}
           keyExtractor={keyExtractor}
           renderItem={renderItem}
           ItemSeparatorComponent={HistoryRowSeparator}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={{ paddingBottom: 24 }}
           contentInsetAdjustmentBehavior="automatic"
           onEndReached={handleEndReached}
           onEndReachedThreshold={0.5}
@@ -192,7 +184,7 @@ export default function HistoryScreen() {
             <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={accentColor} />
           }
           ListHeaderComponent={
-            <View style={styles.header}>
+            <View className="px-4 pt-2">
               {/* Filters */}
               <HistoryFilters
                 period={period}
@@ -209,7 +201,7 @@ export default function HistoryScreen() {
           }
           ListFooterComponent={
             isFetchingNextPage ? (
-              <View style={styles.footer}>
+              <View className="items-center py-4">
                 <ActivityIndicator size="small" color={accentColor} />
               </View>
             ) : null
@@ -222,7 +214,7 @@ export default function HistoryScreen() {
             ) : (
               <View className="items-center px-4 py-12">
                 <View className="bg-card border-border mb-4 h-20 w-20 items-center justify-center rounded-full border">
-                  <Play size={32} color={colors.text.muted.dark} />
+                  <Play size={32} className="text-muted-foreground" />
                 </View>
                 <Text className="mb-1 text-lg font-semibold">No History Found</Text>
                 <Text className="text-muted-foreground text-center text-sm">
@@ -265,21 +257,3 @@ export default function HistoryScreen() {
     </>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background.dark,
-  },
-  listContent: {
-    paddingBottom: spacing.xl,
-  },
-  header: {
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.sm,
-  },
-  footer: {
-    alignItems: 'center',
-    paddingVertical: spacing.md,
-  },
-});

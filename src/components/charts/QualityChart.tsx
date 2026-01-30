@@ -2,8 +2,9 @@
  * Simple chart showing direct play vs transcode breakdown
  */
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { colors, spacing, borderRadius, typography } from '../../lib/theme';
+import { View } from 'react-native';
+import { Text } from '@/components/ui/text';
+import { colors } from '../../lib/theme';
 
 interface QualityChartProps {
   directPlay: number;
@@ -24,33 +25,33 @@ export function QualityChart({
 
   if (total === 0) {
     return (
-      <View style={[styles.container, styles.emptyContainer, { height }]}>
-        <Text style={styles.emptyText}>No playback data available</Text>
+      <View className="bg-card items-center justify-center rounded-xl p-3" style={{ height }}>
+        <Text className="text-muted-foreground text-sm">No playback data available</Text>
       </View>
     );
   }
 
   return (
-    <View style={[styles.container, { height }]}>
+    <View className="bg-card justify-center rounded-xl p-3" style={{ height }}>
       {/* Progress bar */}
-      <View style={styles.barContainer}>
-        <View style={[styles.directBar, { flex: directPlayPercent || 1 }]} />
-        <View style={[styles.transcodeBar, { flex: transcodePercent || 1 }]} />
+      <View className="mb-3 h-6 flex-row overflow-hidden rounded-lg">
+        <View style={{ flex: directPlayPercent || 1, backgroundColor: colors.success }} />
+        <View style={{ flex: transcodePercent || 1, backgroundColor: colors.warning }} />
       </View>
 
       {/* Legend */}
-      <View style={styles.legend}>
-        <View style={styles.legendItem}>
-          <View style={[styles.legendDot, { backgroundColor: colors.success }]} />
-          <Text style={styles.legendLabel}>Direct Play</Text>
-          <Text style={styles.legendValue}>
+      <View className="gap-2">
+        <View className="flex-row items-center gap-2">
+          <View className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: colors.success }} />
+          <Text className="text-foreground flex-1 text-sm">Direct Play</Text>
+          <Text className="text-muted-foreground text-sm">
             {directPlay} ({directPlayPercent}%)
           </Text>
         </View>
-        <View style={styles.legendItem}>
-          <View style={[styles.legendDot, { backgroundColor: colors.warning }]} />
-          <Text style={styles.legendLabel}>Transcode</Text>
-          <Text style={styles.legendValue}>
+        <View className="flex-row items-center gap-2">
+          <View className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: colors.warning }} />
+          <Text className="text-foreground flex-1 text-sm">Transcode</Text>
+          <Text className="text-muted-foreground text-sm">
             {transcode} ({transcodePercent}%)
           </Text>
         </View>
@@ -58,54 +59,3 @@ export function QualityChart({
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    backgroundColor: colors.card.dark,
-    borderRadius: borderRadius.lg,
-    padding: spacing.md,
-    justifyContent: 'center',
-  },
-  emptyContainer: {
-    alignItems: 'center',
-  },
-  emptyText: {
-    color: colors.text.muted.dark,
-    fontSize: typography.fontSize.sm,
-  },
-  barContainer: {
-    flexDirection: 'row',
-    height: 24,
-    borderRadius: borderRadius.md,
-    overflow: 'hidden',
-    marginBottom: spacing.md,
-  },
-  directBar: {
-    backgroundColor: colors.success,
-  },
-  transcodeBar: {
-    backgroundColor: colors.warning,
-  },
-  legend: {
-    gap: spacing.sm,
-  },
-  legendItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  legendDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-  },
-  legendLabel: {
-    flex: 1,
-    color: colors.text.primary.dark,
-    fontSize: typography.fontSize.sm,
-  },
-  legendValue: {
-    color: colors.text.muted.dark,
-    fontSize: typography.fontSize.sm,
-  },
-});

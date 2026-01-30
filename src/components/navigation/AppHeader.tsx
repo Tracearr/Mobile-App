@@ -4,7 +4,7 @@
  * - Center: Current screen title or server name
  * - Right: Bell icon with unacknowledged alerts badge
  */
-import { View, Pressable, StyleSheet } from 'react-native';
+import { View, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { DrawerActions, useNavigation } from '@react-navigation/native';
 import { useQuery } from '@tanstack/react-query';
@@ -13,7 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text } from '@/components/ui/text';
 import { useMediaServer } from '@/providers/MediaServerProvider';
 import { api } from '@/lib/api';
-import { colors, spacing } from '@/lib/theme';
+import { colors } from '@/lib/theme';
 
 interface AppHeaderProps {
   title?: string;
@@ -53,21 +53,24 @@ export function AppHeader({ title, showServerName = true }: AppHeaderProps) {
   const displayText = title ?? (showServerName ? selectedServer?.name : undefined);
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <View style={styles.content}>
+    <View
+      className="border-border border-b"
+      style={{ paddingTop: insets.top, backgroundColor: colors.background.dark }}
+    >
+      <View className="h-[52] flex-row items-center justify-between px-2">
         {/* Left: Hamburger menu */}
         <Pressable
           onPress={handleMenuPress}
-          style={styles.iconButton}
+          className="h-11 w-11 items-center justify-center rounded-lg"
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Menu size={24} color={colors.text.primary.dark} />
         </Pressable>
 
         {/* Center: Title or Server name */}
-        <View style={styles.titleContainer}>
+        <View className="flex-1 items-center px-2">
           {displayText && (
-            <Text style={styles.title} numberOfLines={1}>
+            <Text className="text-[17px] font-semibold" numberOfLines={1}>
               {displayText}
             </Text>
           )}
@@ -76,14 +79,14 @@ export function AppHeader({ title, showServerName = true }: AppHeaderProps) {
         {/* Right: Alerts bell with badge */}
         <Pressable
           onPress={handleAlertsPress}
-          style={styles.iconButton}
+          className="h-11 w-11 items-center justify-center rounded-lg"
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <View style={styles.bellContainer}>
+          <View className="relative">
             <Bell size={24} color={colors.text.primary.dark} />
             {unacknowledgedCount > 0 && (
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>
+              <View className="bg-destructive absolute -top-1.5 -right-2 min-w-[18] items-center justify-center rounded-[10] px-1 py-0">
+                <Text className="text-[10px] font-bold text-white">
                   {unacknowledgedCount > 99 ? '99+' : unacknowledgedCount}
                 </Text>
               </View>
@@ -94,55 +97,3 @@ export function AppHeader({ title, showServerName = true }: AppHeaderProps) {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    backgroundColor: colors.background.dark,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.dark,
-  },
-  content: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    height: 52,
-    paddingHorizontal: spacing.sm,
-  },
-  iconButton: {
-    width: 44,
-    height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 8,
-  },
-  titleContainer: {
-    flex: 1,
-    alignItems: 'center',
-    paddingHorizontal: spacing.sm,
-  },
-  title: {
-    fontSize: 17,
-    fontWeight: '600',
-    color: colors.text.primary.dark,
-  },
-  bellContainer: {
-    position: 'relative',
-  },
-  badge: {
-    position: 'absolute',
-    top: -6,
-    right: -8,
-    backgroundColor: colors.error,
-    borderRadius: 10,
-    minWidth: 18,
-    height: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 4,
-  },
-  badgeText: {
-    color: 'white',
-    fontSize: 10,
-    fontWeight: '700',
-  },
-});

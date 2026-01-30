@@ -8,7 +8,7 @@ import '../global.css';
 import { useEffect, useState, useRef } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, ActivityIndicator } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { QueryProvider } from '@/providers/QueryProvider';
@@ -22,7 +22,7 @@ import { Toast } from '@/components/Toast';
 import { useAuthStateStore } from '@/lib/authStateStore';
 import { useConnectionValidator } from '@/hooks/useConnectionValidator';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
-import { colors } from '@/lib/theme';
+import { useTheme } from '@/providers/ThemeProvider';
 
 function RootLayoutNav() {
   // Use single-server auth state store
@@ -30,6 +30,7 @@ function RootLayoutNav() {
   const isInitializing = useAuthStateStore((s) => s.isInitializing);
   const connectionState = useAuthStateStore((s) => s.connectionState);
   const tokenStatus = useAuthStateStore((s) => s.tokenStatus);
+  const { accentColor } = useTheme();
 
   // Derived auth state
   const isAuthenticated = server !== null && tokenStatus !== 'revoked';
@@ -65,8 +66,8 @@ function RootLayoutNav() {
 
   if (isInitializing) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={colors.cyan.core} />
+      <View className="bg-background flex-1 items-center justify-center">
+        <ActivityIndicator size="large" color={accentColor} />
       </View>
     );
   }
@@ -75,7 +76,7 @@ function RootLayoutNav() {
   if (connectionState === 'unauthenticated') {
     return (
       <>
-        <StatusBar style="auto" backgroundColor={colors.background.dark} translucent={false} />
+        <StatusBar style="auto" translucent={false} />
         <UnauthenticatedScreen />
       </>
     );
@@ -83,7 +84,7 @@ function RootLayoutNav() {
 
   return (
     <>
-      <StatusBar style="auto" backgroundColor={colors.background.dark} translucent={false} />
+      <StatusBar style="auto" translucent={false} />
       <OfflineBanner onRetry={validate} />
       <Toast
         message="Reconnected"
@@ -93,7 +94,6 @@ function RootLayoutNav() {
       <Stack
         screenOptions={{
           headerShown: false,
-          contentStyle: { backgroundColor: colors.background.dark },
           animation: 'fade',
         }}
       >
@@ -135,7 +135,7 @@ function RootLayoutNav() {
 
 export default function RootLayout() {
   return (
-    <GestureHandlerRootView style={styles.container}>
+    <GestureHandlerRootView className="bg-background flex-1">
       <SafeAreaProvider>
         <ThemeProvider>
           <ErrorBoundary>
@@ -152,16 +152,3 @@ export default function RootLayout() {
     </GestureHandlerRootView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background.dark,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: colors.background.dark,
-  },
-});

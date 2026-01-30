@@ -13,7 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useRef } from 'react';
 import { Text } from '@/components/ui/text';
 import { useResponsive } from '@/hooks/useResponsive';
-import { colors, spacing, borderRadius, typography } from '@/lib/theme';
+import { colors, spacing } from '@/lib/theme';
 
 // Bar colors matching web app
 const BAR_COLORS = {
@@ -51,26 +51,30 @@ function ResourceBar({ label, processValue, systemValue, icon, isTablet }: Resou
   // Responsive sizing
   const barHeight = isTablet ? 6 : 4;
   const iconSize = isTablet ? 16 : 14;
-  const labelFontSize = isTablet ? typography.fontSize.sm : typography.fontSize.xs;
+  const labelFontSize = isTablet ? 13 : 11;
   const barLabelFontSize = isTablet ? 11 : 10;
 
   return (
-    <View style={[styles.resourceBar, isTablet && { marginBottom: spacing.md }]}>
+    <View className={isTablet ? 'mb-4' : 'mb-2'}>
       {/* Header row */}
-      <View style={[styles.resourceHeader, isTablet && { marginBottom: spacing.sm }]}>
+      <View className={`flex-row items-center ${isTablet ? 'mb-2' : 'mb-1'}`}>
         <Ionicons name={icon} size={iconSize} color={colors.text.secondary.dark} />
-        <Text style={[styles.resourceLabel, { fontSize: labelFontSize }]}>{label}</Text>
+        <Text className="ml-1 font-semibold" style={{ fontSize: labelFontSize }}>
+          {label}
+        </Text>
       </View>
 
       {/* Process bar (Plex Media Server) */}
-      <View style={[styles.barSection, isTablet && { marginBottom: spacing.sm }]}>
-        <View style={styles.barLabelRow}>
-          <Text style={[styles.barLabelText, { fontSize: barLabelFontSize }]}>
+      <View className={isTablet ? 'mb-2' : 'mb-1'}>
+        <View className="mb-0.5 flex-row items-center justify-between">
+          <Text className="text-muted-foreground" style={{ fontSize: barLabelFontSize }}>
             Plex Media Server
           </Text>
-          <Text style={[styles.barValueText, { fontSize: barLabelFontSize }]}>{processValue}%</Text>
+          <Text className="font-semibold" style={{ fontSize: barLabelFontSize }}>
+            {processValue}%
+          </Text>
         </View>
-        <View style={[styles.barTrack, { height: barHeight }]}>
+        <View className="bg-card overflow-hidden rounded-sm" style={{ height: barHeight }}>
           <Animated.View
             style={[
               styles.barFill,
@@ -87,12 +91,16 @@ function ResourceBar({ label, processValue, systemValue, icon, isTablet }: Resou
       </View>
 
       {/* System bar */}
-      <View style={styles.barSection}>
-        <View style={styles.barLabelRow}>
-          <Text style={[styles.barLabelText, { fontSize: barLabelFontSize }]}>System</Text>
-          <Text style={[styles.barValueText, { fontSize: barLabelFontSize }]}>{systemValue}%</Text>
+      <View>
+        <View className="mb-0.5 flex-row items-center justify-between">
+          <Text className="text-muted-foreground" style={{ fontSize: barLabelFontSize }}>
+            System
+          </Text>
+          <Text className="font-semibold" style={{ fontSize: barLabelFontSize }}>
+            {systemValue}%
+          </Text>
         </View>
-        <View style={[styles.barTrack, { height: barHeight }]}>
+        <View className="bg-card overflow-hidden rounded-sm" style={{ height: barHeight }}>
           <Animated.View
             style={[
               styles.barFill,
@@ -128,9 +136,9 @@ export function ServerResourceCard({ latest, isLoading, error }: ServerResourceC
 
   if (isLoading) {
     return (
-      <View style={[styles.container, { padding: containerPadding }]}>
-        <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>Loading...</Text>
+      <View className="bg-card rounded-xl" style={{ padding: containerPadding }}>
+        <View className="h-20 items-center justify-center">
+          <Text className="text-muted-foreground text-xs">Loading...</Text>
         </View>
       </View>
     );
@@ -138,13 +146,13 @@ export function ServerResourceCard({ latest, isLoading, error }: ServerResourceC
 
   if (error) {
     return (
-      <View style={[styles.container, { padding: containerPadding }]}>
-        <View style={styles.emptyContainer}>
-          <View style={[styles.emptyIconContainer, { backgroundColor: 'rgba(239, 68, 68, 0.1)' }]}>
+      <View className="bg-card rounded-xl" style={{ padding: containerPadding }}>
+        <View className="items-center justify-center py-6">
+          <View className="bg-destructive/10 mb-2 rounded-full p-2">
             <Ionicons name="alert-circle-outline" size={24} color="#ef4444" />
           </View>
-          <Text style={styles.emptyText}>Failed to load</Text>
-          <Text style={styles.emptySubtext}>{error.message}</Text>
+          <Text className="text-sm font-semibold">Failed to load</Text>
+          <Text className="text-muted-foreground mt-0.5 text-xs">{error.message}</Text>
         </View>
       </View>
     );
@@ -152,20 +160,22 @@ export function ServerResourceCard({ latest, isLoading, error }: ServerResourceC
 
   if (!latest) {
     return (
-      <View style={[styles.container, { padding: containerPadding }]}>
-        <View style={styles.emptyContainer}>
-          <View style={styles.emptyIconContainer}>
-            <Ionicons name="server-outline" size={24} color={colors.text.muted.dark} />
+      <View className="bg-card rounded-xl" style={{ padding: containerPadding }}>
+        <View className="items-center justify-center py-6">
+          <View className="bg-card mb-2 rounded-full p-2">
+            <Ionicons name="server-outline" size={24} className="text-muted-foreground" />
           </View>
-          <Text style={styles.emptyText}>No resource data</Text>
-          <Text style={styles.emptySubtext}>Waiting for server statistics...</Text>
+          <Text className="text-sm font-semibold">No resource data</Text>
+          <Text className="text-muted-foreground mt-0.5 text-xs">
+            Waiting for server statistics...
+          </Text>
         </View>
       </View>
     );
   }
 
   return (
-    <View style={[styles.container, { padding: containerPadding }]}>
+    <View className="bg-card rounded-xl" style={{ padding: containerPadding }}>
       <ResourceBar
         label="CPU"
         icon="speedometer-outline"
@@ -185,80 +195,8 @@ export function ServerResourceCard({ latest, isLoading, error }: ServerResourceC
   );
 }
 
+// Keep StyleSheet for animated styles
 const styles = StyleSheet.create({
-  container: {
-    backgroundColor: colors.card.dark,
-    borderRadius: borderRadius.lg,
-    // padding is set dynamically based on isTablet
-  },
-  loadingContainer: {
-    height: 80,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    fontSize: typography.fontSize.xs,
-    color: colors.text.muted.dark,
-  },
-  emptyContainer: {
-    paddingVertical: spacing.lg,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  emptyIconContainer: {
-    backgroundColor: colors.surface.dark,
-    padding: spacing.sm,
-    borderRadius: borderRadius.full,
-    marginBottom: spacing.sm,
-  },
-  emptyText: {
-    fontSize: typography.fontSize.sm,
-    fontWeight: '600',
-    color: colors.text.primary.dark,
-  },
-  emptySubtext: {
-    fontSize: typography.fontSize.xs,
-    color: colors.text.muted.dark,
-    marginTop: 2,
-  },
-  resourceBar: {
-    marginBottom: spacing.sm,
-  },
-  resourceHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing.xs,
-  },
-  resourceLabel: {
-    marginLeft: spacing.xs,
-    fontSize: typography.fontSize.xs,
-    fontWeight: '600',
-    color: colors.text.primary.dark,
-  },
-  barSection: {
-    marginBottom: spacing.xs,
-  },
-  barLabelRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 3,
-  },
-  barLabelText: {
-    fontSize: 10,
-    color: colors.text.muted.dark,
-  },
-  barValueText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: colors.text.primary.dark,
-  },
-  barTrack: {
-    height: 4,
-    backgroundColor: colors.surface.dark,
-    borderRadius: 2,
-    overflow: 'hidden',
-  },
   barFill: {
     height: '100%',
     borderRadius: 2,

@@ -3,11 +3,11 @@
  * Mobile port of web/src/components/history/StreamDetailsPanel.tsx
  */
 import React, { useState } from 'react';
-import { View, Pressable, StyleSheet } from 'react-native';
+import { View, Pressable } from 'react-native';
 import { ArrowRight, Video, AudioLines, Subtitles, Cpu, ChevronDown } from 'lucide-react-native';
 import { Text } from '@/components/ui/text';
 import { Badge } from '@/components/ui/badge';
-import { colors, spacing, borderRadius } from '@/lib/theme';
+import { colors } from '@/lib/theme';
 import type {
   SourceVideoDetails,
   SourceAudioDetails,
@@ -175,23 +175,24 @@ function ComparisonRow({
     streamValue && sourceValue !== streamValue && sourceValue !== '—' && streamValue !== '—';
 
   return (
-    <View style={styles.comparisonRow}>
-      <Text style={styles.comparisonLabel}>{label}</Text>
-      <Text style={[styles.comparisonSource, highlight && styles.highlightText]} numberOfLines={1}>
+    <View className="flex-row items-center py-0.5">
+      <Text className="text-muted-foreground w-20 text-[13px]">{label}</Text>
+      <Text
+        className={`flex-1 text-[13px] font-medium ${highlight ? 'text-warning' : ''}`}
+        numberOfLines={1}
+      >
         {sourceValue}
       </Text>
       {showArrow && streamValue !== undefined ? (
-        <ArrowRight
-          size={12}
-          color={isDifferent ? colors.warning : colors.text.muted.dark}
-          style={styles.comparisonArrow}
-        />
+        <View className="w-5 items-center">
+          <ArrowRight size={12} color={isDifferent ? colors.warning : colors.text.muted.dark} />
+        </View>
       ) : (
-        <View style={styles.comparisonArrow} />
+        <View className="w-5" />
       )}
       {streamValue !== undefined && (
         <Text
-          style={[styles.comparisonStream, isDifferent && styles.changedText]}
+          className={`flex-1 text-[13px] ${isDifferent ? 'text-warning font-medium' : ''}`}
           numberOfLines={1}
         >
           {streamValue}
@@ -212,10 +213,10 @@ function SectionHeader({
   badge?: React.ReactNode;
 }) {
   return (
-    <View style={styles.sectionHeader}>
-      <View style={styles.sectionHeaderLeft}>
-        <Icon size={16} color={colors.text.muted.dark} />
-        <Text style={styles.sectionHeaderTitle}>{title}</Text>
+    <View className="flex-row items-center justify-between py-2">
+      <View className="flex-row items-center gap-2">
+        <Icon size={16} className="text-muted-foreground" />
+        <Text className="text-sm font-medium">{title}</Text>
       </View>
       {badge}
     </View>
@@ -225,11 +226,15 @@ function SectionHeader({
 // Column labels
 function SectionColumnLabels() {
   return (
-    <View style={styles.columnLabels}>
-      <View style={styles.columnLabelSpacer} />
-      <Text style={styles.columnLabel}>SOURCE</Text>
-      <View style={styles.columnArrowSpacer} />
-      <Text style={styles.columnLabel}>STREAM</Text>
+    <View className="border-border mb-1 flex-row items-center border-b pb-1">
+      <View className="w-20" />
+      <Text className="text-muted-foreground flex-1 text-[9px] font-medium tracking-wider">
+        SOURCE
+      </Text>
+      <View className="w-5" />
+      <Text className="text-muted-foreground flex-1 text-[9px] font-medium tracking-wider">
+        STREAM
+      </Text>
     </View>
   );
 }
@@ -262,7 +267,11 @@ export function StreamDetailsPanel({
     transcodeInfo && (transcodeInfo.hwDecoding || transcodeInfo.hwEncoding || transcodeInfo.speed);
 
   if (!hasVideoDetails && !hasAudioDetails) {
-    return <Text style={styles.noDetails}>No detailed stream information available</Text>;
+    return (
+      <Text className="text-muted-foreground py-2 text-sm">
+        No detailed stream information available
+      </Text>
+    );
   }
 
   const videoBadge = getDecisionBadge(videoDecision);
@@ -272,7 +281,7 @@ export function StreamDetailsPanel({
   const audioTranscodeReasons = filterTranscodeReasons(transcodeReasons, 'audio');
 
   return (
-    <View style={styles.container}>
+    <View className="gap-2">
       {/* Container info */}
       {transcodeInfo?.sourceContainer && (
         <>
@@ -284,20 +293,20 @@ export function StreamDetailsPanel({
               transcodeInfo.sourceContainer.toUpperCase()
             }
           />
-          <View style={styles.separator} />
+          <View className="bg-border h-px" />
         </>
       )}
 
       {/* Video Section */}
       {hasVideoDetails && (
         <>
-          <View style={styles.separatorLight} />
+          <View className="bg-border h-px opacity-50" />
           <SectionHeader
             icon={Video}
             title="Video"
             badge={<Badge variant={videoBadge.variant}>{videoBadge.label}</Badge>}
           />
-          <View style={styles.detailsBox}>
+          <View className="border-border gap-0.5 rounded-lg border p-2">
             <SectionColumnLabels />
             <ComparisonRow
               label="Codec"
@@ -374,7 +383,7 @@ export function StreamDetailsPanel({
             title="Audio"
             badge={<Badge variant={audioBadge.variant}>{audioBadge.label}</Badge>}
           />
-          <View style={styles.detailsBox}>
+          <View className="border-border gap-0.5 rounded-lg border p-2">
             <SectionColumnLabels />
             <ComparisonRow
               label="Codec"
@@ -438,14 +447,14 @@ export function StreamDetailsPanel({
               ) : undefined
             }
           />
-          <View style={styles.detailsBox}>
-            <View style={styles.subtitleRow}>
-              <Text style={styles.subtitleLabel}>Format:</Text>
-              <Text style={styles.subtitleValue}>{formatCodec(subtitleInfo?.codec)}</Text>
+          <View className="border-border rounded-lg border p-2">
+            <View className="flex-row items-center gap-2">
+              <Text className="text-muted-foreground text-[13px]">Format:</Text>
+              <Text className="text-[13px]">{formatCodec(subtitleInfo?.codec)}</Text>
               {subtitleInfo?.language && (
                 <>
-                  <Text style={styles.subtitleDot}>·</Text>
-                  <Text style={styles.subtitleValue}>{subtitleInfo.language}</Text>
+                  <Text className="text-muted-foreground text-[13px]">·</Text>
+                  <Text className="text-[13px]">{subtitleInfo.language}</Text>
                 </>
               )}
               {subtitleInfo?.forced && <Badge variant="outline">Forced</Badge>}
@@ -458,39 +467,37 @@ export function StreamDetailsPanel({
       {hasTranscodeDetails && (
         <>
           <Pressable
-            style={styles.collapsibleHeader}
+            className="flex-row items-center justify-between py-2"
             onPress={() => setTranscodeOpen(!transcodeOpen)}
           >
-            <View style={styles.collapsibleHeaderLeft}>
-              <Cpu size={16} color={colors.text.muted.dark} />
-              <Text style={styles.collapsibleHeaderTitle}>Transcode Details</Text>
+            <View className="flex-row items-center gap-2">
+              <Cpu size={16} className="text-muted-foreground" />
+              <Text className="text-muted-foreground text-sm font-medium">Transcode Details</Text>
             </View>
             <ChevronDown
               size={16}
-              color={colors.text.muted.dark}
+              className="text-muted-foreground"
               style={{ transform: [{ rotate: transcodeOpen ? '180deg' : '0deg' }] }}
             />
           </Pressable>
           {transcodeOpen && (
-            <View style={styles.detailsBox}>
+            <View className="border-border gap-0.5 rounded-lg border p-2">
               {transcodeInfo?.hwDecoding && (
-                <View style={styles.transcodeRow}>
-                  <Text style={styles.transcodeLabel}>HW Decode</Text>
-                  <Text style={styles.transcodeValue}>{transcodeInfo.hwDecoding}</Text>
+                <View className="flex-row items-center justify-between py-0.5">
+                  <Text className="text-muted-foreground text-[13px]">HW Decode</Text>
+                  <Text className="text-[13px]">{transcodeInfo.hwDecoding}</Text>
                 </View>
               )}
               {transcodeInfo?.hwEncoding && (
-                <View style={styles.transcodeRow}>
-                  <Text style={styles.transcodeLabel}>HW Encode</Text>
-                  <Text style={styles.transcodeValue}>{transcodeInfo.hwEncoding}</Text>
+                <View className="flex-row items-center justify-between py-0.5">
+                  <Text className="text-muted-foreground text-[13px]">HW Encode</Text>
+                  <Text className="text-[13px]">{transcodeInfo.hwEncoding}</Text>
                 </View>
               )}
               {transcodeInfo?.speed !== undefined && (
-                <View style={styles.transcodeRow}>
-                  <Text style={styles.transcodeLabel}>Speed</Text>
-                  <Text
-                    style={[styles.transcodeValue, transcodeInfo.speed < 1 && styles.warningText]}
-                  >
+                <View className="flex-row items-center justify-between py-0.5">
+                  <Text className="text-muted-foreground text-[13px]">Speed</Text>
+                  <Text className={`text-[13px] ${transcodeInfo.speed < 1 ? 'text-warning' : ''}`}>
                     {transcodeInfo.speed.toFixed(1)}x{transcodeInfo.throttled && ' (throttled)'}
                   </Text>
                 </View>
@@ -502,172 +509,11 @@ export function StreamDetailsPanel({
 
       {/* Overall bitrate */}
       {bitrate && (
-        <View style={styles.bitrateRow}>
-          <Text style={styles.bitrateLabel}>Total Bitrate</Text>
-          <Text style={styles.bitrateValue}>{formatBitrate(bitrate)}</Text>
+        <View className="border-border flex-row items-center justify-between border-t pt-1">
+          <Text className="text-muted-foreground text-[13px]">Total Bitrate</Text>
+          <Text className="text-[13px] font-medium">{formatBitrate(bitrate)}</Text>
         </View>
       )}
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    gap: spacing.sm,
-  },
-  noDetails: {
-    color: colors.text.muted.dark,
-    fontSize: 14,
-    paddingVertical: spacing.sm,
-  },
-  separator: {
-    height: 1,
-    backgroundColor: colors.border.dark,
-  },
-  separatorLight: {
-    height: 1,
-    backgroundColor: colors.border.dark,
-    opacity: 0.5,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: spacing.sm,
-  },
-  sectionHeaderLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  sectionHeaderTitle: {
-    color: colors.text.primary.dark,
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  detailsBox: {
-    borderWidth: 1,
-    borderColor: colors.border.dark,
-    borderRadius: borderRadius.md,
-    padding: spacing.sm,
-    gap: 2,
-  },
-  columnLabels: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.dark,
-    paddingBottom: spacing.xs,
-    marginBottom: spacing.xs,
-  },
-  columnLabelSpacer: {
-    width: 80,
-  },
-  columnLabel: {
-    flex: 1,
-    color: colors.text.muted.dark,
-    fontSize: 9,
-    fontWeight: '500',
-    letterSpacing: 0.5,
-  },
-  columnArrowSpacer: {
-    width: 20,
-  },
-  comparisonRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 3,
-  },
-  comparisonLabel: {
-    width: 80,
-    color: colors.text.muted.dark,
-    fontSize: 13,
-  },
-  comparisonSource: {
-    flex: 1,
-    color: colors.text.primary.dark,
-    fontSize: 13,
-    fontWeight: '500',
-  },
-  comparisonArrow: {
-    width: 20,
-    alignItems: 'center',
-  },
-  comparisonStream: {
-    flex: 1,
-    color: colors.text.primary.dark,
-    fontSize: 13,
-  },
-  changedText: {
-    color: colors.warning,
-    fontWeight: '500',
-  },
-  highlightText: {
-    color: colors.warning,
-  },
-  subtitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  subtitleLabel: {
-    color: colors.text.muted.dark,
-    fontSize: 13,
-  },
-  subtitleValue: {
-    color: colors.text.primary.dark,
-    fontSize: 13,
-  },
-  subtitleDot: {
-    color: colors.text.muted.dark,
-    fontSize: 13,
-  },
-  collapsibleHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: spacing.sm,
-  },
-  collapsibleHeaderLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  collapsibleHeaderTitle: {
-    color: colors.text.muted.dark,
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  transcodeRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 3,
-  },
-  transcodeLabel: {
-    color: colors.text.muted.dark,
-    fontSize: 13,
-  },
-  transcodeValue: {
-    color: colors.text.primary.dark,
-    fontSize: 13,
-  },
-  warningText: {
-    color: colors.warning,
-  },
-  bitrateRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    borderTopWidth: 1,
-    borderTopColor: colors.border.dark,
-    paddingTop: spacing.xs,
-  },
-  bitrateLabel: {
-    color: colors.text.muted.dark,
-    fontSize: 13,
-  },
-  bitrateValue: {
-    color: colors.text.primary.dark,
-    fontSize: 13,
-    fontWeight: '500',
-  },
-});
