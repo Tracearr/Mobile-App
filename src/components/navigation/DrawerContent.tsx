@@ -65,9 +65,9 @@ export function DrawerContent(props: DrawerContentComponentProps) {
   };
 
   return (
-    <View className="bg-background flex-1" style={{ paddingTop: insets.top }}>
+    <View style={{ flex: 1, backgroundColor: '#09090B', paddingTop: insets.top }}>
       {/* Scrollable content area */}
-      <ScrollView className="flex-1" contentContainerStyle={{ paddingTop: spacing.md }}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: spacing.md }}>
         {/* App Title */}
         <View className="border-border mb-4 border-b px-6 pb-6">
           <Text className="text-primary text-2xl font-bold">Tracearr</Text>

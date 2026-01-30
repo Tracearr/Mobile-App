@@ -348,7 +348,10 @@ export default function AlertsScreen() {
   };
 
   return (
-    <SafeAreaView className="bg-background flex-1" edges={['left', 'right', 'bottom']}>
+    <SafeAreaView
+      style={{ flex: 1, backgroundColor: '#09090B' }}
+      edges={['left', 'right', 'bottom']}
+    >
       {/* Header with back button */}
       <View
         className="border-border border-b"

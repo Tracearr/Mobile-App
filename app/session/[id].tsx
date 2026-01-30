@@ -268,7 +268,12 @@ export default function SessionDetailScreen() {
   if (isLoading) {
     return (
       <SafeAreaView
-        className="bg-background flex-1 items-center justify-center"
+        style={{
+          flex: 1,
+          backgroundColor: '#09090B',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
         edges={['left', 'right', 'bottom']}
       >
         <ActivityIndicator size="large" color={ACCENT_COLOR} />
@@ -279,7 +284,13 @@ export default function SessionDetailScreen() {
   if (error || !session) {
     return (
       <SafeAreaView
-        className="bg-background flex-1 items-center justify-center p-3"
+        style={{
+          flex: 1,
+          backgroundColor: '#09090B',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: 12,
+        }}
         edges={['left', 'right', 'bottom']}
       >
         <Text className="text-destructive text-center">
@@ -320,8 +331,11 @@ export default function SessionDetailScreen() {
   const stoppedAt = safeParseDate(session.stoppedAt);
 
   return (
-    <SafeAreaView className="bg-background flex-1" edges={['left', 'right', 'bottom']}>
-      <ScrollView className="flex-1" contentContainerClassName="gap-2 p-3">
+    <SafeAreaView
+      style={{ flex: 1, backgroundColor: '#09090B' }}
+      edges={['left', 'right', 'bottom']}
+    >
+      <ScrollView style={{ flex: 1 }} contentContainerClassName="gap-2 p-3">
         {/* Header with state badge and terminate button */}
         <View className="flex-row items-center justify-between pb-2">
           <View className="flex-1 flex-row items-center gap-2">

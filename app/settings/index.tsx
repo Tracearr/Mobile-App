@@ -105,8 +105,11 @@ export default function SettingsScreen() {
   };
 
   return (
-    <SafeAreaView className="bg-background flex-1" edges={['left', 'right', 'bottom']}>
-      <ScrollView className="flex-1" contentContainerStyle={{ flexGrow: 1, padding: 16 }}>
+    <SafeAreaView
+      style={{ flex: 1, backgroundColor: '#09090B' }}
+      edges={['left', 'right', 'bottom']}
+    >
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, padding: 16 }}>
         {/* Notifications */}
         <SettingsSection title="Preferences">
           <SettingsRow

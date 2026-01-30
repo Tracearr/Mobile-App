@@ -346,7 +346,7 @@ export default function NotificationSettingsScreen() {
       style={{ flex: 1, backgroundColor: colors.background.dark }}
       edges={['left', 'right', 'bottom']}
     >
-      <ScrollView className="flex-1" contentContainerClassName="p-4">
+      <ScrollView style={{ flex: 1 }} contentContainerClassName="p-4">
         {/* Master Toggle */}
         <SettingsSection title="Push Notifications">
           <SettingRow

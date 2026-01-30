@@ -169,7 +169,7 @@ export default function HistoryScreen() {
 
   return (
     <>
-      <View className="bg-background flex-1">
+      <View style={{ flex: 1, backgroundColor: '#09090B' }}>
         <FlatList
           data={sessions}
           keyExtractor={keyExtractor}

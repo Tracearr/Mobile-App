@@ -3,59 +3,76 @@
 @import "tailwindcss/utilities.css";
 @import "nativewind/theme";
 
-/* Tracearr Mobile Theme - Dark Mode Only
-   Colors match web app's .dark {} block exactly (shadcn neutral dark) */
+/* Tailwind v4 @theme block - creates utility classes at build time */
 @theme {
-  /* Brand Colors - Tracearr identity */
-  --color-cyan-core: #18D1E7;  /* hsl(187 80% 50%) */
-  --color-cyan-deep: #0891B2;  /* hsl(187 86% 42%) */
-  --color-cyan-dark: #0E7490;  /* hsl(187 85% 31%) */
-  --color-blue-core: #0B1A2E;  /* hsl(213 62% 11%) */
-  --color-blue-steel: #162840; /* hsl(213 47% 17%) */
-  --color-blue-soft: #1E3A5C;  /* hsl(212 49% 24%) */
-
-  /* Semantic Colors - shadcn neutral dark mode */
-  --color-background: #09090B;           /* hsl(240 10% 4%) */
-  --color-foreground: #FAFAFA;           /* hsl(0 0% 98%) */
-  --color-card: #09090B;                 /* same as background */
+  --color-background: #09090B;
+  --color-foreground: #FAFAFA;
+  --color-card: #09090B;
   --color-card-foreground: #FAFAFA;
   --color-popover: #09090B;
   --color-popover-foreground: #FAFAFA;
-  --color-primary: #18D1E7;              /* hsl(187 80% 50%) - cyan accent */
-  --color-primary-foreground: #18181B;   /* hsl(240 6% 10%) */
-  --color-secondary: #27272A;            /* hsl(240 4% 16%) */
+  --color-primary: #18D1E7;
+  --color-primary-foreground: #18181B;
+  --color-secondary: #27272A;
   --color-secondary-foreground: #FAFAFA;
-  --color-muted: #27272A;                /* hsl(240 4% 16%) */
-  --color-muted-foreground: #A1A1AA;     /* hsl(240 5% 65%) */
-  --color-accent: #27272A;               /* hsl(240 4% 16%) */
+  --color-muted: #27272A;
+  --color-muted-foreground: #A1A1AA;
+  --color-accent: #27272A;
   --color-accent-foreground: #FAFAFA;
-  --color-destructive: #B91C1C;          /* hsl(0 62% 42%) - darker for dark mode */
+  --color-destructive: #B91C1C;
   --color-destructive-foreground: #FAFAFA;
-  --color-border: #27272A;               /* hsl(240 4% 16%) */
+  --color-border: #27272A;
   --color-input: #27272A;
-  --color-ring: #18D1E7;                 /* matches primary */
-
-  /* Additional semantic colors */
-  --color-surface: #18181B;              /* hsl(240 6% 10%) - for elevated surfaces */
+  --color-ring: #18D1E7;
+  --color-surface: #18181B;
   --color-success: #22C55E;
   --color-warning: #F59E0B;
   --color-danger: #DC2626;
+  --color-icon: #A1A1AA;
+  --color-icon-active: #18D1E7;
+  --color-icon-danger: #FCA5A5;
+  --color-cyan-core: #18D1E7;
+  --color-cyan-deep: #0891B2;
+  --color-cyan-dark: #0E7490;
+  --color-blue-core: #0B1A2E;
+  --color-blue-steel: #162840;
+  --color-blue-soft: #1E3A5C;
+  --color-chart-1: #18D1E7;
+  --color-chart-2: #22D3EE;
+  --color-chart-3: #6B7280;
+  --color-chart-4: #FBBF24;
+  --color-chart-5: #EF4444;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+}
 
-  /* Icon colors */
-  --color-icon: #A1A1AA;                 /* matches muted-foreground */
-  --color-icon-active: #18D1E7;          /* matches primary */
-  --color-icon-danger: #FCA5A5;          /* hsl(0 93% 82%) - lighter red for visibility */
-
-  /* Chart colors - matches web */
-  --color-chart-1: #18D1E7;              /* primary accent */
-  --color-chart-2: #22D3EE;              /* lighter cyan */
-  --color-chart-3: #6B7280;              /* neutral */
-  --color-chart-4: #FBBF24;              /* amber */
-  --color-chart-5: #EF4444;              /* red */
-
-  /* Border radius */
-  --radius: 0.5rem;
-  --radius-lg: var(--radius);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-sm: calc(var(--radius) - 4px);
+/* Runtime defaults - NativeWind needs these for CSS variable resolution */
+:root {
+  --color-background: #09090B;
+  --color-foreground: #FAFAFA;
+  --color-card: #09090B;
+  --color-card-foreground: #FAFAFA;
+  --color-popover: #09090B;
+  --color-popover-foreground: #FAFAFA;
+  --color-primary: #18D1E7;
+  --color-primary-foreground: #18181B;
+  --color-secondary: #27272A;
+  --color-secondary-foreground: #FAFAFA;
+  --color-muted: #27272A;
+  --color-muted-foreground: #A1A1AA;
+  --color-accent: #27272A;
+  --color-accent-foreground: #FAFAFA;
+  --color-destructive: #B91C1C;
+  --color-destructive-foreground: #FAFAFA;
+  --color-border: #27272A;
+  --color-input: #27272A;
+  --color-ring: #18D1E7;
+  --color-surface: #18181B;
+  --color-success: #22C55E;
+  --color-warning: #F59E0B;
+  --color-danger: #DC2626;
+  --color-icon: #A1A1AA;
+  --color-icon-active: #18D1E7;
+  --color-icon-danger: #FCA5A5;
 }

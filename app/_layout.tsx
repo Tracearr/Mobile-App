@@ -69,7 +69,14 @@ function RootLayoutNav() {
 
   if (isInitializing) {
     return (
-      <View className="bg-background flex-1 items-center justify-center">
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: '#09090B',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
         <ActivityIndicator size="large" color={ACCENT_COLOR} />
       </View>
     );
@@ -140,7 +147,7 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <View className="bg-background flex-1">
+        <View style={{ flex: 1, backgroundColor: '#09090B' }}>
           <ErrorBoundary>
             <QueryProvider>
               <SocketProvider>

@@ -206,10 +206,10 @@ export default function PairScreen() {
 
   if (manualMode) {
     return (
-      <SafeAreaView className="bg-background flex-1" edges={['top', 'bottom']}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#09090B' }} edges={['top', 'bottom']}>
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          className="flex-1"
+          style={{ flex: 1 }}
         >
           <ScrollView contentContainerStyle={{ flexGrow: 1, padding: 24 }}>
             <View className="items-center px-6 pt-8 pb-6">
@@ -282,8 +282,10 @@ export default function PairScreen() {
   }
 
   return (
-    <SafeAreaView className="bg-background flex-1" edges={['top', 'bottom']}>
-      <View className="items-center px-6 pt-8 pb-6">
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#09090B' }} edges={['top', 'bottom']}>
+      <View
+        style={{ alignItems: 'center', paddingHorizontal: 24, paddingTop: 32, paddingBottom: 24 }}
+      >
         <Text className="text-foreground mb-2 text-center text-2xl font-bold">
           Welcome to Tracearr
         </Text>
@@ -292,28 +294,62 @@ export default function PairScreen() {
         </Text>
       </View>
 
-      <View className="bg-card mx-6 mb-6 flex-1 overflow-hidden rounded-xl">
+      <View
+        style={{
+          flex: 1,
+          marginHorizontal: 24,
+          marginBottom: 24,
+          borderRadius: 16,
+          overflow: 'hidden',
+          backgroundColor: '#09090B',
+        }}
+      >
         {permission?.granted ? (
-          <View className="flex-1">
+          <View style={{ flex: 1 }}>
             <CameraView
               style={StyleSheet.absoluteFill}
               barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
               onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
             />
-            <View className="absolute inset-0 items-center justify-center bg-black/30">
-              <View className="border-primary h-[250] w-[250] rounded-lg border-2" />
+            <View
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                justifyContent: 'center',
+                alignItems: 'center',
+                backgroundColor: 'rgba(0,0,0,0.3)',
+              }}
+            >
+              <View
+                style={{
+                  width: 250,
+                  height: 250,
+                  borderWidth: 2,
+                  borderColor: '#18D1E7',
+                  borderRadius: 12,
+                }}
+              />
             </View>
           </View>
         ) : (
-          <View className="flex-1 items-center justify-center p-6">
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 }}>
             <Text className="text-muted-foreground mb-6 text-center text-base">
               Camera permission is required to scan QR codes
             </Text>
             <Pressable
-              className="bg-primary items-center rounded-md px-6 py-4"
+              style={{
+                backgroundColor: '#18D1E7',
+                paddingVertical: 16,
+                paddingHorizontal: 24,
+                borderRadius: 8,
+                alignItems: 'center',
+              }}
               onPress={requestPermission}
             >
-              <Text className="text-primary-foreground text-base font-semibold">
+              <Text style={{ fontSize: 16, fontWeight: '600', color: '#18181B' }}>
                 Grant Permission
               </Text>
             </Pressable>

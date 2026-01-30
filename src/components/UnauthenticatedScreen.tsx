@@ -41,7 +41,7 @@ export function UnauthenticatedScreen() {
   const serverDisplay = cachedServerName || cachedServerUrl || 'your server';
 
   return (
-    <SafeAreaView className="bg-background flex-1">
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#09090B' }}>
       <View className="flex-1 items-center justify-center px-8">
         <View className="bg-card border-border mb-6 h-24 w-24 items-center justify-center rounded-full border">
           <Unlink size={48} color={colors.text.muted.dark} />
