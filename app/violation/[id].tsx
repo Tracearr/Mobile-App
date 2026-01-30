@@ -38,6 +38,7 @@ import { Text } from '@/components/ui/text';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { UserAvatar } from '@/components/ui/user-avatar';
+import { ActionResultsList } from '@/components/violations/ActionResultsList';
 import { colors, spacing } from '@/lib/theme';
 import { formatSpeed } from '@tracearr/shared';
 import type {
@@ -75,7 +76,20 @@ function getViolationDescription(
   const data = violation.data;
   const ruleType = violation.rule?.type;
 
-  if (!data || !ruleType) return 'Rule violation detected';
+  // V2 rules don't have a type - check for custom message in data
+  if (!ruleType) {
+    // Check if there's a custom message from a log_only action or similar
+    if (data?.message && typeof data.message === 'string') {
+      return data.message;
+    }
+    // Check for rule name as fallback context
+    if (violation.rule?.name) {
+      return `Triggered rule: ${violation.rule.name}`;
+    }
+    return 'Custom rule violation detected';
+  }
+
+  if (!data) return 'Rule violation detected';
 
   switch (ruleType) {
     case 'impossible_travel': {
@@ -501,7 +515,7 @@ export default function ViolationDetailScreen() {
             <View className="flex-1">
               <Text className="text-base font-semibold">{violation.rule?.name || ruleName}</Text>
               <Text className="text-muted-foreground text-sm capitalize">
-                {ruleType?.replace(/_/g, ' ') || 'Unknown type'}
+                {ruleType?.replace(/_/g, ' ') || 'Custom Rule'}
               </Text>
             </View>
           </View>
@@ -567,6 +581,13 @@ export default function ViolationDetailScreen() {
               ))}
             </View>
           </View>
+        )}
+
+        {/* Action Results (V2 Rules) */}
+        {violation.actionResults && violation.actionResults.length > 0 && (
+          <Card className="mb-4">
+            <ActionResultsList results={violation.actionResults} />
+          </Card>
         )}
 
         {/* Timestamps */}
