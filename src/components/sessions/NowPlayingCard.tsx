@@ -201,11 +201,7 @@ export function NowPlayingCard({ session, onPress }: NowPlayingCardProps) {
               className="bg-card items-center justify-center rounded-lg"
               style={{ width: posterWidth, height: posterHeight }}
             >
-              <Ionicons
-                name="film-outline"
-                size={isTablet ? 28 : 24}
-                className="text-muted-foreground"
-              />
+              <Ionicons name="film-outline" size={isTablet ? 28 : 24} color={colors.icon.default} />
             </View>
           )}
           {/* Paused overlay */}
@@ -214,7 +210,7 @@ export function NowPlayingCard({ session, onPress }: NowPlayingCardProps) {
               style={StyleSheet.absoluteFill}
               className="items-center justify-center rounded-lg bg-black/60"
             >
-              <Ionicons name="pause" size={isTablet ? 24 : 20} className="text-foreground" />
+              <Ionicons name="pause" size={isTablet ? 24 : 20} color={colors.text.primary.dark} />
             </View>
           )}
         </View>
@@ -302,11 +298,7 @@ export function NowPlayingCard({ session, onPress }: NowPlayingCardProps) {
 
         {/* Chevron */}
         <View className="ml-1 opacity-50">
-          <Ionicons
-            name="chevron-forward"
-            size={isTablet ? 18 : 16}
-            className="text-muted-foreground"
-          />
+          <Ionicons name="chevron-forward" size={isTablet ? 18 : 16} color={colors.icon.default} />
         </View>
       </View>
 

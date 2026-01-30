@@ -69,7 +69,7 @@ function MediaTypeIcon({ type }: { type: MediaType }) {
     live: Radio,
   };
   const Icon = icons[type] || Film;
-  return <Icon size={14} className="text-muted-foreground" />;
+  return <Icon size={14} color={colors.icon.default} />;
 }
 
 // Quality badge showing transcode status
@@ -179,7 +179,7 @@ export function HistoryRow({ session, onPress }: HistoryRowProps) {
               backgroundColor: colors.surface.dark,
             }}
           >
-            <Film size={18} className="text-muted-foreground" />
+            <Film size={18} color={colors.icon.default} />
           </View>
         )}
 
@@ -218,7 +218,7 @@ export function HistoryRow({ session, onPress }: HistoryRowProps) {
       <View className="ml-12 flex-row items-center gap-2">
         <QualityBadge session={session} />
         <ProgressBar progress={progress} />
-        <ChevronRight size={14} className="text-muted-foreground" />
+        <ChevronRight size={14} color={colors.icon.default} />
       </View>
     </Pressable>
   );

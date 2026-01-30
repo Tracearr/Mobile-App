@@ -215,7 +215,7 @@ function SectionHeader({
   return (
     <View className="flex-row items-center justify-between py-2">
       <View className="flex-row items-center gap-2">
-        <Icon size={16} className="text-muted-foreground" />
+        <Icon size={16} color={colors.icon.default} />
         <Text className="text-sm font-medium">{title}</Text>
       </View>
       {badge}
@@ -471,12 +471,12 @@ export function StreamDetailsPanel({
             onPress={() => setTranscodeOpen(!transcodeOpen)}
           >
             <View className="flex-row items-center gap-2">
-              <Cpu size={16} className="text-muted-foreground" />
+              <Cpu size={16} color={colors.icon.default} />
               <Text className="text-muted-foreground text-sm font-medium">Transcode Details</Text>
             </View>
             <ChevronDown
               size={16}
-              className="text-muted-foreground"
+              color={colors.icon.default}
               style={{ transform: [{ rotate: transcodeOpen ? '180deg' : '0deg' }] }}
             />
           </Pressable>

@@ -17,6 +17,7 @@ import {
 import Constants from 'expo-constants';
 import { Text } from '@/components/ui/text';
 import { useAuthStateStore } from '@/lib/authStateStore';
+import { colors } from '@/lib/theme';
 
 const DISCORD_URL = 'https://discord.gg/a7n3sFd2Yw';
 const GITHUB_URL = 'https://github.com/connorgallopo/Tracearr';
@@ -62,7 +63,7 @@ function SettingsRow({
           )}
         </View>
       </View>
-      {showChevron && !external && <ChevronRight size={20} className="text-muted-foreground" />}
+      {showChevron && !external && <ChevronRight size={20} color={colors.icon.default} />}
     </Pressable>
   );
 }
@@ -113,7 +114,7 @@ export default function SettingsScreen() {
         {/* Notifications */}
         <SettingsSection title="Preferences">
           <SettingsRow
-            icon={<Bell size={20} className="text-muted-foreground" />}
+            icon={<Bell size={20} color={colors.icon.default} />}
             label="Notifications"
             description="Configure push notification preferences"
             onPress={() => router.push('/settings/notifications')}
@@ -132,7 +133,7 @@ export default function SettingsScreen() {
           />
           <View className="bg-border ml-14 h-px" />
           <SettingsRow
-            icon={<Code2 size={20} className="text-muted-foreground" />}
+            icon={<Code2 size={20} color={colors.icon.default} />}
             label="GitHub"
             description="View source code"
             onPress={handleGithubPress}
@@ -144,7 +145,7 @@ export default function SettingsScreen() {
         {/* Account */}
         <SettingsSection title="Account">
           <SettingsRow
-            icon={<LogOut size={20} className="text-destructive" />}
+            icon={<LogOut size={20} color={colors.icon.danger} />}
             label="Disconnect"
             description={server ? `Currently connected to ${server.name}` : undefined}
             onPress={handleDisconnect}
@@ -159,11 +160,11 @@ export default function SettingsScreen() {
         {/* About - at very bottom */}
         <View className="items-center gap-1 py-6">
           <View className="flex-row items-center gap-2">
-            <Info size={16} className="text-muted-foreground" />
+            <Info size={16} color={colors.icon.default} />
             <Text className="text-muted-foreground text-xs">Version {appVersion}</Text>
           </View>
           <View className="flex-row items-center gap-2">
-            <Server size={16} className="text-muted-foreground" />
+            <Server size={16} color={colors.icon.default} />
             <Text className="text-muted-foreground text-xs">Build {buildNumber}</Text>
           </View>
         </View>

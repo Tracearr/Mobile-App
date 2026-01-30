@@ -14,7 +14,7 @@ export default function DrawerLayout() {
         headerShown: false, // We use custom AppHeader in tabs
         drawerStyle: {
           backgroundColor: colors.background.dark,
-          width: 280,
+          width: 260,
         },
         drawerType: 'front',
         overlayColor: 'rgba(0, 0, 0, 0.6)',

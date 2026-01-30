@@ -12,7 +12,7 @@ import { Text } from '@/components/ui/text';
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { ServerSelector } from '@/components/ServerSelector';
 import { api } from '@/lib/api';
-import { ACCENT_COLOR, spacing, withAlpha } from '@/lib/theme';
+import { ACCENT_COLOR, colors, spacing, withAlpha } from '@/lib/theme';
 
 interface DrawerItemProps {
   icon: React.ReactNode;
@@ -32,7 +32,7 @@ function DrawerItem({ icon, label, onPress, showChevron = true }: DrawerItemProp
         {icon}
         <Text className="text-[15px] font-medium">{label}</Text>
       </View>
-      {showChevron && <ChevronRight size={20} className="text-muted-foreground" />}
+      {showChevron && <ChevronRight size={20} color={colors.icon.default} />}
     </Pressable>
   );
 }
@@ -83,7 +83,7 @@ export function DrawerContent(props: DrawerContentComponentProps) {
         {/* Navigation Section */}
         <DrawerSection title="Navigation">
           <DrawerItem
-            icon={<Settings size={20} className="text-muted-foreground" />}
+            icon={<Settings size={20} color={colors.icon.default} />}
             label="Settings"
             onPress={handleSettingsPress}
           />

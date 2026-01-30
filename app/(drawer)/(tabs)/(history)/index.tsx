@@ -10,7 +10,7 @@ import { DrawerActions, useNavigation } from '@react-navigation/native';
 import { Play } from 'lucide-react-native';
 import { api } from '@/lib/api';
 import { useMediaServer } from '@/providers/MediaServerProvider';
-import { ACCENT_COLOR } from '@/lib/theme';
+import { ACCENT_COLOR, colors } from '@/lib/theme';
 import { Text } from '@/components/ui/text';
 import {
   HistoryFilters,
@@ -217,7 +217,7 @@ export default function HistoryScreen() {
             ) : (
               <View className="items-center px-4 py-12">
                 <View className="bg-card border-border mb-4 h-20 w-20 items-center justify-center rounded-full border">
-                  <Play size={32} className="text-muted-foreground" />
+                  <Play size={32} color={colors.icon.default} />
                 </View>
                 <Text className="mb-1 text-lg font-semibold">No History Found</Text>
                 <Text className="text-muted-foreground text-center text-sm">

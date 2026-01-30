@@ -161,7 +161,7 @@ export function ServerResourceCard({ latest, isLoading, error }: ServerResourceC
       <View className="bg-card rounded-xl" style={{ padding: containerPadding }}>
         <View className="items-center justify-center py-6">
           <View className="bg-card mb-2 rounded-full p-2">
-            <Ionicons name="server-outline" size={24} className="text-muted-foreground" />
+            <Ionicons name="server-outline" size={24} color={colors.icon.default} />
           </View>
           <Text className="text-sm font-semibold">No resource data</Text>
           <Text className="text-muted-foreground mt-0.5 text-xs">

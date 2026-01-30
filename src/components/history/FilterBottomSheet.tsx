@@ -215,7 +215,7 @@ export const FilterBottomSheet = forwardRef<FilterBottomSheetRef, FilterBottomSh
           <Pressable onPress={() => setActiveSection('main')} className="mr-1 p-1">
             <ChevronRight
               size={20}
-              className="text-foreground"
+              color={colors.text.primary.dark}
               style={{ transform: [{ rotate: '180deg' }] }}
             />
           </Pressable>
@@ -298,7 +298,7 @@ export const FilterBottomSheet = forwardRef<FilterBottomSheetRef, FilterBottomSh
           <Text className="text-lg font-semibold">Filters</Text>
           {activeFilterCount > 0 && (
             <Pressable onPress={clearAllFilters} className="flex-row items-center gap-1 px-2 py-1">
-              <X size={14} className="text-muted-foreground" />
+              <X size={14} color={colors.icon.default} />
               <Text className="text-muted-foreground text-[13px]">Clear all</Text>
             </Pressable>
           )}
@@ -315,7 +315,7 @@ export const FilterBottomSheet = forwardRef<FilterBottomSheetRef, FilterBottomSh
             onPress={() => setActiveSection('users')}
             className="border-border flex-row items-center border-b py-3.5"
           >
-            <User size={18} className="text-muted-foreground" />
+            <User size={18} color={colors.icon.default} />
             <Text className="ml-2 flex-1 text-[15px]">Users</Text>
             <View className="flex-row items-center gap-2">
               {filters.serverUserIds.length > 0 && (
@@ -325,7 +325,7 @@ export const FilterBottomSheet = forwardRef<FilterBottomSheetRef, FilterBottomSh
                   </Text>
                 </View>
               )}
-              <ChevronRight size={18} className="text-muted-foreground" />
+              <ChevronRight size={18} color={colors.icon.default} />
             </View>
           </Pressable>
 
@@ -334,7 +334,7 @@ export const FilterBottomSheet = forwardRef<FilterBottomSheetRef, FilterBottomSh
             onPress={() => setActiveSection('platforms')}
             className="border-border flex-row items-center border-b py-3.5"
           >
-            <Monitor size={18} className="text-muted-foreground" />
+            <Monitor size={18} color={colors.icon.default} />
             <Text className="ml-2 flex-1 text-[15px]">Platforms</Text>
             <View className="flex-row items-center gap-2">
               {filters.platforms.length > 0 && (
@@ -344,7 +344,7 @@ export const FilterBottomSheet = forwardRef<FilterBottomSheetRef, FilterBottomSh
                   </Text>
                 </View>
               )}
-              <ChevronRight size={18} className="text-muted-foreground" />
+              <ChevronRight size={18} color={colors.icon.default} />
             </View>
           </Pressable>
 
@@ -353,7 +353,7 @@ export const FilterBottomSheet = forwardRef<FilterBottomSheetRef, FilterBottomSh
             onPress={() => setActiveSection('countries')}
             className="border-border flex-row items-center border-b py-3.5"
           >
-            <Globe size={18} className="text-muted-foreground" />
+            <Globe size={18} color={colors.icon.default} />
             <Text className="ml-2 flex-1 text-[15px]">Countries</Text>
             <View className="flex-row items-center gap-2">
               {filters.geoCountries.length > 0 && (
@@ -363,7 +363,7 @@ export const FilterBottomSheet = forwardRef<FilterBottomSheetRef, FilterBottomSh
                   </Text>
                 </View>
               )}
-              <ChevronRight size={18} className="text-muted-foreground" />
+              <ChevronRight size={18} color={colors.icon.default} />
             </View>
           </Pressable>
         </View>

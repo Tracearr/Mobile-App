@@ -119,7 +119,7 @@ export function HistoryFilters({
           onPress={onFilterPress}
           className="bg-card h-10 w-11 items-center justify-center rounded-lg"
         >
-          <SlidersHorizontal size={18} className="text-foreground" />
+          <SlidersHorizontal size={18} color={colors.text.primary.dark} />
           {activeFilterCount > 0 && (
             <View className="bg-primary absolute top-1 right-1 min-w-4 items-center justify-center rounded-full px-1">
               <Text className="text-primary-foreground text-[10px] font-bold">
