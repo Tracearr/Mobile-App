@@ -1,12 +1,8 @@
 /**
  * Hook for fetching server resource statistics (CPU/RAM)
- * Only polls when:
- * 1. App is in foreground (AppState === 'active')
- * 2. Dashboard tab is focused (useIsFocused)
+ * Polls every 6 seconds when enabled, stops when app is backgrounded
  */
-import { useRef, useCallback, useEffect, useState } from 'react';
-import { AppState, type AppStateStatus } from 'react-native';
-import { useIsFocused } from '@react-navigation/native';
+import { useRef, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   SERVER_STATS_CONFIG,
@@ -23,22 +19,7 @@ import { api } from '@/lib/api';
  * @param enabled - Additional enable condition (e.g., server exists)
  */
 export function useServerStatistics(serverId: string | undefined, enabled: boolean = true) {
-  const isFocused = useIsFocused();
-  const [appState, setAppState] = useState<AppStateStatus>(AppState.currentState);
-
-  // Track app state changes
-  useEffect(() => {
-    const subscription = AppState.addEventListener('change', (nextAppState) => {
-      setAppState(nextAppState);
-    });
-
-    return () => {
-      subscription.remove();
-    };
-  }, []);
-
-  // Only poll when app is active AND screen is focused
-  const shouldPoll = enabled && !!serverId && appState === 'active' && isFocused;
+  const shouldPoll = enabled && !!serverId;
 
   // Accumulate data points across polls, keyed by timestamp for deduplication
   const dataMapRef = useRef<Map<number, ServerResourceDataPoint>>(new Map());
@@ -78,7 +59,9 @@ export function useServerStatistics(serverId: string | undefined, enabled: boole
     },
     enabled: shouldPoll,
     // Poll every 6 seconds (matches SERVER_STATS_CONFIG.POLL_INTERVAL_SECONDS)
-    refetchInterval: shouldPoll ? SERVER_STATS_CONFIG.POLL_INTERVAL_SECONDS * 1000 : false,
+    refetchInterval: SERVER_STATS_CONFIG.POLL_INTERVAL_SECONDS * 1000,
+    // Don't poll when app is backgrounded
+    refetchIntervalInBackground: false,
     // Keep previous data while fetching new
     placeholderData: (prev) => prev,
     // Data is fresh until next poll
