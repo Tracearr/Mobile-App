@@ -211,18 +211,51 @@ export const FilterBottomSheet = forwardRef<FilterBottomSheetRef, FilterBottomSh
       }
 
       return (
-        <View className="border-border flex-row items-center border-b px-4 py-4">
-          <Pressable onPress={() => setActiveSection('main')} className="mr-1 p-1">
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            paddingHorizontal: 16,
+            paddingVertical: 16,
+            borderBottomWidth: 1,
+            borderBottomColor: colors.border.dark,
+            backgroundColor: colors.card.dark,
+          }}
+        >
+          <Pressable
+            onPress={() => setActiveSection('main')}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              paddingVertical: 4,
+              paddingRight: 8,
+            }}
+          >
             <ChevronRight
               size={20}
-              color={colors.text.primary.dark}
+              color={ACCENT_COLOR}
               style={{ transform: [{ rotate: '180deg' }] }}
             />
+            <Text style={{ color: ACCENT_COLOR, fontSize: 15, marginLeft: 4 }}>Back</Text>
           </Pressable>
-          <Text className="flex-1 text-lg font-semibold">{title}</Text>
+          <Text
+            style={{
+              flex: 1,
+              fontSize: 18,
+              fontWeight: '600',
+              color: colors.text.primary.dark,
+              textAlign: 'center',
+              marginRight: 60,
+            }}
+          >
+            {title}
+          </Text>
           {count > 0 && (
-            <Pressable onPress={() => clearSection(section)} className="px-2 py-1">
-              <Text className="text-primary text-[13px]">Clear ({count})</Text>
+            <Pressable
+              onPress={() => clearSection(section)}
+              style={{ paddingHorizontal: 8, paddingVertical: 4 }}
+            >
+              <Text style={{ color: ACCENT_COLOR, fontSize: 13 }}>Clear ({count})</Text>
             </Pressable>
           )}
         </View>
@@ -238,27 +271,50 @@ export const FilterBottomSheet = forwardRef<FilterBottomSheetRef, FilterBottomSh
         <Pressable
           key={user.id}
           onPress={() => toggleUser(user.id)}
-          className={`border-border flex-row items-center border-b py-3 ${isSelected ? '' : ''}`}
-          style={isSelected ? { backgroundColor: `${ACCENT_COLOR}10` } : undefined}
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            paddingVertical: 14,
+            paddingHorizontal: 16,
+            backgroundColor: isSelected ? `${ACCENT_COLOR}10` : 'transparent',
+            borderBottomWidth: 1,
+            borderBottomColor: colors.border.dark,
+          }}
         >
-          <View className="mr-2">
-            {user.thumbUrl ? (
-              <Image source={{ uri: user.thumbUrl }} className="h-8 w-8 rounded-full" />
-            ) : (
-              <View className="bg-background h-8 w-8 items-center justify-center rounded-full">
-                <Text className="text-muted-foreground text-sm font-semibold">
-                  {displayName[0]?.toUpperCase() ?? '?'}
-                </Text>
-              </View>
-            )}
-          </View>
+          {user.thumbUrl ? (
+            <Image
+              source={{ uri: user.thumbUrl }}
+              style={{ width: 36, height: 36, borderRadius: 18, marginRight: 12 }}
+            />
+          ) : (
+            <View
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 18,
+                marginRight: 12,
+                backgroundColor: colors.surface.dark,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Text style={{ color: colors.text.muted.dark, fontSize: 14, fontWeight: '600' }}>
+                {displayName[0]?.toUpperCase() ?? '?'}
+              </Text>
+            </View>
+          )}
           <Text
-            className={`flex-1 text-[15px] ${isSelected ? 'text-primary font-medium' : ''}`}
             numberOfLines={1}
+            style={{
+              flex: 1,
+              fontSize: 15,
+              color: isSelected ? ACCENT_COLOR : colors.text.primary.dark,
+              fontWeight: isSelected ? '500' : '400',
+            }}
           >
             {displayName}
           </Text>
-          {isSelected && <Check size={18} color={ACCENT_COLOR} />}
+          {isSelected && <Check size={20} color={ACCENT_COLOR} />}
         </Pressable>
       );
     };
@@ -272,216 +328,384 @@ export const FilterBottomSheet = forwardRef<FilterBottomSheetRef, FilterBottomSh
       <Pressable
         key={item.value}
         onPress={onToggle}
-        className="border-border flex-row items-center border-b py-3"
-        style={isSelected ? { backgroundColor: `${ACCENT_COLOR}10` } : undefined}
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          paddingVertical: 14,
+          paddingHorizontal: 16,
+          backgroundColor: isSelected ? `${ACCENT_COLOR}10` : 'transparent',
+          borderBottomWidth: 1,
+          borderBottomColor: colors.border.dark,
+        }}
       >
         <Text
-          className={`flex-1 text-[15px] ${isSelected ? 'text-primary font-medium' : ''}`}
           numberOfLines={1}
+          style={{
+            flex: 1,
+            fontSize: 15,
+            color: isSelected ? ACCENT_COLOR : colors.text.primary.dark,
+            fontWeight: isSelected ? '500' : '400',
+          }}
         >
           {item.value}
         </Text>
-        <View className="flex-row items-center gap-2">
-          <Text className="bg-background text-muted-foreground rounded-full px-2 py-0.5 text-xs">
-            {item.count}
-          </Text>
-          {isSelected && <Check size={18} color={ACCENT_COLOR} />}
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+          <View
+            style={{
+              backgroundColor: colors.surface.dark,
+              paddingHorizontal: 8,
+              paddingVertical: 3,
+              borderRadius: 10,
+            }}
+          >
+            <Text style={{ color: colors.text.muted.dark, fontSize: 12, fontWeight: '500' }}>
+              {item.count}
+            </Text>
+          </View>
+          {isSelected && <Check size={20} color={ACCENT_COLOR} />}
         </View>
       </Pressable>
     );
 
+    // Close the bottom sheet
+    const handleDone = useCallback(() => {
+      bottomSheetRef.current?.close();
+    }, []);
+
+    // Navigation row component
+    const renderNavRow = (
+      icon: React.ElementType,
+      label: string,
+      count: number,
+      onPress: () => void
+    ) => {
+      const Icon = icon;
+      return (
+        <Pressable
+          onPress={onPress}
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            paddingVertical: 14,
+            borderBottomWidth: 1,
+            borderBottomColor: colors.border.dark,
+          }}
+        >
+          <Icon size={20} color={colors.icon.default} />
+          <Text style={{ flex: 1, fontSize: 15, color: colors.text.primary.dark, marginLeft: 12 }}>
+            {label}
+          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            {count > 0 && (
+              <View
+                style={{
+                  minWidth: 22,
+                  paddingHorizontal: 8,
+                  paddingVertical: 3,
+                  borderRadius: 11,
+                  backgroundColor: ACCENT_COLOR,
+                  alignItems: 'center',
+                }}
+              >
+                <Text style={{ color: '#fff', fontSize: 12, fontWeight: '600' }}>{count}</Text>
+              </View>
+            )}
+            <ChevronRight size={18} color={colors.icon.default} />
+          </View>
+        </Pressable>
+      );
+    };
+
     // Main filter menu
     const renderMainMenu = () => (
-      <BottomSheetScrollView contentContainerStyle={scrollContent}>
-        {/* Header */}
-        <View className="border-border flex-row items-center justify-between border-b px-4 pt-2 pb-4">
-          <Text className="text-lg font-semibold">Filters</Text>
-          {activeFilterCount > 0 && (
-            <Pressable onPress={clearAllFilters} className="flex-row items-center gap-1 px-2 py-1">
-              <X size={14} color={colors.icon.default} />
-              <Text className="text-muted-foreground text-[13px]">Clear all</Text>
-            </Pressable>
-          )}
-        </View>
-
-        {/* Sub-menu navigation items */}
-        <View className="px-4 pt-4">
-          <Text className="text-muted-foreground mb-2 text-xs font-semibold tracking-wider uppercase">
-            Filter by
-          </Text>
-
-          {/* Users */}
-          <Pressable
-            onPress={() => setActiveSection('users')}
-            className="border-border flex-row items-center border-b py-3.5"
+      <View style={{ flex: 1 }}>
+        <BottomSheetScrollView contentContainerStyle={scrollContent}>
+          {/* Header */}
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              paddingHorizontal: 16,
+              paddingTop: 8,
+              paddingBottom: 16,
+              borderBottomWidth: 1,
+              borderBottomColor: colors.border.dark,
+            }}
           >
-            <User size={18} color={colors.icon.default} />
-            <Text className="ml-2 flex-1 text-[15px]">Users</Text>
-            <View className="flex-row items-center gap-2">
-              {filters.serverUserIds.length > 0 && (
-                <View className="bg-primary min-w-[22px] items-center rounded-full px-2 py-0.5">
-                  <Text className="text-primary-foreground text-xs font-semibold">
-                    {filters.serverUserIds.length}
-                  </Text>
-                </View>
-              )}
-              <ChevronRight size={18} color={colors.icon.default} />
-            </View>
-          </Pressable>
-
-          {/* Platforms */}
-          <Pressable
-            onPress={() => setActiveSection('platforms')}
-            className="border-border flex-row items-center border-b py-3.5"
-          >
-            <Monitor size={18} color={colors.icon.default} />
-            <Text className="ml-2 flex-1 text-[15px]">Platforms</Text>
-            <View className="flex-row items-center gap-2">
-              {filters.platforms.length > 0 && (
-                <View className="bg-primary min-w-[22px] items-center rounded-full px-2 py-0.5">
-                  <Text className="text-primary-foreground text-xs font-semibold">
-                    {filters.platforms.length}
-                  </Text>
-                </View>
-              )}
-              <ChevronRight size={18} color={colors.icon.default} />
-            </View>
-          </Pressable>
-
-          {/* Countries */}
-          <Pressable
-            onPress={() => setActiveSection('countries')}
-            className="border-border flex-row items-center border-b py-3.5"
-          >
-            <Globe size={18} color={colors.icon.default} />
-            <Text className="ml-2 flex-1 text-[15px]">Countries</Text>
-            <View className="flex-row items-center gap-2">
-              {filters.geoCountries.length > 0 && (
-                <View className="bg-primary min-w-[22px] items-center rounded-full px-2 py-0.5">
-                  <Text className="text-primary-foreground text-xs font-semibold">
-                    {filters.geoCountries.length}
-                  </Text>
-                </View>
-              )}
-              <ChevronRight size={18} color={colors.icon.default} />
-            </View>
-          </Pressable>
-        </View>
-
-        {/* Media Types - inline checkboxes */}
-        <View className="px-4 pt-4">
-          <Text className="text-muted-foreground mb-2 text-xs font-semibold tracking-wider uppercase">
-            Media Type
-          </Text>
-          <View className="flex-row flex-wrap gap-2">
-            {MEDIA_TYPES.map(({ value, label, icon: Icon }) => {
-              const isSelected = filters.mediaTypes.includes(value);
-              return (
-                <Pressable
-                  key={value}
-                  onPress={() => toggleMediaType(value)}
-                  className={`flex-row items-center gap-1.5 rounded-lg border px-3 py-2 ${isSelected ? '' : 'border-border bg-background'}`}
-                  style={
-                    isSelected
-                      ? { borderColor: ACCENT_COLOR, backgroundColor: `${ACCENT_COLOR}15` }
-                      : undefined
-                  }
-                >
-                  <Icon size={16} color={isSelected ? ACCENT_COLOR : colors.text.muted.dark} />
-                  <Text
-                    className={`text-[13px] ${isSelected ? 'text-primary' : 'text-muted-foreground'}`}
-                  >
-                    {label}
-                  </Text>
-                </Pressable>
-              );
-            })}
+            <Text style={{ fontSize: 18, fontWeight: '600', color: colors.text.primary.dark }}>
+              Filters
+            </Text>
+            {activeFilterCount > 0 && (
+              <Pressable
+                onPress={clearAllFilters}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 4, padding: 4 }}
+              >
+                <X size={14} color={colors.text.muted.dark} />
+                <Text style={{ color: colors.text.muted.dark, fontSize: 13 }}>Clear all</Text>
+              </Pressable>
+            )}
           </View>
-        </View>
 
-        {/* Quality/Transcode - inline checkboxes */}
-        <View className="px-4 pt-4">
-          <Text className="text-muted-foreground mb-2 text-xs font-semibold tracking-wider uppercase">
-            Quality
-          </Text>
-          <View className="flex-row flex-wrap gap-2">
-            {TRANSCODE_OPTIONS.map(({ value, label, icon: Icon }) => {
-              const isSelected = filters.transcodeDecisions.includes(value);
-              return (
-                <Pressable
-                  key={value}
-                  onPress={() => toggleTranscode(value)}
-                  className={`flex-row items-center gap-1.5 rounded-lg border px-3 py-2 ${isSelected ? '' : 'border-border bg-background'}`}
-                  style={
-                    isSelected
-                      ? { borderColor: ACCENT_COLOR, backgroundColor: `${ACCENT_COLOR}15` }
-                      : undefined
-                  }
-                >
-                  <Icon size={16} color={isSelected ? ACCENT_COLOR : colors.text.muted.dark} />
-                  <Text
-                    className={`text-[13px] ${isSelected ? 'text-primary' : 'text-muted-foreground'}`}
-                  >
-                    {label}
-                  </Text>
-                </Pressable>
-              );
-            })}
+          {/* Sub-menu navigation items */}
+          <View style={{ paddingHorizontal: 16, paddingTop: 16 }}>
+            <Text
+              style={{
+                color: colors.text.muted.dark,
+                fontSize: 11,
+                fontWeight: '600',
+                letterSpacing: 0.5,
+                textTransform: 'uppercase',
+                marginBottom: 8,
+              }}
+            >
+              Filter by
+            </Text>
+
+            {renderNavRow(User, 'Users', filters.serverUserIds.length, () =>
+              setActiveSection('users')
+            )}
+            {renderNavRow(Monitor, 'Platforms', filters.platforms.length, () =>
+              setActiveSection('platforms')
+            )}
+            {renderNavRow(Globe, 'Countries', filters.geoCountries.length, () =>
+              setActiveSection('countries')
+            )}
           </View>
+
+          {/* Media Types - 2x2 grid */}
+          <View style={{ paddingHorizontal: 16, paddingTop: 20 }}>
+            <Text
+              style={{
+                color: colors.text.muted.dark,
+                fontSize: 11,
+                fontWeight: '600',
+                letterSpacing: 0.5,
+                textTransform: 'uppercase',
+                marginBottom: 10,
+              }}
+            >
+              Media Type
+            </Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+              {MEDIA_TYPES.map(({ value, label, icon: Icon }) => {
+                const isSelected = filters.mediaTypes.includes(value);
+                return (
+                  <Pressable
+                    key={value}
+                    onPress={() => toggleMediaType(value)}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 8,
+                      paddingVertical: 10,
+                      paddingHorizontal: 14,
+                      borderRadius: 8,
+                      borderWidth: 1,
+                      borderColor: isSelected ? ACCENT_COLOR : colors.border.dark,
+                      backgroundColor: isSelected ? `${ACCENT_COLOR}15` : colors.surface.dark,
+                      minWidth: '47%',
+                    }}
+                  >
+                    <Icon size={18} color={isSelected ? ACCENT_COLOR : colors.text.muted.dark} />
+                    <Text
+                      style={{
+                        fontSize: 14,
+                        fontWeight: '500',
+                        color: isSelected ? ACCENT_COLOR : colors.text.primary.dark,
+                      }}
+                    >
+                      {label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+
+          {/* Quality/Transcode - row of 3 */}
+          <View style={{ paddingHorizontal: 16, paddingTop: 20 }}>
+            <Text
+              style={{
+                color: colors.text.muted.dark,
+                fontSize: 11,
+                fontWeight: '600',
+                letterSpacing: 0.5,
+                textTransform: 'uppercase',
+                marginBottom: 10,
+              }}
+            >
+              Playback Quality
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              {TRANSCODE_OPTIONS.map(({ value, label, icon: Icon }) => {
+                const isSelected = filters.transcodeDecisions.includes(value);
+                return (
+                  <Pressable
+                    key={value}
+                    onPress={() => toggleTranscode(value)}
+                    style={{
+                      flex: 1,
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: 6,
+                      paddingVertical: 12,
+                      paddingHorizontal: 8,
+                      borderRadius: 8,
+                      borderWidth: 1,
+                      borderColor: isSelected ? ACCENT_COLOR : colors.border.dark,
+                      backgroundColor: isSelected ? `${ACCENT_COLOR}15` : colors.surface.dark,
+                    }}
+                  >
+                    <Icon size={20} color={isSelected ? ACCENT_COLOR : colors.text.muted.dark} />
+                    <Text
+                      style={{
+                        fontSize: 12,
+                        fontWeight: '500',
+                        color: isSelected ? ACCENT_COLOR : colors.text.primary.dark,
+                        textAlign: 'center',
+                      }}
+                      numberOfLines={1}
+                    >
+                      {label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+        </BottomSheetScrollView>
+
+        {/* Done button - sticky footer */}
+        <View
+          style={{
+            paddingHorizontal: 16,
+            paddingVertical: 12,
+            paddingBottom: 24,
+            borderTopWidth: 1,
+            borderTopColor: colors.border.dark,
+            backgroundColor: colors.card.dark,
+          }}
+        >
+          <Pressable
+            onPress={handleDone}
+            style={{
+              backgroundColor: ACCENT_COLOR,
+              paddingVertical: 14,
+              borderRadius: 10,
+              alignItems: 'center',
+            }}
+          >
+            <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600' }}>
+              {activeFilterCount > 0 ? `Apply ${activeFilterCount} Filters` : 'Done'}
+            </Text>
+          </Pressable>
         </View>
-      </BottomSheetScrollView>
+      </View>
+    );
+
+    // Done button for sub-sections
+    const renderDoneButton = () => (
+      <View
+        style={{
+          paddingHorizontal: 16,
+          paddingVertical: 12,
+          paddingBottom: 24,
+          borderTopWidth: 1,
+          borderTopColor: colors.border.dark,
+          backgroundColor: colors.card.dark,
+        }}
+      >
+        <Pressable
+          onPress={handleDone}
+          style={{
+            backgroundColor: ACCENT_COLOR,
+            paddingVertical: 14,
+            borderRadius: 10,
+            alignItems: 'center',
+          }}
+        >
+          <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600' }}>
+            {activeFilterCount > 0 ? `Apply ${activeFilterCount} Filters` : 'Done'}
+          </Text>
+        </Pressable>
+      </View>
     );
 
     // Users sub-menu
     const renderUsersSection = () => (
-      <View className="flex-1">
+      <View style={{ flex: 1 }}>
         {renderSectionHeader('Users', 'users')}
-        <ScrollView contentContainerStyle={listContent}>
+        <ScrollView contentContainerStyle={listContent} style={{ flex: 1 }}>
           {sortedUsers.map(renderUserItem)}
           {sortedUsers.length === 0 && (
-            <Text className="text-muted-foreground py-8 text-center text-sm">
+            <Text
+              style={{
+                color: colors.text.muted.dark,
+                textAlign: 'center',
+                paddingVertical: 32,
+                fontSize: 14,
+              }}
+            >
               No users available
             </Text>
           )}
         </ScrollView>
+        {renderDoneButton()}
       </View>
     );
 
     // Platforms sub-menu
     const renderPlatformsSection = () => (
-      <View className="flex-1">
+      <View style={{ flex: 1 }}>
         {renderSectionHeader('Platforms', 'platforms')}
-        <ScrollView contentContainerStyle={listContent}>
+        <ScrollView contentContainerStyle={listContent} style={{ flex: 1 }}>
           {filterOptions?.platforms?.map((item) =>
             renderFilterItem(item, filters.platforms.includes(item.value), () =>
               togglePlatform(item.value)
             )
           )}
           {(!filterOptions?.platforms || filterOptions.platforms.length === 0) && (
-            <Text className="text-muted-foreground py-8 text-center text-sm">
+            <Text
+              style={{
+                color: colors.text.muted.dark,
+                textAlign: 'center',
+                paddingVertical: 32,
+                fontSize: 14,
+              }}
+            >
               No platforms available
             </Text>
           )}
         </ScrollView>
+        {renderDoneButton()}
       </View>
     );
 
     // Countries sub-menu
     const renderCountriesSection = () => (
-      <View className="flex-1">
+      <View style={{ flex: 1 }}>
         {renderSectionHeader('Countries', 'countries')}
-        <ScrollView contentContainerStyle={listContent}>
+        <ScrollView contentContainerStyle={listContent} style={{ flex: 1 }}>
           {filterOptions?.countries?.map((item) =>
             renderFilterItem(item, filters.geoCountries.includes(item.value), () =>
               toggleCountry(item.value)
             )
           )}
           {(!filterOptions?.countries || filterOptions.countries.length === 0) && (
-            <Text className="text-muted-foreground py-8 text-center text-sm">
+            <Text
+              style={{
+                color: colors.text.muted.dark,
+                textAlign: 'center',
+                paddingVertical: 32,
+                fontSize: 14,
+              }}
+            >
               No countries available
             </Text>
           )}
         </ScrollView>
+        {renderDoneButton()}
       </View>
     );
 
