@@ -77,41 +77,37 @@ function QualityBadge({ session }: { session: SessionWithDetails }) {
   const isTranscode = session.isTranscode ?? false;
   const isCopy = session.videoDecision === 'copy' || session.audioDecision === 'copy';
 
+  const badgeStyle = {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
+  };
+
   if (isTranscode) {
     return (
-      <View
-        className="flex-row items-center gap-1 rounded-full px-2 py-0.5"
-        style={{ backgroundColor: `${colors.warning}20` }}
-      >
-        <Repeat2 size={10} color={colors.warning} />
-        <Text className="text-[10px] font-semibold" style={{ color: colors.warning }}>
-          Transcode
-        </Text>
+      <View style={{ ...badgeStyle, backgroundColor: `${colors.warning}20` }}>
+        <Repeat2 size={12} color={colors.warning} />
+        <Text style={{ fontSize: 11, fontWeight: '600', color: colors.warning }}>Transcode</Text>
       </View>
     );
   }
 
   if (isCopy) {
     return (
-      <View
-        className="flex-row items-center gap-1 rounded-full px-2 py-0.5"
-        style={{ backgroundColor: `${ACCENT_COLOR}15` }}
-      >
-        <MonitorPlay size={10} color={ACCENT_COLOR} />
-        <Text className="text-primary text-[10px] font-semibold">Direct Stream</Text>
+      <View style={{ ...badgeStyle, backgroundColor: `${ACCENT_COLOR}15` }}>
+        <MonitorPlay size={12} color={ACCENT_COLOR} />
+        <Text style={{ fontSize: 11, fontWeight: '600', color: ACCENT_COLOR }}>Direct Stream</Text>
       </View>
     );
   }
 
   return (
-    <View
-      className="flex-row items-center gap-1 rounded-full px-2 py-0.5"
-      style={{ backgroundColor: `${ACCENT_COLOR}15` }}
-    >
-      <Play size={10} color={colors.success} fill={colors.success} />
-      <Text className="text-[10px] font-semibold" style={{ color: colors.success }}>
-        Direct Play
-      </Text>
+    <View style={{ ...badgeStyle, backgroundColor: `${colors.success}15` }}>
+      <Play size={12} color={colors.success} fill={colors.success} />
+      <Text style={{ fontSize: 11, fontWeight: '600', color: colors.success }}>Direct Play</Text>
     </View>
   );
 }
