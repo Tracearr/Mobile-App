@@ -46,6 +46,7 @@
     "expo-dev-client": "~55.0.3",
     "expo-device": "55.0.3",
     "expo-font": "^55.0.3",
+    "expo-glass-effect": "~55.0.3",
     "expo-image": "55.0.3",
     "expo-linking": "55.0.3",
     "expo-maps": "^55.0.3",
