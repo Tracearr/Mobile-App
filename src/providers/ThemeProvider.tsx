@@ -1,14 +1,18 @@
 /**
  * Theme provider with hue-based accent colors (matching web app)
- * Uses Colors API for dynamic Material 3 / iOS adaptive colors
+ * Supports user-configurable theme preference (system/light/dark)
  */
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
-import { useColorScheme } from 'react-native';
+import { useColorScheme, Appearance } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 
 // Default accent hue (cyan = 187) - matches web app
 const DEFAULT_ACCENT_HUE = 187;
 const ACCENT_STORAGE_KEY = 'tracearr-accent-hue';
+const THEME_PREFERENCE_KEY = 'tracearr-theme-preference';
+
+// Theme preference options
+export type ThemePreference = 'system' | 'light' | 'dark';
 
 // Preset accent colors with their hue values (matches web app)
 export const ACCENT_PRESETS = [
@@ -24,6 +28,8 @@ export const ACCENT_PRESETS = [
 
 interface ThemeContextValue {
   isDark: boolean;
+  themePreference: ThemePreference;
+  setThemePreference: (preference: ThemePreference) => void;
   accentHue: number;
   setAccentHue: (hue: number) => void;
   accentColor: string;
@@ -60,23 +66,53 @@ function getAccentFromHue(hue: number): { core: string; deep: string } {
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme !== 'light'; // Default to dark
+  const systemColorScheme = useColorScheme();
+  const [themePreference, setThemePreferenceState] = useState<ThemePreference>('system');
   const [accentHue, setAccentHueState] = useState(DEFAULT_ACCENT_HUE);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // Load saved accent hue on mount
+  // Determine actual dark mode based on preference
+  const isDark =
+    themePreference === 'system'
+      ? systemColorScheme !== 'light' // Default to dark if system preference unclear
+      : themePreference === 'dark';
+
+  // Load saved preferences on mount
   useEffect(() => {
-    void SecureStore.getItemAsync(ACCENT_STORAGE_KEY).then((stored) => {
-      if (stored) {
-        const parsed = parseInt(stored, 10);
+    void Promise.all([
+      SecureStore.getItemAsync(ACCENT_STORAGE_KEY),
+      SecureStore.getItemAsync(THEME_PREFERENCE_KEY),
+    ]).then(([storedHue, storedTheme]) => {
+      if (storedHue) {
+        const parsed = parseInt(storedHue, 10);
         if (!isNaN(parsed) && parsed >= 0 && parsed < 360) {
           setAccentHueState(parsed);
         }
       }
+      if (storedTheme && ['system', 'light', 'dark'].includes(storedTheme)) {
+        setThemePreferenceState(storedTheme as ThemePreference);
+      }
       setIsLoaded(true);
     });
   }, []);
+
+  // Update system appearance when preference changes (for native components)
+  useEffect(() => {
+    if (!isLoaded) return;
+
+    // Set color scheme for native components (null = follow system)
+    if (themePreference === 'system') {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      Appearance.setColorScheme(null as any);
+    } else {
+      Appearance.setColorScheme(themePreference);
+    }
+  }, [themePreference, isLoaded]);
+
+  const setThemePreference = (preference: ThemePreference) => {
+    setThemePreferenceState(preference);
+    void SecureStore.setItemAsync(THEME_PREFERENCE_KEY, preference);
+  };
 
   const setAccentHue = (hue: number) => {
     const normalizedHue = ((hue % 360) + 360) % 360;
@@ -88,13 +124,15 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   const value: ThemeContextValue = {
     isDark,
+    themePreference,
+    setThemePreference,
     accentHue,
     setAccentHue,
     accentColor: accent.core,
     accentColorDeep: accent.deep,
   };
 
-  // Don't render until we've loaded the stored hue to prevent flash
+  // Don't render until we've loaded the stored preferences to prevent flash
   if (!isLoaded) return null;
 
   return <ThemeContext value={value}>{children}</ThemeContext>;

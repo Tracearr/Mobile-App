@@ -17,10 +17,11 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useAuthStateStore } from '@/lib/authStateStore';
-import { validateServerUrl, isInternalUrl } from '@/lib/validation';
+import { validateServerUrl, isInternalUrl, showInternalUrlWarning } from '@/lib/validation';
 import { ROUTES } from '@/lib/routes';
 import { Text } from '@/components/ui/text';
 import { useTheme } from '@/providers/ThemeProvider';
+import { colors } from '@/lib/theme';
 
 interface QRPairingPayload {
   url: string;
@@ -119,39 +120,25 @@ export default function PairScreen() {
 
       // Check for internal/localhost URL and warn
       if (isInternalUrl(payload.url)) {
-        Alert.alert(
-          'Internal URL Detected',
-          'This QR code contains a local network address that may not work outside your home network.\n\nSet an External URL in Settings → General on your Tracearr web dashboard to enable remote access.',
-          [
-            {
-              text: 'Cancel',
-              style: 'cancel',
-              onPress: () => {
-                setTimeout(() => {
-                  scanLockRef.current = false;
-                  setScanned(false);
-                }, 1000);
-              },
-            },
-            {
-              text: 'Continue Anyway',
-              onPress: () => {
-                void (async () => {
-                  try {
-                    await pairServer(payload.url, payload.token);
-                    router.replace(ROUTES.TABS);
-                  } catch {
-                    // Error is stored in auth store - stay on screen
-                    setTimeout(() => {
-                      scanLockRef.current = false;
-                      setScanned(false);
-                    }, 3000);
-                  }
-                })();
-              },
-            },
-          ]
-        );
+        const choice = await showInternalUrlWarning();
+        if (choice === 'cancel') {
+          setTimeout(() => {
+            scanLockRef.current = false;
+            setScanned(false);
+          }, 1000);
+          return;
+        }
+        // User chose to continue - proceed with pairing
+        try {
+          await pairServer(payload.url, payload.token);
+          router.replace(ROUTES.TABS);
+        } catch {
+          // Error is stored in auth store - stay on screen
+          setTimeout(() => {
+            scanLockRef.current = false;
+            setScanned(false);
+          }, 3000);
+        }
         return;
       }
 
@@ -191,33 +178,20 @@ export default function PairScreen() {
 
     // Check for internal/localhost URL and warn
     if (isInternalUrl(trimmedUrl)) {
-      Alert.alert(
-        'Internal URL Detected',
-        'This appears to be a local network address that may not work outside your home network.\n\nSet an External URL in Settings → General on your Tracearr web dashboard to enable remote access.',
-        [
-          {
-            text: 'Cancel',
-            style: 'cancel',
-            onPress: () => setIsSubmitting(false),
-          },
-          {
-            text: 'Continue Anyway',
-            onPress: () => {
-              void (async () => {
-                try {
-                  await pairServer(trimmedUrl, trimmedToken);
-                  router.replace(ROUTES.TABS);
-                } catch {
-                  // Error stored in auth store - displayed below inputs
-                } finally {
-                  setIsSubmitting(false);
-                }
-              })();
-            },
-          },
-        ]
-      );
-      // Keep isSubmitting true while alert is visible - callbacks will reset it
+      const choice = await showInternalUrlWarning();
+      if (choice === 'cancel') {
+        setIsSubmitting(false);
+        return;
+      }
+      // User chose to continue - proceed with pairing
+      try {
+        await pairServer(trimmedUrl, trimmedToken);
+        router.replace(ROUTES.TABS);
+      } catch {
+        // Error stored in auth store - displayed below inputs
+      } finally {
+        setIsSubmitting(false);
+      }
       return;
     }
 
@@ -256,7 +230,7 @@ export default function PairScreen() {
                   value={serverUrl}
                   onChangeText={handleServerUrlChange}
                   placeholder="https://tracearr.example.com"
-                  placeholderTextColor="#71717a"
+                  placeholderTextColor={colors.text.muted.dark}
                   autoCapitalize="none"
                   autoCorrect={false}
                   keyboardType="url"
@@ -271,7 +245,7 @@ export default function PairScreen() {
                   value={token}
                   onChangeText={handleTokenChange}
                   placeholder="trr_mob_..."
-                  placeholderTextColor="#71717a"
+                  placeholderTextColor={colors.text.muted.dark}
                   autoCapitalize="none"
                   autoCorrect={false}
                   secureTextEntry

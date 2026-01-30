@@ -140,6 +140,7 @@ export default function UsersScreen() {
         }
         return undefined;
       },
+      staleTime: 1000 * 60, // 60 seconds - user list doesn't change frequently
     });
 
   // Flatten all pages into single array

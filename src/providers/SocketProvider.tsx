@@ -61,21 +61,12 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
 
   const connectSocket = useCallback(async () => {
     // Don't try to connect during initialization or if not authenticated
-    console.log('[Socket] connectSocket called:', {
-      isInitializing,
-      isAuthenticated,
-      serverUrl,
-      serverId,
-      connectionState,
-    });
     if (isInitializing || !isAuthenticated || !serverUrl || !serverId) {
-      console.log('[Socket] Skipping connection - not ready');
       return;
     }
 
     // Don't connect if already unauthenticated
     if (connectionState === 'unauthenticated') {
-      console.log('[Socket] Skipping connection - unauthenticated');
       return;
     }
 
@@ -106,19 +97,16 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     });
 
     newSocket.on('connect', () => {
-      console.log('Socket connected');
       setIsConnected(true);
       // Subscribe to session updates
       newSocket.emit('subscribe:sessions');
     });
 
-    newSocket.on('disconnect', (reason) => {
-      console.log('Socket disconnected:', reason);
+    newSocket.on('disconnect', (_reason) => {
       setIsConnected(false);
     });
 
     newSocket.on('connect_error', (error) => {
-      console.error('Socket connection error:', error.message);
       setIsConnected(false);
 
       // Check if this is an authentication failure
@@ -167,17 +155,8 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
 
   // Connect/disconnect based on auth state and connection state
   useEffect(() => {
-    console.log('[Socket] Effect triggered:', {
-      isInitializing,
-      isAuthenticated,
-      serverUrl,
-      serverId,
-      connectionState,
-    });
-
     // Don't try to connect during initialization
     if (isInitializing) {
-      console.log('[Socket] Still initializing, skipping');
       return;
     }
 

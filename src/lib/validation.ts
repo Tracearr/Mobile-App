@@ -1,6 +1,7 @@
 /**
  * URL and token validation utilities for pairing flow
  */
+import { Alert } from 'react-native';
 
 // Re-export isInternalUrl for convenience (full implementation in utils.ts)
 export { isInternalUrl } from './utils';
@@ -40,4 +41,28 @@ export function validateToken(token: string): ValidationResult {
     return { valid: false, error: 'Token appears too short' };
   }
   return { valid: true };
+}
+
+/**
+ * Show warning dialog for internal/local network URLs
+ * Returns 'continue' if user wants to proceed, 'cancel' otherwise
+ */
+export function showInternalUrlWarning(): Promise<'continue' | 'cancel'> {
+  return new Promise((resolve) => {
+    Alert.alert(
+      'Internal URL Detected',
+      'This appears to be a local network address that may not work outside your home network.\n\nSet an External URL in Settings → General on your Tracearr web dashboard to enable remote access.',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+          onPress: () => resolve('cancel'),
+        },
+        {
+          text: 'Continue Anyway',
+          onPress: () => resolve('continue'),
+        },
+      ]
+    );
+  });
 }
