@@ -66,16 +66,16 @@ function SettingsRow({
 
 export default function SettingsScreen() {
   const router = useRouter();
-  const activeServer = useAuthStateStore((s) => s.activeServer);
-  const removeServer = useAuthStateStore((s) => s.removeServer);
+  const server = useAuthStateStore((s) => s.server);
+  const unpairServer = useAuthStateStore((s) => s.unpairServer);
   const appVersion = Constants.expoConfig?.version || '1.0.0';
   const buildNumber = (Constants.expoConfig?.extra?.buildNumber as string | undefined) ?? 'dev';
 
   const handleDisconnect = () => {
     Alert.alert(
       'Disconnect Server',
-      activeServer
-        ? `Are you sure you want to disconnect from "${activeServer.name}"? You will need to pair again to use the app.`
+      server
+        ? `Are you sure you want to disconnect from "${server.name}"? You will need to pair again to use the app.`
         : 'Are you sure you want to disconnect? You will need to pair again to use the app.',
       [
         { text: 'Cancel', style: 'cancel' },
@@ -84,9 +84,7 @@ export default function SettingsScreen() {
           style: 'destructive',
           onPress: () => {
             void (async () => {
-              if (activeServer) {
-                await removeServer(activeServer.id);
-              }
+              await unpairServer();
               router.replace('/(auth)/pair');
             })();
           },
@@ -153,7 +151,7 @@ export default function SettingsScreen() {
           <SettingsRow
             icon={<LogOut size={20} color={colors.error} />}
             label="Disconnect"
-            description={activeServer ? `Currently connected to ${activeServer.name}` : undefined}
+            description={server ? `Currently connected to ${server.name}` : undefined}
             onPress={handleDisconnect}
             showChevron={false}
             destructive

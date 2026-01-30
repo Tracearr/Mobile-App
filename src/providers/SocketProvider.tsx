@@ -8,8 +8,7 @@ import type { Socket } from 'socket.io-client';
 import { AppState } from 'react-native';
 import type { AppStateStatus } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
-import { storage } from '../lib/storage';
-import { useAuthStateStore } from '../lib/authStateStore';
+import { useAuthStateStore, getAccessToken } from '../lib/authStateStore';
 import type {
   ServerToClientEvents,
   ClientToServerEvents,
@@ -37,10 +36,12 @@ export function useSocket() {
 }
 
 export function SocketProvider({ children }: { children: React.ReactNode }) {
-  // Use the consolidated auth state store
-  const isAuthenticated = useAuthStateStore((s) => s.servers.length > 0 && s.activeServer !== null);
-  const activeServerId = useAuthStateStore((s) => s.activeServerId);
-  const serverUrl = useAuthStateStore((s) => s.activeServer?.url ?? null);
+  // Use the single-server auth state store
+  const server = useAuthStateStore((s) => s.server);
+  const tokenStatus = useAuthStateStore((s) => s.tokenStatus);
+  const isAuthenticated = server !== null && tokenStatus !== 'revoked';
+  const serverId = server?.id ?? null;
+  const serverUrl = server?.url ?? null;
   const connectionState = useAuthStateStore((s) => s.connectionState);
   const isInitializing = useAuthStateStore((s) => s.isInitializing);
 
@@ -59,10 +60,10 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       isInitializing,
       isAuthenticated,
       serverUrl,
-      activeServerId,
+      serverId,
       connectionState,
     });
-    if (isInitializing || !isAuthenticated || !serverUrl || !activeServerId) {
+    if (isInitializing || !isAuthenticated || !serverUrl || !serverId) {
       console.log('[Socket] Skipping connection - not ready');
       return;
     }
@@ -74,7 +75,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     }
 
     // If already connected to this backend, skip
-    if (connectedServerIdRef.current === activeServerId && socketRef.current?.connected) {
+    if (connectedServerIdRef.current === serverId && socketRef.current?.connected) {
       return;
     }
 
@@ -85,13 +86,13 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       setSocket(null);
     }
 
-    const credentials = await storage.getServerCredentials(activeServerId);
-    if (!credentials) return;
+    const accessToken = await getAccessToken();
+    if (!accessToken) return;
 
-    connectedServerIdRef.current = activeServerId;
+    connectedServerIdRef.current = serverId;
 
     const newSocket: Socket<ServerToClientEvents, ClientToServerEvents> = io(serverUrl, {
-      auth: { token: credentials.accessToken },
+      auth: { token: accessToken },
       transports: ['websocket'],
       reconnection: true,
       reconnectionAttempts: 5,
@@ -157,7 +158,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
 
     socketRef.current = newSocket;
     setSocket(newSocket);
-  }, [isInitializing, isAuthenticated, serverUrl, activeServerId, queryClient, connectionState]);
+  }, [isInitializing, isAuthenticated, serverUrl, serverId, queryClient, connectionState]);
 
   // Connect/disconnect based on auth state and connection state
   useEffect(() => {
@@ -165,7 +166,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       isInitializing,
       isAuthenticated,
       serverUrl,
-      activeServerId,
+      serverId,
       connectionState,
     });
 
@@ -186,7 +187,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    if (isAuthenticated && serverUrl && activeServerId) {
+    if (isAuthenticated && serverUrl && serverId) {
       void connectSocket();
     } else if (socketRef.current) {
       socketRef.current.disconnect();
@@ -203,7 +204,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
         connectedServerIdRef.current = null;
       }
     };
-  }, [isInitializing, isAuthenticated, serverUrl, activeServerId, connectSocket, connectionState]);
+  }, [isInitializing, isAuthenticated, serverUrl, serverId, connectSocket, connectionState]);
 
   // Handle app state changes (background/foreground)
   useEffect(() => {

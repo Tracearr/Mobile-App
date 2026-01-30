@@ -17,7 +17,7 @@ interface ImageUrlOptions {
  * Components call this instead of directly accessing auth state
  */
 export function useImageUrl() {
-  const serverUrl = useAuthStateStore((s) => s.activeServer?.url ?? null);
+  const serverUrl = useAuthStateStore((s) => s.server?.url ?? null);
 
   return useCallback(
     ({ serverId, path, width, height }: ImageUrlOptions): string | null => {
@@ -33,5 +33,5 @@ export function useImageUrl() {
  * Use this when you need the raw URL, not an image URL
  */
 export function useServerUrl(): string | null {
-  return useAuthStateStore((s) => s.activeServer?.url ?? null);
+  return useAuthStateStore((s) => s.server?.url ?? null);
 }

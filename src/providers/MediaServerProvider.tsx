@@ -32,13 +32,13 @@ interface MediaServerContextValue {
 const MediaServerContext = createContext<MediaServerContextValue | null>(null);
 
 export function MediaServerProvider({ children }: { children: ReactNode }) {
-  // Use consolidated auth state store for auth status (not media servers)
-  const tracearrServers = useAuthStateStore((s) => s.servers);
-  const activeTracearrServer = useAuthStateStore((s) => s.activeServer);
-  const tracearrBackendId = useAuthStateStore((s) => s.activeServerId);
+  // Use single-server auth state store for auth status (not media servers)
+  const tracearrServer = useAuthStateStore((s) => s.server);
+  const tokenStatus = useAuthStateStore((s) => s.tokenStatus);
 
   // Derived state - are we authenticated to Tracearr backend?
-  const isAuthenticated = tracearrServers.length > 0 && activeTracearrServer !== null;
+  const isAuthenticated = tracearrServer !== null && tokenStatus !== 'revoked';
+  const tracearrBackendId = tracearrServer?.id ?? null;
   const queryClient = useQueryClient();
   const [selectedServerId, setSelectedServerId] = useState<string | null>(null);
   const [initialized, setInitialized] = useState(false);

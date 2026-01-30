@@ -157,7 +157,11 @@ export const storage = {
    * @deprecated Use setTokens from authStateStore
    */
   async updateTokens(accessToken: string, refreshToken: string): Promise<boolean> {
-    return this.updateServerTokens('', accessToken, refreshToken);
+    const [accessOk, refreshOk] = await Promise.all([
+      ResilientStorage.setItemAsync(TOKEN_KEYS.ACCESS_TOKEN, accessToken),
+      ResilientStorage.setItemAsync(TOKEN_KEYS.REFRESH_TOKEN, refreshToken),
+    ]);
+    return accessOk && refreshOk;
   },
 
   /**

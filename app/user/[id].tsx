@@ -40,7 +40,7 @@ import {
   Bot,
   type LucideIcon,
 } from 'lucide-react-native';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { api, getServerUrl } from '@/lib/api';
 import { useMediaServer } from '@/providers/MediaServerProvider';
 import { useTheme } from '@/providers/ThemeProvider';
@@ -441,16 +441,11 @@ export default function UserDetailScreen() {
   const { selectedServerId } = useMediaServer();
   const { accentColor } = useTheme();
   const { isTablet, select } = useResponsive();
-  const [serverUrl, setServerUrl] = useState<string | null>(null);
+  const serverUrl = getServerUrl();
 
   // Responsive values
   const horizontalPadding = select({ base: spacing.md, md: spacing.lg, lg: spacing.xl });
   const avatarSize = isTablet ? 80 : 64;
-
-  // Load server URL for image proxy
-  useEffect(() => {
-    void getServerUrl().then(setServerUrl);
-  }, []);
 
   // Fetch user detail - query keys include selectedServerId for cache isolation
   const {

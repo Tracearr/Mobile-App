@@ -13,7 +13,7 @@ import '../global.css';
 import { useEffect, useState, useRef } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { View, ActivityIndicator, StyleSheet, Text, Pressable } from 'react-native';
+import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { QueryProvider } from '@/providers/QueryProvider';
@@ -30,23 +30,18 @@ import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { colors } from '@/lib/theme';
 
 function RootLayoutNav() {
-  // Use consolidated auth state store
-  const servers = useAuthStateStore((s) => s.servers);
-  const activeServer = useAuthStateStore((s) => s.activeServer);
+  // Use single-server auth state store
+  const server = useAuthStateStore((s) => s.server);
   const isInitializing = useAuthStateStore((s) => s.isInitializing);
-  const storageAvailable = useAuthStateStore((s) => s.storageAvailable);
   const connectionState = useAuthStateStore((s) => s.connectionState);
-  const initialize = useAuthStateStore((s) => s.initialize);
-  const retryStorageAccess = useAuthStateStore((s) => s.retryStorageAccess);
-  const resetStorageState = useAuthStateStore((s) => s.resetStorageState);
+  const tokenStatus = useAuthStateStore((s) => s.tokenStatus);
 
   // Derived auth state
-  const isAuthenticated = servers.length > 0 && activeServer !== null;
+  const isAuthenticated = server !== null && tokenStatus !== 'revoked';
 
   const { validate } = useConnectionValidator();
   const segments = useSegments();
   const router = useRouter();
-  const [hasInitialized, setHasInitialized] = useState(false);
   const [showReconnectedToast, setShowReconnectedToast] = useState(false);
   const prevConnectionState = useRef(connectionState);
 
@@ -60,14 +55,10 @@ function RootLayoutNav() {
     prevConnectionState.current = connectionState;
   }, [connectionState]);
 
-  useEffect(() => {
-    void initialize().finally(() => setHasInitialized(true));
-  }, [initialize]);
-
   // Handle navigation based on auth state
   // Don't redirect if unauthenticated - we show UnauthenticatedScreen instead
   useEffect(() => {
-    if (isInitializing || !hasInitialized || !storageAvailable) return;
+    if (isInitializing) return;
     if (connectionState === 'unauthenticated') return;
 
     const inAuthGroup = segments[0] === '(auth)';
@@ -75,40 +66,12 @@ function RootLayoutNav() {
     if (!isAuthenticated && !inAuthGroup) {
       router.replace('/(auth)/pair');
     }
-  }, [
-    isAuthenticated,
-    isInitializing,
-    hasInitialized,
-    storageAvailable,
-    segments,
-    router,
-    connectionState,
-  ]);
+  }, [isAuthenticated, isInitializing, segments, router, connectionState]);
 
   if (isInitializing) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={colors.cyan.core} />
-      </View>
-    );
-  }
-
-  if (!storageAvailable) {
-    return (
-      <View style={styles.loadingContainer}>
-        <Text style={styles.errorText}>Storage Unavailable</Text>
-        <Text style={styles.statusSubtext}>
-          Secure storage isn't responding. Try disabling battery saver or restarting the app.
-        </Text>
-        <Pressable
-          style={styles.retryButton}
-          onPress={() => {
-            resetStorageState();
-            void retryStorageAccess();
-          }}
-        >
-          <Text style={styles.retryButtonText}>Retry</Text>
-        </Pressable>
       </View>
     );
   }
@@ -205,30 +168,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: colors.background.dark,
-    paddingHorizontal: 32,
-  },
-  statusSubtext: {
-    color: colors.text.secondary.dark,
-    fontSize: 14,
-    textAlign: 'center',
-    marginTop: 8,
-  },
-  errorText: {
-    color: colors.error,
-    fontSize: 20,
-    fontWeight: '600',
-    marginBottom: 12,
-  },
-  retryButton: {
-    marginTop: 24,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    backgroundColor: colors.cyan.core,
-    borderRadius: 8,
-  },
-  retryButtonText: {
-    color: colors.background.dark,
-    fontSize: 16,
-    fontWeight: '600',
   },
 });

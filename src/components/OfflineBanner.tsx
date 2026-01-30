@@ -16,14 +16,14 @@ interface OfflineBannerProps {
 
 export function OfflineBanner({ onRetry }: OfflineBannerProps) {
   const connectionState = useAuthStateStore((s) => s.connectionState);
-  const servers = useAuthStateStore((s) => s.servers);
-  const activeServer = useAuthStateStore((s) => s.activeServer);
+  const server = useAuthStateStore((s) => s.server);
+  const tokenStatus = useAuthStateStore((s) => s.tokenStatus);
   const insets = useSafeAreaInsets();
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
-  // Only show offline banner if user is authenticated (has paired servers)
+  // Only show offline banner if user is authenticated (has paired server)
   // and connection is lost. Don't show on fresh install or during pairing.
-  const isAuthenticated = servers.length > 0 && activeServer !== null;
+  const isAuthenticated = server !== null && tokenStatus !== 'revoked';
 
   useEffect(() => {
     if (connectionState === 'disconnected') {

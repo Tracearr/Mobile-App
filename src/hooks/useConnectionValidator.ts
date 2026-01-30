@@ -13,18 +13,18 @@ import type { AxiosError } from 'axios';
 type ValidationResult = 'connected' | 'reconnected' | 'disconnected' | 'unauthenticated' | 'error';
 
 export function useConnectionValidator() {
-  // Use consolidated auth state store
+  // Use single-server auth state store
   const connectionState = useAuthStateStore((s) => s.connectionState);
-  const activeServer = useAuthStateStore((s) => s.activeServer);
-  const setConnected = useAuthStateStore((s) => s.setConnected);
-  const setDisconnected = useAuthStateStore((s) => s.setDisconnected);
+  const server = useAuthStateStore((s) => s.server);
+  const setConnectionState = useAuthStateStore((s) => s.setConnectionState);
+  const setError = useAuthStateStore((s) => s.setError);
   const handleAuthFailure = useAuthStateStore((s) => s.handleAuthFailure);
-  const scheduleRetry = useAuthStateStore((s) => s.scheduleRetry);
 
   const appState = useRef(AppState.currentState);
+  const retryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const validate = useCallback(async (): Promise<ValidationResult> => {
-    if (!activeServer) return 'error';
+    if (!server) return 'error';
 
     // Don't validate if already unauthenticated
     if (connectionState === 'unauthenticated') return 'unauthenticated';
@@ -35,18 +35,18 @@ export function useConnectionValidator() {
 
       // If we were disconnected and now succeeded, we're reconnected
       if (connectionState === 'disconnected') {
-        setConnected();
+        setConnectionState('connected');
         return 'reconnected';
       }
 
-      setConnected();
+      setConnectionState('connected');
       return 'connected';
     } catch (error: unknown) {
       const axiosError = error as AxiosError;
 
       // 401 = token invalid/revoked
       if (axiosError.response?.status === 401) {
-        handleAuthFailure(activeServer.url, activeServer.name);
+        handleAuthFailure();
         return 'unauthenticated';
       }
 
@@ -56,38 +56,49 @@ export function useConnectionValidator() {
         axiosError.code === 'ECONNABORTED' ||
         !axiosError.response
       ) {
-        setDisconnected(
+        setConnectionState('disconnected');
+        setError(
           axiosError.code === 'ECONNABORTED' ? 'Connection timed out' : 'Server unreachable'
         );
-        scheduleRetry(validate);
+
+        // Schedule retry after 30 seconds
+        if (retryTimeoutRef.current) {
+          clearTimeout(retryTimeoutRef.current);
+        }
+        retryTimeoutRef.current = setTimeout(() => {
+          void validate();
+        }, 30000);
+
         return 'disconnected';
       }
 
       // Other errors - treat as connected but with error
       return 'error';
     }
-  }, [
-    activeServer,
-    connectionState,
-    setConnected,
-    setDisconnected,
-    handleAuthFailure,
-    scheduleRetry,
-  ]);
+  }, [server, connectionState, setConnectionState, setError, handleAuthFailure]);
+
+  // Clean up retry timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Validate on mount
   useEffect(() => {
-    if (activeServer && connectionState !== 'unauthenticated') {
+    if (server && connectionState !== 'unauthenticated') {
       void validate();
     }
-  }, [activeServer, connectionState, validate]);
+  }, [server, connectionState, validate]);
 
   // Re-validate when app returns to foreground
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (nextAppState: AppStateStatus) => {
       if (appState.current.match(/inactive|background/) && nextAppState === 'active') {
         const currentConnectionState = useAuthStateStore.getState().connectionState;
-        if (activeServer && currentConnectionState !== 'unauthenticated') {
+        if (server && currentConnectionState !== 'unauthenticated') {
           void validate();
         }
       }
@@ -95,7 +106,7 @@ export function useConnectionValidator() {
     });
 
     return () => subscription.remove();
-  }, [activeServer, validate]);
+  }, [server, validate]);
 
   return { validate, connectionState };
 }

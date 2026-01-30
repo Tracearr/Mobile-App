@@ -16,7 +16,6 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format, formatDistanceToNow } from 'date-fns';
-import { useState, useEffect } from 'react';
 import {
   Play,
   Pause,
@@ -236,17 +235,7 @@ export default function SessionDetailScreen() {
   const { accentColor } = useTheme();
   const connectionState = useAuthStateStore((s) => s.connectionState);
   const isOffline = connectionState !== 'connected';
-  const [serverUrl, setServerUrl] = useState<string | null>(null);
-
-  useEffect(() => {
-    let mounted = true;
-    void getServerUrl().then((url) => {
-      if (mounted) setServerUrl(url);
-    });
-    return () => {
-      mounted = false;
-    };
-  }, []);
+  const serverUrl = getServerUrl();
 
   // Terminate session mutation
   const terminateMutation = useMutation({

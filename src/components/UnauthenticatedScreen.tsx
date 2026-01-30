@@ -15,19 +15,19 @@ import { colors, spacing, borderRadius, typography } from '../lib/theme';
 export function UnauthenticatedScreen() {
   const router = useRouter();
   const { accentColor } = useTheme();
-  const cachedServerUrl = useAuthStateStore((s) => s.cachedServerUrl);
-  const cachedServerName = useAuthStateStore((s) => s.cachedServerName);
-  const logout = useAuthStateStore((s) => s.logout);
+  const cachedServerUrl = useAuthStateStore((s) => s._cachedServerUrl);
+  const cachedServerName = useAuthStateStore((s) => s._cachedServerName);
+  const unpairServer = useAuthStateStore((s) => s.unpairServer);
 
   const handleScanQR = async () => {
     // Remove the revoked server and reset state before navigating
-    await logout();
+    await unpairServer();
     router.replace('/(auth)/pair');
   };
 
   const handleManualEntry = async () => {
     // Remove the revoked server and reset state before navigating
-    await logout();
+    await unpairServer();
     router.replace({
       pathname: '/(auth)/pair',
       params: { prefillUrl: cachedServerUrl ?? '' },

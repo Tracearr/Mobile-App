@@ -256,7 +256,7 @@ function RateLimitStatus({
 
 export default function NotificationSettingsScreen() {
   const queryClient = useQueryClient();
-  const activeServerId = useAuthStateStore((s) => s.activeServerId);
+  const server = useAuthStateStore((s) => s.server);
   const { accentColor } = useTheme();
 
   // Fetch current preferences (per-device, not per-server)
@@ -267,7 +267,7 @@ export default function NotificationSettingsScreen() {
   } = useQuery({
     queryKey: ['notifications', 'preferences'],
     queryFn: api.notifications.getPreferences,
-    enabled: !!activeServerId, // Still need auth
+    enabled: !!server, // Still need auth
   });
 
   // Update mutation with optimistic updates
