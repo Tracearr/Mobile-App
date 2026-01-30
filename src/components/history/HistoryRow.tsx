@@ -150,78 +150,99 @@ export function HistoryRow({ session, onPress }: HistoryRowProps) {
   });
 
   return (
-    <Pressable onPress={onPress} className="bg-card gap-1 px-4 py-2">
-      {/* Row 1: Poster + Content title + Duration */}
-      <View className="flex-row items-start gap-2">
-        {/* Poster */}
-        {posterUrl ? (
-          <Image
-            source={{ uri: posterUrl }}
-            style={{
-              width: POSTER_WIDTH,
-              height: POSTER_HEIGHT,
-              borderRadius: 4,
-              backgroundColor: colors.surface.dark,
-            }}
-            resizeMode="cover"
-          />
-        ) : (
-          <View
-            className="items-center justify-center"
-            style={{
-              width: POSTER_WIDTH,
-              height: POSTER_HEIGHT,
-              borderRadius: 4,
-              backgroundColor: colors.surface.dark,
-            }}
-          >
-            <Film size={18} color={colors.icon.default} />
-          </View>
-        )}
+    <Pressable
+      onPress={onPress}
+      style={{
+        backgroundColor: colors.card.dark,
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        flexDirection: 'row',
+        gap: 10,
+      }}
+    >
+      {/* Poster */}
+      {posterUrl ? (
+        <Image
+          source={{ uri: posterUrl }}
+          style={{
+            width: POSTER_WIDTH,
+            height: POSTER_HEIGHT,
+            borderRadius: 4,
+            backgroundColor: colors.surface.dark,
+          }}
+          resizeMode="cover"
+        />
+      ) : (
+        <View
+          style={{
+            width: POSTER_WIDTH,
+            height: POSTER_HEIGHT,
+            borderRadius: 4,
+            backgroundColor: colors.surface.dark,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Film size={18} color={colors.icon.default} />
+        </View>
+      )}
 
-        {/* Content info */}
-        <View className="flex-1 gap-0.5">
-          {/* Title with media type icon */}
-          <View className="flex-row items-center gap-1.5">
-            <MediaTypeIcon type={session.mediaType || 'movie'} />
-            <Text className="flex-1 text-sm font-semibold" numberOfLines={1}>
-              {title.primary}
+      {/* Content area - all text and badges */}
+      <View style={{ flex: 1, justifyContent: 'space-between' }}>
+        {/* Top section: Title + Duration */}
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+          <View style={{ flex: 1, gap: 2 }}>
+            {/* Title with media type icon */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <MediaTypeIcon type={session.mediaType || 'movie'} />
+              <Text
+                numberOfLines={1}
+                style={{
+                  flex: 1,
+                  fontSize: 14,
+                  fontWeight: '600',
+                  color: colors.text.primary.dark,
+                }}
+              >
+                {title.primary}
+              </Text>
+            </View>
+
+            {/* Secondary info (episode name, year, etc) */}
+            {title.secondary && (
+              <Text
+                numberOfLines={1}
+                style={{ fontSize: 12, color: colors.text.muted.dark, marginLeft: 20 }}
+              >
+                {title.secondary}
+              </Text>
+            )}
+
+            {/* User and platform */}
+            <Text
+              numberOfLines={1}
+              style={{ fontSize: 11, color: colors.text.muted.dark, marginLeft: 20 }}
+            >
+              {displayName}
+              {platform ? ` · ${platform}` : ''}
             </Text>
           </View>
 
-          {/* Secondary info (episode name, year, etc) */}
-          {title.secondary && (
-            <Text className="text-muted-foreground ml-5 text-xs" numberOfLines={1}>
-              {title.secondary}
+          {/* Right side: Duration + Time */}
+          <View style={{ alignItems: 'flex-end', gap: 2 }}>
+            <Text style={{ fontSize: 13, fontWeight: '600', color: colors.text.primary.dark }}>
+              {duration}
             </Text>
-          )}
-
-          {/* User and platform */}
-          <Text className="text-muted-foreground ml-5 text-[11px]" numberOfLines={1}>
-            {displayName}
-            {platform ? ` · ${platform}` : ''}
-          </Text>
+            <Text style={{ fontSize: 11, color: colors.text.muted.dark }}>{dateTimeStr}</Text>
+          </View>
         </View>
 
-        {/* Right side: Duration + Time */}
-        <View className="items-end gap-0.5">
-          <Text className="text-[13px] font-semibold">{duration}</Text>
-          <Text className="text-muted-foreground text-[11px]">{dateTimeStr}</Text>
+        {/* Bottom section: Quality badge + Progress bar */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 6 }}>
+          <QualityBadge session={session} />
+          <ProgressBar progress={progress} />
+          <ChevronRight size={14} color={colors.icon.default} />
         </View>
-      </View>
-
-      {/* Row 2: Quality badge + Progress bar */}
-      <View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          marginLeft: 48,
-          gap: 8,
-        }}
-      >
-        <QualityBadge session={session} />
-        <ProgressBar progress={progress} />
-        <ChevronRight size={14} color={colors.icon.default} />
       </View>
     </Pressable>
   );
