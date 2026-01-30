@@ -184,7 +184,7 @@ export function NowPlayingCard({ session, onPress }: NowPlayingCardProps) {
   return (
     <Pressable
       className="bg-card mb-2 overflow-hidden rounded-xl"
-      style={({ pressed }) => pressed && styles.pressed}
+      style={({ pressed }) => pressed && { opacity: 0.7 }}
       onPress={() => onPress?.(session)}
     >
       {/* Main content row */}
@@ -322,10 +322,3 @@ export function NowPlayingCard({ session, onPress }: NowPlayingCardProps) {
     </Pressable>
   );
 }
-
-// Keep StyleSheet for pressed state
-const styles = StyleSheet.create({
-  pressed: {
-    opacity: 0.7,
-  },
-});

@@ -3,7 +3,7 @@
  * Matches web history table quality in a mobile-optimized layout
  */
 import React from 'react';
-import { View, Pressable, Image, StyleSheet } from 'react-native';
+import { View, Pressable, Image } from 'react-native';
 import {
   Film,
   Tv,
@@ -83,7 +83,7 @@ function QualityBadge({ session }: { session: SessionWithDetails }) {
     return (
       <View
         className="flex-row items-center gap-1 rounded-sm px-1.5 py-0.5"
-        style={styles.transcodeBadge}
+        style={{ backgroundColor: `${colors.warning}20` }}
       >
         <Repeat2 size={10} color={colors.warning} />
         <Text className="text-[10px] font-semibold" style={{ color: colors.warning }}>
@@ -167,9 +167,26 @@ export function HistoryRow({ session, onPress }: HistoryRowProps) {
       <View className="flex-row items-start gap-2">
         {/* Poster */}
         {posterUrl ? (
-          <Image source={{ uri: posterUrl }} style={styles.poster} resizeMode="cover" />
+          <Image
+            source={{ uri: posterUrl }}
+            style={{
+              width: POSTER_WIDTH,
+              height: POSTER_HEIGHT,
+              borderRadius: 4,
+              backgroundColor: colors.surface.dark,
+            }}
+            resizeMode="cover"
+          />
         ) : (
-          <View style={[styles.poster, styles.posterPlaceholder]}>
+          <View
+            className="items-center justify-center"
+            style={{
+              width: POSTER_WIDTH,
+              height: POSTER_HEIGHT,
+              borderRadius: 4,
+              backgroundColor: colors.surface.dark,
+            }}
+          >
             <Film size={18} className="text-muted-foreground" />
           </View>
         )}
@@ -219,20 +236,3 @@ export function HistoryRow({ session, onPress }: HistoryRowProps) {
 export function HistoryRowSeparator() {
   return <View className="bg-border h-px" />;
 }
-
-// Keep StyleSheet for dimensions and complex positioning
-const styles = StyleSheet.create({
-  poster: {
-    width: POSTER_WIDTH,
-    height: POSTER_HEIGHT,
-    borderRadius: 4,
-    backgroundColor: colors.surface.dark,
-  },
-  posterPlaceholder: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  transcodeBadge: {
-    backgroundColor: `${colors.warning}20`,
-  },
-});

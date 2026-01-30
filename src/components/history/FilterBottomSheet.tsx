@@ -3,7 +3,7 @@
  * Uses @gorhom/bottom-sheet for native-feeling filter interface
  */
 import React, { useCallback, useMemo, useRef, forwardRef, useImperativeHandle } from 'react';
-import { View, Pressable, ScrollView, StyleSheet, Image } from 'react-native';
+import { View, Pressable, ScrollView, Image, type ViewStyle } from 'react-native';
 import BottomSheet, {
   BottomSheetBackdrop,
   BottomSheetScrollView,
@@ -298,7 +298,7 @@ export const FilterBottomSheet = forwardRef<FilterBottomSheetRef, FilterBottomSh
 
     // Main filter menu
     const renderMainMenu = () => (
-      <BottomSheetScrollView contentContainerStyle={styles.scrollContent}>
+      <BottomSheetScrollView contentContainerStyle={scrollContent}>
         {/* Header */}
         <View className="border-border flex-row items-center justify-between border-b px-4 pt-2 pb-4">
           <Text className="text-lg font-semibold">Filters</Text>
@@ -453,7 +453,7 @@ export const FilterBottomSheet = forwardRef<FilterBottomSheetRef, FilterBottomSh
     const renderUsersSection = () => (
       <View className="flex-1">
         {renderSectionHeader('Users', 'users')}
-        <ScrollView contentContainerStyle={styles.listContent}>
+        <ScrollView contentContainerStyle={listContent}>
           {sortedUsers.map(renderUserItem)}
           {sortedUsers.length === 0 && (
             <Text className="text-muted-foreground py-8 text-center text-sm">
@@ -468,7 +468,7 @@ export const FilterBottomSheet = forwardRef<FilterBottomSheetRef, FilterBottomSh
     const renderPlatformsSection = () => (
       <View className="flex-1">
         {renderSectionHeader('Platforms', 'platforms')}
-        <ScrollView contentContainerStyle={styles.listContent}>
+        <ScrollView contentContainerStyle={listContent}>
           {filterOptions?.platforms?.map((item) =>
             renderFilterItem(item, filters.platforms.includes(item.value), () =>
               togglePlatform(item.value)
@@ -487,7 +487,7 @@ export const FilterBottomSheet = forwardRef<FilterBottomSheetRef, FilterBottomSh
     const renderCountriesSection = () => (
       <View className="flex-1">
         {renderSectionHeader('Countries', 'countries')}
-        <ScrollView contentContainerStyle={styles.listContent}>
+        <ScrollView contentContainerStyle={listContent}>
           {filterOptions?.countries?.map((item) =>
             renderFilterItem(item, filters.geoCountries.includes(item.value), () =>
               toggleCountry(item.value)
@@ -510,8 +510,8 @@ export const FilterBottomSheet = forwardRef<FilterBottomSheetRef, FilterBottomSh
         enablePanDownToClose
         backdropComponent={renderBackdrop}
         onChange={handleSheetChange}
-        backgroundStyle={styles.bottomSheetBackground}
-        handleIndicatorStyle={styles.handleIndicator}
+        backgroundStyle={bottomSheetBackground}
+        handleIndicatorStyle={handleIndicator}
       >
         {activeSection === 'main' && renderMainMenu()}
         {activeSection === 'users' && renderUsersSection()}
@@ -524,22 +524,23 @@ export const FilterBottomSheet = forwardRef<FilterBottomSheetRef, FilterBottomSh
 
 FilterBottomSheet.displayName = 'FilterBottomSheet';
 
-// Keep StyleSheet for bottom sheet specific styling
-const styles = StyleSheet.create({
-  bottomSheetBackground: {
-    backgroundColor: colors.surface.dark,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-  },
-  handleIndicator: {
-    backgroundColor: colors.border.dark,
-    width: 40,
-  },
-  scrollContent: {
-    paddingBottom: 48,
-  },
-  listContent: {
-    paddingHorizontal: 16,
-    paddingBottom: 48,
-  },
-});
+// Style constants for BottomSheet component props
+const bottomSheetBackground: ViewStyle = {
+  backgroundColor: colors.surface.dark,
+  borderTopLeftRadius: 16,
+  borderTopRightRadius: 16,
+};
+
+const handleIndicator: ViewStyle = {
+  backgroundColor: colors.border.dark,
+  width: 40,
+};
+
+const scrollContent: ViewStyle = {
+  paddingBottom: 48,
+};
+
+const listContent: ViewStyle = {
+  paddingHorizontal: 16,
+  paddingBottom: 48,
+};
