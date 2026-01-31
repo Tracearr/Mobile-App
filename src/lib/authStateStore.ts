@@ -122,7 +122,7 @@ export const useAuthStateStore = create<AuthState>()(
 
       // Actions
       pairServer: async (url: string, token: string) => {
-        set({ isInitializing: true, error: null });
+        set({ error: null });
 
         try {
           const normalizedUrl = normalizeUrl(url);
