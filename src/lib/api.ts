@@ -7,6 +7,7 @@ import axios from 'axios';
 import type { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { Platform } from 'react-native';
 import { useAuthStateStore, getAccessToken, getRefreshToken, setTokens } from './authStateStore';
+import { getDeviceTimezone } from './timezone';
 import type {
   ActiveSession,
   DashboardStats,
@@ -265,7 +266,7 @@ export const api = {
     dashboard: async (serverId?: string): Promise<DashboardStats> => {
       const client = getApiClient();
       const response = await client.get<DashboardStats>('/stats/dashboard', {
-        params: serverId ? { serverId } : undefined,
+        params: { serverId, timezone: getDeviceTimezone() },
       });
       return response.data;
     },
@@ -276,7 +277,7 @@ export const api = {
       const client = getApiClient();
       const response = await client.get<{ data: { date: string; count: number }[] }>(
         '/stats/plays',
-        { params }
+        { params: { ...params, timezone: getDeviceTimezone() } }
       );
       return response.data;
     },
@@ -287,7 +288,7 @@ export const api = {
       const client = getApiClient();
       const response = await client.get<{ data: { day: number; name: string; count: number }[] }>(
         '/stats/plays-by-dayofweek',
-        { params }
+        { params: { ...params, timezone: getDeviceTimezone() } }
       );
       return response.data;
     },
@@ -298,7 +299,7 @@ export const api = {
       const client = getApiClient();
       const response = await client.get<{ data: { hour: number; count: number }[] }>(
         '/stats/plays-by-hourofday',
-        { params }
+        { params: { ...params, timezone: getDeviceTimezone() } }
       );
       return response.data;
     },
@@ -309,7 +310,7 @@ export const api = {
       const client = getApiClient();
       const response = await client.get<{ data: { platform: string; count: number }[] }>(
         '/stats/platforms',
-        { params }
+        { params: { ...params, timezone: getDeviceTimezone() } }
       );
       return response.data;
     },
@@ -330,7 +331,7 @@ export const api = {
         total: number;
         directPlayPercent: number;
         transcodePercent: number;
-      }>('/stats/quality', { params });
+      }>('/stats/quality', { params: { ...params, timezone: getDeviceTimezone() } });
       return response.data;
     },
     concurrent: async (params?: {
@@ -340,7 +341,7 @@ export const api = {
       const client = getApiClient();
       const response = await client.get<{
         data: { hour: string; total: number; direct: number; transcode: number }[];
-      }>('/stats/concurrent', { params });
+      }>('/stats/concurrent', { params: { ...params, timezone: getDeviceTimezone() } });
       return response.data;
     },
     locations: async (params?: {
