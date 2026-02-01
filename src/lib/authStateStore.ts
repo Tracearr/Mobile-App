@@ -10,6 +10,7 @@ import { zustandStorage } from './storage';
 import * as ResilientStorage from './resilientStorage';
 import { api, resetApiClient } from './api';
 import { isEncryptionAvailable, getDeviceSecret } from './crypto';
+import { unregisterBackgroundNotificationTask } from './backgroundTasks';
 
 // Types
 export interface StoredServer {
@@ -204,6 +205,9 @@ export const useAuthStateStore = create<AuthState>()(
       },
 
       unpairServer: async () => {
+        // Clean up push notification background tasks
+        await unregisterBackgroundNotificationTask();
+
         // Clear tokens using resilient storage
         await ResilientStorage.deleteItemAsync(STORAGE_KEYS.ACCESS_TOKEN);
         await ResilientStorage.deleteItemAsync(STORAGE_KEYS.REFRESH_TOKEN);
