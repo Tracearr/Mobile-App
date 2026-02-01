@@ -34,7 +34,15 @@
       },
       "edgeToEdgeEnabled": true,
       "package": "com.tracearr.app",
-      "permissions": ["android.permission.CAMERA", "android.permission.POST_NOTIFICATIONS"]
+      "permissions": ["android.permission.CAMERA", "android.permission.POST_NOTIFICATIONS"],
+      "blockedPermissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.READ_MEDIA_VIDEO",
+        "android.permission.READ_MEDIA_AUDIO"
+      ]
     },
     "plugins": [
       [
