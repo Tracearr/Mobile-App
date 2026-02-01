@@ -7,11 +7,12 @@
  * - Phone: Single column, compact cards
  * - Tablet (md+): 2-column grid, filters row, larger avatars
  */
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { View, FlatList, RefreshControl, Pressable, ActivityIndicator } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useInfiniteQuery, useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
+import * as Notifications from 'expo-notifications';
 import { formatDistanceToNow } from 'date-fns';
 import {
   MapPin,
@@ -318,6 +319,15 @@ export default function AlertsScreen() {
   });
   const unitSystem = settings?.unitSystem ?? 'metric';
 
+  // Clear iOS app icon badge when viewing alerts screen
+  // This matches standard iOS UX where viewing notifications clears the badge
+  // The badge syncs with actual count on foreground and after acknowledging
+  useFocusEffect(
+    useCallback(() => {
+      void Notifications.setBadgeCountAsync(0);
+    }, [])
+  );
+
   // Build query params based on filters
   const queryParams = useMemo(
     () => ({
@@ -348,8 +358,19 @@ export default function AlertsScreen() {
 
   const acknowledgeMutation = useMutation({
     mutationFn: api.violations.acknowledge,
-    onSuccess: () => {
+    onSuccess: async () => {
       void queryClient.invalidateQueries({ queryKey: ['violations'] });
+
+      // Sync iOS app icon badge with actual unacknowledged count
+      try {
+        const response = await api.violations.list({
+          acknowledged: false,
+          pageSize: 1,
+        });
+        await Notifications.setBadgeCountAsync(response.total);
+      } catch {
+        // Fail silently - badge might be slightly off but app shouldn't crash
+      }
     },
   });
 

@@ -9,7 +9,9 @@ import { AppState } from 'react-native';
 import type { AppStateStatus } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
 import { useShallow } from 'zustand/react/shallow';
+import * as Notifications from 'expo-notifications';
 import { useAuthStateStore, getAccessToken } from '../lib/authStateStore';
+import { api } from '../lib/api';
 import type {
   ServerToClientEvents,
   ClientToServerEvents,
@@ -197,11 +199,25 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       if (
         nextState === 'active' &&
         isAuthenticated &&
-        !isConnected &&
         currentConnectionState !== 'unauthenticated'
       ) {
         // Reconnect when app comes to foreground
-        void connectSocket();
+        if (!isConnected) {
+          void connectSocket();
+        }
+
+        // Sync iOS app icon badge with actual unacknowledged count
+        void (async () => {
+          try {
+            const response = await api.violations.list({
+              acknowledged: false,
+              pageSize: 1,
+            });
+            await Notifications.setBadgeCountAsync(response.total);
+          } catch {
+            // Fail silently - badge might be slightly off but app shouldn't crash
+          }
+        })();
       }
     };
 
