@@ -33,7 +33,7 @@
         "backgroundColor": "#051723"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.tracearr.app",
+      "package": "com.tracearr.mobile",
       "permissions": ["android.permission.CAMERA", "android.permission.POST_NOTIFICATIONS"],
       "blockedPermissions": [
         "android.permission.RECORD_AUDIO",
