@@ -15,7 +15,7 @@ export default function TabLayout() {
 
   return (
     <NativeTabs tintColor={ACCENT_COLOR} minimizeBehavior="onScrollDown">
-      <NativeTabs.Trigger name="(dashboard)">
+      <NativeTabs.Trigger name="index">
         {isIOS ? (
           <NativeTabs.Trigger.Icon
             sf={{ default: 'rectangle.3.group', selected: 'rectangle.3.group.fill' }}
