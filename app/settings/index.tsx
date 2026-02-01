@@ -13,6 +13,9 @@ import {
   Server,
   MessageCircle,
   Code2,
+  BookOpen,
+  Globe,
+  Heart,
 } from 'lucide-react-native';
 import Constants from 'expo-constants';
 import { Text } from '@/components/ui/text';
@@ -20,7 +23,10 @@ import { useAuthStateStore } from '@/lib/authStateStore';
 import { colors } from '@/lib/theme';
 
 const DISCORD_URL = 'https://discord.gg/a7n3sFd2Yw';
+const DOCS_URL = 'https://docs.tracearr.com/';
+const WEBSITE_URL = 'https://tracearr.com';
 const GITHUB_URL = 'https://github.com/connorgallopo/Tracearr';
+const SPONSOR_URL = 'https://github.com/sponsors/connorgallopo';
 
 function SettingsSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -101,8 +107,20 @@ export default function SettingsScreen() {
     void Linking.openURL(DISCORD_URL);
   };
 
+  const handleDocsPress = () => {
+    void Linking.openURL(DOCS_URL);
+  };
+
+  const handleWebsitePress = () => {
+    void Linking.openURL(WEBSITE_URL);
+  };
+
   const handleGithubPress = () => {
     void Linking.openURL(GITHUB_URL);
+  };
+
+  const handleSponsorPress = () => {
+    void Linking.openURL(SPONSOR_URL);
   };
 
   return (
@@ -133,10 +151,37 @@ export default function SettingsScreen() {
           />
           <View className="bg-border ml-14 h-px" />
           <SettingsRow
+            icon={<BookOpen size={20} color={colors.icon.default} />}
+            label="Docs"
+            description="Read the documentation"
+            onPress={handleDocsPress}
+            showChevron={false}
+            external
+          />
+          <View className="bg-border ml-14 h-px" />
+          <SettingsRow
+            icon={<Globe size={20} color={colors.icon.default} />}
+            label="Website"
+            description="Visit tracearr.com"
+            onPress={handleWebsitePress}
+            showChevron={false}
+            external
+          />
+          <View className="bg-border ml-14 h-px" />
+          <SettingsRow
             icon={<Code2 size={20} color={colors.icon.default} />}
             label="GitHub"
             description="View source code"
             onPress={handleGithubPress}
+            showChevron={false}
+            external
+          />
+          <View className="bg-border ml-14 h-px" />
+          <SettingsRow
+            icon={<Heart size={20} color="#DB61A2" />}
+            label="Sponsor"
+            description="Support development"
+            onPress={handleSponsorPress}
             showChevron={false}
             external
           />
