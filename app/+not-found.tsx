@@ -25,7 +25,7 @@ export default function NotFoundScreen() {
           </Text>
           <Pressable
             className="bg-primary rounded-lg px-6 py-3"
-            onPress={() => router.replace('/')}
+            onPress={() => router.replace('/index')}
           >
             <Text className="font-semibold text-white">Go Home</Text>
           </Pressable>
