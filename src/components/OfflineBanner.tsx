@@ -56,20 +56,36 @@ export function OfflineBanner({ onRetry }: OfflineBannerProps) {
 
   return (
     <View
-      className="flex-row items-center justify-between border-b px-4 py-3"
       style={{
-        paddingTop: insets.top + spacing.sm,
-        backgroundColor: withAlpha(colors.warning, '20'),
-        borderBottomColor: withAlpha(colors.warning, '40'),
+        position: 'absolute',
+        left: 16,
+        right: 16,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingVertical: 12,
+        paddingHorizontal: 16,
+        borderRadius: 6,
+        zIndex: 1000,
+        backgroundColor: colors.warning,
+        top: insets.top + spacing.sm,
       }}
     >
-      <View className="flex-row items-center gap-3">
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
         <Animated.View style={{ opacity: pulseAnim }}>
-          <WifiOff size={16} color={colors.warning} />
+          <WifiOff size={16} color={colors.background.dark} />
         </Animated.View>
-        <Text className="text-warning text-sm font-medium">Connection lost</Text>
+        <Text className="text-background text-sm font-medium">Connection lost</Text>
       </View>
-      <Pressable onPress={onRetry} className="bg-warning rounded-sm px-3 py-2">
+      <Pressable
+        onPress={onRetry}
+        style={{
+          backgroundColor: withAlpha(colors.background.dark, '30'),
+          paddingHorizontal: 12,
+          paddingVertical: 6,
+          borderRadius: 4,
+        }}
+      >
         <Text className="text-background text-xs font-semibold">Retry</Text>
       </Pressable>
     </View>

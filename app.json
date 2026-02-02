@@ -85,7 +85,8 @@
       ],
       "expo-secure-store",
       "./plugins/withSecureStoreBackupRules",
-      "react-native-quick-crypto"
+      "react-native-quick-crypto",
+      "expo-localization"
     ],
     "experiments": {
       "typedRoutes": true,

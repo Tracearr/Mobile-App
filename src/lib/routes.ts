@@ -11,9 +11,9 @@ export const ROUTES = {
   // Main tabs
   TABS: '/(drawer)/(tabs)' as Href,
   DASHBOARD: '/(drawer)/(tabs)/index' as Href,
-  ACTIVITY: '/(drawer)/(tabs)/(activity)' as Href,
-  USERS: '/(drawer)/(tabs)/(users)' as Href,
-  HISTORY: '/(drawer)/(tabs)/(history)' as Href,
+  ACTIVITY: '/(drawer)/(tabs)/activity' as Href,
+  USERS: '/(drawer)/(tabs)/users' as Href,
+  HISTORY: '/(drawer)/(tabs)/history' as Href,
 
   // Detail screens
   USER: (id: string) => `/user/${id}` as Href,

@@ -27,7 +27,11 @@ export interface UserInfo {
   role: 'admin' | 'owner' | 'user';
 }
 
-type ConnectionState = 'connected' | 'disconnected' | 'unauthenticated';
+// 'unknown' = initial state before first validation (don't show banners)
+// 'connected' = successfully connected to server
+// 'disconnected' = was connected but lost connection (show offline banner)
+// 'unauthenticated' = token revoked (show re-auth screen)
+type ConnectionState = 'unknown' | 'connected' | 'disconnected' | 'unauthenticated';
 type TokenStatus = 'valid' | 'revoked' | 'refreshing' | 'unknown';
 
 interface AuthState {
@@ -100,7 +104,7 @@ export const useAuthStateStore = create<AuthState>()(
       // Initial state
       server: null,
       user: null,
-      connectionState: 'disconnected',
+      connectionState: 'unknown',
       tokenStatus: 'unknown',
       isInitializing: true,
       error: null,

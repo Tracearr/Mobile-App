@@ -20,6 +20,7 @@ import {
 import { decryptPushPayload, isEncryptionAvailable, getDeviceSecret } from '../lib/crypto';
 import { api } from '../lib/api';
 import { useAuthStateStore } from '../lib/authStateStore';
+import { ROUTES } from '../lib/routes';
 
 // Configure notification behavior
 Notifications.setNotificationHandler({
@@ -245,13 +246,20 @@ export function usePushNotifications() {
         }
 
         // Navigate based on notification type
-        if (data?.type === 'violation_detected') {
-          // Alerts is now a standalone screen, not a tab
-          router.push('/alerts' as never);
+        if (data?.type === 'violation_detected' || data?.type === 'rule_notification') {
+          // Violations and rule notifications go to Alerts
+          router.push(ROUTES.ALERTS);
         } else if (data?.type === 'stream_started' || data?.type === 'stream_stopped') {
-          router.push('/(drawer)/(tabs)/activity' as never);
+          // Stream notifications go to session detail if sessionId provided
+          const sessionId = data?.sessionId as string | undefined;
+          if (sessionId) {
+            router.push(ROUTES.SESSION(sessionId));
+          } else {
+            router.push(ROUTES.ACTIVITY);
+          }
         } else if (data?.type === 'server_down' || data?.type === 'server_up') {
-          router.push('/(drawer)/(tabs)' as never);
+          // Server status notifications go to Dashboard
+          router.push(ROUTES.DASHBOARD);
         }
       })();
     });
