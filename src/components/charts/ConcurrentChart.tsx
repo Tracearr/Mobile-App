@@ -179,8 +179,8 @@ export function ConcurrentChart({ data, height = 200 }: ConcurrentChartProps) {
                     end={vec(0, lowestY)}
                     colors={
                       rowIndex === 0
-                        ? [`${CHART_COLORS.direct}99`, `${CHART_COLORS.direct}33`]
-                        : [`${CHART_COLORS.transcode}99`, `${CHART_COLORS.transcode}33`]
+                        ? [`${CHART_COLORS.direct}DD`, `${CHART_COLORS.direct}66`]
+                        : [`${CHART_COLORS.transcode}DD`, `${CHART_COLORS.transcode}66`]
                     }
                   />
                 ),
