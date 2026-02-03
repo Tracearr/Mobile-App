@@ -32,7 +32,7 @@ export default function TabLayout() {
         )}
         <NativeTabs.Trigger.Label>Dashboard</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="activity">
+      <NativeTabs.Trigger name="tab-activity">
         {isIOS ? (
           <NativeTabs.Trigger.Icon
             sf={{ default: 'waveform.path.ecg', selected: 'waveform.path.ecg' }}
@@ -44,7 +44,7 @@ export default function TabLayout() {
         )}
         <NativeTabs.Trigger.Label>Activity</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="users">
+      <NativeTabs.Trigger name="tab-users">
         {isIOS ? (
           <NativeTabs.Trigger.Icon sf={{ default: 'person.2', selected: 'person.2.fill' }} />
         ) : (
@@ -54,7 +54,7 @@ export default function TabLayout() {
         )}
         <NativeTabs.Trigger.Label>Users</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="history">
+      <NativeTabs.Trigger name="tab-history">
         {isIOS ? (
           <NativeTabs.Trigger.Icon sf={{ default: 'clock', selected: 'clock.fill' }} />
         ) : (
