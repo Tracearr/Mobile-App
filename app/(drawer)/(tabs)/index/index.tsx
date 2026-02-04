@@ -16,6 +16,7 @@ import { api } from '@/lib/api';
 import { useMediaServer } from '@/providers/MediaServerProvider';
 import { useServerStatistics } from '@/hooks/useServerStatistics';
 import { useResponsive } from '@/hooks/useResponsive';
+import { useUnacknowledgedAlertsCount } from '@/hooks';
 import { StreamMap } from '@/components/map/StreamMap';
 import { NowPlayingCard } from '@/components/sessions';
 import { ServerResourceCard } from '@/components/server/ServerResourceCard';
@@ -63,6 +64,7 @@ export default function DashboardScreen() {
   const navigation = useNavigation();
   const { selectedServerId, selectedServer } = useMediaServer();
   const { isTablet, columns, select } = useResponsive();
+  const { hasAlerts, displayCount } = useUnacknowledgedAlertsCount();
 
   const {
     data: stats,
@@ -251,12 +253,9 @@ export default function DashboardScreen() {
             />
           </Stack.Toolbar>
           <Stack.Toolbar placement="right">
-            <Stack.Toolbar.Button icon="bell" onPress={() => router.push('/alerts')} />
-            <Stack.Toolbar.Menu icon="ellipsis">
-              <Stack.Toolbar.MenuAction icon="arrow.clockwise" onPress={() => refetch()}>
-                Refresh
-              </Stack.Toolbar.MenuAction>
-            </Stack.Toolbar.Menu>
+            <Stack.Toolbar.Button icon="bell" onPress={() => router.push('/alerts')}>
+              {hasAlerts && <Stack.Toolbar.Badge>{displayCount}</Stack.Toolbar.Badge>}
+            </Stack.Toolbar.Button>
           </Stack.Toolbar>
         </>
       )}

@@ -1,7 +1,9 @@
-import { Pressable, Platform } from 'react-native';
+import { View, Pressable, Platform } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { DrawerActions, useNavigation } from '@react-navigation/native';
 import { Menu, Bell } from 'lucide-react-native';
+import { useUnacknowledgedAlertsCount } from '@/hooks';
+import { Text } from '@/components/ui/text';
 import { colors, spacing } from '@/lib/theme';
 
 function HeaderLeft() {
@@ -18,9 +20,30 @@ function HeaderLeft() {
 
 function HeaderRight() {
   const router = useRouter();
+  const { hasAlerts, displayCount } = useUnacknowledgedAlertsCount();
+
   return (
     <Pressable onPress={() => router.push('/alerts')} style={{ padding: spacing.xs }}>
-      <Bell size={24} color={colors.text.primary.dark} />
+      <View style={{ position: 'relative' }}>
+        <Bell size={24} color={colors.text.primary.dark} />
+        {hasAlerts && (
+          <View
+            style={{
+              position: 'absolute',
+              top: -6,
+              right: -8,
+              minWidth: 18,
+              borderRadius: 10,
+              backgroundColor: colors.error,
+              alignItems: 'center',
+              justifyContent: 'center',
+              paddingHorizontal: 4,
+            }}
+          >
+            <Text style={{ fontSize: 10, fontWeight: '700', color: '#fff' }}>{displayCount}</Text>
+          </View>
+        )}
+      </View>
     </Pressable>
   );
 }

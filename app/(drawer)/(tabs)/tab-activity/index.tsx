@@ -8,12 +8,13 @@
  */
 import { useState } from 'react';
 import { View, ScrollView, RefreshControl, Platform } from 'react-native';
-import { Stack } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import { DrawerActions, useNavigation } from '@react-navigation/native';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { useMediaServer } from '@/providers/MediaServerProvider';
 import { useResponsive } from '@/hooks/useResponsive';
+import { useUnacknowledgedAlertsCount } from '@/hooks';
 import { spacing, ACCENT_COLOR } from '@/lib/theme';
 import { Text } from '@/components/ui/text';
 import { Card } from '@/components/ui/card';
@@ -39,10 +40,12 @@ function ChartSection({ title, children }: { title: string; children: React.Reac
 }
 
 export default function ActivityScreen() {
+  const router = useRouter();
   const navigation = useNavigation();
   const [period, setPeriod] = useState<StatsPeriod>('month');
   const { selectedServerId } = useMediaServer();
   const { isTablet, select } = useResponsive();
+  const { hasAlerts, displayCount } = useUnacknowledgedAlertsCount();
 
   // Responsive values
   const horizontalPadding = select({ base: spacing.md, md: spacing.lg, lg: spacing.xl });
@@ -200,11 +203,9 @@ export default function ActivityScreen() {
             />
           </Stack.Toolbar>
           <Stack.Toolbar placement="right">
-            <Stack.Toolbar.Menu icon="ellipsis">
-              <Stack.Toolbar.MenuAction icon="arrow.clockwise" onPress={() => handleRefresh()}>
-                Refresh
-              </Stack.Toolbar.MenuAction>
-            </Stack.Toolbar.Menu>
+            <Stack.Toolbar.Button icon="bell" onPress={() => router.push('/alerts')}>
+              {hasAlerts && <Stack.Toolbar.Badge>{displayCount}</Stack.Toolbar.Badge>}
+            </Stack.Toolbar.Button>
           </Stack.Toolbar>
         </>
       )}

@@ -24,6 +24,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { api } from '@/lib/api';
 import { useMediaServer } from '@/providers/MediaServerProvider';
 import { useResponsive } from '@/hooks/useResponsive';
+import { useUnacknowledgedAlertsCount } from '@/hooks';
 import { Text } from '@/components/ui/text';
 import { Card } from '@/components/ui/card';
 import { UserAvatar } from '@/components/ui/user-avatar';
@@ -116,6 +117,7 @@ export default function UsersScreen() {
   const navigation = useNavigation();
   const { selectedServerId } = useMediaServer();
   const { isTablet, select } = useResponsive();
+  const { hasAlerts, displayCount } = useUnacknowledgedAlertsCount();
   const [searchQuery, setSearchQuery] = useState('');
 
   // Responsive values
@@ -276,11 +278,9 @@ export default function UsersScreen() {
             />
           </Stack.Toolbar>
           <Stack.Toolbar placement="right">
-            <Stack.Toolbar.Menu icon="ellipsis">
-              <Stack.Toolbar.MenuAction icon="arrow.clockwise" onPress={() => refetch()}>
-                Refresh
-              </Stack.Toolbar.MenuAction>
-            </Stack.Toolbar.Menu>
+            <Stack.Toolbar.Button icon="bell" onPress={() => router.push('/alerts')}>
+              {hasAlerts && <Stack.Toolbar.Badge>{displayCount}</Stack.Toolbar.Badge>}
+            </Stack.Toolbar.Button>
           </Stack.Toolbar>
         </>
       )}

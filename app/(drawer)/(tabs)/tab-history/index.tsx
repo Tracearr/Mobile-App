@@ -10,6 +10,7 @@ import { DrawerActions, useNavigation } from '@react-navigation/native';
 import { Play } from 'lucide-react-native';
 import { api } from '@/lib/api';
 import { useMediaServer } from '@/providers/MediaServerProvider';
+import { useUnacknowledgedAlertsCount } from '@/hooks';
 import { ACCENT_COLOR, colors } from '@/lib/theme';
 import { Text } from '@/components/ui/text';
 import {
@@ -50,6 +51,7 @@ export default function HistoryScreen() {
   const router = useRouter();
   const navigation = useNavigation();
   const { selectedServerId } = useMediaServer();
+  const { hasAlerts, displayCount } = useUnacknowledgedAlertsCount();
   const filterSheetRef = useRef<FilterBottomSheetRef>(null);
 
   // Filter state
@@ -252,11 +254,9 @@ export default function HistoryScreen() {
             />
           </Stack.Toolbar>
           <Stack.Toolbar placement="right">
-            <Stack.Toolbar.Menu icon="ellipsis">
-              <Stack.Toolbar.MenuAction icon="arrow.clockwise" onPress={() => refetch()}>
-                Refresh
-              </Stack.Toolbar.MenuAction>
-            </Stack.Toolbar.Menu>
+            <Stack.Toolbar.Button icon="bell" onPress={() => router.push('/alerts')}>
+              {hasAlerts && <Stack.Toolbar.Badge>{displayCount}</Stack.Toolbar.Badge>}
+            </Stack.Toolbar.Button>
           </Stack.Toolbar>
         </>
       )}
