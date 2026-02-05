@@ -166,7 +166,9 @@ export const useAuthStateStore = create<AuthState>()(
           );
 
           if (!accessOk || !refreshOk) {
-            throw new Error('Failed to store credentials securely');
+            throw new Error(
+              'Could not save credentials securely. Please restart the app and try again.'
+            );
           }
 
           // Create server record from response

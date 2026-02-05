@@ -45,6 +45,35 @@ function isEncrypted(data: unknown): data is EncryptedPushPayload {
   );
 }
 
+// Android notification channels - must be created before requesting push token on Android 13+
+async function ensureAndroidChannels(): Promise<void> {
+  await Promise.all([
+    Notifications.setNotificationChannelAsync('violations', {
+      name: 'Violation Alerts',
+      description: 'Alerts when rule violations are detected',
+      importance: Notifications.AndroidImportance.HIGH,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: '#22D3EE',
+      sound: 'default',
+    }),
+    Notifications.setNotificationChannelAsync('sessions', {
+      name: 'Stream Activity',
+      description: 'Notifications for stream start/stop events',
+      importance: Notifications.AndroidImportance.DEFAULT,
+      vibrationPattern: [0, 100, 100, 100],
+      lightColor: '#10B981',
+    }),
+    Notifications.setNotificationChannelAsync('alerts', {
+      name: 'Server Alerts',
+      description: 'Server online/offline notifications',
+      importance: Notifications.AndroidImportance.HIGH,
+      vibrationPattern: [0, 500],
+      lightColor: '#EF4444',
+      sound: 'default',
+    }),
+  ]);
+}
+
 export function usePushNotifications() {
   const [expoPushToken, setExpoPushToken] = useState<string | null>(null);
   const [notification, setNotification] = useState<Notifications.Notification | null>(null);
@@ -68,6 +97,13 @@ export function usePushNotifications() {
       return null;
     }
 
+    // Android 13+ requires at least one notification channel to exist before
+    // the permission prompt will appear and before a push token can be obtained.
+    // Create channels first to ensure the permission flow works correctly.
+    if (Platform.OS === 'android') {
+      await ensureAndroidChannels();
+    }
+
     // Check existing permissions
     const { status: existingStatus } = await Notifications.getPermissionsAsync();
     let finalStatus = existingStatus;
@@ -85,8 +121,9 @@ export function usePushNotifications() {
 
     // Get Expo push token
     try {
-      const projectId = (Constants.expoConfig?.extra as { eas?: { projectId?: string } })?.eas
-        ?.projectId;
+      const projectId =
+        (Constants.expoConfig?.extra as { eas?: { projectId?: string } })?.eas?.projectId ??
+        Constants.easConfig?.projectId;
       if (!projectId) {
         console.error('No EAS project ID found in app config');
         return null;
@@ -300,37 +337,10 @@ export function usePushNotifications() {
     };
   }, [socket, showViolationNotification]);
 
-  // Configure Android notification channels for different notification types
+  // Ensure Android notification channels exist on mount (idempotent)
   useEffect(() => {
     if (Platform.OS === 'android') {
-      // Violations channel - high priority
-      void Notifications.setNotificationChannelAsync('violations', {
-        name: 'Violation Alerts',
-        description: 'Alerts when rule violations are detected',
-        importance: Notifications.AndroidImportance.HIGH,
-        vibrationPattern: [0, 250, 250, 250],
-        lightColor: '#22D3EE',
-        sound: 'default',
-      });
-
-      // Sessions channel - default priority
-      void Notifications.setNotificationChannelAsync('sessions', {
-        name: 'Stream Activity',
-        description: 'Notifications for stream start/stop events',
-        importance: Notifications.AndroidImportance.DEFAULT,
-        vibrationPattern: [0, 100, 100, 100],
-        lightColor: '#10B981',
-      });
-
-      // Alerts channel - high priority (server status)
-      void Notifications.setNotificationChannelAsync('alerts', {
-        name: 'Server Alerts',
-        description: 'Server online/offline notifications',
-        importance: Notifications.AndroidImportance.HIGH,
-        vibrationPattern: [0, 500],
-        lightColor: '#EF4444',
-        sound: 'default',
-      });
+      void ensureAndroidChannels();
     }
   }, []);
 

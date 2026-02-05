@@ -177,7 +177,22 @@ export const api = {
         { token, deviceName, deviceId, platform, deviceSecret },
         { timeout: 15000 }
       );
-      return response.data;
+
+      // Validate response shape - a tunnel/proxy may return 200 with non-Tracearr content
+      const data = response.data;
+      if (
+        !data ||
+        typeof data.accessToken !== 'string' ||
+        typeof data.refreshToken !== 'string' ||
+        !data.server?.id ||
+        !data.user?.userId
+      ) {
+        throw new Error(
+          'Server returned an unexpected response. Make sure your URL points directly to Tracearr, not a proxy login page.'
+        );
+      }
+
+      return data;
     } catch (error) {
       if (axios.isAxiosError(error)) {
         // Extract server's error message if available

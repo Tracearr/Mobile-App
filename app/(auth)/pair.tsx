@@ -131,8 +131,11 @@ export default function PairScreen() {
         try {
           await pairServer(payload.url, payload.token);
           router.replace(ROUTES.TABS);
-        } catch {
-          // Error is stored in auth store - stay on screen
+        } catch (err) {
+          Alert.alert(
+            'Pairing Failed',
+            err instanceof Error ? err.message : 'Unable to pair with server'
+          );
           setTimeout(() => {
             scanLockRef.current = false;
             setScanned(false);

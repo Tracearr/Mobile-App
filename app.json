@@ -32,6 +32,7 @@
         "foregroundImage": "./assets/adaptive-icon-transparent.png",
         "backgroundColor": "#051723"
       },
+      "googleServicesFile": "./google-services.json",
       "edgeToEdgeEnabled": true,
       "package": "com.tracearr.mobile",
       "permissions": ["android.permission.CAMERA", "android.permission.POST_NOTIFICATIONS"],

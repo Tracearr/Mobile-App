@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "130367556848",
+    "project_id": "tracearr",
+    "storage_bucket": "tracearr.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:130367556848:android:1b5c2307800e0c55a64635",
+        "android_client_info": {
+          "package_name": "com.tracearr.mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyClnG7u8CQ_PfacwBHIg-Sv--F1z9jyBvw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

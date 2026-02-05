@@ -107,7 +107,7 @@ export async function getItemAsync(key: string): Promise<string | null> {
       );
       consecutiveFailures = 0;
       return value;
-    } catch {
+    } catch (err) {
       if (attempt < MAX_RETRIES) {
         await sleep(RETRY_DELAY_MS);
       } else {
@@ -119,7 +119,7 @@ export async function getItemAsync(key: string): Promise<string | null> {
           return getItemAsyncFallback(key);
         }
 
-        console.warn(`[Storage] getItem failed after ${MAX_RETRIES + 1} attempts`);
+        console.warn(`[Storage] getItem failed after ${MAX_RETRIES + 1} attempts:`, err);
         return null;
       }
     }
@@ -141,7 +141,7 @@ export async function setItemAsync(key: string, value: string): Promise<boolean>
       );
       consecutiveFailures = 0;
       return true;
-    } catch {
+    } catch (err) {
       if (attempt < MAX_RETRIES) {
         await sleep(RETRY_DELAY_MS);
       } else {
@@ -153,7 +153,7 @@ export async function setItemAsync(key: string, value: string): Promise<boolean>
           return setItemAsyncFallback(key, value);
         }
 
-        console.warn(`[Storage] setItem failed after ${MAX_RETRIES + 1} attempts`);
+        console.warn(`[Storage] setItem failed after ${MAX_RETRIES + 1} attempts:`, err);
         return false;
       }
     }
@@ -175,7 +175,7 @@ export async function deleteItemAsync(key: string): Promise<boolean> {
       );
       consecutiveFailures = 0;
       return true;
-    } catch {
+    } catch (err) {
       if (attempt < MAX_RETRIES) {
         await sleep(RETRY_DELAY_MS);
       } else {
@@ -187,7 +187,7 @@ export async function deleteItemAsync(key: string): Promise<boolean> {
           return deleteItemAsyncFallback(key);
         }
 
-        console.warn(`[Storage] deleteItem failed after ${MAX_RETRIES + 1} attempts`);
+        console.warn(`[Storage] deleteItem failed after ${MAX_RETRIES + 1} attempts:`, err);
         return false;
       }
     }

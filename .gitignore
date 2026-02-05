@@ -44,3 +44,4 @@ credentials/
 /ios
 /android
 credentials.json
+*-firebase-adminsdk-*.json
