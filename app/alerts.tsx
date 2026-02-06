@@ -14,136 +14,29 @@ import { useInfiniteQuery, useMutation, useQueryClient, useQuery } from '@tansta
 import { useRouter, useFocusEffect } from 'expo-router';
 import * as Notifications from 'expo-notifications';
 import { formatDistanceToNow } from 'date-fns';
-import {
-  MapPin,
-  Users,
-  Zap,
-  Monitor,
-  Globe,
-  Clock,
-  AlertTriangle,
-  Check,
-  Filter,
-  ChevronRight,
-  ChevronLeft,
-  type LucideIcon,
-} from 'lucide-react-native';
+import { AlertTriangle, Check, Filter, ChevronRight, ChevronLeft } from 'lucide-react-native';
 import { api } from '@/lib/api';
 import { useMediaServer } from '@/providers/MediaServerProvider';
 import { useResponsive } from '@/hooks/useResponsive';
 import { Text } from '@/components/ui/text';
 import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { colors, spacing, ACCENT_COLOR } from '@/lib/theme';
 import type {
   ViolationWithDetails,
   RuleType,
-  UnitSystem,
   ViolationSeverity,
+  UnitSystem,
 } from '@tracearr/shared';
-import { formatSpeed } from '@tracearr/shared';
+import { getViolationDescription, RULE_DISPLAY_NAMES } from '@tracearr/shared';
 
 const PAGE_SIZE = 50;
 
 type StatusFilter = 'all' | 'pending' | 'acknowledged';
 
-// Rule type icons mapping
-const ruleIcons: Record<RuleType, LucideIcon> = {
-  impossible_travel: MapPin,
-  simultaneous_locations: Users,
-  device_velocity: Zap,
-  concurrent_streams: Monitor,
-  geo_restriction: Globe,
-  account_inactivity: Clock,
-};
+import { ruleIcons } from '@/lib/violations';
 
-// Rule type display names
-const ruleLabels: Record<RuleType, string> = {
-  impossible_travel: 'Impossible Travel',
-  simultaneous_locations: 'Simultaneous Locations',
-  device_velocity: 'Device Velocity',
-  concurrent_streams: 'Concurrent Streams',
-  geo_restriction: 'Geo Restriction',
-  account_inactivity: 'Account Inactivity',
-};
-
-// Format violation data into readable description based on rule type
-function getViolationDescription(
-  violation: ViolationWithDetails,
-  unitSystem: UnitSystem = 'metric'
-): string {
-  const data = violation.data;
-  const ruleType = violation.rule?.type;
-
-  if (!data || !ruleType) {
-    return 'Rule violation detected';
-  }
-
-  switch (ruleType) {
-    case 'impossible_travel': {
-      const from = data.fromCity || data.fromLocation || 'unknown location';
-      const to = data.toCity || data.toLocation || 'unknown location';
-      const speed =
-        typeof data.calculatedSpeedKmh === 'number'
-          ? formatSpeed(data.calculatedSpeedKmh, unitSystem)
-          : 'impossible speed';
-      return `Traveled from ${from} to ${to} at ${speed}`;
-    }
-    case 'simultaneous_locations': {
-      const locations = data.locations as string[] | undefined;
-      const count = data.locationCount as number | undefined;
-      if (locations && locations.length > 0) {
-        return `Active from ${locations.length} locations: ${locations.slice(0, 2).join(', ')}${locations.length > 2 ? '...' : ''}`;
-      }
-      if (count) {
-        return `Streaming from ${count} different locations simultaneously`;
-      }
-      return 'Streaming from multiple locations simultaneously';
-    }
-    case 'device_velocity': {
-      const ipCount = data.ipCount as number | undefined;
-      const windowHours = data.windowHours as number | undefined;
-      if (ipCount && windowHours) {
-        return `${ipCount} different IPs used in ${windowHours}h window`;
-      }
-      return 'Too many unique devices in short period';
-    }
-    case 'concurrent_streams': {
-      const streamCount = data.streamCount as number | undefined;
-      const maxStreams = data.maxStreams as number | undefined;
-      if (streamCount && maxStreams) {
-        return `${streamCount} concurrent streams (limit: ${maxStreams})`;
-      }
-      return 'Exceeded concurrent stream limit';
-    }
-    case 'geo_restriction': {
-      const country = data.country as string | undefined;
-      const blockedCountry = data.blockedCountry as string | undefined;
-      if (country || blockedCountry) {
-        return `Streaming from blocked region: ${country || blockedCountry}`;
-      }
-      return 'Streaming from restricted location';
-    }
-    default:
-      return 'Rule violation detected';
-  }
-}
-
-function SeverityBadge({ severity }: { severity: string }) {
-  const variant =
-    severity === 'critical' || severity === 'high'
-      ? 'destructive'
-      : severity === 'warning'
-        ? 'warning'
-        : 'default';
-
-  return (
-    <Badge variant={variant} className="capitalize">
-      {severity}
-    </Badge>
-  );
-}
+import { SeverityBadge } from '@/components/violations/SeverityBadge';
 
 function RuleIcon({ ruleType }: { ruleType: RuleType | undefined }) {
   const IconComponent = ruleType ? ruleIcons[ruleType] : AlertTriangle;
@@ -234,7 +127,7 @@ function ViolationCard({
   const displayName = violation.user?.identityName ?? violation.user?.username ?? 'Unknown User';
   const username = violation.user?.username ?? 'Unknown';
   const ruleType = violation.rule?.type as RuleType | undefined;
-  const ruleName = ruleType ? ruleLabels[ruleType] : violation.rule?.name || 'Unknown Rule';
+  const ruleName = ruleType ? RULE_DISPLAY_NAMES[ruleType] : violation.rule?.name || 'Unknown Rule';
   const description = getViolationDescription(violation, unitSystem);
   const timeAgo = formatDistanceToNow(new Date(violation.createdAt), { addSuffix: true });
   const avatarSize = isTablet ? 48 : 40;

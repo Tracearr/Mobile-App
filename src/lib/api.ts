@@ -579,6 +579,11 @@ export const api = {
       });
       return response.data;
     },
+    get: async (id: string): Promise<ViolationWithDetails> => {
+      const client = getApiClient();
+      const response = await client.get<ViolationWithDetails>(`/violations/${id}`);
+      return response.data;
+    },
     acknowledge: async (id: string): Promise<Violation> => {
       const client = getApiClient();
       const response = await client.patch<Violation>(`/violations/${id}`);

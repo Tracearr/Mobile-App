@@ -27,11 +27,8 @@ import {
   Globe,
   MapPin,
   Smartphone,
-  Monitor,
   Tv,
   ChevronRight,
-  Users,
-  Zap,
   Check,
   Film,
   Music,
@@ -50,6 +47,7 @@ import { Badge } from '@/components/ui/badge';
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { cn } from '@/lib/utils';
 import { colors, spacing, ACCENT_COLOR } from '@/lib/theme';
+import { SeverityBadge } from '@/components/violations/SeverityBadge';
 import type {
   Session,
   ViolationWithDetails,
@@ -58,6 +56,7 @@ import type {
   RuleType,
   TerminationLogWithDetails,
 } from '@tracearr/shared';
+import { RULE_DISPLAY_NAMES } from '@tracearr/shared';
 
 const PAGE_SIZE = 10;
 
@@ -82,25 +81,7 @@ function safeFormatDate(date: Date | string | null | undefined, formatStr: strin
   return format(parsed, formatStr);
 }
 
-// Rule type icons mapping
-const ruleIcons: Record<RuleType, LucideIcon> = {
-  impossible_travel: MapPin,
-  simultaneous_locations: Users,
-  device_velocity: Zap,
-  concurrent_streams: Monitor,
-  geo_restriction: Globe,
-  account_inactivity: Clock,
-};
-
-// Rule type display names
-const ruleLabels: Record<RuleType, string> = {
-  impossible_travel: 'Impossible Travel',
-  simultaneous_locations: 'Simultaneous Locations',
-  device_velocity: 'Device Velocity',
-  concurrent_streams: 'Concurrent Streams',
-  geo_restriction: 'Geo Restriction',
-  account_inactivity: 'Account Inactivity',
-};
+import { ruleIcons } from '@/lib/violations';
 
 function TrustScoreBadge({ score, showLabel = false }: { score: number; showLabel?: boolean }) {
   const variant = score < 50 ? 'destructive' : score < 75 ? 'warning' : 'success';
@@ -152,21 +133,6 @@ function StatCard({
       <Text className="text-xl font-bold">{value}</Text>
       {subValue && <Text className="text-muted-foreground mt-0.5 text-xs">{subValue}</Text>}
     </View>
-  );
-}
-
-function SeverityBadge({ severity }: { severity: string }) {
-  const variant =
-    severity === 'critical' || severity === 'high'
-      ? 'destructive'
-      : severity === 'warning'
-        ? 'warning'
-        : 'default';
-
-  return (
-    <Badge variant={variant} className="capitalize">
-      {severity}
-    </Badge>
   );
 }
 
@@ -328,7 +294,7 @@ function ViolationCard({
   onAcknowledge: () => void;
 }) {
   const ruleType = violation.rule?.type as RuleType | undefined;
-  const ruleName = ruleType ? ruleLabels[ruleType] : violation.rule?.name || 'Unknown Rule';
+  const ruleName = ruleType ? RULE_DISPLAY_NAMES[ruleType] : violation.rule?.name || 'Unknown Rule';
   const IconComponent = ruleType ? ruleIcons[ruleType] : AlertTriangle;
   const timeAgo = safeFormatDistanceToNow(violation.createdAt);
 

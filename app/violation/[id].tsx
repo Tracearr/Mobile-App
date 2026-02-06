@@ -1,7 +1,6 @@
 /**
  * Violation Detail Screen
  * Shows comprehensive violation information with stream comparison
- * Mirrors the web ViolationDetailDialog functionality
  *
  * Responsive layout:
  * - Phone: Single column, compact layout
@@ -14,11 +13,6 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQueryClient, useMutation, useQuery } from '@tanstack/react-query';
 import { formatDistanceToNow, format } from 'date-fns';
 import {
-  MapPin,
-  Users,
-  Zap,
-  Monitor,
-  Globe,
   AlertTriangle,
   Check,
   X,
@@ -28,132 +22,24 @@ import {
   Music,
   AlertCircle,
   CheckCircle2,
-  type LucideIcon,
 } from 'lucide-react-native';
 import { api } from '@/lib/api';
-import { useMediaServer } from '@/providers/MediaServerProvider';
 import { useResponsive } from '@/hooks/useResponsive';
 import { Text } from '@/components/ui/text';
 import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { ActionResultsList } from '@/components/violations/ActionResultsList';
 import { colors, spacing, ACCENT_COLOR } from '@/lib/theme';
-import { formatSpeed } from '@tracearr/shared';
-import type {
-  ViolationWithDetails,
-  RuleType,
-  UnitSystem,
-  ViolationSessionInfo,
+import {
+  getViolationDescription,
+  collectViolationSessions,
+  RULE_DISPLAY_NAMES,
 } from '@tracearr/shared';
+import type { ViolationWithDetails, ViolationSessionInfo } from '@tracearr/shared';
 
-// Rule type icons mapping
-const ruleIcons: Record<RuleType, LucideIcon> = {
-  impossible_travel: MapPin,
-  simultaneous_locations: Users,
-  device_velocity: Zap,
-  concurrent_streams: Monitor,
-  geo_restriction: Globe,
-  account_inactivity: Clock,
-};
+import { ruleIcons } from '@/lib/violations';
 
-// Rule type display names
-const ruleLabels: Record<RuleType, string> = {
-  impossible_travel: 'Impossible Travel',
-  simultaneous_locations: 'Simultaneous Locations',
-  device_velocity: 'Device Velocity',
-  concurrent_streams: 'Concurrent Streams',
-  geo_restriction: 'Geo Restriction',
-  account_inactivity: 'Account Inactivity',
-};
-
-// Format violation description
-function getViolationDescription(
-  violation: ViolationWithDetails,
-  unitSystem: UnitSystem = 'metric'
-): string {
-  const data = violation.data;
-  const ruleType = violation.rule?.type;
-
-  // V2 rules don't have a type - check for custom message in data
-  if (!ruleType) {
-    // Check if there's a custom message from a log_only action or similar
-    if (data?.message && typeof data.message === 'string') {
-      return data.message;
-    }
-    // Check for rule name as fallback context
-    if (violation.rule?.name) {
-      return `Triggered rule: ${violation.rule.name}`;
-    }
-    return 'Custom rule violation detected';
-  }
-
-  if (!data) return 'Rule violation detected';
-
-  switch (ruleType) {
-    case 'impossible_travel': {
-      const from = data.fromCity || data.fromLocation || 'unknown location';
-      const to = data.toCity || data.toLocation || 'unknown location';
-      const speed =
-        typeof data.calculatedSpeedKmh === 'number'
-          ? formatSpeed(data.calculatedSpeedKmh, unitSystem)
-          : 'impossible speed';
-      return `Traveled from ${from} to ${to} at ${speed}`;
-    }
-    case 'simultaneous_locations': {
-      const locations = data.locations as string[] | undefined;
-      const count = data.locationCount as number | undefined;
-      if (locations && locations.length > 0) {
-        return `Active from ${locations.length} locations: ${locations.slice(0, 2).join(', ')}${locations.length > 2 ? '...' : ''}`;
-      }
-      if (count) {
-        return `Streaming from ${count} different locations simultaneously`;
-      }
-      return 'Streaming from multiple locations simultaneously';
-    }
-    case 'device_velocity': {
-      const ipCount = data.ipCount as number | undefined;
-      const windowHours = data.windowHours as number | undefined;
-      if (ipCount && windowHours) {
-        return `${ipCount} different IPs used in ${windowHours}h window`;
-      }
-      return 'Too many unique devices in short period';
-    }
-    case 'concurrent_streams': {
-      const streamCount = data.streamCount as number | undefined;
-      const maxStreams = data.maxStreams as number | undefined;
-      if (streamCount && maxStreams) {
-        return `${streamCount} concurrent streams (limit: ${maxStreams})`;
-      }
-      return 'Exceeded concurrent stream limit';
-    }
-    case 'geo_restriction': {
-      const country = data.country as string | undefined;
-      const blockedCountry = data.blockedCountry as string | undefined;
-      if (country || blockedCountry) {
-        return `Streaming from blocked region: ${country || blockedCountry}`;
-      }
-      return 'Streaming from restricted location';
-    }
-    default:
-      return 'Rule violation detected';
-  }
-}
-
-function SeverityBadge({ severity }: { severity: string }) {
-  const variant =
-    severity === 'critical' || severity === 'high'
-      ? 'destructive'
-      : severity === 'warning'
-        ? 'warning'
-        : 'default';
-
-  return (
-    <Badge variant={variant} className="capitalize">
-      {severity}
-    </Badge>
-  );
-}
+import { SeverityBadge } from '@/components/violations/SeverityBadge';
 
 function getMediaIcon(mediaType: string): typeof Film {
   switch (mediaType) {
@@ -310,11 +196,43 @@ function StreamCard({ session, index, isTriggering, userHistory }: StreamCardPro
   );
 }
 
+/**
+ * Search all violation caches for a specific violation by ID.
+ * Uses getQueriesData to match any cache key starting with ['violations'],
+ * which covers the alerts list (with filters), user detail, etc.
+ */
+function findViolationInCache(
+  queryClient: ReturnType<typeof useQueryClient>,
+  violationId: string
+): ViolationWithDetails | undefined {
+  // Search paginated caches (alerts list uses { pages: [...] } shape)
+  const allCaches = queryClient.getQueriesData<{
+    pages?: { data: ViolationWithDetails[] }[];
+    data?: ViolationWithDetails[];
+  }>({ queryKey: ['violations'] });
+
+  for (const [_key, data] of allCaches) {
+    if (!data) continue;
+    // Paginated (infinite query) shape
+    if (data.pages) {
+      for (const page of data.pages) {
+        const found = page.data?.find((v) => v.id === violationId);
+        if (found) return found;
+      }
+    }
+    // Flat list shape
+    if (data.data) {
+      const found = data.data.find((v) => v.id === violationId);
+      if (found) return found;
+    }
+  }
+  return undefined;
+}
+
 export default function ViolationDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { selectedServerId } = useMediaServer();
   const { isTablet, select } = useResponsive();
 
   // Responsive values
@@ -328,32 +246,34 @@ export default function ViolationDetailScreen() {
   });
   const unitSystem = settings?.unitSystem ?? 'metric';
 
-  // Find the violation from the cached list data
-  const violation = useMemo(() => {
-    // Get cached violations data
-    const cachedData = queryClient.getQueryData<{
-      pages: { data: ViolationWithDetails[] }[];
-    }>(['violations', selectedServerId]);
+  // Try to find the violation in any existing cache
+  const cachedViolation = useMemo(
+    () => (id ? findViolationInCache(queryClient, id) : undefined),
+    [queryClient, id]
+  );
 
-    if (!cachedData?.pages) return null;
-
-    // Search through all pages for the violation
-    for (const page of cachedData.pages) {
-      const found = page.data.find((v) => v.id === id);
-      if (found) return found;
-    }
-    return null;
-  }, [queryClient, id, selectedServerId]);
+  // Fetch from API with cache as initial data
+  const {
+    data: violation,
+    isLoading,
+    isError,
+  } = useQuery({
+    queryKey: ['violations', 'detail', id],
+    queryFn: () => api.violations.get(id),
+    initialData: cachedViolation,
+    staleTime: cachedViolation ? 1000 * 60 : 0,
+    enabled: !!id,
+  });
 
   // Update header title
   const ruleType = violation?.rule?.type;
-  const ruleName = ruleType ? ruleLabels[ruleType] : 'Violation';
+  const ruleName = ruleType ? RULE_DISPLAY_NAMES[ruleType] : 'Violation';
 
   // Acknowledge mutation
   const acknowledgeMutation = useMutation({
     mutationFn: api.violations.acknowledge,
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['violations', selectedServerId] });
+      void queryClient.invalidateQueries({ queryKey: ['violations'] });
       router.back();
     },
   });
@@ -362,7 +282,7 @@ export default function ViolationDetailScreen() {
   const dismissMutation = useMutation({
     mutationFn: api.violations.dismiss,
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['violations', selectedServerId] });
+      void queryClient.invalidateQueries({ queryKey: ['violations'] });
       router.back();
     },
   });
@@ -394,30 +314,14 @@ export default function ViolationDetailScreen() {
     }
   };
 
-  // Collect all sessions for comparison
-  const allSessions = useMemo(() => {
-    if (!violation) return [];
-    const sessions: ViolationSessionInfo[] = [];
-    const seenIds = new Set<string>();
-
-    // Add triggering session first
-    if (violation.session) {
-      sessions.push(violation.session);
-      seenIds.add(violation.session.id);
-    }
-
-    // Add related sessions
-    if (violation.relatedSessions) {
-      for (const session of violation.relatedSessions) {
-        if (!seenIds.has(session.id)) {
-          sessions.push(session);
-          seenIds.add(session.id);
-        }
-      }
-    }
-
-    return sessions;
-  }, [violation]);
+  // Collect all sessions for comparison (skip for inactivity violations)
+  const allSessions = useMemo(
+    () =>
+      violation && violation.rule?.type !== 'account_inactivity'
+        ? collectViolationSessions(violation)
+        : [],
+    [violation]
+  );
 
   // Analysis stats
   const analysis = useMemo(() => {
@@ -433,7 +337,21 @@ export default function ViolationDetailScreen() {
     };
   }, [allSessions]);
 
-  if (!violation) {
+  // Loading state (only shown when no cached data)
+  if (isLoading && !violation) {
+    return (
+      <SafeAreaView
+        style={{ flex: 1, backgroundColor: colors.background.dark }}
+        edges={['left', 'right', 'bottom']}
+      >
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator size="large" color={ACCENT_COLOR} />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (!violation || isError) {
     return (
       <SafeAreaView
         style={{ flex: 1, backgroundColor: colors.background.dark }}
@@ -512,7 +430,63 @@ export default function ViolationDetailScreen() {
           <Text className="text-secondary leading-6">{description}</Text>
         </Card>
 
-        {/* Stream Comparison */}
+        {/* Account Inactivity Details */}
+        {ruleType === 'account_inactivity' && (
+          <Card className="mb-4">
+            <View className="mb-3 flex-row items-center gap-2">
+              <Clock size={16} color={colors.text.muted.dark} />
+              <Text className="text-muted-foreground text-sm font-semibold">
+                Inactivity Details
+              </Text>
+            </View>
+            <View className="bg-surface rounded-lg p-4">
+              <View className="flex-row gap-4">
+                {/* Days Inactive */}
+                <View className="flex-1">
+                  <Text className="text-muted-foreground mb-1 text-xs">Days Inactive</Text>
+                  <Text className="text-2xl font-bold">
+                    {(violation.data?.inactiveDays as number) ?? 'N/A'}
+                  </Text>
+                </View>
+                {/* Threshold */}
+                <View className="flex-1">
+                  <Text className="text-muted-foreground mb-1 text-xs">Threshold</Text>
+                  <Text className="text-2xl font-bold">
+                    {(violation.data?.thresholdDays as number) ?? 'N/A'}
+                    <Text className="text-muted-foreground text-sm font-normal"> days</Text>
+                  </Text>
+                </View>
+              </View>
+              {/* Last Activity */}
+              <View className="mt-4">
+                <Text className="text-muted-foreground mb-1 text-xs">Last Activity</Text>
+                {violation.data?.neverActive ? (
+                  <View className="flex-row items-center gap-1">
+                    <AlertCircle size={14} color={colors.warning} />
+                    <Text className="text-warning text-sm font-medium">
+                      Never active - no recorded activity
+                    </Text>
+                  </View>
+                ) : violation.data?.lastActivityAt ? (
+                  <View>
+                    <Text className="text-sm font-medium">
+                      {format(new Date(violation.data.lastActivityAt as string), 'PPpp')}
+                    </Text>
+                    <Text className="text-muted-foreground text-xs">
+                      {formatDistanceToNow(new Date(violation.data.lastActivityAt as string), {
+                        addSuffix: true,
+                      })}
+                    </Text>
+                  </View>
+                ) : (
+                  <Text className="text-muted-foreground text-sm">Unknown</Text>
+                )}
+              </View>
+            </View>
+          </Card>
+        )}
+
+        {/* Stream Comparison (not for inactivity violations) */}
         {allSessions.length > 0 && (
           <View className="mb-4">
             <View className="mb-3 flex-row items-center justify-between">
