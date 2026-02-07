@@ -48,36 +48,69 @@ function getMediaDisplay(session: ActiveSession): { title: string; subtitle: str
 }
 
 /**
- * Get quality decision label and color
+ * Get quality decision label, color, and icon
  */
 function getQualityInfo(session: ActiveSession): {
   label: string;
   color: string;
   bgColor: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  isHwTranscode: boolean;
 } {
   const videoDecision = session.videoDecision?.toLowerCase();
   const audioDecision = session.audioDecision?.toLowerCase();
+  const isHwTranscode = !!(session.transcodeInfo?.hwEncoding || session.transcodeInfo?.hwDecoding);
 
   // If either is transcoding, show as transcode
   if (videoDecision === 'transcode' || audioDecision === 'transcode') {
-    return { label: 'Transcode', color: colors.warning, bgColor: 'rgba(245, 158, 11, 0.15)' };
+    return {
+      label: 'Transcode',
+      color: colors.warning,
+      bgColor: 'rgba(245, 158, 11, 0.15)',
+      icon: isHwTranscode ? 'hardware-chip-outline' : 'flash',
+      isHwTranscode,
+    };
   }
   // If video is direct play and audio is direct play or copy
   if (
     videoDecision === 'directplay' &&
     (audioDecision === 'directplay' || audioDecision === 'copy')
   ) {
-    return { label: 'Direct Play', color: colors.success, bgColor: 'rgba(34, 197, 94, 0.15)' };
+    return {
+      label: 'Direct Play',
+      color: colors.success,
+      bgColor: 'rgba(34, 197, 94, 0.15)',
+      icon: 'play',
+      isHwTranscode: false,
+    };
   }
   // Direct stream (video copy or direct stream)
   if (videoDecision === 'copy' || videoDecision === 'directstream') {
-    return { label: 'Direct Stream', color: colors.info, bgColor: 'rgba(59, 130, 246, 0.15)' };
+    return {
+      label: 'Direct Stream',
+      color: colors.info,
+      bgColor: 'rgba(59, 130, 246, 0.15)',
+      icon: 'arrow-forward',
+      isHwTranscode: false,
+    };
   }
   // Fallback based on isTranscode flag
   if (session.isTranscode) {
-    return { label: 'Transcode', color: colors.warning, bgColor: 'rgba(245, 158, 11, 0.15)' };
+    return {
+      label: 'Transcode',
+      color: colors.warning,
+      bgColor: 'rgba(245, 158, 11, 0.15)',
+      icon: isHwTranscode ? 'hardware-chip-outline' : 'flash',
+      isHwTranscode,
+    };
   }
-  return { label: 'Direct Play', color: colors.success, bgColor: 'rgba(34, 197, 94, 0.15)' };
+  return {
+    label: 'Direct Play',
+    color: colors.success,
+    bgColor: 'rgba(34, 197, 94, 0.15)',
+    icon: 'play',
+    isHwTranscode: false,
+  };
 }
 
 /**
@@ -271,7 +304,13 @@ export function NowPlayingCard({ session, onPress }: NowPlayingCardProps) {
                   </Text>
                 </View>
               ) : (
-                session.isTranscode && <Ionicons name="flash" size={10} color={colors.warning} />
+                session.isTranscode && (
+                  <Ionicons
+                    name={qualityInfo.isHwTranscode ? 'hardware-chip-outline' : 'flash'}
+                    size={10}
+                    color={colors.warning}
+                  />
+                )
               )}
             </View>
             <View className="flex-row items-center gap-1">

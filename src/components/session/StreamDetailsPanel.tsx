@@ -178,7 +178,8 @@ function ComparisonRow({
     <View className="flex-row items-center py-0.5">
       <Text className="text-muted-foreground w-20 text-[13px]">{label}</Text>
       <Text
-        className={`flex-1 text-[13px] font-medium ${highlight ? 'text-warning' : ''}`}
+        className="flex-1 text-[13px] font-medium"
+        style={{ color: highlight ? colors.warning : colors.text.primary.dark }}
         numberOfLines={1}
       >
         {sourceValue}
@@ -192,7 +193,8 @@ function ComparisonRow({
       )}
       {streamValue !== undefined && (
         <Text
-          className={`flex-1 text-[13px] ${isDifferent ? 'text-warning font-medium' : ''}`}
+          className={`flex-1 text-[13px] ${isDifferent ? 'font-medium' : ''}`}
+          style={{ color: isDifferent ? colors.warning : colors.text.primary.dark }}
           numberOfLines={1}
         >
           {streamValue}
@@ -450,11 +452,15 @@ export function StreamDetailsPanel({
           <View className="border-border rounded-lg border p-2">
             <View className="flex-row items-center gap-2">
               <Text className="text-muted-foreground text-[13px]">Format:</Text>
-              <Text className="text-[13px]">{formatCodec(subtitleInfo?.codec)}</Text>
+              <Text className="text-[13px]" style={{ color: colors.text.primary.dark }}>
+                {formatCodec(subtitleInfo?.codec)}
+              </Text>
               {subtitleInfo?.language && (
                 <>
                   <Text className="text-muted-foreground text-[13px]">·</Text>
-                  <Text className="text-[13px]">{subtitleInfo.language}</Text>
+                  <Text className="text-[13px]" style={{ color: colors.text.primary.dark }}>
+                    {subtitleInfo.language}
+                  </Text>
                 </>
               )}
               {subtitleInfo?.forced && <Badge variant="outline">Forced</Badge>}
@@ -485,19 +491,28 @@ export function StreamDetailsPanel({
               {transcodeInfo?.hwDecoding && (
                 <View className="flex-row items-center justify-between py-0.5">
                   <Text className="text-muted-foreground text-[13px]">HW Decode</Text>
-                  <Text className="text-[13px]">{transcodeInfo.hwDecoding}</Text>
+                  <Text className="text-[13px]" style={{ color: colors.text.primary.dark }}>
+                    {transcodeInfo.hwDecoding}
+                  </Text>
                 </View>
               )}
               {transcodeInfo?.hwEncoding && (
                 <View className="flex-row items-center justify-between py-0.5">
                   <Text className="text-muted-foreground text-[13px]">HW Encode</Text>
-                  <Text className="text-[13px]">{transcodeInfo.hwEncoding}</Text>
+                  <Text className="text-[13px]" style={{ color: colors.text.primary.dark }}>
+                    {transcodeInfo.hwEncoding}
+                  </Text>
                 </View>
               )}
               {transcodeInfo?.speed !== undefined && (
                 <View className="flex-row items-center justify-between py-0.5">
                   <Text className="text-muted-foreground text-[13px]">Speed</Text>
-                  <Text className={`text-[13px] ${transcodeInfo.speed < 1 ? 'text-warning' : ''}`}>
+                  <Text
+                    className="text-[13px]"
+                    style={{
+                      color: transcodeInfo.speed < 1 ? colors.warning : colors.text.primary.dark,
+                    }}
+                  >
                     {transcodeInfo.speed.toFixed(1)}x{transcodeInfo.throttled && ' (throttled)'}
                   </Text>
                 </View>
@@ -511,7 +526,9 @@ export function StreamDetailsPanel({
       {bitrate && (
         <View className="border-border flex-row items-center justify-between border-t pt-1">
           <Text className="text-muted-foreground text-[13px]">Total Bitrate</Text>
-          <Text className="text-[13px] font-medium">{formatBitrate(bitrate)}</Text>
+          <Text className="text-[13px] font-medium" style={{ color: colors.text.primary.dark }}>
+            {formatBitrate(bitrate)}
+          </Text>
         </View>
       )}
     </View>

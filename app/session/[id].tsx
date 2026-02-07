@@ -25,7 +25,8 @@ import {
   CircleHelp,
   Globe,
   MonitorPlay,
-  Repeat2,
+  Zap,
+  Cpu,
   Eye,
   ChevronRight,
   X,
@@ -200,8 +201,8 @@ function InfoRow({
       <Text className="text-muted-foreground text-[13px]">{label}</Text>
       <View className="flex-1 flex-row items-center justify-end gap-1">
         <Text
-          className={`text-foreground text-[13px] ${mono ? 'font-mono text-[11px]' : ''}`}
-          style={valueColor ? { color: valueColor } : undefined}
+          className={`text-[13px] ${mono ? 'font-mono text-[11px]' : ''}`}
+          style={{ color: valueColor ?? colors.text.primary.dark }}
           numberOfLines={1}
         >
           {value}
@@ -495,28 +496,36 @@ export default function SessionDetailScreen() {
         <Section
           icon={Gauge}
           title="Stream Details"
-          badge={
-            <Badge variant={session.isTranscode ? 'warning' : 'secondary'}>
-              <View className="flex-row items-center gap-1">
-                {session.isTranscode ? (
-                  <>
-                    <Repeat2 size={12} color={colors.warning} />
+          badge={(() => {
+            const isHwTranscode =
+              session.isTranscode &&
+              !!(session.transcodeInfo?.hwEncoding || session.transcodeInfo?.hwDecoding);
+            const TranscodeIcon = isHwTranscode ? Cpu : Zap;
+
+            if (session.isTranscode) {
+              return (
+                <Badge variant="warning">
+                  <View className="flex-row items-center gap-1">
+                    <TranscodeIcon size={12} color={colors.warning} />
                     <Text className="text-warning text-[11px] font-semibold">Transcode</Text>
-                  </>
-                ) : session.videoDecision === 'copy' || session.audioDecision === 'copy' ? (
-                  <>
-                    <MonitorPlay size={12} color={colors.text.primary.dark} />
-                    <Text className="text-foreground text-[11px] font-semibold">Direct Stream</Text>
-                  </>
-                ) : (
-                  <>
-                    <MonitorPlay size={12} color={colors.text.primary.dark} />
-                    <Text className="text-foreground text-[11px] font-semibold">Direct Play</Text>
-                  </>
-                )}
-              </View>
-            </Badge>
-          }
+                  </View>
+                </Badge>
+              );
+            }
+
+            return (
+              <Badge variant="secondary">
+                <View className="flex-row items-center gap-1">
+                  <MonitorPlay size={12} color={colors.text.primary.dark} />
+                  <Text className="text-foreground text-[11px] font-semibold">
+                    {session.videoDecision === 'copy' || session.audioDecision === 'copy'
+                      ? 'Direct Stream'
+                      : 'Direct Play'}
+                  </Text>
+                </View>
+              </Badge>
+            );
+          })()}
         >
           <StreamDetailsPanel
             sourceVideoCodec={session.sourceVideoCodec ?? null}
