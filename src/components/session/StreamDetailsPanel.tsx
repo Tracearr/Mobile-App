@@ -7,7 +7,7 @@ import { View, Pressable } from 'react-native';
 import { ArrowRight, Video, AudioLines, Subtitles, Cpu, ChevronDown } from 'lucide-react-native';
 import { Text } from '@/components/ui/text';
 import { Badge } from '@/components/ui/badge';
-import { colors } from '@/lib/theme';
+import { colors, withAlpha, ACCENT_COLOR } from '@/lib/theme';
 import type {
   SourceVideoDetails,
   SourceAudioDetails,
@@ -157,7 +157,7 @@ function filterTranscodeReasons(reasons: string[] | null | undefined, keyword: s
     .map(formatTranscodeReason);
 }
 
-// Comparison row component
+// Comparison row component - uses consistent column structure matching SectionColumnLabels
 function ComparisonRow({
   label,
   sourceValue,
@@ -177,29 +177,34 @@ function ComparisonRow({
   return (
     <View className="flex-row items-center py-0.5">
       <Text className="text-muted-foreground w-20 text-[13px]">{label}</Text>
-      <Text
-        className="flex-1 text-[13px] font-medium"
-        style={{ color: highlight ? colors.warning : colors.text.primary.dark }}
-        numberOfLines={1}
-      >
-        {sourceValue}
-      </Text>
-      {showArrow && streamValue !== undefined ? (
-        <View className="w-5 items-center">
-          <ArrowRight size={12} color={isDifferent ? colors.warning : colors.text.muted.dark} />
-        </View>
-      ) : (
-        <View className="w-5" />
-      )}
-      {streamValue !== undefined && (
+      <View className="flex-1">
         <Text
-          className={`flex-1 text-[13px] ${isDifferent ? 'font-medium' : ''}`}
-          style={{ color: isDifferent ? colors.warning : colors.text.primary.dark }}
+          className="text-[13px] font-medium"
+          style={{ color: highlight ? colors.warning : colors.text.primary.dark }}
           numberOfLines={1}
         >
-          {streamValue}
+          {sourceValue}
         </Text>
-      )}
+      </View>
+      <View className="w-6 items-center">
+        {showArrow && streamValue !== undefined ? (
+          <ArrowRight
+            size={12}
+            color={isDifferent ? colors.warning : withAlpha(colors.text.muted.dark, '80')}
+          />
+        ) : null}
+      </View>
+      <View className="flex-1">
+        {streamValue !== undefined && (
+          <Text
+            className={`text-[13px] ${isDifferent ? 'font-medium' : ''}`}
+            style={{ color: isDifferent ? colors.warning : colors.text.primary.dark }}
+            numberOfLines={1}
+          >
+            {streamValue}
+          </Text>
+        )}
+      </View>
     </View>
   );
 }
@@ -217,8 +222,8 @@ function SectionHeader({
   return (
     <View className="flex-row items-center justify-between py-2">
       <View className="flex-row items-center gap-2">
-        <Icon size={16} color={colors.icon.default} />
-        <Text className="text-sm font-medium">{title}</Text>
+        <Icon size={16} color={ACCENT_COLOR} />
+        <Text className="text-foreground text-sm font-medium">{title}</Text>
       </View>
       {badge}
     </View>
@@ -230,13 +235,13 @@ function SectionColumnLabels() {
   return (
     <View className="border-border mb-1 flex-row items-center border-b pb-1">
       <View className="w-20" />
-      <Text className="text-muted-foreground flex-1 text-[9px] font-medium tracking-wider">
-        SOURCE
-      </Text>
-      <View className="w-5" />
-      <Text className="text-muted-foreground flex-1 text-[9px] font-medium tracking-wider">
-        STREAM
-      </Text>
+      <View className="flex-1">
+        <Text className="text-muted-foreground text-[9px] font-medium tracking-wider">SOURCE</Text>
+      </View>
+      <View className="w-6" />
+      <View className="flex-1">
+        <Text className="text-muted-foreground text-[9px] font-medium tracking-wider">STREAM</Text>
+      </View>
     </View>
   );
 }
@@ -284,31 +289,40 @@ export function StreamDetailsPanel({
 
   return (
     <View className="gap-2">
-      {/* Container info */}
-      {transcodeInfo?.sourceContainer && (
+      {/* Container and overall bitrate */}
+      {(transcodeInfo?.sourceContainer || bitrate) && (
         <>
-          <ComparisonRow
-            label="Container"
-            sourceValue={transcodeInfo.sourceContainer.toUpperCase()}
-            streamValue={
-              transcodeInfo.streamContainer?.toUpperCase() ??
-              transcodeInfo.sourceContainer.toUpperCase()
-            }
-          />
-          <View className="bg-border h-px" />
+          {transcodeInfo?.sourceContainer && (
+            <ComparisonRow
+              label="Container"
+              sourceValue={transcodeInfo.sourceContainer.toUpperCase()}
+              streamValue={
+                transcodeInfo.streamContainer?.toUpperCase() ??
+                transcodeInfo.sourceContainer.toUpperCase()
+              }
+            />
+          )}
+          {bitrate && (
+            <View className="flex-row items-center py-0.5">
+              <Text className="text-muted-foreground w-20 text-[13px]">Bitrate</Text>
+              <Text className="text-[13px] font-medium" style={{ color: colors.text.primary.dark }}>
+                {formatBitrate(bitrate)}
+              </Text>
+            </View>
+          )}
+          <View className="bg-border mt-1 h-px" />
         </>
       )}
 
       {/* Video Section */}
       {hasVideoDetails && (
         <>
-          <View className="bg-border h-px opacity-50" />
           <SectionHeader
             icon={Video}
             title="Video"
             badge={<Badge variant={videoBadge.variant}>{videoBadge.label}</Badge>}
           />
-          <View className="border-border gap-0.5 rounded-lg border p-2">
+          <View className="gap-0.5">
             <SectionColumnLabels />
             <ComparisonRow
               label="Codec"
@@ -367,7 +381,7 @@ export function StreamDetailsPanel({
             )}
             {videoDecision === 'transcode' && videoTranscodeReasons.length > 0 && (
               <ComparisonRow
-                label="Reason"
+                label="Transcode Reason"
                 sourceValue={videoTranscodeReasons.join(', ')}
                 showArrow={false}
                 highlight
@@ -380,12 +394,13 @@ export function StreamDetailsPanel({
       {/* Audio Section */}
       {hasAudioDetails && (
         <>
+          <View className="bg-border my-2 h-px" />
           <SectionHeader
             icon={AudioLines}
             title="Audio"
             badge={<Badge variant={audioBadge.variant}>{audioBadge.label}</Badge>}
           />
-          <View className="border-border gap-0.5 rounded-lg border p-2">
+          <View className="gap-0.5">
             <SectionColumnLabels />
             <ComparisonRow
               label="Codec"
@@ -425,7 +440,7 @@ export function StreamDetailsPanel({
             )}
             {audioDecision === 'transcode' && audioTranscodeReasons.length > 0 && (
               <ComparisonRow
-                label="Reason"
+                label="Transcode Reason"
                 sourceValue={audioTranscodeReasons.join(', ')}
                 showArrow={false}
                 highlight
@@ -438,6 +453,7 @@ export function StreamDetailsPanel({
       {/* Subtitles Section */}
       {hasSubtitleDetails && (
         <>
+          <View className="bg-border my-2 h-px" />
           <SectionHeader
             icon={Subtitles}
             title="Subtitles"
@@ -449,22 +465,20 @@ export function StreamDetailsPanel({
               ) : undefined
             }
           />
-          <View className="border-border rounded-lg border p-2">
-            <View className="flex-row items-center gap-2">
-              <Text className="text-muted-foreground text-[13px]">Format:</Text>
-              <Text className="text-[13px]" style={{ color: colors.text.primary.dark }}>
-                {formatCodec(subtitleInfo?.codec)}
-              </Text>
-              {subtitleInfo?.language && (
-                <>
-                  <Text className="text-muted-foreground text-[13px]">·</Text>
-                  <Text className="text-[13px]" style={{ color: colors.text.primary.dark }}>
-                    {subtitleInfo.language}
-                  </Text>
-                </>
-              )}
-              {subtitleInfo?.forced && <Badge variant="outline">Forced</Badge>}
-            </View>
+          <View className="flex-row items-center gap-2">
+            <Text className="text-muted-foreground text-[13px]">Format:</Text>
+            <Text className="text-[13px]" style={{ color: colors.text.primary.dark }}>
+              {formatCodec(subtitleInfo?.codec)}
+            </Text>
+            {subtitleInfo?.language && (
+              <>
+                <Text className="text-muted-foreground text-[13px]">·</Text>
+                <Text className="text-[13px]" style={{ color: colors.text.primary.dark }}>
+                  {subtitleInfo.language}
+                </Text>
+              </>
+            )}
+            {subtitleInfo?.forced && <Badge variant="outline">Forced</Badge>}
           </View>
         </>
       )}
@@ -477,8 +491,8 @@ export function StreamDetailsPanel({
             onPress={() => setTranscodeOpen(!transcodeOpen)}
           >
             <View className="flex-row items-center gap-2">
-              <Cpu size={16} color={colors.icon.default} />
-              <Text className="text-muted-foreground text-sm font-medium">Transcode Details</Text>
+              <Cpu size={16} color={ACCENT_COLOR} />
+              <Text className="text-foreground text-sm font-medium">Transcode Details</Text>
             </View>
             <ChevronDown
               size={16}
@@ -520,16 +534,6 @@ export function StreamDetailsPanel({
             </View>
           )}
         </>
-      )}
-
-      {/* Overall bitrate */}
-      {bitrate && (
-        <View className="border-border flex-row items-center justify-between border-t pt-1">
-          <Text className="text-muted-foreground text-[13px]">Total Bitrate</Text>
-          <Text className="text-[13px] font-medium" style={{ color: colors.text.primary.dark }}>
-            {formatBitrate(bitrate)}
-          </Text>
-        </View>
       )}
     </View>
   );
