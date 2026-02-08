@@ -201,8 +201,8 @@ function InfoRow({
       <Text className="text-muted-foreground text-[13px]">{label}</Text>
       <View className="flex-1 flex-row items-center justify-end gap-1">
         <Text
-          className={`text-[13px] ${mono ? 'font-mono text-[11px]' : ''}`}
-          style={{ color: valueColor ?? colors.text.primary.dark }}
+          className={`text-[13px] font-medium ${mono ? 'font-mono text-[11px]' : ''}`}
+          style={{ color: valueColor ?? '#FAFAFA' }}
           numberOfLines={1}
         >
           {value}
@@ -434,7 +434,9 @@ export default function SessionDetailScreen() {
                 {serverConfig.label}
               </Text>
               <Text className="text-muted-foreground text-[13px]">·</Text>
-              <Text className="text-foreground text-[13px]">{session.server.name}</Text>
+              <Text className="text-[13px] font-medium" style={{ color: '#FAFAFA' }}>
+                {session.server.name}
+              </Text>
             </View>
           </View>
         </Section>
@@ -475,7 +477,9 @@ export default function SessionDetailScreen() {
             {locationString && (
               <View className="flex-row items-center gap-1">
                 <Globe size={14} color={colors.text.muted.dark} />
-                <Text className="text-foreground flex-1 text-[13px]">{locationString}</Text>
+                <Text className="flex-1 text-[13px] font-medium" style={{ color: '#FAFAFA' }}>
+                  {locationString}
+                </Text>
               </View>
             )}
           </View>
@@ -558,7 +562,9 @@ export default function SessionDetailScreen() {
             }}
           >
             <Text className="text-warning mb-1 text-[11px] font-semibold">Transcode Reason</Text>
-            <Text className="text-foreground text-xs">{transcodeReasonText}</Text>
+            <Text className="text-xs font-medium" style={{ color: '#FAFAFA' }}>
+              {transcodeReasonText}
+            </Text>
           </View>
         )}
 
