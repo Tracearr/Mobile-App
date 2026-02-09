@@ -1,0 +1,49 @@
+Tracearr Mobile App - Proprietary License
+
+Copyright (c) 2024-2026 Connor Gallopo. All rights reserved.
+
+TERMS AND CONDITIONS
+
+1. GRANT OF LICENSE
+   This source code is provided for transparency, security auditing, and
+   personal educational purposes only. No license is granted to use, copy,
+   modify, merge, publish, distribute, sublicense, or sell copies of this
+   software.
+
+2. RESTRICTIONS
+   You may NOT:
+   - Redistribute this software in source or compiled form
+   - Create derivative works based on this software
+   - Build and distribute compiled versions of this application
+   - Publish this application to any app store or distribution platform
+   - Use this code or portions of it in other projects
+   - Remove or modify any license notices or copyright statements
+
+3. OFFICIAL DISTRIBUTION
+   The official Tracearr mobile application is available exclusively through:
+   - Apple App Store
+   - Google Play Store
+
+   Any other distribution is unauthorized.
+
+4. SERVER COMPONENT
+   This license applies only to the mobile application code located in
+   /apps/mobile/. The Tracearr server component (/apps/server/, /apps/web/,
+   /packages/) is licensed separately under AGPL-3.0. See /LICENSE for
+   server licensing terms.
+
+5. DISCLAIMER
+   THIS SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+   OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+   FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+   DEALINGS IN THE SOFTWARE.
+
+6. ENFORCEMENT
+   Unauthorized use, reproduction, or distribution of this software may
+   result in civil and criminal penalties, and will be prosecuted to the
+   maximum extent possible under law.
+
+For licensing inquiries, contact: connor.gallopo@me.com
