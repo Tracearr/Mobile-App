@@ -352,9 +352,7 @@ export default function PairScreen() {
               }}
               onPress={requestPermission}
             >
-              <Text style={{ fontSize: 16, fontWeight: '600', color: '#18181B' }}>
-                Grant Permission
-              </Text>
+              <Text style={{ fontSize: 16, fontWeight: '600', color: '#18181B' }}>Continue</Text>
             </Pressable>
           </View>
         )}
