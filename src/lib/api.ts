@@ -668,7 +668,8 @@ export const api = {
     sendTest: async (): Promise<{ success: boolean; message: string }> => {
       const client = getApiClient();
       const response = await client.post<{ success: boolean; message: string }>(
-        '/notifications/test'
+        '/notifications/test',
+        {}
       );
       return response.data;
     },
