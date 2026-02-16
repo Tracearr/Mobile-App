@@ -289,7 +289,12 @@ export function NowPlayingCard({ session, onPress }: NowPlayingCardProps) {
           {/* User + time row combined */}
           <View className="mt-0.5 flex-row items-center justify-between">
             <View className="flex-1 flex-row items-center gap-1">
-              <UserAvatar thumbUrl={userThumbUrl} username={username} size={avatarSize} />
+              <UserAvatar
+                thumbUrl={userThumbUrl}
+                serverId={session.serverId}
+                username={username}
+                size={avatarSize}
+              />
               <Text className="text-secondary-foreground text-xs" numberOfLines={1}>
                 {displayName}
               </Text>

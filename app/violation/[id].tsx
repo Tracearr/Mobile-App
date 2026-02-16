@@ -395,6 +395,7 @@ export default function ViolationDetailScreen() {
           <Pressable className="flex-row items-center gap-4" onPress={handleUserPress}>
             <UserAvatar
               thumbUrl={violation.user?.thumbUrl}
+              serverId={violation.user?.serverId}
               username={violation.user?.username || 'Unknown'}
               size={isTablet ? 64 : 56}
             />

@@ -138,7 +138,12 @@ function ViolationCard({
         {/* Header: User + Severity */}
         <View className="mb-3 flex-row items-start justify-between">
           <View className="flex-1 flex-row items-center gap-2.5">
-            <UserAvatar thumbUrl={violation.user?.thumbUrl} username={username} size={avatarSize} />
+            <UserAvatar
+              thumbUrl={violation.user?.thumbUrl}
+              serverId={violation.user?.serverId}
+              username={username}
+              size={avatarSize}
+            />
             <View className="flex-1">
               <Text className="text-base font-semibold" numberOfLines={1}>
                 {displayName}

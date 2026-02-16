@@ -47,6 +47,14 @@
     },
     "plugins": [
       [
+        "expo-notification-service-extension-plugin",
+        {
+          "mode": "production",
+          "iosNSEFilePath": "./assets/NotificationService.m",
+          "iPhoneDeploymentTarget": "14.0"
+        }
+      ],
+      [
         "expo-build-properties",
         {
           "android": {

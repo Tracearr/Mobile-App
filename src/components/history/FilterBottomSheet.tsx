@@ -3,7 +3,7 @@
  * Uses @gorhom/bottom-sheet for native-feeling filter interface
  */
 import React, { useCallback, useMemo, useRef, forwardRef, useImperativeHandle } from 'react';
-import { View, Pressable, ScrollView, Image, type ViewStyle } from 'react-native';
+import { View, Pressable, ScrollView, type ViewStyle } from 'react-native';
 import BottomSheet, {
   BottomSheetBackdrop,
   BottomSheetScrollView,
@@ -24,6 +24,7 @@ import {
   ChevronRight,
 } from 'lucide-react-native';
 import { Text } from '@/components/ui/text';
+import { UserAvatar } from '@/components/ui/user-avatar';
 import { ACCENT_COLOR, colors } from '@/lib/theme';
 import type { HistoryFilterOptions, UserFilterOption, FilterOptionItem } from '@tracearr/shared';
 
@@ -281,28 +282,14 @@ export const FilterBottomSheet = forwardRef<FilterBottomSheetRef, FilterBottomSh
             borderBottomColor: colors.border.dark,
           }}
         >
-          {user.thumbUrl ? (
-            <Image
-              source={{ uri: user.thumbUrl }}
-              style={{ width: 36, height: 36, borderRadius: 18, marginRight: 12 }}
+          <View style={{ marginRight: 12 }}>
+            <UserAvatar
+              thumbUrl={user.thumbUrl}
+              serverId={user.serverId}
+              username={displayName}
+              size={36}
             />
-          ) : (
-            <View
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: 18,
-                marginRight: 12,
-                backgroundColor: colors.surface.dark,
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <Text style={{ color: colors.text.muted.dark, fontSize: 14, fontWeight: '600' }}>
-                {displayName[0]?.toUpperCase() ?? '?'}
-              </Text>
-            </View>
-          )}
+          </View>
           <Text
             numberOfLines={1}
             style={{

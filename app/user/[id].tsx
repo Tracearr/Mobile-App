@@ -583,7 +583,12 @@ export default function UserDetailScreen() {
         {/* User Info Card */}
         <Card className="mb-4">
           <View className="flex-row items-start gap-4">
-            <UserAvatar thumbUrl={user.thumbUrl} username={user.username} size={avatarSize} />
+            <UserAvatar
+              thumbUrl={user.thumbUrl}
+              serverId={user.serverId}
+              username={user.username}
+              size={avatarSize}
+            />
             <View className="flex-1">
               <View className="mb-1 flex-row items-center gap-2">
                 <Text className="text-xl font-bold">{user.identityName ?? user.username}</Text>

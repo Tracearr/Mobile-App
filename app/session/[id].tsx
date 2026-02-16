@@ -410,7 +410,12 @@ export default function SessionDetailScreen() {
           className="border-border flex-row items-center gap-2 rounded-xl border p-2"
           onPress={() => router.push(`/user/${session.serverUserId}` as never)}
         >
-          <UserAvatar thumbUrl={session.user.thumbUrl} username={session.user.username} size={36} />
+          <UserAvatar
+            thumbUrl={session.user.thumbUrl}
+            serverId={session.serverId}
+            username={session.user.username}
+            size={36}
+          />
           <View className="min-w-0 flex-1">
             <Text className="text-foreground text-[15px] font-medium" numberOfLines={1}>
               {session.user.identityName ?? session.user.username}

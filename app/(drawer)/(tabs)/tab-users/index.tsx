@@ -77,7 +77,12 @@ function UserCard({
     <Pressable onPress={onPress}>
       <Card className="mb-2 flex-row items-center justify-between p-3">
         <View className="flex-1 flex-row items-center gap-3">
-          <UserAvatar thumbUrl={user.thumbUrl} username={user.username} size={avatarSize} />
+          <UserAvatar
+            thumbUrl={user.thumbUrl}
+            serverId={user.serverId}
+            username={user.username}
+            size={avatarSize}
+          />
           <View className="flex-1">
             <View className="flex-row items-center gap-1.5">
               <Text className="text-base font-semibold" numberOfLines={1}>
