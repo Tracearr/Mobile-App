@@ -54,7 +54,8 @@
       "ios": {
         "appleId": "connor.gallopo@me.com",
         "ascAppId": "6755941553",
-        "appleTeamId": "6DA3FJF5G5"
+        "appleTeamId": "6DA3FJF5G5",
+        "groups": ["Internal", "VIP Testing"]
       },
       "android": {
         "serviceAccountKeyPath": "./credentials/google-service-account.json",
@@ -66,11 +67,13 @@
       "ios": {
         "appleId": "connor.gallopo@me.com",
         "ascAppId": "6755941553",
-        "appleTeamId": "6DA3FJF5G5"
+        "appleTeamId": "6DA3FJF5G5",
+        "groups": ["Internal", "VIP Testing"]
       },
       "android": {
         "serviceAccountKeyPath": "./credentials/google-service-account.json",
-        "track": "production"
+        "track": "production",
+        "releaseStatus": "completed"
       }
     }
   }
