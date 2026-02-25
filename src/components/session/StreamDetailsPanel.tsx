@@ -8,14 +8,15 @@ import { ArrowRight, Video, AudioLines, Subtitles, Cpu, ChevronDown } from 'luci
 import { Text } from '@/components/ui/text';
 import { Badge } from '@/components/ui/badge';
 import { colors, withAlpha, ACCENT_COLOR } from '@/lib/theme';
-import type {
-  SourceVideoDetails,
-  SourceAudioDetails,
-  StreamVideoDetails,
-  StreamAudioDetails,
-  TranscodeInfo,
-  SubtitleInfo,
-  ServerType,
+import {
+  formatResolutionDisplay,
+  type SourceVideoDetails,
+  type SourceAudioDetails,
+  type StreamVideoDetails,
+  type StreamAudioDetails,
+  type TranscodeInfo,
+  type SubtitleInfo,
+  type ServerType,
 } from '@tracearr/shared';
 
 interface StreamDetailsPanelProps {
@@ -51,34 +52,6 @@ function formatBitrate(bitrate: number | null | undefined): string {
     return `${formatted} Mbps`;
   }
   return `${bitrate} kbps`;
-}
-
-// Format resolution using width-first logic
-function formatResolution(
-  width: number | null | undefined,
-  height: number | null | undefined
-): string {
-  if (!width && !height) return '—';
-
-  let label: string | undefined;
-  if (width) {
-    if (width >= 3840) label = '4K';
-    else if (width >= 1920) label = '1080p';
-    else if (width >= 1280) label = '720p';
-    else if (width >= 854) label = '480p';
-    else label = 'SD';
-  } else if (height) {
-    if (height >= 2160) label = '4K';
-    else if (height >= 1080) label = '1080p';
-    else if (height >= 720) label = '720p';
-    else if (height >= 480) label = '480p';
-    else label = 'SD';
-  }
-
-  if (width && height) return `${width}×${height} (${label})`;
-  if (width) return `${width}w (${label})`;
-  if (height) return `${height}p (${label})`;
-  return '—';
 }
 
 // Format channels
@@ -331,8 +304,8 @@ export function StreamDetailsPanel({
             />
             <ComparisonRow
               label="Resolution"
-              sourceValue={formatResolution(sourceVideoWidth, sourceVideoHeight)}
-              streamValue={formatResolution(
+              sourceValue={formatResolutionDisplay(sourceVideoWidth, sourceVideoHeight)}
+              streamValue={formatResolutionDisplay(
                 streamVideoDetails?.width ?? sourceVideoWidth,
                 streamVideoDetails?.height ?? sourceVideoHeight
               )}
