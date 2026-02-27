@@ -86,7 +86,7 @@ function RootLayoutNav() {
   if (connectionState === 'unauthenticated') {
     return (
       <>
-        <StatusBar style="auto" translucent={false} />
+        <StatusBar style="auto" />
         <UnauthenticatedScreen />
       </>
     );
@@ -94,7 +94,7 @@ function RootLayoutNav() {
 
   return (
     <>
-      <StatusBar style="auto" translucent={false} />
+      <StatusBar style="auto" />
       <OfflineBanner onRetry={validate} />
       <Toast
         message="Reconnected"
