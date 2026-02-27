@@ -179,8 +179,10 @@ export default function ActivityScreen() {
             {qualityData ? (
               <QualityChart
                 directPlay={qualityData.directPlay}
+                directStream={qualityData.directStream ?? 0}
                 transcode={qualityData.transcode}
                 directPlayPercent={qualityData.directPlayPercent}
+                directStreamPercent={qualityData.directStreamPercent ?? 0}
                 transcodePercent={qualityData.transcodePercent}
                 height={qualityHeight}
               />

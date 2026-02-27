@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-deprecated */
 /**
- * Stacked area chart showing concurrent streams over time with direct/transcode breakdown
+ * Stacked area chart showing concurrent streams over time with direct/directStream/transcode breakdown
  */
 import React, { useState, useCallback } from 'react';
 import { View } from 'react-native';
@@ -13,13 +13,14 @@ import { colors } from '../../lib/theme';
 import { useChartFont } from './useChartFont';
 
 interface ConcurrentChartProps {
-  data: { hour: string; total: number; direct: number; transcode: number }[];
+  data: { hour: string; total: number; direct: number; directStream?: number; transcode: number }[];
   height?: number;
 }
 
-// Colors matching web chart (chart-2 for direct, chart-4 for transcode)
+// Colors matching web chart
 const CHART_COLORS = {
   direct: '#22c55e', // green - direct play
+  directStream: '#3B82F6', // blue - direct stream
   transcode: '#f97316', // orange - transcode
 };
 
@@ -39,32 +40,42 @@ function parseTimestamp(timestamp: string): Date | null {
 }
 
 export function ConcurrentChart({ data, height = 200 }: ConcurrentChartProps) {
+  const hasDirectStream = data.some((d) => (d.directStream ?? 0) > 0);
   const font = useChartFont(10);
-  const { state, isActive } = useChartPressState({ x: 0, y: { direct: 0, transcode: 0 } });
+  const { state, isActive } = useChartPressState({
+    x: 0,
+    y: { direct: 0, directStream: 0, transcode: 0 },
+  });
 
   // React state to display values (synced from SharedValues)
   const [displayValue, setDisplayValue] = useState<{
     index: number;
     direct: number;
+    directStream: number;
     transcode: number;
   } | null>(null);
 
-  // Transform data for victory-native
+  // Always include directStream in chart data (defaults to 0 for old API responses)
   const chartData = data.map((d, index) => ({
     x: index,
     direct: d.direct,
+    directStream: d.directStream ?? 0,
     transcode: d.transcode,
     label: d.hour,
   }));
 
   // Sync SharedValue changes to React state
-  const updateDisplayValue = useCallback((index: number, direct: number, transcode: number) => {
-    setDisplayValue({
-      index: Math.round(index),
-      direct: Math.round(direct),
-      transcode: Math.round(transcode),
-    });
-  }, []);
+  const updateDisplayValue = useCallback(
+    (index: number, direct: number, directStream: number, transcode: number) => {
+      setDisplayValue({
+        index: Math.round(index),
+        direct: Math.round(direct),
+        directStream: Math.round(directStream),
+        transcode: Math.round(transcode),
+      });
+    },
+    []
+  );
 
   const clearDisplayValue = useCallback(() => {
     setDisplayValue(null);
@@ -76,11 +87,17 @@ export function ConcurrentChart({ data, height = 200 }: ConcurrentChartProps) {
       active: isActive,
       x: state.x.value.value,
       direct: state.y.direct.value.value,
+      directStream: state.y.directStream.value.value,
       transcode: state.y.transcode.value.value,
     }),
     (current, previous) => {
       if (current.active) {
-        runOnJS(updateDisplayValue)(current.x, current.direct, current.transcode);
+        runOnJS(updateDisplayValue)(
+          current.x,
+          current.direct,
+          current.directStream,
+          current.transcode
+        );
       } else if (previous?.active && !current.active) {
         runOnJS(clearDisplayValue)();
       }
@@ -105,7 +122,9 @@ export function ConcurrentChart({ data, height = 200 }: ConcurrentChartProps) {
       })()
     : '';
 
-  const total = displayValue ? displayValue.direct + displayValue.transcode : 0;
+  const total = displayValue
+    ? displayValue.direct + displayValue.directStream + displayValue.transcode
+    : 0;
 
   return (
     <View className="bg-card rounded-xl p-2" style={{ height }}>
@@ -115,6 +134,15 @@ export function ConcurrentChart({ data, height = 200 }: ConcurrentChartProps) {
           <View className="h-2 w-2 rounded-full" style={{ backgroundColor: CHART_COLORS.direct }} />
           <Text className="text-muted-foreground text-xs">Direct</Text>
         </View>
+        {hasDirectStream && (
+          <View className="flex-row items-center gap-1">
+            <View
+              className="h-2 w-2 rounded-full"
+              style={{ backgroundColor: CHART_COLORS.directStream }}
+            />
+            <Text className="text-muted-foreground text-xs">Direct Stream</Text>
+          </View>
+        )}
         <View className="flex-row items-center gap-1">
           <View
             className="h-2 w-2 rounded-full"
@@ -134,6 +162,14 @@ export function ConcurrentChart({ data, height = 200 }: ConcurrentChartProps) {
               </Text>
               <Text className="text-xs">
                 <Text style={{ color: CHART_COLORS.direct }}>{displayValue.direct} direct</Text>
+                {hasDirectStream && (
+                  <>
+                    {' · '}
+                    <Text style={{ color: CHART_COLORS.directStream }}>
+                      {displayValue.directStream} stream
+                    </Text>
+                  </>
+                )}
                 {' · '}
                 <Text style={{ color: CHART_COLORS.transcode }}>
                   {displayValue.transcode} transcode
@@ -148,7 +184,7 @@ export function ConcurrentChart({ data, height = 200 }: ConcurrentChartProps) {
       <CartesianChart
         data={chartData}
         xKey="x"
-        yKeys={['direct', 'transcode']}
+        yKeys={['direct', 'directStream', 'transcode']}
         domainPadding={{ top: 20, bottom: 10, left: 5, right: 5 }}
         chartPressState={state}
         axisOptions={{
@@ -169,22 +205,25 @@ export function ConcurrentChart({ data, height = 200 }: ConcurrentChartProps) {
         {({ points, chartBounds }) => (
           <>
             <StackedArea
-              points={[points.direct, points.transcode]}
+              points={[points.direct, points.directStream, points.transcode]}
               y0={chartBounds.bottom}
               animate={{ type: 'timing', duration: 500 }}
-              areaOptions={({ rowIndex, lowestY, highestY }) => ({
-                children: (
-                  <LinearGradient
-                    start={vec(0, highestY)}
-                    end={vec(0, lowestY)}
-                    colors={
-                      rowIndex === 0
-                        ? [`${CHART_COLORS.direct}DD`, `${CHART_COLORS.direct}66`]
-                        : [`${CHART_COLORS.transcode}DD`, `${CHART_COLORS.transcode}66`]
-                    }
-                  />
-                ),
-              })}
+              areaOptions={({ rowIndex, lowestY, highestY }) => {
+                const colorOrder = [
+                  CHART_COLORS.direct,
+                  CHART_COLORS.directStream,
+                  CHART_COLORS.transcode,
+                ];
+                return {
+                  children: (
+                    <LinearGradient
+                      start={vec(0, highestY)}
+                      end={vec(0, lowestY)}
+                      colors={[`${colorOrder[rowIndex]}DD`, `${colorOrder[rowIndex]}66`]}
+                    />
+                  ),
+                };
+              }}
             />
             {isActive && <ToolTip x={state.x.position} y={state.y.direct.position} />}
           </>

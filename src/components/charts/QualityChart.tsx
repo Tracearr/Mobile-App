@@ -1,5 +1,5 @@
 /**
- * Simple chart showing direct play vs transcode breakdown
+ * Simple chart showing direct play / direct stream / transcode breakdown
  */
 import React from 'react';
 import { View } from 'react-native';
@@ -8,20 +8,26 @@ import { colors } from '../../lib/theme';
 
 interface QualityChartProps {
   directPlay: number;
+  directStream?: number;
   transcode: number;
   directPlayPercent: number;
+  directStreamPercent?: number;
   transcodePercent: number;
   height?: number;
 }
 
+const DIRECT_STREAM_COLOR = '#3B82F6'; // Blue
+
 export function QualityChart({
   directPlay,
+  directStream = 0,
   transcode,
   directPlayPercent,
+  directStreamPercent = 0,
   transcodePercent,
-  height = 120,
+  height = 140,
 }: QualityChartProps) {
-  const total = directPlay + transcode;
+  const total = directPlay + directStream + transcode;
 
   if (total === 0) {
     return (
@@ -36,6 +42,9 @@ export function QualityChart({
       {/* Progress bar */}
       <View className="mb-3 h-6 flex-row overflow-hidden rounded-lg">
         <View style={{ flex: directPlayPercent || 1, backgroundColor: colors.success }} />
+        {directStreamPercent > 0 && (
+          <View style={{ flex: directStreamPercent, backgroundColor: DIRECT_STREAM_COLOR }} />
+        )}
         <View style={{ flex: transcodePercent || 1, backgroundColor: colors.warning }} />
       </View>
 
@@ -46,6 +55,16 @@ export function QualityChart({
           <Text className="text-foreground flex-1 text-sm">Direct Play</Text>
           <Text className="text-muted-foreground text-sm">
             {directPlay} ({directPlayPercent}%)
+          </Text>
+        </View>
+        <View className="flex-row items-center gap-2">
+          <View
+            className="h-2.5 w-2.5 rounded-full"
+            style={{ backgroundColor: DIRECT_STREAM_COLOR }}
+          />
+          <Text className="text-foreground flex-1 text-sm">Direct Stream</Text>
+          <Text className="text-muted-foreground text-sm">
+            {directStream} ({directStreamPercent}%)
           </Text>
         </View>
         <View className="flex-row items-center gap-2">

@@ -334,17 +334,21 @@ export const api = {
       serverId?: string;
     }): Promise<{
       directPlay: number;
+      directStream?: number;
       transcode: number;
       total: number;
       directPlayPercent: number;
+      directStreamPercent?: number;
       transcodePercent: number;
     }> => {
       const client = getApiClient();
       const response = await client.get<{
         directPlay: number;
+        directStream?: number;
         transcode: number;
         total: number;
         directPlayPercent: number;
+        directStreamPercent?: number;
         transcodePercent: number;
       }>('/stats/quality', { params: { ...params, timezone: getDeviceTimezone() } });
       return response.data;
@@ -352,10 +356,24 @@ export const api = {
     concurrent: async (params?: {
       period?: string;
       serverId?: string;
-    }): Promise<{ data: { hour: string; total: number; direct: number; transcode: number }[] }> => {
+    }): Promise<{
+      data: {
+        hour: string;
+        total: number;
+        direct: number;
+        directStream?: number;
+        transcode: number;
+      }[];
+    }> => {
       const client = getApiClient();
       const response = await client.get<{
-        data: { hour: string; total: number; direct: number; transcode: number }[];
+        data: {
+          hour: string;
+          total: number;
+          direct: number;
+          directStream?: number;
+          transcode: number;
+        }[];
       }>('/stats/concurrent', { params: { ...params, timezone: getDeviceTimezone() } });
       return response.data;
     },
