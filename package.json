@@ -68,6 +68,7 @@
     "react-native": "0.83.2",
     "react-native-css": "^3.0.4",
     "react-native-gesture-handler": "2.30.0",
+    "react-native-nitro-modules": "^0.34.1",
     "react-native-quick-crypto": "^1.0.15",
     "react-native-reanimated": "4.2.2",
     "react-native-safe-area-context": "5.7.0",

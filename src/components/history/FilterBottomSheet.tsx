@@ -3,7 +3,7 @@
  * Uses @gorhom/bottom-sheet for native-feeling filter interface
  */
 import React, { useCallback, useMemo, useRef, forwardRef, useImperativeHandle } from 'react';
-import { View, Pressable, ScrollView, type ViewStyle } from 'react-native';
+import { View, Pressable, type ViewStyle } from 'react-native';
 import BottomSheet, {
   BottomSheetBackdrop,
   BottomSheetScrollView,
@@ -623,7 +623,7 @@ export const FilterBottomSheet = forwardRef<FilterBottomSheetRef, FilterBottomSh
     const renderUsersSection = () => (
       <View style={{ flex: 1 }}>
         {renderSectionHeader('Users', 'users')}
-        <ScrollView contentContainerStyle={listContent} style={{ flex: 1 }}>
+        <BottomSheetScrollView contentContainerStyle={listContent} style={{ flex: 1 }}>
           {sortedUsers.map(renderUserItem)}
           {sortedUsers.length === 0 && (
             <Text
@@ -637,7 +637,7 @@ export const FilterBottomSheet = forwardRef<FilterBottomSheetRef, FilterBottomSh
               No users available
             </Text>
           )}
-        </ScrollView>
+        </BottomSheetScrollView>
         {renderDoneButton()}
       </View>
     );
@@ -646,7 +646,7 @@ export const FilterBottomSheet = forwardRef<FilterBottomSheetRef, FilterBottomSh
     const renderPlatformsSection = () => (
       <View style={{ flex: 1 }}>
         {renderSectionHeader('Platforms', 'platforms')}
-        <ScrollView contentContainerStyle={listContent} style={{ flex: 1 }}>
+        <BottomSheetScrollView contentContainerStyle={listContent} style={{ flex: 1 }}>
           {filterOptions?.platforms?.map((item) =>
             renderFilterItem(item, filters.platforms.includes(item.value), () =>
               togglePlatform(item.value)
@@ -664,7 +664,7 @@ export const FilterBottomSheet = forwardRef<FilterBottomSheetRef, FilterBottomSh
               No platforms available
             </Text>
           )}
-        </ScrollView>
+        </BottomSheetScrollView>
         {renderDoneButton()}
       </View>
     );
@@ -673,7 +673,7 @@ export const FilterBottomSheet = forwardRef<FilterBottomSheetRef, FilterBottomSh
     const renderCountriesSection = () => (
       <View style={{ flex: 1 }}>
         {renderSectionHeader('Countries', 'countries')}
-        <ScrollView contentContainerStyle={listContent} style={{ flex: 1 }}>
+        <BottomSheetScrollView contentContainerStyle={listContent} style={{ flex: 1 }}>
           {filterOptions?.countries?.map((item) =>
             renderFilterItem(item, filters.geoCountries.includes(item.value), () =>
               toggleCountry(item.value)
@@ -691,7 +691,7 @@ export const FilterBottomSheet = forwardRef<FilterBottomSheetRef, FilterBottomSh
               No countries available
             </Text>
           )}
-        </ScrollView>
+        </BottomSheetScrollView>
         {renderDoneButton()}
       </View>
     );

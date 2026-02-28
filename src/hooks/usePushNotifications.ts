@@ -54,7 +54,6 @@ async function ensureAndroidChannels(): Promise<void> {
       importance: Notifications.AndroidImportance.HIGH,
       vibrationPattern: [0, 250, 250, 250],
       lightColor: '#22D3EE',
-      sound: 'default',
     }),
     Notifications.setNotificationChannelAsync('sessions', {
       name: 'Stream Activity',
@@ -69,7 +68,6 @@ async function ensureAndroidChannels(): Promise<void> {
       importance: Notifications.AndroidImportance.HIGH,
       vibrationPattern: [0, 500],
       lightColor: '#EF4444',
-      sound: 'default',
     }),
   ]);
 }
