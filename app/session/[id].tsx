@@ -3,8 +3,18 @@
  * Shows comprehensive information about a specific session/stream
  * Matches the design of web/src/components/history/SessionDetailSheet.tsx
  */
+import { useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { View, ScrollView, Pressable, ActivityIndicator, Image, Alert } from 'react-native';
+import {
+  View,
+  ScrollView,
+  Pressable,
+  ActivityIndicator,
+  Image,
+  Alert,
+  Modal,
+  TextInput,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format, formatDistanceToNow } from 'date-fns';
@@ -222,12 +232,17 @@ export default function SessionDetailScreen() {
   const isOffline = connectionState !== 'connected';
   const serverUrl = getServerUrl();
 
-  // Terminate session mutation
+  // Terminate session state and mutation
+  const [terminateModalVisible, setTerminateModalVisible] = useState(false);
+  const [terminateReason, setTerminateReason] = useState('');
+
   const terminateMutation = useMutation({
     mutationFn: ({ sessionId, reason }: { sessionId: string; reason?: string }) =>
       api.sessions.terminate(sessionId, reason),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['sessions', 'active'] });
+      setTerminateModalVisible(false);
+      setTerminateReason('');
       Alert.alert('Stream Terminated', 'The playback session has been stopped.');
       router.back();
     },
@@ -237,23 +252,12 @@ export default function SessionDetailScreen() {
   });
 
   const handleTerminate = () => {
-    Alert.prompt(
-      'Terminate Stream',
-      'Enter an optional message to show the user (leave empty to skip):',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Terminate',
-          style: 'destructive',
-          onPress: (reason: string | undefined) => {
-            terminateMutation.mutate({ sessionId: id, reason: reason?.trim() || undefined });
-          },
-        },
-      ],
-      'plain-text',
-      '',
-      'default'
-    );
+    setTerminateReason('');
+    setTerminateModalVisible(true);
+  };
+
+  const handleConfirmTerminate = () => {
+    terminateMutation.mutate({ sessionId: id, reason: terminateReason.trim() || undefined });
   };
 
   const {
@@ -332,250 +336,314 @@ export default function SessionDetailScreen() {
   const stoppedAt = safeParseDate(session.stoppedAt);
 
   return (
-    <SafeAreaView
-      style={{ flex: 1, backgroundColor: '#09090B' }}
-      edges={['left', 'right', 'bottom']}
-    >
-      <ScrollView style={{ flex: 1 }} contentContainerClassName="gap-2 p-3">
-        {/* Header with state badge and terminate button */}
-        <View className="flex-row items-center justify-between pb-2">
-          <View className="flex-1 flex-row items-center gap-2">
-            <StateIcon size={16} color={stateConfig.color} />
-            <Text className="text-foreground text-base font-semibold">Session Details</Text>
-            <Badge
-              variant={
-                session.state === 'playing'
-                  ? 'success'
-                  : session.state === 'paused'
-                    ? 'warning'
-                    : 'secondary'
-              }
-            >
-              {stateConfig.label}
-            </Badge>
-          </View>
-          {session.state !== 'stopped' && (
-            <Pressable
-              onPress={handleTerminate}
-              disabled={terminateMutation.isPending || isOffline}
-              className={`h-8 w-8 items-center justify-center rounded-full ${terminateMutation.isPending || isOffline ? 'opacity-50' : ''}`}
-              style={{ backgroundColor: withAlpha(colors.error, '15') }}
-            >
-              <X size={18} color={colors.error} />
-            </Pressable>
-          )}
-        </View>
-
-        {/* Media Info - Hero section */}
-        <View className="border-border flex-row gap-2 rounded-xl border p-2">
-          {posterUrl && (
-            <Image
-              source={{ uri: posterUrl }}
-              className="bg-surface rounded-lg"
-              style={{ width: 56, height: 80 }}
-              resizeMode="cover"
-            />
-          )}
-          <View className="min-w-0 flex-1">
-            <View className="mb-1 flex-row items-center gap-1">
-              <MediaIcon size={12} color={colors.text.muted.dark} />
-              <Text className="text-muted-foreground text-[11px]">{mediaConfig.label}</Text>
-              {session.year && (
-                <Text className="text-muted-foreground text-[11px]">· {session.year}</Text>
-              )}
+    <>
+      <SafeAreaView
+        style={{ flex: 1, backgroundColor: '#09090B' }}
+        edges={['left', 'right', 'bottom']}
+      >
+        <ScrollView style={{ flex: 1 }} contentContainerClassName="gap-2 p-3">
+          {/* Header with state badge and terminate button */}
+          <View className="flex-row items-center justify-between pb-2">
+            <View className="flex-1 flex-row items-center gap-2">
+              <StateIcon size={16} color={stateConfig.color} />
+              <Text className="text-foreground text-base font-semibold">Session Details</Text>
+              <Badge
+                variant={
+                  session.state === 'playing'
+                    ? 'success'
+                    : session.state === 'paused'
+                      ? 'warning'
+                      : 'secondary'
+                }
+              >
+                {stateConfig.label}
+              </Badge>
             </View>
-            <View className="flex-row items-center gap-1">
-              <Text className="text-foreground flex-1 text-[15px] font-medium" numberOfLines={2}>
-                {title.primary}
-              </Text>
-              {session.watched && <Eye size={14} color={colors.success} />}
-            </View>
-            {title.secondary && (
-              <Text className="text-muted-foreground mt-0.5 text-[13px]" numberOfLines={1}>
-                {title.secondary}
-              </Text>
-            )}
-            {/* Progress inline */}
-            <View className="mt-2 flex-row items-center gap-2">
-              <View className="bg-border h-1.5 flex-1 overflow-hidden rounded-sm">
-                <View className="bg-primary h-full rounded-sm" style={{ width: `${progress}%` }} />
-              </View>
-              <Text className="text-muted-foreground w-8 text-[11px]">{progress}%</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* User - Tappable */}
-        <Pressable
-          className="border-border flex-row items-center gap-2 rounded-xl border p-2"
-          onPress={() => router.push(`/user/${session.serverUserId}` as never)}
-        >
-          <UserAvatar
-            thumbUrl={session.user.thumbUrl}
-            serverId={session.serverId}
-            username={session.user.username}
-            size={36}
-          />
-          <View className="min-w-0 flex-1">
-            <Text className="text-foreground text-[15px] font-medium" numberOfLines={1}>
-              {session.user.identityName ?? session.user.username}
-            </Text>
-            {session.user.identityName && session.user.identityName !== session.user.username && (
-              <Text className="text-muted-foreground text-xs">@{session.user.username}</Text>
-            )}
-            {!session.user.identityName && (
-              <Text className="text-muted-foreground text-xs">View profile</Text>
+            {session.state !== 'stopped' && (
+              <Pressable
+                onPress={handleTerminate}
+                disabled={terminateMutation.isPending || isOffline}
+                className={`h-8 w-8 items-center justify-center rounded-full ${terminateMutation.isPending || isOffline ? 'opacity-50' : ''}`}
+                style={{ backgroundColor: withAlpha(colors.error, '15') }}
+              >
+                <X size={18} color={colors.error} />
+              </Pressable>
             )}
           </View>
-          <ChevronRight size={16} color={colors.text.muted.dark} />
-        </Pressable>
 
-        {/* Server */}
-        <Section icon={Server} title="Server">
-          <View className="flex-row items-center justify-between">
-            <Text className="text-muted-foreground text-[13px]">Server</Text>
-            <View className="flex-row items-center gap-1">
-              <Text className="text-[13px] font-medium" style={{ color: serverConfig.color }}>
-                {serverConfig.label}
-              </Text>
-              <Text className="text-muted-foreground text-[13px]">·</Text>
-              <Text className="text-[13px] font-medium" style={{ color: '#FAFAFA' }}>
-                {session.server.name}
-              </Text>
-            </View>
-          </View>
-        </Section>
-
-        {/* Playback Info */}
-        <Section
-          icon={Clock}
-          title="Playback"
-          badge={
-            session.segmentCount && session.segmentCount > 1 ? (
-              <Badge variant="outline">{session.segmentCount} segments</Badge>
-            ) : null
-          }
-        >
-          <View className="gap-1">
-            {startedAt && (
-              <InfoRow
-                label="Started"
-                value={format(startedAt, 'MMM d, h:mm a')}
-                subValue={formatDistanceToNow(startedAt, { addSuffix: true })}
+          {/* Media Info - Hero section */}
+          <View className="border-border flex-row gap-2 rounded-xl border p-2">
+            {posterUrl && (
+              <Image
+                source={{ uri: posterUrl }}
+                className="bg-surface rounded-lg"
+                style={{ width: 56, height: 80 }}
+                resizeMode="cover"
               />
             )}
-            {stoppedAt && <InfoRow label="Stopped" value={format(stoppedAt, 'MMM d, h:mm a')} />}
-            <InfoRow label="Watch time" value={formatDuration(getWatchTime(session))} />
-            {session.pausedDurationMs > 0 && (
-              <InfoRow label="Paused" value={formatDuration(session.pausedDurationMs)} />
-            )}
-            {session.totalDurationMs && (
-              <InfoRow label="Media length" value={formatDuration(session.totalDurationMs)} />
-            )}
-          </View>
-        </Section>
-
-        {/* Location & Network */}
-        <Section icon={MapPin} title="Location">
-          <View className="gap-1">
-            <InfoRow label="IP Address" value={session.ipAddress || '—'} mono />
-            {locationString && (
+            <View className="min-w-0 flex-1">
+              <View className="mb-1 flex-row items-center gap-1">
+                <MediaIcon size={12} color={colors.text.muted.dark} />
+                <Text className="text-muted-foreground text-[11px]">{mediaConfig.label}</Text>
+                {session.year && (
+                  <Text className="text-muted-foreground text-[11px]">· {session.year}</Text>
+                )}
+              </View>
               <View className="flex-row items-center gap-1">
-                <Globe size={14} color={colors.text.muted.dark} />
-                <Text className="flex-1 text-[13px] font-medium" style={{ color: '#FAFAFA' }}>
-                  {locationString}
+                <Text className="text-foreground flex-1 text-[15px] font-medium" numberOfLines={2}>
+                  {title.primary}
+                </Text>
+                {session.watched && <Eye size={14} color={colors.success} />}
+              </View>
+              {title.secondary && (
+                <Text className="text-muted-foreground mt-0.5 text-[13px]" numberOfLines={1}>
+                  {title.secondary}
+                </Text>
+              )}
+              {/* Progress inline */}
+              <View className="mt-2 flex-row items-center gap-2">
+                <View className="bg-border h-1.5 flex-1 overflow-hidden rounded-sm">
+                  <View
+                    className="bg-primary h-full rounded-sm"
+                    style={{ width: `${progress}%` }}
+                  />
+                </View>
+                <Text className="text-muted-foreground w-8 text-[11px]">{progress}%</Text>
+              </View>
+            </View>
+          </View>
+
+          {/* User - Tappable */}
+          <Pressable
+            className="border-border flex-row items-center gap-2 rounded-xl border p-2"
+            onPress={() => router.push(`/user/${session.serverUserId}` as never)}
+          >
+            <UserAvatar
+              thumbUrl={session.user.thumbUrl}
+              serverId={session.serverId}
+              username={session.user.username}
+              size={36}
+            />
+            <View className="min-w-0 flex-1">
+              <Text className="text-foreground text-[15px] font-medium" numberOfLines={1}>
+                {session.user.identityName ?? session.user.username}
+              </Text>
+              {session.user.identityName && session.user.identityName !== session.user.username && (
+                <Text className="text-muted-foreground text-xs">@{session.user.username}</Text>
+              )}
+              {!session.user.identityName && (
+                <Text className="text-muted-foreground text-xs">View profile</Text>
+              )}
+            </View>
+            <ChevronRight size={16} color={colors.text.muted.dark} />
+          </Pressable>
+
+          {/* Server */}
+          <Section icon={Server} title="Server">
+            <View className="flex-row items-center justify-between">
+              <Text className="text-muted-foreground text-[13px]">Server</Text>
+              <View className="flex-row items-center gap-1">
+                <Text className="text-[13px] font-medium" style={{ color: serverConfig.color }}>
+                  {serverConfig.label}
+                </Text>
+                <Text className="text-muted-foreground text-[13px]">·</Text>
+                <Text className="text-[13px] font-medium" style={{ color: '#FAFAFA' }}>
+                  {session.server.name}
                 </Text>
               </View>
-            )}
-          </View>
-        </Section>
+            </View>
+          </Section>
 
-        {/* Device */}
-        <Section icon={Smartphone} title="Device">
-          <View className="gap-1">
-            {session.platform && <InfoRow label="Platform" value={session.platform} />}
-            {session.product && <InfoRow label="Product" value={session.product} />}
-            {session.device && <InfoRow label="Device" value={session.device} />}
-            {session.playerName && <InfoRow label="Player" value={session.playerName} />}
-            {session.deviceId && <InfoRow label="Device ID" value={session.deviceId} mono />}
-          </View>
-        </Section>
+          {/* Playback Info */}
+          <Section
+            icon={Clock}
+            title="Playback"
+            badge={
+              session.segmentCount && session.segmentCount > 1 ? (
+                <Badge variant="outline">{session.segmentCount} segments</Badge>
+              ) : null
+            }
+          >
+            <View className="gap-1">
+              {startedAt && (
+                <InfoRow
+                  label="Started"
+                  value={format(startedAt, 'MMM d, h:mm a')}
+                  subValue={formatDistanceToNow(startedAt, { addSuffix: true })}
+                />
+              )}
+              {stoppedAt && <InfoRow label="Stopped" value={format(stoppedAt, 'MMM d, h:mm a')} />}
+              <InfoRow label="Watch time" value={formatDuration(getWatchTime(session))} />
+              {session.pausedDurationMs > 0 && (
+                <InfoRow label="Paused" value={formatDuration(session.pausedDurationMs)} />
+              )}
+              {session.totalDurationMs && (
+                <InfoRow label="Media length" value={formatDuration(session.totalDurationMs)} />
+              )}
+            </View>
+          </Section>
 
-        {/* Stream Details */}
-        <Section
-          icon={Gauge}
-          title="Stream Details"
-          badge={(() => {
-            const isHwTranscode =
-              session.isTranscode &&
-              !!(session.transcodeInfo?.hwEncoding || session.transcodeInfo?.hwDecoding);
-            const TranscodeIcon = isHwTranscode ? Cpu : Zap;
+          {/* Location & Network */}
+          <Section icon={MapPin} title="Location">
+            <View className="gap-1">
+              <InfoRow label="IP Address" value={session.ipAddress || '—'} mono />
+              {locationString && (
+                <View className="flex-row items-center gap-1">
+                  <Globe size={14} color={colors.text.muted.dark} />
+                  <Text className="flex-1 text-[13px] font-medium" style={{ color: '#FAFAFA' }}>
+                    {locationString}
+                  </Text>
+                </View>
+              )}
+            </View>
+          </Section>
 
-            if (session.isTranscode) {
+          {/* Device */}
+          <Section icon={Smartphone} title="Device">
+            <View className="gap-1">
+              {session.platform && <InfoRow label="Platform" value={session.platform} />}
+              {session.product && <InfoRow label="Product" value={session.product} />}
+              {session.device && <InfoRow label="Device" value={session.device} />}
+              {session.playerName && <InfoRow label="Player" value={session.playerName} />}
+              {session.deviceId && <InfoRow label="Device ID" value={session.deviceId} mono />}
+            </View>
+          </Section>
+
+          {/* Stream Details */}
+          <Section
+            icon={Gauge}
+            title="Stream Details"
+            badge={(() => {
+              const isHwTranscode =
+                session.isTranscode &&
+                !!(session.transcodeInfo?.hwEncoding || session.transcodeInfo?.hwDecoding);
+              const TranscodeIcon = isHwTranscode ? Cpu : Zap;
+
+              if (session.isTranscode) {
+                return (
+                  <Badge variant="warning">
+                    <View className="flex-row items-center gap-1">
+                      <TranscodeIcon size={12} color={colors.warning} />
+                      <Text className="text-warning text-[11px] font-semibold">Transcode</Text>
+                    </View>
+                  </Badge>
+                );
+              }
+
               return (
-                <Badge variant="warning">
+                <Badge variant="secondary">
                   <View className="flex-row items-center gap-1">
-                    <TranscodeIcon size={12} color={colors.warning} />
-                    <Text className="text-warning text-[11px] font-semibold">Transcode</Text>
+                    <MonitorPlay size={12} color={colors.text.primary.dark} />
+                    <Text className="text-foreground text-[11px] font-semibold">
+                      {session.videoDecision === 'copy' || session.audioDecision === 'copy'
+                        ? 'Direct Stream'
+                        : 'Direct Play'}
+                    </Text>
                   </View>
                 </Badge>
               );
-            }
-
-            return (
-              <Badge variant="secondary">
-                <View className="flex-row items-center gap-1">
-                  <MonitorPlay size={12} color={colors.text.primary.dark} />
-                  <Text className="text-foreground text-[11px] font-semibold">
-                    {session.videoDecision === 'copy' || session.audioDecision === 'copy'
-                      ? 'Direct Stream'
-                      : 'Direct Play'}
-                  </Text>
-                </View>
-              </Badge>
-            );
-          })()}
-        >
-          <StreamDetailsPanel
-            sourceVideoCodec={session.sourceVideoCodec ?? null}
-            sourceAudioCodec={session.sourceAudioCodec ?? null}
-            sourceAudioChannels={session.sourceAudioChannels ?? null}
-            sourceVideoWidth={session.sourceVideoWidth ?? null}
-            sourceVideoHeight={session.sourceVideoHeight ?? null}
-            streamVideoCodec={session.streamVideoCodec ?? null}
-            streamAudioCodec={session.streamAudioCodec ?? null}
-            sourceVideoDetails={session.sourceVideoDetails ?? null}
-            sourceAudioDetails={session.sourceAudioDetails ?? null}
-            streamVideoDetails={session.streamVideoDetails ?? null}
-            streamAudioDetails={session.streamAudioDetails ?? null}
-            transcodeInfo={session.transcodeInfo ?? null}
-            subtitleInfo={session.subtitleInfo ?? null}
-            videoDecision={session.videoDecision ?? null}
-            audioDecision={session.audioDecision ?? null}
-            bitrate={session.bitrate ?? null}
-            serverType={session.server.type}
-          />
-        </Section>
-
-        {/* Transcode reason tooltip equivalent */}
-        {session.isTranscode && hasTranscodeReason && (
-          <View
-            className="rounded-xl border p-2"
-            style={{
-              backgroundColor: withAlpha(colors.warning, '10'),
-              borderColor: withAlpha(colors.warning, '30'),
-            }}
+            })()}
           >
-            <Text className="text-warning mb-1 text-[11px] font-semibold">Transcode Reason</Text>
-            <Text className="text-xs font-medium" style={{ color: '#FAFAFA' }}>
-              {transcodeReasonText}
-            </Text>
-          </View>
-        )}
+            <StreamDetailsPanel
+              sourceVideoCodec={session.sourceVideoCodec ?? null}
+              sourceAudioCodec={session.sourceAudioCodec ?? null}
+              sourceAudioChannels={session.sourceAudioChannels ?? null}
+              sourceVideoWidth={session.sourceVideoWidth ?? null}
+              sourceVideoHeight={session.sourceVideoHeight ?? null}
+              streamVideoCodec={session.streamVideoCodec ?? null}
+              streamAudioCodec={session.streamAudioCodec ?? null}
+              sourceVideoDetails={session.sourceVideoDetails ?? null}
+              sourceAudioDetails={session.sourceAudioDetails ?? null}
+              streamVideoDetails={session.streamVideoDetails ?? null}
+              streamAudioDetails={session.streamAudioDetails ?? null}
+              transcodeInfo={session.transcodeInfo ?? null}
+              subtitleInfo={session.subtitleInfo ?? null}
+              videoDecision={session.videoDecision ?? null}
+              audioDecision={session.audioDecision ?? null}
+              bitrate={session.bitrate ?? null}
+              serverType={session.server.type}
+            />
+          </Section>
 
-        {/* Bottom padding */}
-        <View className="h-6" />
-      </ScrollView>
-    </SafeAreaView>
+          {/* Transcode reason tooltip equivalent */}
+          {session.isTranscode && hasTranscodeReason && (
+            <View
+              className="rounded-xl border p-2"
+              style={{
+                backgroundColor: withAlpha(colors.warning, '10'),
+                borderColor: withAlpha(colors.warning, '30'),
+              }}
+            >
+              <Text className="text-warning mb-1 text-[11px] font-semibold">Transcode Reason</Text>
+              <Text className="text-xs font-medium" style={{ color: '#FAFAFA' }}>
+                {transcodeReasonText}
+              </Text>
+            </View>
+          )}
+
+          {/* Bottom padding */}
+          <View className="h-6" />
+        </ScrollView>
+      </SafeAreaView>
+
+      {/* Terminate stream confirmation modal */}
+      <Modal
+        visible={terminateModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setTerminateModalVisible(false)}
+      >
+        <Pressable
+          className="flex-1 items-center justify-center bg-black/60"
+          onPress={() => setTerminateModalVisible(false)}
+        >
+          <Pressable
+            className="w-4/5 max-w-sm overflow-hidden rounded-xl"
+            style={{ backgroundColor: '#18181B' }}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <View className="px-4 pt-4 pb-2">
+              <Text className="text-lg font-semibold text-white">Terminate Stream</Text>
+              <Text className="mt-1 text-sm" style={{ color: colors.text.muted.dark }}>
+                Message to user (optional)
+              </Text>
+            </View>
+            <View className="px-4 pb-3">
+              <TextInput
+                value={terminateReason}
+                onChangeText={setTerminateReason}
+                placeholder="e.g., Please don't share your account"
+                placeholderTextColor={colors.text.muted.dark}
+                className="rounded-lg border px-3 py-2.5 text-sm text-white"
+                style={{ borderColor: colors.border.dark, backgroundColor: '#09090B' }}
+                autoFocus
+                returnKeyType="done"
+                onSubmitEditing={handleConfirmTerminate}
+              />
+            </View>
+            <View className="flex-row border-t" style={{ borderColor: colors.border.dark }}>
+              <Pressable
+                className="flex-1 items-center py-3"
+                onPress={() => setTerminateModalVisible(false)}
+              >
+                <Text className="text-sm font-medium" style={{ color: colors.text.muted.dark }}>
+                  Cancel
+                </Text>
+              </Pressable>
+              <View style={{ width: 1, backgroundColor: colors.border.dark }} />
+              <Pressable
+                className="flex-1 items-center py-3"
+                onPress={handleConfirmTerminate}
+                disabled={terminateMutation.isPending}
+              >
+                <Text className="text-sm font-medium" style={{ color: colors.error }}>
+                  {terminateMutation.isPending ? 'Terminating...' : 'Terminate'}
+                </Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+    </>
   );
 }
