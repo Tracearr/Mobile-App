@@ -13,6 +13,7 @@
       "backgroundColor": "#051723"
     },
     "ios": {
+      "icon": "./assets/ios-icon.png",
       "supportsTablet": true,
       "bundleIdentifier": "com.tracearr.app",
       "infoPlist": {
