@@ -95,31 +95,11 @@ export function createApiClient(baseURL: string): AxiosInstance {
         originalRequest._retry = true;
 
         try {
-          // Mark token as refreshing
-          useAuthStateStore.getState().setTokenStatus('refreshing');
-
-          const refreshToken = await getRefreshToken();
-          if (!refreshToken) {
-            throw new Error('No refresh token');
-          }
-
-          const response = await client.post<{ accessToken: string; refreshToken: string }>(
-            '/mobile/refresh',
-            { refreshToken }
-          );
-
-          await setTokens(response.data.accessToken, response.data.refreshToken);
-
-          // Mark token as valid
-          useAuthStateStore.getState().setTokenStatus('valid');
-
-          // Retry original request with new token
-          originalRequest.headers.Authorization = `Bearer ${response.data.accessToken}`;
+          const newAccessToken = await refreshAccessToken();
+          originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
           return await client(originalRequest);
         } catch {
-          // Refresh failed - token is invalid, use unified auth failure handler
-          resetApiClient();
-          useAuthStateStore.getState().handleAuthFailure();
+          // refreshAccessToken handles auth state (handleAuthFailure for server rejections)
           throw new Error('Session expired');
         }
       }
@@ -146,6 +126,70 @@ export function createApiClient(baseURL: string): AxiosInstance {
  */
 export function resetApiClient(): void {
   apiClient = null;
+}
+
+// Mutex for token refresh — prevents concurrent 401s from racing
+let activeRefreshPromise: Promise<string> | null = null;
+
+/**
+ * Refresh the access token using the stored refresh token.
+ * Uses a mutex so concurrent callers all wait for a single refresh.
+ * On auth rejection (server returns 401/403), calls handleAuthFailure().
+ * On network errors, throws without killing auth state.
+ */
+export async function refreshAccessToken(): Promise<string> {
+  if (activeRefreshPromise) {
+    return activeRefreshPromise;
+  }
+
+  activeRefreshPromise = performTokenRefresh().finally(() => {
+    activeRefreshPromise = null;
+  });
+
+  return activeRefreshPromise;
+}
+
+async function performTokenRefresh(): Promise<string> {
+  useAuthStateStore.getState().setTokenStatus('refreshing');
+
+  const refreshToken = await getRefreshToken();
+  if (!refreshToken) {
+    resetApiClient();
+    useAuthStateStore.getState().handleAuthFailure();
+    throw new Error('No refresh token available');
+  }
+
+  const server = useAuthStateStore.getState().server;
+  if (!server) {
+    resetApiClient();
+    useAuthStateStore.getState().handleAuthFailure();
+    throw new Error('No server configured');
+  }
+
+  try {
+    // Use raw axios (not the intercepted client) to avoid recursive interceptor loops
+    const response = await axios.post<{ accessToken: string; refreshToken: string }>(
+      `${server.url}/api/v1/mobile/refresh`,
+      { refreshToken },
+      { timeout: 30000 }
+    );
+
+    const saved = await setTokens(response.data.accessToken, response.data.refreshToken);
+    if (!saved) {
+      console.warn('[Auth] Failed to persist refreshed tokens to secure storage');
+    }
+
+    useAuthStateStore.getState().setTokenStatus('valid');
+    return response.data.accessToken;
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response) {
+      // Server explicitly rejected the refresh token — auth is dead
+      resetApiClient();
+      useAuthStateStore.getState().handleAuthFailure();
+    }
+    // Network errors: don't kill auth, token may still be valid server-side
+    throw error;
+  }
 }
 
 /**

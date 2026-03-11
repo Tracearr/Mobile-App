@@ -11,7 +11,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useShallow } from 'zustand/react/shallow';
 import * as Notifications from 'expo-notifications';
 import { useAuthStateStore, getAccessToken } from '../lib/authStateStore';
-import { api } from '../lib/api';
+import { api, refreshAccessToken } from '../lib/api';
 import type {
   ServerToClientEvents,
   ClientToServerEvents,
@@ -91,7 +91,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
 
     const newSocket: Socket<ServerToClientEvents, ClientToServerEvents> = io(serverUrl, {
       auth: { token: accessToken },
-      transports: ['websocket'],
+      transports: ['polling', 'websocket'],
       reconnection: true,
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,
@@ -112,15 +112,31 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       setIsConnected(false);
 
       // Check if this is an authentication failure
-      if (error.message === 'Authentication failed' || error.message === 'Invalid token') {
-        // Stop reconnection attempts immediately
+      const isAuthError =
+        error.message === 'Token expired' ||
+        error.message === 'Authentication failed' ||
+        error.message === 'Invalid token';
+
+      if (isAuthError) {
+        // Stop reconnection attempts with the stale token
         newSocket.disconnect();
         socketRef.current = null;
         setSocket(null);
         connectedServerIdRef.current = null;
 
-        // Use unified auth failure handler (synchronous, prevents duplicate handling)
-        useAuthStateStore.getState().handleAuthFailure();
+        // Try refreshing the token before giving up on auth
+        void (async () => {
+          try {
+            await refreshAccessToken();
+            // Refresh succeeded — mark as disconnected to trigger the
+            // useEffect that calls connectSocket() with the fresh token.
+            useAuthStateStore.getState().setConnectionState('disconnected');
+          } catch {
+            // If server rejected the refresh token, refreshAccessToken already
+            // called handleAuthFailure. If it was a network error, we stay
+            // disconnected until the next app resume triggers a reconnect.
+          }
+        })();
       }
     });
 

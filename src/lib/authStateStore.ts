@@ -307,9 +307,10 @@ export async function getRefreshToken(): Promise<string | null> {
   return ResilientStorage.getItemAsync(STORAGE_KEYS.REFRESH_TOKEN);
 }
 
-export async function setTokens(access: string, refresh: string): Promise<void> {
-  await ResilientStorage.setItemAsync(STORAGE_KEYS.ACCESS_TOKEN, access);
-  await ResilientStorage.setItemAsync(STORAGE_KEYS.REFRESH_TOKEN, refresh);
+export async function setTokens(access: string, refresh: string): Promise<boolean> {
+  const accessOk = await ResilientStorage.setItemAsync(STORAGE_KEYS.ACCESS_TOKEN, access);
+  const refreshOk = await ResilientStorage.setItemAsync(STORAGE_KEYS.REFRESH_TOKEN, refresh);
+  return accessOk && refreshOk;
 }
 
 // Re-export for backwards compatibility during migration
