@@ -1,14 +1,18 @@
 /**
- * Server selector component for header
- * Multi-select with checkboxes and server color borders
+ * Server selector component for the drawer
+ * Multi-select (checkboxes) on dashboard, single-select (radio) on other tabs
  */
 import { useState } from 'react';
 import { View, Text, TouchableOpacity, Modal, Pressable, ActivityIndicator } from 'react-native';
-import { Server, ChevronDown, Square, SquareCheck } from 'lucide-react-native';
+import { Server, ChevronDown, Square, SquareCheck, Check } from 'lucide-react-native';
 import { useMediaServer } from '../providers/MediaServerProvider';
 import { ACCENT_COLOR, colors } from '../lib/theme';
 
-export function ServerSelector() {
+interface ServerSelectorProps {
+  multiSelect?: boolean;
+}
+
+export function ServerSelector({ multiSelect = false }: ServerSelectorProps) {
   const {
     servers,
     selectedServerIds,
@@ -48,6 +52,15 @@ export function ServerSelector() {
     ? `${selectedServerIds.length} Servers`
     : (selectedServers[0]?.name ?? 'Select Server');
 
+  const handleSelect = (serverId: string) => {
+    if (multiSelect) {
+      toggleServer(serverId);
+    } else {
+      selectServer(serverId);
+      setModalVisible(false);
+    }
+  };
+
   return (
     <>
       <TouchableOpacity
@@ -77,21 +90,25 @@ export function ServerSelector() {
             onPress={(e) => e.stopPropagation()}
           >
             <View className="flex-row items-center justify-between border-b border-gray-800 px-4 py-3">
-              <Text className="text-lg font-semibold text-white">Select Servers</Text>
-              <TouchableOpacity
-                onPress={() => {
-                  if (isAllServersSelected) {
-                    selectServer(servers[0]?.id ?? null);
-                  } else {
-                    selectAllServers();
-                  }
-                }}
-                activeOpacity={0.7}
-              >
-                <Text style={{ color: ACCENT_COLOR, fontSize: 13, fontWeight: '500' }}>
-                  {isAllServersSelected ? 'Deselect All' : 'All'}
-                </Text>
-              </TouchableOpacity>
+              <Text className="text-lg font-semibold text-white">
+                {multiSelect ? 'Select Servers' : 'Select Server'}
+              </Text>
+              {multiSelect && (
+                <TouchableOpacity
+                  onPress={() => {
+                    if (isAllServersSelected) {
+                      selectServer(servers[0]?.id ?? null);
+                    } else {
+                      selectAllServers();
+                    }
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={{ color: ACCENT_COLOR, fontSize: 13, fontWeight: '500' }}>
+                    {isAllServersSelected ? 'Deselect All' : 'All'}
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
             <View className="py-2">
               {servers.map((server) => {
@@ -99,22 +116,26 @@ export function ServerSelector() {
                 return (
                   <TouchableOpacity
                     key={server.id}
-                    onPress={() => toggleServer(server.id)}
+                    onPress={() => handleSelect(server.id)}
                     className="flex-row items-center px-4 py-3"
                     style={{ borderLeftWidth: 2, borderLeftColor: server.color ?? 'transparent' }}
                     activeOpacity={0.7}
                   >
-                    {isSelected ? (
-                      <SquareCheck size={20} color={ACCENT_COLOR} />
+                    {multiSelect ? (
+                      isSelected ? (
+                        <SquareCheck size={20} color={ACCENT_COLOR} />
+                      ) : (
+                        <Square size={20} color={colors.text.muted.dark} />
+                      )
                     ) : (
-                      <Square size={20} color={colors.text.muted.dark} />
+                      isSelected && <Check size={20} color={ACCENT_COLOR} />
                     )}
-                    <View className="ml-3 flex-1">
+                    <View className={multiSelect ? 'ml-3 flex-1' : 'ml-3 flex-1'}>
                       <Text
                         className="text-base"
                         style={{
                           fontWeight: isSelected ? '500' : '400',
-                          color: isSelected ? 'white' : colors.text.muted.dark,
+                          color: isSelected ? (multiSelect ? 'white' : ACCENT_COLOR) : 'white',
                         }}
                         numberOfLines={1}
                       >
@@ -122,15 +143,18 @@ export function ServerSelector() {
                       </Text>
                       <Text className="text-xs text-gray-500 capitalize">{server.type}</Text>
                     </View>
+                    {!multiSelect && !isSelected && <View style={{ width: 20 }} />}
                   </TouchableOpacity>
                 );
               })}
             </View>
-            <View className="border-t border-gray-800 px-4 py-2.5">
-              <Text className="text-center text-xs text-gray-500">
-                {selectedServerIds.length} of {servers.length} servers selected
-              </Text>
-            </View>
+            {multiSelect && (
+              <View className="border-t border-gray-800 px-4 py-2.5">
+                <Text className="text-center text-xs text-gray-500">
+                  {selectedServerIds.length} of {servers.length} servers selected
+                </Text>
+              </View>
+            )}
           </Pressable>
         </Pressable>
       </Modal>

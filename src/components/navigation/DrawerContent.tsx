@@ -4,7 +4,7 @@
  */
 import { View, Pressable, ActivityIndicator, ScrollView } from 'react-native';
 import type { DrawerContentComponentProps } from '@react-navigation/drawer';
-import { useRouter } from 'expo-router';
+import { useRouter, usePathname } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Settings, ChevronRight } from 'lucide-react-native';
 import { useQuery } from '@tanstack/react-query';
@@ -50,7 +50,9 @@ function DrawerSection({ title, children }: { title: string; children: React.Rea
 
 export function DrawerContent(props: DrawerContentComponentProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const insets = useSafeAreaInsets();
+  const isDashboard = pathname === '/' || pathname === '/index';
 
   // Fetch current user profile
   const { data: user, isLoading: userLoading } = useQuery({
@@ -76,7 +78,7 @@ export function DrawerContent(props: DrawerContentComponentProps) {
         {/* Server Section - uses existing ServerSelector */}
         <DrawerSection title="Server">
           <View className="py-2">
-            <ServerSelector />
+            <ServerSelector multiSelect={isDashboard} />
           </View>
         </DrawerSection>
 
