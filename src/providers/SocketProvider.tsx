@@ -115,7 +115,8 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       const isAuthError =
         error.message === 'Token expired' ||
         error.message === 'Authentication failed' ||
-        error.message === 'Invalid token';
+        error.message === 'Invalid token' ||
+        error.message === 'Session has been revoked';
 
       if (isAuthError) {
         // Stop reconnection attempts with the stale token
