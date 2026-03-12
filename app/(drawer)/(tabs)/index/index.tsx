@@ -1,12 +1,13 @@
 /**
  * Dashboard tab - overview of streaming activity
- * Query keys include selectedServerId for proper cache isolation per media server
+ * Supports multi-server selection with colored cards and map markers
  *
  * Responsive layout:
  * - Phone: Single column, stacked cards
  * - Tablet (md+): 2-column grid for Now Playing, larger map
  * - Large tablet (lg+): 3-column grid for Now Playing
  */
+import { useMemo } from 'react';
 import { View, ScrollView, RefreshControl, Platform } from 'react-native';
 import { useRouter, Stack } from 'expo-router';
 import { DrawerActions, useNavigation } from '@react-navigation/native';
@@ -62,40 +63,62 @@ function StatPill({
 export default function DashboardScreen() {
   const router = useRouter();
   const navigation = useNavigation();
-  const { selectedServerId, selectedServer } = useMediaServer();
+  const { servers, selectedServerIds, selectedServerId, selectedServer, isMultiServer } =
+    useMediaServer();
   const { isTablet, columns, select } = useResponsive();
   const { hasAlerts, displayCount } = useUnacknowledgedAlertsCount();
+
+  const serverColorMap = useMemo(
+    () => new Map(servers.map((s) => [s.id, s.color ?? null])),
+    [servers]
+  );
+
+  const serverOrderMap = useMemo(
+    () => new Map(servers.map((s) => [s.id, s.displayOrder ?? 0])),
+    [servers]
+  );
+
+  const sortedServerIds = useMemo(() => [...selectedServerIds].sort(), [selectedServerIds]);
 
   const {
     data: stats,
     refetch,
     isRefetching,
   } = useQuery({
-    queryKey: ['dashboard', 'stats', selectedServerId],
-    queryFn: () => api.stats.dashboard(selectedServerId ?? undefined),
+    queryKey: ['dashboard', 'stats', sortedServerIds],
+    queryFn: () => api.stats.dashboard(selectedServerIds),
+    staleTime: 1000 * 30,
+    refetchInterval: 1000 * 60,
   });
 
   const { data: activeSessions } = useQuery({
-    queryKey: ['sessions', 'active', selectedServerId],
-    queryFn: () => api.sessions.active(selectedServerId ?? undefined),
-    staleTime: 1000 * 5, // 5 seconds - real-time feel for active sessions
-    refetchInterval: 1000 * 30, // 30 seconds - fallback if WebSocket events missed
+    queryKey: ['sessions', 'active', sortedServerIds],
+    queryFn: () => api.sessions.active(selectedServerIds),
+    staleTime: 1000 * 5,
+    refetchInterval: 1000 * 30,
   });
 
-  // Only show server resources for Plex servers
-  const isPlexServer = selectedServer?.type === 'plex';
+  const sortedSessions = useMemo(() => {
+    if (!activeSessions) return undefined;
+    return [...activeSessions].sort((a, b) => {
+      const orderA = serverOrderMap.get(a.server.id) ?? 0;
+      const orderB = serverOrderMap.get(b.server.id) ?? 0;
+      return orderA - orderB;
+    });
+  }, [activeSessions, serverOrderMap]);
 
-  // Poll server statistics only when dashboard is visible and we have a Plex server
+  // Only show server resources for single Plex server
+  const isPlexServer = !isMultiServer && selectedServer?.type === 'plex';
+
   const {
     latest: serverResources,
     isLoadingData: resourcesLoading,
     error: resourcesError,
   } = useServerStatistics(selectedServerId ?? undefined, isPlexServer);
 
-  // Responsive values
   const horizontalPadding = select({ base: spacing.md, md: spacing.lg, lg: spacing.xl });
   const mapHeight = select({ base: 200, md: 280, lg: 320 });
-  const nowPlayingColumns = columns.cards; // 1 on phone, 2 on tablet, 3 on large tablet
+  const nowPlayingColumns = columns.cards;
 
   return (
     <>
@@ -152,7 +175,7 @@ export default function DashboardScreen() {
                 Now Playing
               </Text>
             </View>
-            {activeSessions && activeSessions.length > 0 && (
+            {sortedSessions && sortedSessions.length > 0 && (
               <View
                 style={{
                   backgroundColor: 'rgba(24, 209, 231, 0.15)',
@@ -162,12 +185,12 @@ export default function DashboardScreen() {
                 }}
               >
                 <Text style={{ color: ACCENT_COLOR, fontSize: 12, fontWeight: '600' }}>
-                  {activeSessions.length} {activeSessions.length === 1 ? 'stream' : 'streams'}
+                  {sortedSessions.length} {sortedSessions.length === 1 ? 'stream' : 'streams'}
                 </Text>
               </View>
             )}
           </View>
-          {activeSessions && activeSessions.length > 0 ? (
+          {sortedSessions && sortedSessions.length > 0 ? (
             <View
               style={{
                 flexDirection: 'row',
@@ -175,7 +198,7 @@ export default function DashboardScreen() {
                 marginHorizontal: isTablet ? -spacing.sm / 2 : 0,
               }}
             >
-              {activeSessions.map((session) => (
+              {sortedSessions.map((session) => (
                 <View
                   key={session.id}
                   style={{
@@ -186,6 +209,8 @@ export default function DashboardScreen() {
                   <NowPlayingCard
                     session={session}
                     onPress={() => router.push(`/session/${session.id}` as never)}
+                    isMultiServer={isMultiServer}
+                    serverColor={serverColorMap.get(session.server.id)}
                   />
                 </View>
               ))}
@@ -213,7 +238,7 @@ export default function DashboardScreen() {
         </View>
 
         {/* Stream Map - only show when there are active streams */}
-        {activeSessions && activeSessions.length > 0 && (
+        {sortedSessions && sortedSessions.length > 0 && (
           <View style={{ marginBottom: spacing.md, paddingHorizontal: horizontalPadding }}>
             <View className="mb-3 flex-row items-center gap-2">
               <Ionicons name="location-outline" size={18} color={ACCENT_COLOR} />
@@ -221,11 +246,15 @@ export default function DashboardScreen() {
                 Stream Locations
               </Text>
             </View>
-            <StreamMap sessions={activeSessions} height={mapHeight} />
+            <StreamMap
+              sessions={sortedSessions}
+              height={mapHeight}
+              serverColorMap={isMultiServer ? serverColorMap : undefined}
+            />
           </View>
         )}
 
-        {/* Server Resources - only show if Plex server is active */}
+        {/* Server Resources - only show for single Plex server */}
         {isPlexServer && (
           <View style={{ paddingHorizontal: horizontalPadding }}>
             <View className="mb-3 flex-row items-center gap-2">

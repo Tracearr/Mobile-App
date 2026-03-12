@@ -59,6 +59,7 @@ class MapErrorBoundary extends Component<
 interface StreamMapProps {
   sessions: ActiveSession[];
   height?: number;
+  serverColorMap?: Map<string, string | null>;
 }
 
 /** Session with guaranteed geo coordinates */
@@ -72,7 +73,7 @@ function hasLocation(session: ActiveSession): session is SessionWithLocation {
   return session.geoLat != null && session.geoLon != null;
 }
 
-export function StreamMap({ sessions, height = 300 }: StreamMapProps) {
+export function StreamMap({ sessions, height = 300, serverColorMap }: StreamMapProps) {
   // Filter sessions with valid geo coordinates (type guard narrows to SessionWithLocation[])
   const sessionsWithLocation = sessions.filter(hasLocation);
 
@@ -115,8 +116,7 @@ export function StreamMap({ sessions, height = 300 }: StreamMapProps) {
       title: displayName,
       // Snippet shows media and location
       snippet: `${truncatedTitle}\n${location}`,
-      // Use accent color to match app theme
-      tintColor: ACCENT_COLOR,
+      tintColor: serverColorMap?.get(session.server.id) ?? ACCENT_COLOR,
       // iOS: Use SF Symbol for streaming indicator
       ...(Platform.OS === 'ios' && {
         systemImage: 'play.circle.fill',
@@ -147,8 +147,8 @@ export function StreamMap({ sessions, height = 300 }: StreamMapProps) {
 
   const cameraPosition = {
     coordinates: {
-      latitude: avgLat || 39.8283,
-      longitude: avgLon || -98.5795,
+      latitude: avgLat,
+      longitude: avgLon,
     },
     zoom: calculateZoom(),
   };

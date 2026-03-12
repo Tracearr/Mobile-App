@@ -23,6 +23,8 @@ import type { ActiveSession } from '@tracearr/shared';
 interface NowPlayingCardProps {
   session: ActiveSession;
   onPress?: (session: ActiveSession) => void;
+  isMultiServer?: boolean;
+  serverColor?: string | null;
 }
 
 /**
@@ -181,7 +183,12 @@ function getLocationString(session: ActiveSession): string | null {
   return null;
 }
 
-export function NowPlayingCard({ session, onPress }: NowPlayingCardProps) {
+export function NowPlayingCard({
+  session,
+  onPress,
+  isMultiServer,
+  serverColor,
+}: NowPlayingCardProps) {
   const getImageUrl = useImageUrl();
   const { isTablet, select } = useResponsive();
   const { title, subtitle } = getMediaDisplay(session);
@@ -215,7 +222,10 @@ export function NowPlayingCard({ session, onPress }: NowPlayingCardProps) {
   return (
     <Pressable
       className="bg-card mb-2 overflow-hidden rounded-xl"
-      style={({ pressed }) => pressed && { opacity: 0.7 }}
+      style={({ pressed }) => ({
+        ...(pressed && { opacity: 0.7 }),
+        ...(isMultiServer && serverColor && { borderLeftWidth: 2, borderLeftColor: serverColor }),
+      })}
       onPress={() => onPress?.(session)}
     >
       {/* Background with poster blur - matches web's blur-xl */}
@@ -318,6 +328,18 @@ export function NowPlayingCard({ session, onPress }: NowPlayingCardProps) {
                 )
               )}
             </View>
+            {isMultiServer && (
+              <View className="mr-1 flex-row items-center gap-1">
+                {serverColor && (
+                  <View
+                    style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: serverColor }}
+                  />
+                )}
+                <Text className="text-[10px]" style={{ color: colors.text.muted.dark }}>
+                  {session.server.name}
+                </Text>
+              </View>
+            )}
             <View className="flex-row items-center gap-1">
               <View
                 className="h-3 w-3 items-center justify-center rounded-full"
@@ -359,7 +381,11 @@ export function NowPlayingCard({ session, onPress }: NowPlayingCardProps) {
       {/* Bottom progress bar - full width */}
       <View style={{ height: 3, backgroundColor: colors.surface.dark }}>
         <View
-          style={{ height: '100%', width: `${progressPercent}%`, backgroundColor: ACCENT_COLOR }}
+          style={{
+            height: '100%',
+            width: `${progressPercent}%`,
+            backgroundColor: isMultiServer && serverColor ? serverColor : ACCENT_COLOR,
+          }}
         />
       </View>
     </Pressable>

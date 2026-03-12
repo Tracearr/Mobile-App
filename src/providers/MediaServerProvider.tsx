@@ -1,7 +1,7 @@
 /**
  * Media Server selection provider
  * Fetches available servers from Tracearr API and manages selection
- * Similar to web's useServer hook
+ * Supports multi-server selection for dashboard, single-server for other tabs
  */
 import {
   createContext,
@@ -10,6 +10,7 @@ import {
   useCallback,
   useMemo,
   useEffect,
+  useRef,
   type ReactNode,
 } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -18,7 +19,8 @@ import type { Server } from '@tracearr/shared';
 import { api } from '../lib/api';
 import { useAuthStateStore } from '../lib/authStateStore';
 
-const SELECTED_SERVER_KEY = 'tracearr_selected_media_server';
+const SELECTED_SERVERS_KEY = 'tracearr_selected_media_servers';
+const LEGACY_SERVER_KEY = 'tracearr_selected_media_server';
 
 interface MediaServerContextValue {
   servers: Server[];
@@ -27,33 +29,53 @@ interface MediaServerContextValue {
   isLoading: boolean;
   selectServer: (serverId: string | null) => void;
   refetch: () => Promise<unknown>;
+  selectedServerIds: string[];
+  selectedServers: Server[];
+  isMultiServer: boolean;
+  isAllServersSelected: boolean;
+  toggleServer: (serverId: string) => void;
+  selectAllServers: () => void;
 }
 
 const MediaServerContext = createContext<MediaServerContextValue | null>(null);
 
 export function MediaServerProvider({ children }: { children: ReactNode }) {
-  // Use single-server auth state store for auth status (not media servers)
   const tracearrServer = useAuthStateStore((s) => s.server);
   const tokenStatus = useAuthStateStore((s) => s.tokenStatus);
 
-  // Derived state - are we authenticated to Tracearr backend?
   const isAuthenticated = tracearrServer !== null && tokenStatus !== 'revoked';
   const tracearrBackendId = tracearrServer?.id ?? null;
   const queryClient = useQueryClient();
-  const [selectedServerId, setSelectedServerId] = useState<string | null>(null);
+  const [selectedServerIds, setSelectedServerIds] = useState<string[]>([]);
   const [initialized, setInitialized] = useState(false);
 
-  // Load saved selection on mount
+  // Load saved selection with legacy migration
   useEffect(() => {
-    void SecureStore.getItemAsync(SELECTED_SERVER_KEY).then((saved) => {
-      if (saved) {
-        setSelectedServerId(saved);
+    void (async () => {
+      try {
+        const stored = await SecureStore.getItemAsync(SELECTED_SERVERS_KEY);
+        if (stored) {
+          const parsed = JSON.parse(stored) as string[];
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setSelectedServerIds(parsed);
+            setInitialized(true);
+            return;
+          }
+        }
+        // Migrate from legacy single-server key
+        const legacy = await SecureStore.getItemAsync(LEGACY_SERVER_KEY);
+        if (legacy) {
+          setSelectedServerIds([legacy]);
+          await SecureStore.setItemAsync(SELECTED_SERVERS_KEY, JSON.stringify([legacy]));
+          await SecureStore.deleteItemAsync(LEGACY_SERVER_KEY);
+        }
+      } catch {
+        // Ignore parse errors
       }
       setInitialized(true);
-    });
+    })();
   }, []);
 
-  // Fetch available MEDIA servers (Plex/Jellyfin) from API
   const {
     data: mediaServers = [],
     isLoading,
@@ -62,67 +84,104 @@ export function MediaServerProvider({ children }: { children: ReactNode }) {
     queryKey: ['media-servers', tracearrBackendId],
     queryFn: () => api.servers.list(),
     enabled: isAuthenticated && !!tracearrBackendId,
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 1000 * 60 * 5,
   });
 
-  // Validate selection when media servers load
+  // Validate selection when servers load
   useEffect(() => {
     if (!initialized || isLoading) return;
 
     if (mediaServers.length === 0) {
-      if (selectedServerId) {
-        setSelectedServerId(null);
-        void SecureStore.deleteItemAsync(SELECTED_SERVER_KEY);
+      if (selectedServerIds.length > 0) {
+        setSelectedServerIds([]);
+        void SecureStore.deleteItemAsync(SELECTED_SERVERS_KEY);
       }
       return;
     }
 
-    // If selection is invalid (server no longer exists), select first
-    if (selectedServerId && !mediaServers.some((s) => s.id === selectedServerId)) {
-      const firstServer = mediaServers[0];
-      if (firstServer) {
-        setSelectedServerId(firstServer.id);
-        void SecureStore.setItemAsync(SELECTED_SERVER_KEY, firstServer.id);
-      }
-    }
+    const validIds = new Set(mediaServers.map((s) => s.id));
+    const validated = selectedServerIds.filter((id) => validIds.has(id));
+    const next = validated.length > 0 ? validated : mediaServers.map((s) => s.id);
 
-    // If no selection but servers exist, select first
-    if (!selectedServerId && mediaServers.length > 0) {
-      const firstServer = mediaServers[0];
-      if (firstServer) {
-        setSelectedServerId(firstServer.id);
-        void SecureStore.setItemAsync(SELECTED_SERVER_KEY, firstServer.id);
-      }
+    if (
+      next.length !== selectedServerIds.length ||
+      next.some((id, i) => id !== selectedServerIds[i])
+    ) {
+      setSelectedServerIds(next);
+      void SecureStore.setItemAsync(SELECTED_SERVERS_KEY, JSON.stringify(next));
     }
-  }, [mediaServers, selectedServerId, initialized, isLoading]);
+  }, [mediaServers, selectedServerIds, initialized, isLoading]);
 
-  // Clear selection on logout
+  // Clear on logout
   useEffect(() => {
     if (!isAuthenticated) {
-      setSelectedServerId(null);
-      void SecureStore.deleteItemAsync(SELECTED_SERVER_KEY);
+      setSelectedServerIds([]);
+      void SecureStore.deleteItemAsync(SELECTED_SERVERS_KEY);
+      void SecureStore.deleteItemAsync(LEGACY_SERVER_KEY);
     }
   }, [isAuthenticated]);
 
-  const selectServer = useCallback(
-    (serverId: string | null) => {
-      setSelectedServerId(serverId);
-      if (serverId) {
-        void SecureStore.setItemAsync(SELECTED_SERVER_KEY, serverId);
-      } else {
-        void SecureStore.deleteItemAsync(SELECTED_SERVER_KEY);
-      }
-      // Invalidate all server-dependent queries
-      void queryClient.invalidateQueries({
-        predicate: (query) => {
-          const key = query.queryKey[0];
-          return key !== 'media-servers' && key !== 'servers';
-        },
-      });
-    },
-    [queryClient]
+  const invalidateServerQueries = useCallback(() => {
+    void queryClient.invalidateQueries({
+      predicate: (query) => {
+        const key = query.queryKey[0];
+        return key !== 'media-servers' && key !== 'servers';
+      },
+    });
+  }, [queryClient]);
+
+  const persistSelection = useCallback((ids: string[]) => {
+    if (ids.length > 0) {
+      void SecureStore.setItemAsync(SELECTED_SERVERS_KEY, JSON.stringify(ids));
+    } else {
+      void SecureStore.deleteItemAsync(SELECTED_SERVERS_KEY);
+    }
+  }, []);
+
+  const toggleServer = useCallback((serverId: string) => {
+    setSelectedServerIds((prev) => {
+      const next = prev.includes(serverId)
+        ? prev.filter((id) => id !== serverId)
+        : [...prev, serverId];
+      if (next.length === 0) return prev;
+      return next;
+    });
+  }, []);
+
+  const selectAllServers = useCallback(() => {
+    setSelectedServerIds(mediaServers.map((s) => s.id));
+  }, [mediaServers]);
+
+  const selectServer = useCallback((serverId: string | null) => {
+    setSelectedServerIds(serverId ? [serverId] : []);
+  }, []);
+
+  // Persist and invalidate whenever selection changes (after initialization)
+  const prevIdsRef = useRef<string[]>([]);
+  useEffect(() => {
+    if (!initialized) return;
+    if (
+      prevIdsRef.current.length === selectedServerIds.length &&
+      prevIdsRef.current.every((id, i) => id === selectedServerIds[i])
+    ) {
+      return;
+    }
+    prevIdsRef.current = selectedServerIds;
+    persistSelection(selectedServerIds);
+    invalidateServerQueries();
+  }, [selectedServerIds, initialized, persistSelection, invalidateServerQueries]);
+
+  const selectedServers = useMemo(
+    () => mediaServers.filter((s) => selectedServerIds.includes(s.id)),
+    [mediaServers, selectedServerIds]
   );
 
+  // Derive from validated intersection to avoid stale state between server list changes
+  const isMultiServer = selectedServers.length > 1;
+  const isAllServersSelected =
+    mediaServers.length > 0 && selectedServers.length === mediaServers.length;
+
+  const selectedServerId = selectedServerIds[0] ?? null;
   const selectedServer = useMemo(() => {
     if (!selectedServerId) return null;
     return mediaServers.find((s) => s.id === selectedServerId) ?? null;
@@ -136,8 +195,27 @@ export function MediaServerProvider({ children }: { children: ReactNode }) {
       isLoading,
       selectServer,
       refetch,
+      selectedServerIds,
+      selectedServers,
+      isMultiServer,
+      isAllServersSelected,
+      toggleServer,
+      selectAllServers,
     }),
-    [mediaServers, selectedServer, selectedServerId, isLoading, selectServer, refetch]
+    [
+      mediaServers,
+      selectedServer,
+      selectedServerId,
+      isLoading,
+      selectServer,
+      refetch,
+      selectedServerIds,
+      selectedServers,
+      isMultiServer,
+      isAllServersSelected,
+      toggleServer,
+      selectAllServers,
+    ]
   );
 
   return <MediaServerContext.Provider value={value}>{children}</MediaServerContext.Provider>;

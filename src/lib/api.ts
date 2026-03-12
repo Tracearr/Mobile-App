@@ -322,11 +322,14 @@ export const api = {
    * Dashboard stats
    */
   stats: {
-    dashboard: async (serverId?: string): Promise<DashboardStats> => {
+    dashboard: async (serverIds?: string[]): Promise<DashboardStats> => {
       const client = getApiClient();
-      const response = await client.get<DashboardStats>('/stats/dashboard', {
-        params: { serverId, timezone: getDeviceTimezone() },
-      });
+      const params = new URLSearchParams();
+      if (serverIds?.length) {
+        for (const id of serverIds) params.append('serverIds', id);
+      }
+      params.set('timezone', getDeviceTimezone());
+      const response = await client.get<DashboardStats>(`/stats/dashboard?${params.toString()}`);
       return response.data;
     },
     plays: async (params?: {
@@ -451,11 +454,16 @@ export const api = {
    * Sessions
    */
   sessions: {
-    active: async (serverId?: string): Promise<ActiveSession[]> => {
+    active: async (serverIds?: string[]): Promise<ActiveSession[]> => {
       const client = getApiClient();
-      const response = await client.get<{ data: ActiveSession[] }>('/sessions/active', {
-        params: serverId ? { serverId } : undefined,
-      });
+      const params = new URLSearchParams();
+      if (serverIds?.length) {
+        for (const id of serverIds) params.append('serverIds', id);
+      }
+      const query = params.toString();
+      const response = await client.get<{ data: ActiveSession[] }>(
+        `/sessions/active${query ? `?${query}` : ''}`
+      );
       return response.data.data;
     },
     list: async (params?: {
