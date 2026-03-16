@@ -2,11 +2,11 @@
  * Server selector component for the drawer
  * Multi-select (checkboxes) on dashboard, single-select (radio) on other tabs
  */
+import { Check, ChevronDown, Server, Square, SquareCheck } from 'lucide-react-native';
 import { useState } from 'react';
-import { View, Text, TouchableOpacity, Modal, Pressable, ActivityIndicator } from 'react-native';
-import { Server, ChevronDown, Square, SquareCheck, Check } from 'lucide-react-native';
-import { useMediaServer } from '../providers/MediaServerProvider';
+import { ActivityIndicator, Modal, Pressable, Text, TouchableOpacity, View } from 'react-native';
 import { ACCENT_COLOR, colors } from '../lib/theme';
+import { useMediaServer } from '../providers/MediaServerProvider';
 
 interface ServerSelectorProps {
   multiSelect?: boolean;
@@ -117,10 +117,21 @@ export function ServerSelector({ multiSelect = false }: ServerSelectorProps) {
                   <TouchableOpacity
                     key={server.id}
                     onPress={() => handleSelect(server.id)}
-                    className="flex-row items-center px-4 py-3"
-                    style={{ borderLeftWidth: 2, borderLeftColor: server.color ?? 'transparent' }}
+                    className="relative flex-row items-center py-3"
+                    style={{ paddingLeft: 18, paddingRight: 16 }}
                     activeOpacity={0.7}
                   >
+                    <View
+                      style={{
+                        position: 'absolute',
+                        left: 6,
+                        top: 8,
+                        bottom: 8,
+                        width: 3,
+                        borderRadius: 1.5,
+                        backgroundColor: server.color ?? 'transparent',
+                      }}
+                    />
                     {multiSelect ? (
                       isSelected ? (
                         <SquareCheck size={20} color={ACCENT_COLOR} />

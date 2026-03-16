@@ -2,6 +2,7 @@
  * Custom drawer content for the hamburger menu
  * Contains: Server Switcher, Settings link, User profile section at bottom
  */
+import { useEffect, useRef } from 'react';
 import { View, Pressable, ActivityIndicator, ScrollView } from 'react-native';
 import type { DrawerContentComponentProps } from '@react-navigation/drawer';
 import { useRouter, usePathname } from 'expo-router';
@@ -11,6 +12,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Text } from '@/components/ui/text';
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { ServerSelector } from '@/components/ServerSelector';
+import { useMediaServer } from '@/providers/MediaServerProvider';
 import { api } from '@/lib/api';
 import { ACCENT_COLOR, colors, spacing, withAlpha } from '@/lib/theme';
 
@@ -53,6 +55,19 @@ export function DrawerContent(props: DrawerContentComponentProps) {
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
   const isDashboard = pathname === '/' || pathname === '/index';
+  const { selectedServerIds, selectServer } = useMediaServer();
+
+  // When navigating away from Dashboard with multiple servers selected,
+  // collapse to single server (other pages are single-server only)
+  const prevIsDashboard = useRef(isDashboard);
+  useEffect(() => {
+    const wasDashboard = prevIsDashboard.current;
+    prevIsDashboard.current = isDashboard;
+
+    if (wasDashboard && !isDashboard && selectedServerIds.length > 1) {
+      selectServer(selectedServerIds[0] ?? null);
+    }
+  }, [isDashboard, selectedServerIds, selectServer]);
 
   // Fetch current user profile
   const { data: user, isLoading: userLoading } = useQuery({

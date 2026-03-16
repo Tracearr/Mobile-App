@@ -11,6 +11,8 @@
  * AppDelegate that sets waitsForConnectivity = YES, making NSURLSession wait for
  * VPN readiness instead of failing immediately with "network unreachable."
  *
+ * Supports both Swift (Expo SDK 55+) and Objective-C AppDelegates.
+ *
  * @see https://protonvpn.com/blog/apple-ios-vulnerability-disclosure
  * @see https://github.com/facebook/react-native/pull/27701
  */
@@ -18,39 +20,85 @@ const { withAppDelegate } = require('expo/config-plugins');
 
 module.exports = function withVPNNetworking(config) {
   return withAppDelegate(config, (config) => {
-    if (config.modResults.language !== 'objcpp' && config.modResults.language !== 'objc') {
-      throw new Error('withVPNNetworking: Only Objective-C(++) AppDelegate is supported');
+    const language = config.modResults.language;
+
+    if (language === 'swift') {
+      config.modResults.contents = applySwift(config.modResults.contents);
+    } else if (language === 'objcpp' || language === 'objc') {
+      config.modResults.contents = applyObjC(config.modResults.contents);
+    } else {
+      throw new Error(`withVPNNetworking: Unsupported AppDelegate language: ${language}`);
     }
 
-    let contents = config.modResults.contents;
+    return config;
+  });
+};
 
-    // Skip if already applied
-    if (contents.includes('RCTSetCustomNSURLSessionConfigurationProvider')) {
-      return config;
+function applySwift(contents) {
+  // Skip if already applied
+  if (contents.includes('RCTSetCustomNSURLSessionConfigurationProvider')) {
+    return contents;
+  }
+
+  if (!contents.includes('RCTHTTPRequestHandler')) {
+    contents = contents.replace(
+      'internal import React',
+      'internal import React\nimport RCTHTTPRequestHandler'
+    );
+  }
+
+  const startCall = 'factory.startReactNative(';
+
+  if (!contents.includes(startCall)) {
+    throw new Error(
+      'withVPNNetworking: Could not find factory.startReactNative( in Swift AppDelegate'
+    );
+  }
+
+  const providerCode = `// Configure NSURLSession for VPN/Tailscale compatibility.
+    // - waitsForConnectivity: wait for VPN route instead of failing immediately
+    // - allowsExpensiveNetworkAccess: iOS may classify VPN as "expensive"
+    // - allowsConstrainedNetworkAccess: iOS may classify VPN as "constrained" in Low Data Mode
+    RCTSetCustomNSURLSessionConfigurationProvider { () -> URLSessionConfiguration in
+      let config = URLSessionConfiguration.default
+      config.waitsForConnectivity = true
+      config.allowsExpensiveNetworkAccess = true
+      config.allowsConstrainedNetworkAccess = true
+      config.httpShouldSetCookies = true
+      config.httpCookieAcceptPolicy = .always
+      config.httpCookieStorage = .shared
+      return config
     }
 
-    // Add import for RCTHTTPRequestHandler (contains the provider function)
-    if (!contents.includes('RCTHTTPRequestHandler.h')) {
-      contents = contents.replace(
-        '#import "AppDelegate.h"',
-        '#import "AppDelegate.h"\n#import <React/RCTHTTPRequestHandler.h>'
-      );
-    }
+    `;
 
-    // Insert the provider call before [super application:didFinishLaunchingWithOptions:]
-    // This must run before the React bridge initializes so the custom config is picked up
-    const superCall =
-      'return [super application:application didFinishLaunchingWithOptions:launchOptions];';
-    if (!contents.includes(superCall)) {
-      throw new Error(
-        'withVPNNetworking: Could not find [super application:didFinishLaunchingWithOptions:] in AppDelegate'
-      );
-    }
+  contents = contents.replace(startCall, providerCode + startCall);
 
-    const providerCode = `
-  // Configure NSURLSession to wait for network path readiness (VPN tunnel routing).
-  // Fixes connectivity failures when using Tailscale or other iOS VPN apps where
-  // the tunnel is established but NSURLSession hasn't picked up the route yet.
+  return contents;
+}
+
+function applyObjC(contents) {
+  if (contents.includes('RCTSetCustomNSURLSessionConfigurationProvider')) {
+    return contents;
+  }
+
+  if (!contents.includes('RCTHTTPRequestHandler.h')) {
+    contents = contents.replace(
+      '#import "AppDelegate.h"',
+      '#import "AppDelegate.h"\n#import <React/RCTHTTPRequestHandler.h>'
+    );
+  }
+
+  const superCall =
+    'return [super application:application didFinishLaunchingWithOptions:launchOptions];';
+  if (!contents.includes(superCall)) {
+    throw new Error(
+      'withVPNNetworking: Could not find [super application:didFinishLaunchingWithOptions:] in AppDelegate'
+    );
+  }
+
+  const providerCode = `
+  // Configure NSURLSession to wait for VPN tunnel routing readiness.
   RCTSetCustomNSURLSessionConfigurationProvider(^NSURLSessionConfiguration *{
     NSURLSessionConfiguration *sessionConfig = [NSURLSessionConfiguration defaultSessionConfiguration];
     sessionConfig.waitsForConnectivity = YES;
@@ -62,9 +110,7 @@ module.exports = function withVPNNetworking(config) {
 
   `;
 
-    contents = contents.replace(superCall, providerCode + superCall);
+  contents = contents.replace(superCall, providerCode + superCall);
 
-    config.modResults.contents = contents;
-    return config;
-  });
-};
+  return contents;
+}

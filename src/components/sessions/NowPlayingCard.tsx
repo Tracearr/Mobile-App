@@ -197,8 +197,8 @@ export function NowPlayingCard({
   const { estimatedProgressMs, progressPercent } = useEstimatedProgress(session);
 
   // Responsive sizing
-  const posterWidth = select({ base: 50, md: 70 });
-  const posterHeight = select({ base: 75, md: 105 });
+  const posterWidth = select({ base: 50, md: 65 });
+  const posterHeight = select({ base: 70, md: 95 });
   const avatarSize = select({ base: 16, md: 20 });
 
   // Build poster URL using image proxy (request larger size for tablets)
@@ -224,7 +224,6 @@ export function NowPlayingCard({
       className="bg-card mb-2 overflow-hidden rounded-xl"
       style={({ pressed }) => ({
         ...(pressed && { opacity: 0.7 }),
-        ...(isMultiServer && serverColor && { borderLeftWidth: 2, borderLeftColor: serverColor }),
       })}
       onPress={() => onPress?.(session)}
     >
@@ -239,9 +238,9 @@ export function NowPlayingCard({
       )}
 
       {/* Main content row */}
-      <View className="flex-row items-center px-2 py-1">
+      <View className="flex-row px-2 py-1" style={{ gap: isTablet ? spacing.md : spacing.sm }}>
         {/* Poster */}
-        <View className="relative" style={{ marginRight: isTablet ? spacing.md : spacing.sm }}>
+        <View className="relative">
           {posterUrl ? (
             <Image
               source={{ uri: posterUrl }}
@@ -257,7 +256,7 @@ export function NowPlayingCard({
               <Ionicons name="film-outline" size={isTablet ? 28 : 24} color={colors.icon.default} />
             </View>
           )}
-          {/* Paused overlay */}
+          {/* Play/Pause overlay on poster - like web */}
           {isPaused && (
             <View
               style={StyleSheet.absoluteFill}
@@ -268,125 +267,125 @@ export function NowPlayingCard({
           )}
         </View>
 
-        {/* Info section */}
-        <View className="flex-1 justify-center gap-0.5">
-          {/* Title row - with device icon on tablet */}
-          <View className="flex-row items-center">
-            <Text
-              className={`flex-1 leading-4 font-semibold ${isTablet ? 'text-base leading-5' : 'text-sm'}`}
-              numberOfLines={1}
-            >
-              {title}
-            </Text>
-            {isTablet && (
-              <Ionicons
-                name={deviceIcon}
-                size={14}
-                color={colors.text.muted.dark}
-                style={{ marginLeft: 6 }}
-              />
-            )}
-          </View>
-          {subtitle && (
-            <Text
-              className={`text-muted-foreground ${isTablet ? 'text-sm' : 'text-xs'}`}
-              numberOfLines={1}
-            >
-              {subtitle}
-            </Text>
-          )}
-
-          {/* User + time row combined */}
-          <View className="mt-0.5 flex-row items-center justify-between">
-            <View className="flex-1 flex-row items-center gap-1">
-              <UserAvatar
-                thumbUrl={userThumbUrl}
-                serverId={session.serverId}
-                username={username}
-                size={avatarSize}
-              />
-              <Text className="text-secondary-foreground text-xs" numberOfLines={1}>
-                {displayName}
+        {/* Info section — groups spaced apart, tight within */}
+        <View className="flex-1" style={{ gap: isTablet ? 10 : 6 }}>
+          {/* Title block */}
+          <View>
+            <View className="flex-row items-center">
+              <Text
+                className={`flex-1 font-semibold ${isTablet ? 'text-base leading-5' : 'text-sm leading-4'}`}
+                numberOfLines={1}
+              >
+                {title}
               </Text>
-              {/* Show quality badge on tablet, just transcode icon on phone */}
-              {isTablet ? (
-                <View
-                  className="ml-1 rounded px-1.5 py-0.5"
-                  style={{ backgroundColor: qualityInfo.bgColor }}
-                >
-                  <Text className="text-[9px] font-semibold" style={{ color: qualityInfo.color }}>
-                    {qualityInfo.label}
-                  </Text>
-                </View>
-              ) : (
-                session.isTranscode && (
-                  <Ionicons
-                    name={qualityInfo.isHwTranscode ? 'hardware-chip-outline' : 'flash'}
-                    size={10}
-                    color={colors.warning}
-                  />
-                )
+              <Ionicons
+                name={qualityInfo.icon}
+                size={isTablet ? 13 : 11}
+                color={qualityInfo.color}
+                style={{ marginLeft: 4 }}
+              />
+              {isTablet && (
+                <Ionicons
+                  name={deviceIcon}
+                  size={14}
+                  color={colors.text.muted.dark}
+                  style={{ marginLeft: 4 }}
+                />
               )}
             </View>
-            {isMultiServer && (
-              <View className="mr-1 flex-row items-center gap-1">
-                {serverColor && (
-                  <View
-                    style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: serverColor }}
-                  />
-                )}
-                <Text className="text-[10px]" style={{ color: colors.text.muted.dark }}>
-                  {session.server.name}
-                </Text>
-              </View>
-            )}
-            <View className="flex-row items-center gap-1">
-              <View
-                className="h-3 w-3 items-center justify-center rounded-full"
-                style={{
-                  backgroundColor: isPaused ? 'rgba(245, 158, 11, 0.15)' : `${ACCENT_COLOR}15`,
-                }}
+            {subtitle && (
+              <Text
+                className={`text-muted-foreground mt-px ${isTablet ? 'text-sm' : 'text-xs'}`}
+                numberOfLines={1}
               >
-                <Ionicons
-                  name={isPaused ? 'pause' : 'play'}
-                  size={6}
-                  color={isPaused ? colors.warning : ACCENT_COLOR}
-                />
-              </View>
-              <Text className={`text-muted-foreground text-xs ${isPaused ? 'text-warning' : ''}`}>
-                {isPaused
-                  ? 'Paused'
-                  : `${formatDuration(estimatedProgressMs, { style: 'clock' })} / ${formatDuration(session.totalDurationMs, { style: 'clock' })}`}
+                {subtitle}
               </Text>
-            </View>
+            )}
           </View>
 
-          {/* Location footer - tablet only */}
-          {isTablet && location && (
-            <View className="mt-0.5 flex-row items-center gap-0.5">
-              <Ionicons name="location-outline" size={10} color={colors.text.muted.dark} />
-              <Text className="text-muted-foreground flex-1 text-[10px]" numberOfLines={1}>
-                {location}
-              </Text>
+          {/* User row */}
+          <View className="flex-row items-center gap-1">
+            <UserAvatar
+              thumbUrl={userThumbUrl}
+              serverId={session.serverId}
+              username={username}
+              size={avatarSize}
+            />
+            <Text className="text-secondary-foreground flex-1 text-xs" numberOfLines={1}>
+              {displayName}
+            </Text>
+            {/* Chevron */}
+            <Ionicons
+              name="chevron-forward"
+              size={isTablet ? 16 : 14}
+              color={colors.icon.default}
+              style={{ opacity: 0.4 }}
+            />
+          </View>
+
+          {/* Footer - server name (multi-server) and/or location */}
+          {(isMultiServer || (isTablet && location)) && (
+            <View className="flex-row items-center gap-1">
+              {isMultiServer && (
+                <>
+                  {serverColor && (
+                    <View
+                      style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: serverColor }}
+                    />
+                  )}
+                  <Text
+                    className="text-muted-foreground text-[10px]"
+                    numberOfLines={1}
+                    style={{ flexShrink: 1 }}
+                  >
+                    {session.server.name}
+                  </Text>
+                </>
+              )}
+              {isMultiServer && location && (
+                <Text className="text-muted-foreground text-[10px]">·</Text>
+              )}
+              {location && (
+                <View className="flex-row items-center gap-0.5" style={{ flexShrink: 1 }}>
+                  <Ionicons name="location-outline" size={9} color={colors.text.muted.dark} />
+                  <Text className="text-muted-foreground text-[10px]" numberOfLines={1}>
+                    {location}
+                  </Text>
+                </View>
+              )}
             </View>
           )}
-        </View>
-
-        {/* Chevron */}
-        <View className="ml-1 opacity-50">
-          <Ionicons name="chevron-forward" size={isTablet ? 18 : 16} color={colors.icon.default} />
         </View>
       </View>
 
-      {/* Bottom progress bar - full width */}
-      <View style={{ height: 3, backgroundColor: colors.surface.dark }}>
-        <View
-          style={{
-            height: '100%',
-            width: `${progressPercent}%`,
-            backgroundColor: isMultiServer && serverColor ? serverColor : ACCENT_COLOR,
-          }}
-        />
+      {/* Progress bar with time labels - like web */}
+      <View className="px-2 pb-1">
+        <View className="rounded-full" style={{ height: 4, backgroundColor: colors.surface.dark }}>
+          <View
+            className="rounded-full"
+            style={{
+              height: '100%',
+              width: `${progressPercent}%`,
+              backgroundColor: isMultiServer && serverColor ? serverColor : ACCENT_COLOR,
+            }}
+          />
+        </View>
+        <View className="mt-0.5 flex-row justify-between">
+          <Text className="text-muted-foreground text-[10px]">
+            {formatDuration(estimatedProgressMs, { style: 'clock' })}
+          </Text>
+          {isPaused ? (
+            <Text className="text-[10px] font-medium" style={{ color: colors.warning }}>
+              Paused
+            </Text>
+          ) : (
+            <Text className="text-muted-foreground text-[10px]">
+              {session.totalDurationMs && estimatedProgressMs
+                ? `-${formatDuration(session.totalDurationMs - estimatedProgressMs, { style: 'clock' })}`
+                : formatDuration(session.totalDurationMs, { style: 'clock' })}
+            </Text>
+          )}
+        </View>
       </View>
     </Pressable>
   );
