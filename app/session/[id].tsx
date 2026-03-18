@@ -97,17 +97,18 @@ function formatDuration(ms: number | null): string {
   return `${seconds}s`;
 }
 
-// Get watch time - for active sessions, calculate from elapsed time
 function getWatchTime(session: SessionWithDetails): number | null {
-  if (session.durationMs !== null) {
+  if (session.durationMs) {
     return session.durationMs;
   }
-  const startTime = safeParseDate(session.startedAt)?.getTime();
-  if (!startTime) return null;
-  const now = Date.now();
-  const elapsedMs = now - startTime;
-  const pausedMs = session.pausedDurationMs ?? 0;
-  return Math.max(0, elapsedMs - pausedMs);
+
+  if (session.startedAt && !session.stoppedAt) {
+    const startTime = safeParseDate(session.startedAt)?.getTime();
+    if (!startTime) return null;
+    return Math.max(0, Date.now() - startTime - (session.pausedDurationMs ?? 0));
+  }
+
+  return null;
 }
 
 // Get progress percentage (playback position)
