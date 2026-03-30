@@ -17,6 +17,8 @@ const MAX_CONSECUTIVE_FAILURES = 5;
 
 // Track if we've fallen back to AsyncStorage
 let usingAsyncStorageFallback = false;
+let _fallbackLoadPromise: Promise<void> | null = null;
+const FALLBACK_FLAG_KEY = '__secure_fallback_active__';
 
 // iOS: Allow access after first unlock, don't sync to iCloud
 const SECURE_STORE_OPTIONS: SecureStore.SecureStoreOptions = {
@@ -46,11 +48,44 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
 }
 
 /**
+ * Load persisted fallback state on first access (Android only).
+ */
+function loadFallbackState(): Promise<void> {
+  if (Platform.OS !== 'android') return Promise.resolve();
+  if (!_fallbackLoadPromise) {
+    _fallbackLoadPromise = (async () => {
+      try {
+        const flag = await AsyncStorage.getItem(FALLBACK_FLAG_KEY);
+        if (flag === '1') {
+          // SecureStore was broken last session — check if it recovered
+          try {
+            await SecureStore.getItemAsync('__health_check__', SECURE_STORE_OPTIONS);
+            // SecureStore is working again — clear fallback flag
+            await AsyncStorage.removeItem(FALLBACK_FLAG_KEY);
+            consecutiveFailures = 0;
+            // Stay on SecureStore (usingAsyncStorageFallback remains false)
+          } catch {
+            // SecureStore still broken — stay on AsyncStorage fallback
+            usingAsyncStorageFallback = true;
+          }
+        }
+      } catch (error) {
+        console.warn('[Storage] Failed to read fallback state flag:', error);
+      }
+    })();
+  }
+  return _fallbackLoadPromise;
+}
+
+/**
  * Enable AsyncStorage fallback mode (used when SecureStore is unavailable)
  */
 function enableAsyncStorageFallback(): void {
   if (!usingAsyncStorageFallback) {
     usingAsyncStorageFallback = true;
+    AsyncStorage.setItem(FALLBACK_FLAG_KEY, '1').catch((error) => {
+      console.warn('[Storage] Failed to persist fallback flag:', error);
+    });
     console.warn('[Storage] SecureStore unavailable, using AsyncStorage fallback');
   }
 }
@@ -94,7 +129,8 @@ async function deleteItemAsyncFallback(key: string): Promise<boolean> {
 }
 
 export async function getItemAsync(key: string): Promise<string | null> {
-  // Use fallback if already enabled
+  await loadFallbackState();
+
   if (usingAsyncStorageFallback) {
     return getItemAsyncFallback(key);
   }
@@ -128,7 +164,8 @@ export async function getItemAsync(key: string): Promise<string | null> {
 }
 
 export async function setItemAsync(key: string, value: string): Promise<boolean> {
-  // Use fallback if already enabled
+  await loadFallbackState();
+
   if (usingAsyncStorageFallback) {
     return setItemAsyncFallback(key, value);
   }
@@ -162,7 +199,8 @@ export async function setItemAsync(key: string, value: string): Promise<boolean>
 }
 
 export async function deleteItemAsync(key: string): Promise<boolean> {
-  // Use fallback if already enabled
+  await loadFallbackState();
+
   if (usingAsyncStorageFallback) {
     return deleteItemAsyncFallback(key);
   }
@@ -205,7 +243,7 @@ export function isStorageUnavailable(): boolean {
 
 export function resetFailureCount(): void {
   consecutiveFailures = 0;
-  // Don't reset fallback mode - once enabled, stay on AsyncStorage for consistency
+  // Don't reset fallback mode — once enabled, stay on AsyncStorage for session consistency
 }
 
 /**

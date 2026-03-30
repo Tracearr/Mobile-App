@@ -4,6 +4,7 @@
  */
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
+import * as Application from 'expo-application';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
 import { zustandStorage } from './storage';
@@ -88,9 +89,45 @@ function getDeviceName(): string {
   return Device.deviceName || `${Device.brand || 'Unknown'} ${Device.modelName || 'Device'}`;
 }
 
-// Helper: Get device ID for pairing
-function getDeviceId(): string {
-  return Device.osBuildId || `${Platform.OS}-${Date.now()}`;
+// Device ID: use platform identifiers (IDFV on iOS, ANDROID_ID on Android),
+// cached in storage for the iOS null-after-reboot edge case
+const DEVICE_ID_STORAGE_KEY = 'tracearr_device_id';
+let _cachedDeviceId: string | null = null;
+
+async function getOrCreateDeviceId(): Promise<string> {
+  if (_cachedDeviceId) return _cachedDeviceId;
+
+  // Try platform-native identifier first
+  let platformId: string | null = null;
+  if (Platform.OS === 'ios') {
+    platformId = await Application.getIosIdForVendorAsync();
+  } else {
+    platformId = Application.getAndroidId();
+  }
+
+  if (platformId) {
+    _cachedDeviceId = platformId;
+    await ResilientStorage.setItemAsync(DEVICE_ID_STORAGE_KEY, platformId);
+    return platformId;
+  }
+
+  // Platform ID unavailable (iOS returns null briefly after reboot) — use cached value
+  const stored = await ResilientStorage.getItemAsync(DEVICE_ID_STORAGE_KEY);
+  if (stored) {
+    _cachedDeviceId = stored;
+    return stored;
+  }
+
+  // Last resort: generate a random ID (should never happen in practice)
+  const s = () =>
+    Math.floor(Math.random() * 0x10000)
+      .toString(16)
+      .padStart(4, '0');
+  const fallbackId = `${s()}${s()}-${s()}-${s()}-${s()}-${s()}${s()}${s()}`;
+  console.warn('[Auth] Platform device ID unavailable, using generated fallback');
+  await ResilientStorage.setItemAsync(DEVICE_ID_STORAGE_KEY, fallbackId);
+  _cachedDeviceId = fallbackId;
+  return fallbackId;
 }
 
 // Helper: Get platform
@@ -132,7 +169,7 @@ export const useAuthStateStore = create<AuthState>()(
         try {
           const normalizedUrl = normalizeUrl(url);
           const deviceName = getDeviceName();
-          const deviceId = getDeviceId();
+          const deviceId = await getOrCreateDeviceId();
           const platform = getPlatform();
 
           // Get device secret for encrypted push notifications (optional)
@@ -214,7 +251,8 @@ export const useAuthStateStore = create<AuthState>()(
         // Clean up push notification background tasks
         await unregisterBackgroundNotificationTask();
 
-        // Clear tokens using resilient storage
+        // Clear tokens
+        _inMemoryRefreshToken = null;
         await ResilientStorage.deleteItemAsync(STORAGE_KEYS.ACCESS_TOKEN);
         await ResilientStorage.deleteItemAsync(STORAGE_KEYS.REFRESH_TOKEN);
 
@@ -254,6 +292,7 @@ export const useAuthStateStore = create<AuthState>()(
 
       handleAuthFailure: () => {
         const current = get();
+        _inMemoryRefreshToken = null;
         // Cache server info for unauthenticated screen
         set({
           connectionState: 'unauthenticated',
@@ -298,16 +337,26 @@ export const authSelectors = {
   cachedServerName: (s: AuthState) => s._cachedServerName,
 };
 
-// Token access for API client (uses resilient storage)
+// In-memory fallback for SecureStore failures
+let _inMemoryRefreshToken: string | null = null;
+
+// Token access for API client
 export async function getAccessToken(): Promise<string | null> {
   return ResilientStorage.getItemAsync(STORAGE_KEYS.ACCESS_TOKEN);
 }
 
 export async function getRefreshToken(): Promise<string | null> {
-  return ResilientStorage.getItemAsync(STORAGE_KEYS.REFRESH_TOKEN);
+  const stored = await ResilientStorage.getItemAsync(STORAGE_KEYS.REFRESH_TOKEN);
+  if (stored) return stored;
+  if (_inMemoryRefreshToken) {
+    console.warn('[Auth] Refresh token not found in storage, using in-memory fallback');
+    return _inMemoryRefreshToken;
+  }
+  return null;
 }
 
 export async function setTokens(access: string, refresh: string): Promise<boolean> {
+  _inMemoryRefreshToken = refresh;
   const accessOk = await ResilientStorage.setItemAsync(STORAGE_KEYS.ACCESS_TOKEN, access);
   const refreshOk = await ResilientStorage.setItemAsync(STORAGE_KEYS.REFRESH_TOKEN, refresh);
   return accessOk && refreshOk;

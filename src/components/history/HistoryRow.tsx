@@ -3,7 +3,8 @@
  * Matches web history table quality in a mobile-optimized layout
  */
 import React from 'react';
-import { View, Pressable, Image } from 'react-native';
+import { View, Pressable } from 'react-native';
+import { Image } from 'expo-image';
 import {
   Film,
   Tv,
@@ -188,7 +189,7 @@ export function HistoryRow({ session, onPress }: HistoryRowProps) {
             borderRadius: 4,
             backgroundColor: colors.surface.dark,
           }}
-          resizeMode="cover"
+          contentFit="cover"
         />
       ) : (
         <View

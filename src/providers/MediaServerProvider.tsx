@@ -14,7 +14,7 @@ import {
   type ReactNode,
 } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import * as SecureStore from 'expo-secure-store';
+import * as ResilientStorage from '../lib/resilientStorage';
 import type { Server } from '@tracearr/shared';
 import { api } from '../lib/api';
 import { useAuthStateStore } from '../lib/authStateStore';
@@ -53,7 +53,7 @@ export function MediaServerProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     void (async () => {
       try {
-        const stored = await SecureStore.getItemAsync(SELECTED_SERVERS_KEY);
+        const stored = await ResilientStorage.getItemAsync(SELECTED_SERVERS_KEY);
         if (stored) {
           const parsed = JSON.parse(stored) as string[];
           if (Array.isArray(parsed) && parsed.length > 0) {
@@ -63,11 +63,11 @@ export function MediaServerProvider({ children }: { children: ReactNode }) {
           }
         }
         // Migrate from legacy single-server key
-        const legacy = await SecureStore.getItemAsync(LEGACY_SERVER_KEY);
+        const legacy = await ResilientStorage.getItemAsync(LEGACY_SERVER_KEY);
         if (legacy) {
           setSelectedServerIds([legacy]);
-          await SecureStore.setItemAsync(SELECTED_SERVERS_KEY, JSON.stringify([legacy]));
-          await SecureStore.deleteItemAsync(LEGACY_SERVER_KEY);
+          await ResilientStorage.setItemAsync(SELECTED_SERVERS_KEY, JSON.stringify([legacy]));
+          await ResilientStorage.deleteItemAsync(LEGACY_SERVER_KEY);
         }
       } catch {
         // Ignore parse errors
@@ -94,7 +94,7 @@ export function MediaServerProvider({ children }: { children: ReactNode }) {
     if (mediaServers.length === 0) {
       if (selectedServerIds.length > 0) {
         setSelectedServerIds([]);
-        void SecureStore.deleteItemAsync(SELECTED_SERVERS_KEY);
+        void ResilientStorage.deleteItemAsync(SELECTED_SERVERS_KEY);
       }
       return;
     }
@@ -108,7 +108,7 @@ export function MediaServerProvider({ children }: { children: ReactNode }) {
       next.some((id, i) => id !== selectedServerIds[i])
     ) {
       setSelectedServerIds(next);
-      void SecureStore.setItemAsync(SELECTED_SERVERS_KEY, JSON.stringify(next));
+      void ResilientStorage.setItemAsync(SELECTED_SERVERS_KEY, JSON.stringify(next));
     }
   }, [mediaServers, selectedServerIds, initialized, isLoading]);
 
@@ -116,8 +116,8 @@ export function MediaServerProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!isAuthenticated) {
       setSelectedServerIds([]);
-      void SecureStore.deleteItemAsync(SELECTED_SERVERS_KEY);
-      void SecureStore.deleteItemAsync(LEGACY_SERVER_KEY);
+      void ResilientStorage.deleteItemAsync(SELECTED_SERVERS_KEY);
+      void ResilientStorage.deleteItemAsync(LEGACY_SERVER_KEY);
     }
   }, [isAuthenticated]);
 
@@ -132,9 +132,9 @@ export function MediaServerProvider({ children }: { children: ReactNode }) {
 
   const persistSelection = useCallback((ids: string[]) => {
     if (ids.length > 0) {
-      void SecureStore.setItemAsync(SELECTED_SERVERS_KEY, JSON.stringify(ids));
+      void ResilientStorage.setItemAsync(SELECTED_SERVERS_KEY, JSON.stringify(ids));
     } else {
-      void SecureStore.deleteItemAsync(SELECTED_SERVERS_KEY);
+      void ResilientStorage.deleteItemAsync(SELECTED_SERVERS_KEY);
     }
   }, []);
 

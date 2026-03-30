@@ -176,7 +176,12 @@ async function performTokenRefresh(): Promise<string> {
 
     const saved = await setTokens(response.data.accessToken, response.data.refreshToken);
     if (!saved) {
-      console.warn('[Auth] Failed to persist refreshed tokens to secure storage');
+      console.error(
+        '[Auth] Failed to persist refreshed tokens — session will not survive app restart'
+      );
+      useAuthStateStore
+        .getState()
+        .setError('Could not save login securely. Restart the app to prevent being logged out.');
     }
 
     useAuthStateStore.getState().setTokenStatus('valid');

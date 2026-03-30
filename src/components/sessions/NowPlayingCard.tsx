@@ -9,7 +9,8 @@
  * - Location footer
  */
 import React from 'react';
-import { View, Image, Pressable, StyleSheet } from 'react-native';
+import { View, Pressable, StyleSheet } from 'react-native';
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { Text } from '@/components/ui/text';
 import { UserAvatar } from '@/components/ui/user-avatar';
@@ -233,7 +234,7 @@ export function NowPlayingCard({
           source={{ uri: posterUrl }}
           style={[StyleSheet.absoluteFill, { opacity: 0.25 }]}
           blurRadius={40}
-          resizeMode="cover"
+          contentFit="cover"
         />
       )}
 
@@ -246,7 +247,7 @@ export function NowPlayingCard({
               source={{ uri: posterUrl }}
               className="bg-card rounded-lg"
               style={{ width: posterWidth, height: posterHeight }}
-              resizeMode="cover"
+              contentFit="cover"
             />
           ) : (
             <View

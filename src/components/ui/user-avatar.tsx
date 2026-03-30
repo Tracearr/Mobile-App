@@ -2,7 +2,8 @@
  * User avatar component with image and fallback to initials
  */
 import React from 'react';
-import { View, Image } from 'react-native';
+import { View } from 'react-native';
+import { Image } from 'expo-image';
 import { Text } from './text';
 import { getServerUrl } from '@/lib/api';
 
