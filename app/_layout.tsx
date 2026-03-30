@@ -105,6 +105,7 @@ function RootLayoutNav() {
         screenOptions={{
           headerShown: false,
           animation: 'fade',
+          contentStyle: { backgroundColor: '#09090B' },
         }}
       >
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
