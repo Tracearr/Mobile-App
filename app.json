@@ -56,7 +56,7 @@
             }
           },
           "ios": {
-            "deploymentTarget": "16.1"
+            "deploymentTarget": "16.4"
           }
         }
       ],
@@ -113,7 +113,9 @@
         {
           "fonts": ["./assets/fonts/Inter_500Medium.ttf"]
         }
-      ]
+      ],
+      "@react-native-vector-icons/ionicons",
+      "@react-native-vector-icons/material-design-icons"
     ],
     "experiments": {
       "typedRoutes": true,

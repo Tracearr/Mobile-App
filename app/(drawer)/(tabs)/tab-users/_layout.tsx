@@ -1,6 +1,6 @@
 import { View, Pressable, Platform } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
-import { DrawerActions, useNavigation } from '@react-navigation/native';
+import { DrawerActions, useNavigation } from 'expo-router/react-navigation';
 import { Menu, Bell } from 'lucide-react-native';
 import { useUnacknowledgedAlertsCount } from '@/hooks';
 import { Text } from '@/components/ui/text';

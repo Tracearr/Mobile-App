@@ -4,7 +4,7 @@
  */
 import { useEffect, useRef } from 'react';
 import { View, Pressable, ActivityIndicator, ScrollView } from 'react-native';
-import type { DrawerContentComponentProps } from '@react-navigation/drawer';
+import type { DrawerContentComponentProps } from 'expo-router/build/react-navigation/drawer';
 import { useRouter, usePathname } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Settings, ChevronRight } from 'lucide-react-native';

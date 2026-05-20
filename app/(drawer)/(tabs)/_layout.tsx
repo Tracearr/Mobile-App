@@ -6,7 +6,7 @@
 import { Platform } from 'react-native';
 import { NativeTabs } from 'expo-router/unstable-native-tabs';
 import { VectorIcon } from 'expo-router';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import MaterialCommunityIcons from '@react-native-vector-icons/material-design-icons';
 import { ACCENT_COLOR } from '@/lib/theme';
 import { useTranslation } from '@tracearr/translations/mobile';
 

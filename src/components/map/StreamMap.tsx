@@ -8,7 +8,7 @@
 import React, { Component, type ReactNode } from 'react';
 import { View, Platform } from 'react-native';
 import { AppleMaps, GoogleMaps } from 'expo-maps';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@react-native-vector-icons/ionicons';
 import type { ActiveSession } from '@tracearr/shared';
 import { ACCENT_COLOR, colors } from '@/lib/theme';
 import { Text } from '@/components/ui/text';

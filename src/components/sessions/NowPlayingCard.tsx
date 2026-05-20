@@ -11,7 +11,7 @@
 import React from 'react';
 import { View, Pressable, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons, { type IoniconsIconName } from '@react-native-vector-icons/ionicons';
 import { Text } from '@/components/ui/text';
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { useImageUrl } from '@/hooks/useImageUrl';
@@ -57,7 +57,7 @@ function getQualityInfo(session: ActiveSession): {
   label: string;
   color: string;
   bgColor: string;
-  icon: keyof typeof Ionicons.glyphMap;
+  icon: IoniconsIconName;
   isHwTranscode: boolean;
 } {
   const videoDecision = session.videoDecision?.toLowerCase();
@@ -119,7 +119,7 @@ function getQualityInfo(session: ActiveSession): {
 /**
  * Get device icon based on device/product/platform info
  */
-function getDeviceIcon(session: ActiveSession): keyof typeof Ionicons.glyphMap {
+function getDeviceIcon(session: ActiveSession): IoniconsIconName {
   const device = session.device?.toLowerCase() || '';
   const product = session.product?.toLowerCase() || '';
   const platform = session.platform?.toLowerCase() || '';

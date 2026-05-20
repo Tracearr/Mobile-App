@@ -6,7 +6,7 @@
  */
 import { View, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
-import { DrawerActions, useNavigation } from '@react-navigation/native';
+import { DrawerActions, useNavigation } from 'expo-router/react-navigation';
 import { useQuery } from '@tanstack/react-query';
 import { Menu, Bell } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';

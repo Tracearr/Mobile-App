@@ -10,9 +10,9 @@
 import { useMemo } from 'react';
 import { View, ScrollView, RefreshControl, Platform } from 'react-native';
 import { useRouter, Stack } from 'expo-router';
-import { DrawerActions, useNavigation } from '@react-navigation/native';
+import { DrawerActions, useNavigation } from 'expo-router/react-navigation';
 import { useQuery } from '@tanstack/react-query';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons, { type IoniconsIconName } from '@react-native-vector-icons/ionicons';
 import { api } from '@/lib/api';
 import { useMediaServer } from '@/providers/MediaServerProvider';
 import { useServerStatistics } from '@/hooks/useServerStatistics';
@@ -35,7 +35,7 @@ function StatPill({
   unit,
   color = colors.text.secondary.dark,
 }: {
-  icon: keyof typeof Ionicons.glyphMap;
+  icon: IoniconsIconName;
   value: string | number;
   unit?: string;
   color?: string;

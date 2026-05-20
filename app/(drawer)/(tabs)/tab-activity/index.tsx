@@ -9,7 +9,7 @@
 import { useState } from 'react';
 import { View, ScrollView, RefreshControl, Platform } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
-import { DrawerActions, useNavigation } from '@react-navigation/native';
+import { DrawerActions, useNavigation } from 'expo-router/react-navigation';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { useMediaServer } from '@/providers/MediaServerProvider';

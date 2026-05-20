@@ -18,8 +18,8 @@ import {
 } from 'react-native';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { useRouter, Stack } from 'expo-router';
-import { DrawerActions, useNavigation } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
+import { DrawerActions, useNavigation } from 'expo-router/react-navigation';
+import Ionicons from '@react-native-vector-icons/ionicons';
 import { formatDistanceToNow } from 'date-fns';
 import { api } from '@/lib/api';
 import { useMediaServer } from '@/providers/MediaServerProvider';

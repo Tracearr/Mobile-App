@@ -8,7 +8,7 @@
       "@tracearr/shared": ["../../packages/shared/src"],
       "@tracearr/translations/mobile": ["../../packages/translations/src/mobile"]
     },
-    "types": ["expo-router/types", "node"],
+    "types": ["node"],
     "skipLibCheck": true,
     "esModuleInterop": true,
     "resolveJsonModule": true

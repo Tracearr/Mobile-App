@@ -6,7 +6,7 @@ import { useState, useMemo, useCallback, useRef } from 'react';
 import { View, FlatList, RefreshControl, ActivityIndicator, Platform } from 'react-native';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { useRouter, Stack } from 'expo-router';
-import { DrawerActions, useNavigation } from '@react-navigation/native';
+import { DrawerActions, useNavigation } from 'expo-router/react-navigation';
 import { Play } from 'lucide-react-native';
 import { api } from '@/lib/api';
 import { useMediaServer } from '@/providers/MediaServerProvider';

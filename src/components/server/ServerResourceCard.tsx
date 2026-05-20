@@ -9,7 +9,7 @@
  * - Slightly larger text
  */
 import { View, Animated } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons, { type IoniconsIconName } from '@react-native-vector-icons/ionicons';
 import { useEffect, useRef } from 'react';
 import { Text } from '@/components/ui/text';
 import { useResponsive } from '@/hooks/useResponsive';
@@ -25,7 +25,7 @@ interface ResourceBarProps {
   label: string;
   processValue: number;
   systemValue: number;
-  icon: keyof typeof Ionicons.glyphMap;
+  icon: IoniconsIconName;
   isTablet?: boolean;
 }
 
