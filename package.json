@@ -67,7 +67,7 @@
     "i18next": "^26.0.8",
     "lucide-react-native": "^1.14.0",
     "nativewind": "5.0.0-preview.4",
-    "react": "^19.2.3",
+    "react": "19.2.3",
     "react-i18next": "^17.0.6",
     "react-native": "0.85.3",
     "react-native-css": "^3.0.7",
@@ -97,8 +97,7 @@
   "expo": {
     "install": {
       "exclude": [
-        "typescript",
-        "react"
+        "typescript"
       ]
     }
   },
