@@ -10,7 +10,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WifiOff } from 'lucide-react-native';
 import { useShallow } from 'zustand/react/shallow';
 import { useAuthStateStore } from '../lib/authStateStore';
-import { colors, spacing, withAlpha } from '../lib/theme';
+import { colors, spacing, withAlpha, HEADER_HEIGHT } from '../lib/theme';
 import { useTranslation } from '@tracearr/translations/mobile';
 
 interface OfflineBannerProps {
@@ -65,19 +65,23 @@ export function OfflineBanner({ onRetry }: OfflineBannerProps) {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
+        gap: 8,
         paddingVertical: 12,
         paddingHorizontal: 16,
         borderRadius: 6,
         zIndex: 1000,
         backgroundColor: colors.warning,
-        top: insets.top + spacing.sm,
+        // Sit below the screen header instead of the raw safe-area inset,
+        // otherwise this overlay renders on top of the header (and its menu
+        // button) rather than under it.
+        top: insets.top + HEADER_HEIGHT + spacing.sm,
       }}
     >
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1, flexShrink: 1 }}>
         <Animated.View style={{ opacity: pulseAnim }}>
           <WifiOff size={16} color={colors.background.dark} />
         </Animated.View>
-        <Text className="text-background text-sm font-medium">
+        <Text className="text-background text-sm font-medium" style={{ flexShrink: 1 }}>
           {t('mobile:errors.connectionLost')}
         </Text>
       </View>

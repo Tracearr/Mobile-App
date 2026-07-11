@@ -9,6 +9,7 @@
  * - hsl(240 5% 65%)  = #A1A1AA (muted-foreground)
  * - hsl(240 6% 10%)  = #18181B (surface/sidebar)
  */
+import { Platform } from 'react-native';
 
 /**
  * Primary accent color - use for native components that need a color prop
@@ -119,6 +120,15 @@ export const spacing = {
   xl: 32,
   xxl: 48,
 } as const;
+
+/**
+ * Native stack header height (excluding the top safe-area inset), for layout
+ * that needs to sit below the header without reading it from navigation context.
+ * Android's native-stack default is 64 (react-navigation getDefaultHeaderHeight).
+ * iOS uses 56 - the modal-presentation height - so it also clears the app's
+ * custom 56px in-screen headers (e.g. the alerts screen) on both platforms.
+ */
+export const HEADER_HEIGHT = Platform.OS === 'android' ? 64 : 56;
 
 export const borderRadius = {
   sm: 4,
