@@ -3,7 +3,7 @@
  */
 import { QueryClient, QueryClientProvider, focusManager } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import type { AppStateStatus } from 'react-native';
 import { AppState, Platform } from 'react-native';
 
@@ -20,12 +20,6 @@ function isAuthError(error: unknown): boolean {
     return true;
   }
   return false;
-}
-
-function onAppStateChange(status: AppStateStatus) {
-  if (Platform.OS !== 'web') {
-    focusManager.setFocused(status === 'active');
-  }
 }
 
 const queryClient = new QueryClient({
@@ -58,8 +52,34 @@ interface QueryProviderProps {
 }
 
 export function QueryProvider({ children }: QueryProviderProps) {
+  const previousAppState = useRef<AppStateStatus>(AppState.currentState);
+
   useEffect(() => {
-    const subscription = AppState.addEventListener('change', onAppStateChange);
+    const subscription = AppState.addEventListener('change', (status: AppStateStatus) => {
+      if (Platform.OS !== 'web') {
+        focusManager.setFocused(status === 'active');
+      }
+
+      const wasActive = previousAppState.current === 'active';
+      const isActive = status === 'active';
+      previousAppState.current = status;
+
+      if (wasActive && !isActive) {
+        // iOS can suspend the app mid-request without ever settling the fetch
+        // promise. Cancel in-flight queries now so they return to idle instead
+        // of hanging in 'fetching' forever - cancel() resolves the query's own
+        // promise even when the underlying network call never comes back.
+        void queryClient.cancelQueries({ fetchStatus: 'fetching' });
+      } else if (!wasActive && isActive) {
+        // Recover anything still stuck from a fetch that started in a brief
+        // inactive window, then force every active query to refetch.
+        // A plain focus refetch dedupes into the existing (possibly dead)
+        // promise via cancelRefetch: false, so it can't recover a stuck fetch.
+        void queryClient.cancelQueries({ fetchStatus: 'fetching' }).then(() => {
+          void queryClient.invalidateQueries({ refetchType: 'active' });
+        });
+      }
+    });
     return () => subscription.remove();
   }, []);
 

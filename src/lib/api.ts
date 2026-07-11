@@ -130,39 +130,78 @@ export function resetApiClient(): void {
 
 // Mutex for token refresh — prevents concurrent 401s from racing
 let activeRefreshPromise: Promise<string> | null = null;
+// Bumped on every refresh attempt so a stray, timed-out attempt that resolves
+// late can't clobber a newer attempt's mutex or auth state.
+let refreshGeneration = 0;
+
+// iOS can strand the refresh request on suspend without ever settling the
+// promise (see refreshAccessToken). Timeout must exceed the axios timeout
+// below so a normal slow response isn't mistaken for a stranded one.
+const REFRESH_TIMEOUT_MS = 35000;
 
 /**
  * Refresh the access token using the stored refresh token.
  * Uses a mutex so concurrent callers all wait for a single refresh.
  * On auth rejection (server returns 401/403), calls handleAuthFailure().
  * On network errors, throws without killing auth state.
+ *
+ * The refresh is raced against a watchdog timeout: if iOS suspends the app
+ * mid-request, the axios promise can dangle forever, which would otherwise
+ * wedge the mutex and strand every 401 across the app until restart. The
+ * timeout guarantees the mutex always clears, even though the underlying
+ * network call may still be pending.
  */
 export async function refreshAccessToken(): Promise<string> {
   if (activeRefreshPromise) {
     return activeRefreshPromise;
   }
 
-  activeRefreshPromise = performTokenRefresh().finally(() => {
-    activeRefreshPromise = null;
+  const generation = ++refreshGeneration;
+  let timeoutHandle: ReturnType<typeof setTimeout>;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeoutHandle = setTimeout(() => {
+      reject(new Error('Token refresh timed out'));
+    }, REFRESH_TIMEOUT_MS);
   });
+
+  activeRefreshPromise = Promise.race([performTokenRefresh(generation), timeoutPromise]).finally(
+    () => {
+      clearTimeout(timeoutHandle);
+      // Only the attempt that currently owns the mutex may clear it, so a
+      // late-resolving stranded attempt doesn't null out a newer one.
+      if (refreshGeneration === generation) {
+        activeRefreshPromise = null;
+      }
+    }
+  );
 
   return activeRefreshPromise;
 }
 
-async function performTokenRefresh(): Promise<string> {
-  useAuthStateStore.getState().setTokenStatus('refreshing');
+async function performTokenRefresh(generation: number): Promise<string> {
+  // A superseded attempt (its watchdog already fired) must not mutate auth
+  // state out from under whatever attempt replaced it.
+  const isCurrent = () => refreshGeneration === generation;
+
+  if (isCurrent()) {
+    useAuthStateStore.getState().setTokenStatus('refreshing');
+  }
 
   const refreshToken = await getRefreshToken();
   if (!refreshToken) {
     resetApiClient();
-    useAuthStateStore.getState().handleAuthFailure();
+    if (isCurrent()) {
+      useAuthStateStore.getState().handleAuthFailure();
+    }
     throw new Error('No refresh token available');
   }
 
   const server = useAuthStateStore.getState().server;
   if (!server) {
     resetApiClient();
-    useAuthStateStore.getState().handleAuthFailure();
+    if (isCurrent()) {
+      useAuthStateStore.getState().handleAuthFailure();
+    }
     throw new Error('No server configured');
   }
 
@@ -173,6 +212,11 @@ async function performTokenRefresh(): Promise<string> {
       { refreshToken },
       { timeout: 30000 }
     );
+
+    if (!isCurrent()) {
+      // A newer refresh already replaced this one; its tokens are stale.
+      return response.data.accessToken;
+    }
 
     const saved = await setTokens(response.data.accessToken, response.data.refreshToken);
     if (!saved) {
@@ -187,7 +231,7 @@ async function performTokenRefresh(): Promise<string> {
     useAuthStateStore.getState().setTokenStatus('valid');
     return response.data.accessToken;
   } catch (error) {
-    if (axios.isAxiosError(error) && error.response) {
+    if (axios.isAxiosError(error) && error.response && isCurrent()) {
       // Server explicitly rejected the refresh token — auth is dead
       resetApiClient();
       useAuthStateStore.getState().handleAuthFailure();

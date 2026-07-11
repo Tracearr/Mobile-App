@@ -102,6 +102,14 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       setIsConnected(true);
       // Subscribe to session updates
       newSocket.emit('subscribe:sessions');
+
+      // Server-side changes during a dead-socket window (e.g. iOS suspend)
+      // are never pushed retroactively, so resync the core live-data caches
+      // on every connect (including reconnects) rather than trusting the
+      // cache to still be current.
+      void queryClient.invalidateQueries({ queryKey: ['sessions', 'active'] });
+      void queryClient.invalidateQueries({ queryKey: ['dashboard', 'stats'] });
+      void queryClient.invalidateQueries({ queryKey: ['violations'] });
     });
 
     newSocket.on('disconnect', (_reason) => {
