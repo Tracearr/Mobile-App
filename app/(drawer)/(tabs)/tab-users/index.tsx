@@ -210,7 +210,7 @@ export default function UsersScreen() {
             {/* Title row */}
             <View className="mb-3 flex-row items-center justify-between">
               <Text className="text-muted-foreground text-sm">
-                {searchQuery ? `${users.length} of ${total}` : total}{' '}
+                {searchQuery ? `${users.length} of ` : ''}
                 {t('common:count.user', { count: total })}
               </Text>
             </View>
