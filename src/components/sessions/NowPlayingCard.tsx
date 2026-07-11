@@ -19,7 +19,7 @@ import { useEstimatedProgress } from '@/hooks/useEstimatedProgress';
 import { useResponsive } from '@/hooks/useResponsive';
 import { ACCENT_COLOR, colors, spacing } from '@/lib/theme';
 import { formatDuration } from '@/lib/formatters';
-import type { ActiveSession } from '@tracearr/shared';
+import { formatEpisodeLabel, type ActiveSession } from '@tracearr/shared';
 
 interface NowPlayingCardProps {
   session: ActiveSession;
@@ -35,9 +35,7 @@ function getMediaDisplay(session: ActiveSession): { title: string; subtitle: str
   if (session.mediaType === 'episode' && session.grandparentTitle) {
     // TV Show episode
     const episodeInfo =
-      session.seasonNumber && session.episodeNumber
-        ? `S${session.seasonNumber.toString().padStart(2, '0')} E${session.episodeNumber.toString().padStart(2, '0')}`
-        : '';
+      formatEpisodeLabel(session.seasonNumber, session.episodeNumber, { spaced: true }) ?? '';
     return {
       title: session.grandparentTitle,
       subtitle: episodeInfo ? `${episodeInfo} · ${session.mediaTitle}` : session.mediaTitle,

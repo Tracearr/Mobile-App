@@ -19,7 +19,7 @@ import { Text } from '@/components/ui/text';
 import { useImageUrl } from '@/hooks/useImageUrl';
 import { ACCENT_COLOR, colors } from '@/lib/theme';
 import { formatDuration, formatListTimestamp } from '@/lib/formatters';
-import type { SessionWithDetails, MediaType } from '@tracearr/shared';
+import { formatEpisodeLabel, type SessionWithDetails, type MediaType } from '@tracearr/shared';
 
 interface HistoryRowProps {
   session: SessionWithDetails;
@@ -37,10 +37,7 @@ function getProgress(session: SessionWithDetails): number {
 // Get content title with proper formatting for different media types
 function getContentTitle(session: SessionWithDetails): { primary: string; secondary?: string } {
   if (session.mediaType === 'episode' && session.grandparentTitle) {
-    const epNum =
-      session.seasonNumber && session.episodeNumber
-        ? `S${session.seasonNumber.toString().padStart(2, '0')}E${session.episodeNumber.toString().padStart(2, '0')}`
-        : '';
+    const epNum = formatEpisodeLabel(session.seasonNumber, session.episodeNumber) ?? '';
     return {
       primary: session.grandparentTitle,
       secondary: `${epNum}${epNum ? ' · ' : ''}${session.mediaTitle}`,
