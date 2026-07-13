@@ -302,7 +302,7 @@ export default function AlertsScreen() {
       router.back();
     } else {
       // Fallback to home - navigate to the drawer's index (dashboard)
-      router.replace('/(drawer)/(tabs)' as never);
+      router.replace('/(drawer)/(tabs)');
     }
   };
 

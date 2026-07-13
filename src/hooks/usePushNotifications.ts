@@ -250,7 +250,7 @@ export function usePushNotifications() {
                 },
               },
             };
-            setNotification(processedNotification as Notifications.Notification);
+            setNotification(processedNotification);
           })();
         } else {
           setNotification(receivedNotification);
