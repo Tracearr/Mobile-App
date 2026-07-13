@@ -30,6 +30,10 @@ const SocketContext = createContext<SocketContextValue>({
   isConnected: false,
 });
 
+// session:updated fires once per active session per poll tick; trailing-edge
+// throttle so a busy tick doesn't trigger a refetch per session.
+const SESSION_UPDATED_THROTTLE_MS = 2000;
+
 export function useSocket() {
   const context = useContext(SocketContext);
   if (!context) {
@@ -60,6 +64,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
   const [isConnected, setIsConnected] = useState(false);
   // Track which Tracearr backend we're connected to
   const connectedServerIdRef = useRef<string | null>(null);
+  const sessionUpdatedThrottleRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const connectSocket = useCallback(async () => {
     // Don't try to connect during initialization or if not authenticated
@@ -164,7 +169,11 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     });
 
     newSocket.on('session:updated', (_session: ActiveSession) => {
-      void queryClient.invalidateQueries({ queryKey: ['sessions', 'active'] });
+      if (sessionUpdatedThrottleRef.current) return;
+      sessionUpdatedThrottleRef.current = setTimeout(() => {
+        sessionUpdatedThrottleRef.current = null;
+        void queryClient.invalidateQueries({ queryKey: ['sessions', 'active'] });
+      }, SESSION_UPDATED_THROTTLE_MS);
     });
 
     newSocket.on('violation:new', (_violation: ViolationWithDetails) => {
@@ -213,6 +222,10 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
         socketRef.current.disconnect();
         socketRef.current = null;
         connectedServerIdRef.current = null;
+      }
+      if (sessionUpdatedThrottleRef.current) {
+        clearTimeout(sessionUpdatedThrottleRef.current);
+        sessionUpdatedThrottleRef.current = null;
       }
     };
   }, [isInitializing, isAuthenticated, serverUrl, serverId, connectSocket, connectionState]);
