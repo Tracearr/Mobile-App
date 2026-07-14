@@ -64,11 +64,11 @@
     "expo-task-manager": "~57.0.0",
     "expo-updates": "~57.0.0",
     "expo-web-browser": "~57.0.0",
-    "i18next": "^26.0.8",
+    "i18next": "^26.3.6",
     "lucide-react-native": "^1.14.0",
     "nativewind": "5.0.0-preview.4",
     "react": "19.2.7",
-    "react-i18next": "^17.0.6",
+    "react-i18next": "^17.0.9",
     "react-native": "0.86.0",
     "react-native-css": "^3.0.7",
     "react-native-gesture-handler": "3.0.2",
@@ -82,7 +82,7 @@
     "socket.io-client": "^4.8.3",
     "tailwind-merge": "^3.5.0",
     "victory-native": "41.26.0",
-    "zustand": "^5.0.13"
+    "zustand": "^5.0.14"
   },
   "devDependencies": {
     "@babel/core": "8.0.1",
