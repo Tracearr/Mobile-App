@@ -36,6 +36,7 @@ const PAGE_SIZE = 50;
 type StatusFilter = 'all' | 'pending' | 'acknowledged';
 
 import { ruleIcons } from '@/lib/violations';
+import { ROUTES } from '@/lib/routes';
 
 import { SeverityBadge } from '@/components/violations/SeverityBadge';
 
@@ -302,7 +303,7 @@ export default function AlertsScreen() {
       router.back();
     } else {
       // Fallback to home - navigate to the drawer's index (dashboard)
-      router.replace('/(drawer)/(tabs)');
+      router.replace(ROUTES.TABS);
     }
   };
 
