@@ -23,9 +23,6 @@
         "buildType": "app-bundle",
         "autoIncrement": true
       },
-      "env": {
-        "EXPO_PUBLIC_API_URL": "https://tracearr.example.com"
-      },
       "channel": "preview"
     },
     "preview-apk": {
@@ -41,9 +38,6 @@
       },
       "android": {
         "buildType": "app-bundle"
-      },
-      "env": {
-        "EXPO_PUBLIC_API_URL": "https://tracearr.example.com"
       },
       "channel": "production",
       "autoIncrement": true
