@@ -14,17 +14,15 @@ import {
   Pressable,
   ActivityIndicator,
   TextInput,
-  Platform,
 } from 'react-native';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { useRouter, Stack } from 'expo-router';
-import { DrawerActions, useNavigation } from 'expo-router/react-navigation';
 import Ionicons from '@react-native-vector-icons/ionicons';
 import { formatDistanceToNow } from 'date-fns';
 import { api } from '@/lib/api';
 import { useMediaServer } from '@/providers/MediaServerProvider';
 import { useResponsive } from '@/hooks/useResponsive';
-import { useUnacknowledgedAlertsCount } from '@/hooks';
+import { TabToolbar, androidHeaderOptions } from '@/components/navigation/TabHeaderButtons';
 import { Text } from '@/components/ui/text';
 import { Card } from '@/components/ui/card';
 import { UserAvatar } from '@/components/ui/user-avatar';
@@ -120,12 +118,10 @@ function UserCard({
 }
 
 export default function UsersScreen() {
-  const { t } = useTranslation(['mobile', 'common']);
+  const { t } = useTranslation(['mobile', 'common', 'nav']);
   const router = useRouter();
-  const navigation = useNavigation();
   const { selectedServerId } = useMediaServer();
   const { isTablet, select } = useResponsive();
-  const { hasAlerts, displayCount } = useUnacknowledgedAlertsCount();
   const [searchQuery, setSearchQuery] = useState('');
 
   // Responsive values
@@ -276,22 +272,8 @@ export default function UsersScreen() {
         }
       />
 
-      {/* iOS Native Toolbar */}
-      {Platform.OS === 'ios' && (
-        <>
-          <Stack.Toolbar placement="left">
-            <Stack.Toolbar.Button
-              icon="line.3.horizontal"
-              onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
-            />
-          </Stack.Toolbar>
-          <Stack.Toolbar placement="right">
-            <Stack.Toolbar.Button icon="bell" onPress={() => router.push('/alerts')}>
-              {hasAlerts && <Stack.Toolbar.Badge>{displayCount}</Stack.Toolbar.Badge>}
-            </Stack.Toolbar.Button>
-          </Stack.Toolbar>
-        </>
-      )}
+      <Stack.Screen options={{ title: t('nav:users'), ...androidHeaderOptions }} />
+      <TabToolbar />
     </>
   );
 }

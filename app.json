@@ -3,7 +3,6 @@
     "name": "Tracearr",
     "slug": "tracearr",
     "version": "1.5.0",
-    "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "tracearr",
     "userInterfaceStyle": "dark",
@@ -32,7 +31,7 @@
       },
       "googleServicesFile": "./google-services.json",
       "package": "com.tracearr.mobile",
-      "predictiveBackGestureEnabled": false,
+      "predictiveBackGestureEnabled": true,
       "permissions": ["android.permission.CAMERA", "android.permission.POST_NOTIFICATIONS"],
       "blockedPermissions": [
         "android.permission.RECORD_AUDIO",

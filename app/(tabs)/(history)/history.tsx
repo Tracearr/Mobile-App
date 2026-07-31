@@ -3,14 +3,13 @@
  * Matches web UI quality with proper filtering and aggregates
  */
 import { useState, useMemo, useCallback, useRef } from 'react';
-import { View, FlatList, RefreshControl, ActivityIndicator, Platform } from 'react-native';
+import { View, FlatList, RefreshControl, ActivityIndicator } from 'react-native';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { useRouter, Stack } from 'expo-router';
-import { DrawerActions, useNavigation } from 'expo-router/react-navigation';
 import { Play } from 'lucide-react-native';
 import { api } from '@/lib/api';
 import { useMediaServer } from '@/providers/MediaServerProvider';
-import { useUnacknowledgedAlertsCount } from '@/hooks';
+import { TabToolbar, androidHeaderOptions } from '@/components/navigation/TabHeaderButtons';
 import { ACCENT_COLOR, colors } from '@/lib/theme';
 import { Text } from '@/components/ui/text';
 import {
@@ -49,11 +48,9 @@ function getDateRange(period: TimePeriod): { startDate: Date; endDate: Date } {
 }
 
 export default function HistoryScreen() {
-  const { t } = useTranslation(['mobile']);
+  const { t } = useTranslation(['mobile', 'nav']);
   const router = useRouter();
-  const navigation = useNavigation();
   const { selectedServerId } = useMediaServer();
-  const { hasAlerts, displayCount } = useUnacknowledgedAlertsCount();
   const filterSheetRef = useRef<FilterBottomSheetRef>(null);
 
   // Filter state
@@ -248,22 +245,8 @@ export default function HistoryScreen() {
         />
       </View>
 
-      {/* iOS Native Toolbar */}
-      {Platform.OS === 'ios' && (
-        <>
-          <Stack.Toolbar placement="left">
-            <Stack.Toolbar.Button
-              icon="line.3.horizontal"
-              onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
-            />
-          </Stack.Toolbar>
-          <Stack.Toolbar placement="right">
-            <Stack.Toolbar.Button icon="bell" onPress={() => router.push('/alerts')}>
-              {hasAlerts && <Stack.Toolbar.Badge>{displayCount}</Stack.Toolbar.Badge>}
-            </Stack.Toolbar.Button>
-          </Stack.Toolbar>
-        </>
-      )}
+      <Stack.Screen options={{ title: t('nav:history'), ...androidHeaderOptions }} />
+      <TabToolbar />
     </>
   );
 }

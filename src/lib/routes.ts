@@ -8,12 +8,12 @@ export const ROUTES = {
   // Auth
   PAIR: '/(auth)/pair' as Href,
 
-  // Main tabs
-  TABS: '/(drawer)/(tabs)' as Href,
-  DASHBOARD: '/(drawer)/(tabs)/index' as Href,
-  ACTIVITY: '/(drawer)/(tabs)/tab-activity' as Href,
-  USERS: '/(drawer)/(tabs)/tab-users' as Href,
-  HISTORY: '/(drawer)/(tabs)/tab-history' as Href,
+  // Main tabs (group names never appear in URLs)
+  TABS: '/(tabs)' as Href,
+  DASHBOARD: '/' as Href,
+  ACTIVITY: '/activity' as Href,
+  USERS: '/users' as Href,
+  HISTORY: '/history' as Href,
 
   // Detail screens
   USER: (id: string) => `/user/${id}` as Href,
@@ -23,4 +23,5 @@ export const ROUTES = {
   // Other
   SETTINGS: '/settings' as Href,
   ALERTS: '/alerts' as Href,
+  SERVER_SELECT: (multi: boolean) => `/server-select?multi=${multi ? '1' : '0'}` as Href,
 } as const;

@@ -7,14 +7,13 @@
  * - Tablet (md+): 2-column grid, taller charts, increased padding
  */
 import { useState } from 'react';
-import { View, ScrollView, RefreshControl, Platform } from 'react-native';
-import { Stack, useRouter } from 'expo-router';
-import { DrawerActions, useNavigation } from 'expo-router/react-navigation';
+import { View, ScrollView, RefreshControl } from 'react-native';
+import { Stack } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { useMediaServer } from '@/providers/MediaServerProvider';
 import { useResponsive } from '@/hooks/useResponsive';
-import { useUnacknowledgedAlertsCount } from '@/hooks';
+import { TabToolbar, androidHeaderOptions } from '@/components/navigation/TabHeaderButtons';
 import { spacing, ACCENT_COLOR } from '@/lib/theme';
 import { Text } from '@/components/ui/text';
 import { Card } from '@/components/ui/card';
@@ -41,13 +40,10 @@ function ChartSection({ title, children }: { title: string; children: React.Reac
 }
 
 export default function ActivityScreen() {
-  const { t } = useTranslation(['mobile', 'common']);
-  const router = useRouter();
-  const navigation = useNavigation();
+  const { t } = useTranslation(['mobile', 'common', 'nav']);
   const [period, setPeriod] = useState<StatsPeriod>('month');
   const { selectedServerId } = useMediaServer();
   const { isTablet, select } = useResponsive();
-  const { hasAlerts, displayCount } = useUnacknowledgedAlertsCount();
 
   // Responsive values
   const horizontalPadding = select({ base: spacing.md, md: spacing.lg, lg: spacing.xl });
@@ -197,22 +193,8 @@ export default function ActivityScreen() {
         </View>
       </ScrollView>
 
-      {/* iOS Native Toolbar */}
-      {Platform.OS === 'ios' && (
-        <>
-          <Stack.Toolbar placement="left">
-            <Stack.Toolbar.Button
-              icon="line.3.horizontal"
-              onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
-            />
-          </Stack.Toolbar>
-          <Stack.Toolbar placement="right">
-            <Stack.Toolbar.Button icon="bell" onPress={() => router.push('/alerts')}>
-              {hasAlerts && <Stack.Toolbar.Badge>{displayCount}</Stack.Toolbar.Badge>}
-            </Stack.Toolbar.Button>
-          </Stack.Toolbar>
-        </>
-      )}
+      <Stack.Screen options={{ title: t('nav:activity'), ...androidHeaderOptions }} />
+      <TabToolbar />
     </>
   );
 }

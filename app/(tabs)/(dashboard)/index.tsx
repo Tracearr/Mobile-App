@@ -8,16 +8,15 @@
  * - Large tablet (lg+): 3-column grid for Now Playing
  */
 import { useMemo } from 'react';
-import { View, ScrollView, RefreshControl, Platform } from 'react-native';
+import { View, ScrollView, RefreshControl } from 'react-native';
 import { useRouter, Stack } from 'expo-router';
-import { DrawerActions, useNavigation } from 'expo-router/react-navigation';
 import { useQuery } from '@tanstack/react-query';
 import Ionicons, { type IoniconsIconName } from '@react-native-vector-icons/ionicons';
 import { api } from '@/lib/api';
 import { useMediaServer } from '@/providers/MediaServerProvider';
 import { useServerStatistics } from '@/hooks/useServerStatistics';
 import { useResponsive } from '@/hooks/useResponsive';
-import { useUnacknowledgedAlertsCount } from '@/hooks';
+import { TabToolbar, androidHeaderOptions } from '@/components/navigation/TabHeaderButtons';
 import { StreamMap } from '@/components/map/StreamMap';
 import { NowPlayingCard } from '@/components/sessions';
 import { ServerResourceCard } from '@/components/server/ServerResourceCard';
@@ -62,13 +61,11 @@ function StatPill({
 }
 
 export default function DashboardScreen() {
-  const { t } = useTranslation(['mobile', 'pages', 'common']);
+  const { t } = useTranslation(['mobile', 'pages', 'common', 'nav']);
   const router = useRouter();
-  const navigation = useNavigation();
   const { servers, selectedServerIds, selectedServerId, selectedServer, isMultiServer } =
     useMediaServer();
   const { isTablet, columns, select } = useResponsive();
-  const { hasAlerts, displayCount } = useUnacknowledgedAlertsCount();
 
   const serverColorMap = useMemo(
     () => new Map(servers.map((s) => [s.id, s.color ?? null])),
@@ -288,22 +285,8 @@ export default function DashboardScreen() {
         )}
       </ScrollView>
 
-      {/* iOS Native Toolbar */}
-      {Platform.OS === 'ios' && (
-        <>
-          <Stack.Toolbar placement="left">
-            <Stack.Toolbar.Button
-              icon="line.3.horizontal"
-              onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
-            />
-          </Stack.Toolbar>
-          <Stack.Toolbar placement="right">
-            <Stack.Toolbar.Button icon="bell" onPress={() => router.push('/alerts')}>
-              {hasAlerts && <Stack.Toolbar.Badge>{displayCount}</Stack.Toolbar.Badge>}
-            </Stack.Toolbar.Button>
-          </Stack.Toolbar>
-        </>
-      )}
+      <Stack.Screen options={{ title: t('nav:dashboard'), ...androidHeaderOptions }} />
+      <TabToolbar />
     </>
   );
 }
