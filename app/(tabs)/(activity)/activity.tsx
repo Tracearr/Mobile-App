@@ -11,6 +11,7 @@ import { View, ScrollView, RefreshControl } from 'react-native';
 import { Stack } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
+import { queryKeys } from '@/lib/queryKeys';
 import { useMediaServer } from '@/providers/MediaServerProvider';
 import { useResponsive } from '@/hooks/useResponsive';
 import { TabToolbar, androidHeaderOptions } from '@/components/navigation/TabHeaderButtons';
@@ -57,32 +58,32 @@ export default function ActivityScreen() {
     refetch: refetchPlays,
     isRefetching: isRefetchingPlays,
   } = useQuery({
-    queryKey: ['stats', 'plays', period, selectedServerId],
+    queryKey: queryKeys.stats.plays(period, selectedServerId),
     queryFn: () => api.stats.plays({ period, serverId: selectedServerId ?? undefined }),
   });
 
   const { data: dayOfWeekData, refetch: refetchDayOfWeek } = useQuery({
-    queryKey: ['stats', 'dayOfWeek', period, selectedServerId],
+    queryKey: queryKeys.stats.dayOfWeek(period, selectedServerId),
     queryFn: () => api.stats.playsByDayOfWeek({ period, serverId: selectedServerId ?? undefined }),
   });
 
   const { data: hourOfDayData, refetch: refetchHourOfDay } = useQuery({
-    queryKey: ['stats', 'hourOfDay', period, selectedServerId],
+    queryKey: queryKeys.stats.hourOfDay(period, selectedServerId),
     queryFn: () => api.stats.playsByHourOfDay({ period, serverId: selectedServerId ?? undefined }),
   });
 
   const { data: platformsData, refetch: refetchPlatforms } = useQuery({
-    queryKey: ['stats', 'platforms', period, selectedServerId],
+    queryKey: queryKeys.stats.platforms(period, selectedServerId),
     queryFn: () => api.stats.platforms({ period, serverId: selectedServerId ?? undefined }),
   });
 
   const { data: qualityData, refetch: refetchQuality } = useQuery({
-    queryKey: ['stats', 'quality', period, selectedServerId],
+    queryKey: queryKeys.stats.quality(period, selectedServerId),
     queryFn: () => api.stats.quality({ period, serverId: selectedServerId ?? undefined }),
   });
 
   const { data: concurrentData, refetch: refetchConcurrent } = useQuery({
-    queryKey: ['stats', 'concurrent', period, selectedServerId],
+    queryKey: queryKeys.stats.concurrent(period, selectedServerId),
     queryFn: () => api.stats.concurrent({ period, serverId: selectedServerId ?? undefined }),
   });
 

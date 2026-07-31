@@ -10,6 +10,7 @@ import {
   type ServerResourceStats,
 } from '@tracearr/shared';
 import { api } from '@/lib/api';
+import { queryKeys } from '@/lib/queryKeys';
 
 /**
  * Hook for fetching server resource statistics with fixed 2-minute window
@@ -46,7 +47,7 @@ export function useServerStatistics(serverId: string | undefined, enabled: boole
   }, []);
 
   const query = useQuery<ServerResourceStats>({
-    queryKey: ['servers', 'statistics', serverId],
+    queryKey: queryKeys.servers.statistics(serverId),
     queryFn: async (): Promise<ServerResourceStats> => {
       if (!serverId) throw new Error('Server ID required');
       const response = await api.servers.statistics(serverId);

@@ -7,7 +7,7 @@ import { Animated } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Check, AlertCircle, Info } from 'lucide-react-native';
 import { Text } from '@/components/ui/text';
-import { colors, spacing, HEADER_HEIGHT } from '../lib/theme';
+import { colors, spacing } from '../lib/theme';
 
 interface ToastProps {
   message: string;
@@ -68,10 +68,7 @@ export function Toast({ message, visible, onHide, duration = 2000, type = 'succe
         zIndex: 1000,
         backgroundColor,
         opacity: fadeAnim,
-        // Sit below the screen header instead of the raw safe-area inset,
-        // otherwise this overlay renders on top of the header (and its menu
-        // button) rather than under it.
-        top: insets.top + HEADER_HEIGHT + spacing.sm,
+        top: insets.top + spacing.sm,
       }}
     >
       <IconComponent size={16} color={colors.background.dark} />

@@ -23,6 +23,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Text } from '@/components/ui/text';
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { api } from '@/lib/api';
+import { queryKeys } from '@/lib/queryKeys';
 import { useAuthStateStore } from '@/lib/authStateStore';
 import { colors } from '@/lib/theme';
 import {
@@ -85,7 +86,7 @@ function SettingsRow({
 
 function ProfileRow() {
   const { data: user, isLoading } = useQuery({
-    queryKey: ['mobile', 'me'],
+    queryKey: queryKeys.me(),
     queryFn: () => api.me(),
     staleTime: 5 * 60 * 1000,
   });
@@ -164,7 +165,7 @@ export default function SettingsScreen() {
 
   return (
     <SafeAreaView
-      style={{ flex: 1, backgroundColor: '#09090B' }}
+      style={{ flex: 1, backgroundColor: colors.background.dark }}
       edges={['left', 'right', 'bottom']}
     >
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, padding: 16 }}>

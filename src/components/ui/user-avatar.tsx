@@ -70,6 +70,7 @@ export function UserAvatar({ thumbUrl, serverId, username, size = 40 }: UserAvat
       return (
         <Image
           source={{ uri: imageUrl }}
+          accessibilityLabel={username}
           style={{ width: size, height: size, borderRadius }}
           className="bg-surface"
         />
@@ -79,6 +80,7 @@ export function UserAvatar({ thumbUrl, serverId, username, size = 40 }: UserAvat
 
   return (
     <View
+      accessibilityLabel={username}
       style={{ width: size, height: size, borderRadius }}
       className="bg-primary items-center justify-center"
     >

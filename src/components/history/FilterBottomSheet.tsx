@@ -4,6 +4,7 @@
  */
 import React, { useCallback, useMemo, useRef, forwardRef, useImperativeHandle } from 'react';
 import { View, Pressable, type ViewStyle } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import BottomSheet, {
   BottomSheetBackdrop,
   BottomSheetScrollView,
@@ -67,6 +68,7 @@ const TRANSCODE_OPTIONS: { value: TranscodeDecision; label: string; icon: React.
 
 export const FilterBottomSheet = forwardRef<FilterBottomSheetRef, FilterBottomSheetProps>(
   ({ filterOptions, filters, onFiltersChange }, ref) => {
+    const insets = useSafeAreaInsets();
     const bottomSheetRef = useRef<BottomSheet>(null);
     const [activeSection, setActiveSection] = React.useState<FilterSection>('main');
 
@@ -568,7 +570,7 @@ export const FilterBottomSheet = forwardRef<FilterBottomSheetRef, FilterBottomSh
           style={{
             paddingHorizontal: 16,
             paddingVertical: 12,
-            paddingBottom: 24,
+            paddingBottom: Math.max(insets.bottom, 12) + 12,
             borderTopWidth: 1,
             borderTopColor: colors.border.dark,
             backgroundColor: colors.card.dark,
@@ -597,7 +599,7 @@ export const FilterBottomSheet = forwardRef<FilterBottomSheetRef, FilterBottomSh
         style={{
           paddingHorizontal: 16,
           paddingVertical: 12,
-          paddingBottom: 24,
+          paddingBottom: Math.max(insets.bottom, 12) + 12,
           borderTopWidth: 1,
           borderTopColor: colors.border.dark,
           backgroundColor: colors.card.dark,

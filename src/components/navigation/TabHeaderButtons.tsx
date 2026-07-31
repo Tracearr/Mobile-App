@@ -11,17 +11,21 @@ import { useUnacknowledgedAlertsCount } from '@/hooks';
 import { Text } from '@/components/ui/text';
 import { colors, spacing } from '@/lib/theme';
 import { ROUTES } from '@/lib/routes';
+import { useTranslation } from '@tracearr/translations/mobile';
 
 function useIsDashboard() {
   return usePathname() === '/';
 }
 
 export function HeaderLeft() {
+  const { t } = useTranslation(['mobile']);
   const router = useRouter();
   const isDashboard = useIsDashboard();
   return (
     <Pressable
       onPress={() => router.push(ROUTES.SERVER_SELECT(isDashboard))}
+      accessibilityRole="button"
+      accessibilityLabel={t('mobile:a11y.selectServer')}
       style={{ padding: spacing.xs }}
       hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
     >
@@ -31,6 +35,7 @@ export function HeaderLeft() {
 }
 
 export function HeaderRight() {
+  const { t } = useTranslation(['mobile']);
   const router = useRouter();
   const { hasAlerts, displayCount } = useUnacknowledgedAlertsCount();
 
@@ -38,6 +43,12 @@ export function HeaderRight() {
     <View style={{ flexDirection: 'row', alignItems: 'center' }}>
       <Pressable
         onPress={() => router.push(ROUTES.ALERTS)}
+        accessibilityRole="button"
+        accessibilityLabel={
+          hasAlerts
+            ? t('mobile:a11y.alertsCount', { count: Number(displayCount) || 0 })
+            : t('mobile:a11y.alerts')
+        }
         style={{ padding: spacing.xs }}
         hitSlop={{ top: 10, bottom: 10, left: 4, right: 4 }}
       >
@@ -64,6 +75,8 @@ export function HeaderRight() {
       </Pressable>
       <Pressable
         onPress={() => router.push(ROUTES.SETTINGS)}
+        accessibilityRole="button"
+        accessibilityLabel={t('mobile:a11y.settings')}
         style={{ padding: spacing.xs }}
         hitSlop={{ top: 10, bottom: 10, left: 4, right: 4 }}
       >

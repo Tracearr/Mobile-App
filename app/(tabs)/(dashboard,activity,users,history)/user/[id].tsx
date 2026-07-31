@@ -39,6 +39,8 @@ import {
 } from 'lucide-react-native';
 import { useEffect } from 'react';
 import { api, getServerUrl } from '@/lib/api';
+import { queryKeys } from '@/lib/queryKeys';
+import { ROUTES } from '@/lib/routes';
 import { useMediaServer } from '@/providers/MediaServerProvider';
 import { useResponsive } from '@/hooks/useResponsive';
 import { Text } from '@/components/ui/text';
@@ -407,7 +409,7 @@ export default function UserDetailScreen() {
     refetch: refetchUser,
     isRefetching: userRefetching,
   } = useQuery({
-    queryKey: ['user', id, selectedServerId],
+    queryKey: queryKeys.users.detail(id, selectedServerId),
     queryFn: () => api.users.get(id),
     enabled: !!id,
   });
@@ -428,7 +430,7 @@ export default function UserDetailScreen() {
     hasNextPage: hasMoreSessions,
     isFetchingNextPage: fetchingMoreSessions,
   } = useInfiniteQuery({
-    queryKey: ['user', id, 'sessions', selectedServerId],
+    queryKey: queryKeys.users.sessions(id, selectedServerId),
     queryFn: ({ pageParam }) => api.users.sessions(id, { page: pageParam, pageSize: PAGE_SIZE }),
     initialPageParam: 1,
     getNextPageParam: (lastPage: { page: number; totalPages: number }) => {
@@ -448,7 +450,7 @@ export default function UserDetailScreen() {
     hasNextPage: hasMoreViolations,
     isFetchingNextPage: fetchingMoreViolations,
   } = useInfiniteQuery({
-    queryKey: ['violations', { userId: id }, selectedServerId],
+    queryKey: queryKeys.violations.byUser(id, selectedServerId),
     queryFn: ({ pageParam }) =>
       api.violations.list({ userId: id, page: pageParam, pageSize: PAGE_SIZE }),
     initialPageParam: 1,
@@ -463,14 +465,14 @@ export default function UserDetailScreen() {
 
   // Fetch user locations
   const { data: locations, isLoading: locationsLoading } = useQuery({
-    queryKey: ['user', id, 'locations', selectedServerId],
+    queryKey: queryKeys.users.locations(id, selectedServerId),
     queryFn: () => api.users.locations(id),
     enabled: !!id,
   });
 
   // Fetch user devices
   const { data: devices, isLoading: devicesLoading } = useQuery({
-    queryKey: ['user', id, 'devices', selectedServerId],
+    queryKey: queryKeys.users.devices(id, selectedServerId),
     queryFn: () => api.users.devices(id),
     enabled: !!id,
   });
@@ -483,7 +485,7 @@ export default function UserDetailScreen() {
     hasNextPage: hasMoreTerminations,
     isFetchingNextPage: fetchingMoreTerminations,
   } = useInfiniteQuery({
-    queryKey: ['user', id, 'terminations', selectedServerId],
+    queryKey: queryKeys.users.terminations(id, selectedServerId),
     queryFn: ({ pageParam }) =>
       api.users.terminations(id, { page: pageParam, pageSize: PAGE_SIZE }),
     initialPageParam: 1,
@@ -501,7 +503,7 @@ export default function UserDetailScreen() {
     mutationFn: api.violations.acknowledge,
     onSuccess: () => {
       void queryClient.invalidateQueries({
-        queryKey: ['violations', { userId: id }, selectedServerId],
+        queryKey: queryKeys.violations.byUser(id, selectedServerId),
       });
     },
   });
@@ -515,19 +517,23 @@ export default function UserDetailScreen() {
 
   const handleRefresh = () => {
     void refetchUser();
-    void queryClient.invalidateQueries({ queryKey: ['user', id, 'sessions', selectedServerId] });
     void queryClient.invalidateQueries({
-      queryKey: ['violations', { userId: id }, selectedServerId],
+      queryKey: queryKeys.users.sessions(id, selectedServerId),
     });
-    void queryClient.invalidateQueries({ queryKey: ['user', id, 'locations', selectedServerId] });
-    void queryClient.invalidateQueries({ queryKey: ['user', id, 'devices', selectedServerId] });
     void queryClient.invalidateQueries({
-      queryKey: ['user', id, 'terminations', selectedServerId],
+      queryKey: queryKeys.violations.byUser(id, selectedServerId),
+    });
+    void queryClient.invalidateQueries({
+      queryKey: queryKeys.users.locations(id, selectedServerId),
+    });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.users.devices(id, selectedServerId) });
+    void queryClient.invalidateQueries({
+      queryKey: queryKeys.users.terminations(id, selectedServerId),
     });
   };
 
   const handleSessionPress = (session: Session) => {
-    router.push(`/session/${session.id}` as never);
+    router.push(ROUTES.SESSION(session.id));
   };
 
   if (userLoading) {

@@ -16,6 +16,7 @@ import * as Notifications from 'expo-notifications';
 import { formatDistanceToNow } from 'date-fns';
 import { AlertTriangle, Check, Filter, ChevronRight, ChevronLeft } from 'lucide-react-native';
 import { api } from '@/lib/api';
+import { queryKeys } from '@/lib/queryKeys';
 import { useMediaServer } from '@/providers/MediaServerProvider';
 import { useResponsive } from '@/hooks/useResponsive';
 import { Text } from '@/components/ui/text';
@@ -217,7 +218,7 @@ export default function AlertsScreen() {
 
   // Fetch settings for unit system preference
   const { data: settings } = useQuery({
-    queryKey: ['settings'],
+    queryKey: queryKeys.settings(),
     queryFn: api.settings.get,
     staleTime: 1000 * 60 * 5,
   });
@@ -245,7 +246,7 @@ export default function AlertsScreen() {
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, refetch, isRefetching } =
     useInfiniteQuery({
-      queryKey: ['violations', selectedServerId, severityFilter, statusFilter],
+      queryKey: queryKeys.violations.list(selectedServerId, severityFilter, statusFilter),
       queryFn: ({ pageParam }) =>
         api.violations.list({
           ...queryParams,
@@ -263,7 +264,7 @@ export default function AlertsScreen() {
   const acknowledgeMutation = useMutation({
     mutationFn: api.violations.acknowledge,
     onSuccess: async () => {
-      void queryClient.invalidateQueries({ queryKey: ['violations'] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.violations.all() });
 
       // Sync iOS app icon badge with actual unacknowledged count
       try {
@@ -293,7 +294,7 @@ export default function AlertsScreen() {
 
   const handleViolationPress = (violation: ViolationWithDetails) => {
     // Navigate to violation detail page
-    router.push(`/violation/${violation.id}` as never);
+    router.push(ROUTES.VIOLATION(violation.id));
   };
 
   const hasActiveFilters = severityFilter !== 'all' || statusFilter !== 'all';
@@ -309,7 +310,7 @@ export default function AlertsScreen() {
 
   return (
     <SafeAreaView
-      style={{ flex: 1, backgroundColor: '#09090B' }}
+      style={{ flex: 1, backgroundColor: colors.background.dark }}
       edges={['left', 'right', 'bottom']}
     >
       {/* Header with back button */}
@@ -427,7 +428,7 @@ export default function AlertsScreen() {
                 <View
                   style={{
                     width: 72,
-                    height: 72,
+                    minHeight: 72,
                     borderRadius: 36,
                     backgroundColor: colors.surface.dark,
                     alignItems: 'center',
@@ -481,7 +482,7 @@ export default function AlertsScreen() {
                 <View
                   style={{
                     width: 80,
-                    height: 80,
+                    minHeight: 80,
                     borderRadius: 40,
                     backgroundColor: `${colors.success}20`,
                     alignItems: 'center',

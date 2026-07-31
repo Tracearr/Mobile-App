@@ -113,9 +113,7 @@
         {
           "fonts": ["./assets/fonts/Inter_500Medium.ttf"]
         }
-      ],
-      "@react-native-vector-icons/ionicons",
-      "@react-native-vector-icons/material-design-icons"
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

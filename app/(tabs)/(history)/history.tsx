@@ -8,6 +8,8 @@ import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { useRouter, Stack } from 'expo-router';
 import { Play } from 'lucide-react-native';
 import { api } from '@/lib/api';
+import { queryKeys } from '@/lib/queryKeys';
+import { ROUTES } from '@/lib/routes';
 import { useMediaServer } from '@/providers/MediaServerProvider';
 import { TabToolbar, androidHeaderOptions } from '@/components/navigation/TabHeaderButtons';
 import { ACCENT_COLOR, colors } from '@/lib/theme';
@@ -77,7 +79,7 @@ export default function HistoryScreen() {
 
   // Fetch filter options for the bottom sheet
   const { data: filterOptions } = useQuery({
-    queryKey: ['sessions', 'filter-options', selectedServerId],
+    queryKey: queryKeys.sessions.filterOptions(selectedServerId),
     queryFn: () => api.sessions.filterOptions(selectedServerId ?? undefined),
     staleTime: 1000 * 60 * 5, // 5 minutes
     enabled: !!selectedServerId,
@@ -109,7 +111,7 @@ export default function HistoryScreen() {
   // Fetch history with infinite scroll
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, refetch, isRefetching, isLoading } =
     useInfiniteQuery({
-      queryKey: ['sessions', 'history', selectedServerId, filters],
+      queryKey: queryKeys.sessions.history(selectedServerId, filters),
       queryFn: async ({ pageParam }) => {
         return api.sessions.history({
           ...filters,
@@ -124,7 +126,7 @@ export default function HistoryScreen() {
 
   // Fetch aggregates for summary stats
   const { data: aggregates, isLoading: isLoadingAggregates } = useQuery({
-    queryKey: ['sessions', 'history', 'aggregates', selectedServerId, period],
+    queryKey: queryKeys.sessions.historyAggregates(selectedServerId, period),
     queryFn: () => {
       const { startDate, endDate } = getDateRange(period);
       return api.sessions.historyAggregates({
@@ -150,7 +152,7 @@ export default function HistoryScreen() {
 
   const handleSessionPress = useCallback(
     (session: SessionWithDetails) => {
-      router.push(`/session/${session.id}` as never);
+      router.push(ROUTES.SESSION(session.id));
     },
     [router]
   );
@@ -170,7 +172,7 @@ export default function HistoryScreen() {
 
   return (
     <>
-      <View style={{ flex: 1, backgroundColor: '#09090B' }}>
+      <View style={{ flex: 1, backgroundColor: colors.background.dark }}>
         <FlatList
           data={sessions}
           keyExtractor={keyExtractor}

@@ -9,15 +9,15 @@
  * - Slightly larger text
  */
 import { View, Animated } from 'react-native';
-import Ionicons, { type IoniconsIconName } from '@react-native-vector-icons/ionicons';
+import { CircleAlert, Cpu, Gauge, Server, type LucideIcon } from 'lucide-react-native';
 import { useEffect, useRef } from 'react';
 import { Text } from '@/components/ui/text';
 import { useResponsive } from '@/hooks/useResponsive';
-import { colors, spacing } from '@/lib/theme';
+import { ACCENT_COLOR, colors, spacing } from '@/lib/theme';
 
 // Bar colors matching web app
 const BAR_COLORS = {
-  process: '#00b4e4', // Plex-style cyan for "Plex Media Server"
+  process: ACCENT_COLOR, // Plex-style cyan for "Plex Media Server"
   system: '#cc7b9f', // Pink/purple for "System"
 };
 
@@ -25,11 +25,11 @@ interface ResourceBarProps {
   label: string;
   processValue: number;
   systemValue: number;
-  icon: IoniconsIconName;
+  icon: LucideIcon;
   isTablet?: boolean;
 }
 
-function ResourceBar({ label, processValue, systemValue, icon, isTablet }: ResourceBarProps) {
+function ResourceBar({ label, processValue, systemValue, icon: Icon, isTablet }: ResourceBarProps) {
   const processWidth = useRef(new Animated.Value(0)).current;
   const systemWidth = useRef(new Animated.Value(0)).current;
 
@@ -64,7 +64,7 @@ function ResourceBar({ label, processValue, systemValue, icon, isTablet }: Resou
           marginBottom: isTablet ? 8 : 6,
         }}
       >
-        <Ionicons name={icon} size={iconSize} color={colors.text.primary.dark} />
+        <Icon size={iconSize} color={colors.text.primary.dark} />
         <Text
           style={{
             marginLeft: 6,
@@ -211,7 +211,7 @@ export function ServerResourceCard({ latest, isLoading, error }: ServerResourceC
               marginBottom: 8,
             }}
           >
-            <Ionicons name="alert-circle-outline" size={24} color="#ef4444" />
+            <CircleAlert size={24} color="#ef4444" />
           </View>
           <Text style={{ fontSize: 14, fontWeight: '600', color: colors.text.primary.dark }}>
             Failed to load
@@ -236,7 +236,7 @@ export function ServerResourceCard({ latest, isLoading, error }: ServerResourceC
               marginBottom: 8,
             }}
           >
-            <Ionicons name="server-outline" size={24} color={colors.icon.default} />
+            <Server size={24} color={colors.icon.default} />
           </View>
           <Text style={{ fontSize: 14, fontWeight: '600', color: colors.text.primary.dark }}>
             No resource data
@@ -253,7 +253,7 @@ export function ServerResourceCard({ latest, isLoading, error }: ServerResourceC
     <View style={cardStyle}>
       <ResourceBar
         label="CPU"
-        icon="speedometer-outline"
+        icon={Gauge}
         processValue={latest.processCpu}
         systemValue={latest.hostCpu}
         isTablet={isTablet}
@@ -261,7 +261,7 @@ export function ServerResourceCard({ latest, isLoading, error }: ServerResourceC
 
       <ResourceBar
         label="RAM"
-        icon="hardware-chip-outline"
+        icon={Cpu}
         processValue={latest.processMemory}
         systemValue={latest.hostMemory}
         isTablet={isTablet}

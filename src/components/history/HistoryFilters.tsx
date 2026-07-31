@@ -52,6 +52,9 @@ function TimeRangePicker({
           <Pressable
             key={period.value}
             onPress={() => onChange(period.value)}
+            accessibilityRole="radio"
+            accessibilityLabel={period.label}
+            accessibilityState={{ selected: isSelected }}
             style={{
               flex: 1,
               alignItems: 'center',

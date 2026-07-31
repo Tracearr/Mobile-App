@@ -17,9 +17,18 @@ import {
 } from 'react-native';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { useRouter, Stack } from 'expo-router';
-import Ionicons from '@react-native-vector-icons/ionicons';
+import {
+  Search,
+  ShieldCheck,
+  Clock,
+  CircleX,
+  Users as UsersIcon,
+  ShieldAlert,
+  Shield,
+} from 'lucide-react-native';
 import { formatDistanceToNow } from 'date-fns';
 import { api } from '@/lib/api';
+import { ROUTES } from '@/lib/routes';
 import { useMediaServer } from '@/providers/MediaServerProvider';
 import { useResponsive } from '@/hooks/useResponsive';
 import { TabToolbar, androidHeaderOptions } from '@/components/navigation/TabHeaderButtons';
@@ -34,10 +43,20 @@ import { useTranslation } from '@tracearr/translations/mobile';
 const PAGE_SIZE = 50;
 
 function TrustScoreBadge({ score }: { score: number }) {
+  const { t } = useTranslation(['mobile']);
   const variant = score < 50 ? 'destructive' : score < 75 ? 'warning' : 'success';
+  const TierIcon =
+    variant === 'destructive' ? ShieldAlert : variant === 'warning' ? Shield : ShieldCheck;
+  const tierColor =
+    variant === 'destructive'
+      ? colors.error
+      : variant === 'warning'
+        ? colors.warning
+        : colors.success;
 
   return (
     <View
+      accessibilityLabel={t('mobile:a11y.trustScore', { score })}
       className={cn(
         'min-w-[40px] items-center rounded-sm px-2 py-1',
         variant === 'destructive' && 'bg-destructive/20',
@@ -45,16 +64,19 @@ function TrustScoreBadge({ score }: { score: number }) {
         variant === 'success' && 'bg-success/20'
       )}
     >
-      <Text
-        className={cn(
-          'text-sm font-semibold',
-          variant === 'destructive' && 'text-destructive',
-          variant === 'warning' && 'text-warning',
-          variant === 'success' && 'text-success'
-        )}
-      >
-        {score}
-      </Text>
+      <View className="flex-row items-center gap-1">
+        <TierIcon size={12} color={tierColor} />
+        <Text
+          className={cn(
+            'text-sm font-semibold',
+            variant === 'destructive' && 'text-destructive',
+            variant === 'warning' && 'text-warning',
+            variant === 'success' && 'text-success'
+          )}
+        >
+          {score}
+        </Text>
+      </View>
     </View>
   );
 }
@@ -88,7 +110,7 @@ function UserCard({
               <Text className="text-base font-semibold" numberOfLines={1}>
                 {displayName}
               </Text>
-              {isOwner && <Ionicons name="shield-checkmark" size={14} color={colors.warning} />}
+              {isOwner && <ShieldCheck size={14} color={colors.warning} />}
             </View>
             {/* Show username if different from display name */}
             {user.identityName && user.identityName !== user.username && (
@@ -97,7 +119,7 @@ function UserCard({
             {/* Tablet: show joined date */}
             {isTablet && user.createdAt && (
               <View className="mt-0.5 flex-row items-center gap-1">
-                <Ionicons name="time-outline" size={10} color={colors.text.muted.dark} />
+                <Clock size={10} color={colors.text.muted.dark} />
                 <Text className="text-muted-foreground text-xs">
                   Joined {formatDistanceToNow(new Date(user.createdAt), { addSuffix: true })}
                 </Text>
@@ -186,7 +208,7 @@ export default function UsersScreen() {
           >
             <UserCard
               user={item}
-              onPress={() => router.push(`/user/${item.id}` as never)}
+              onPress={() => router.push(ROUTES.USER(item.id))}
               isTablet={isTablet}
             />
           </View>
@@ -224,7 +246,7 @@ export default function UsersScreen() {
                   borderColor: colors.border.dark,
                 }}
               >
-                <Ionicons name="search" size={18} color={colors.text.muted.dark} />
+                <Search size={18} color={colors.text.muted.dark} />
                 <TextInput
                   value={searchQuery}
                   onChangeText={setSearchQuery}
@@ -241,7 +263,7 @@ export default function UsersScreen() {
                 />
                 {searchQuery.length > 0 && (
                   <Pressable onPress={() => setSearchQuery('')}>
-                    <Ionicons name="close-circle" size={18} color={colors.text.muted.dark} />
+                    <CircleX size={18} color={colors.text.muted.dark} />
                   </Pressable>
                 )}
               </View>
@@ -258,7 +280,7 @@ export default function UsersScreen() {
         ListEmptyComponent={
           <View className="items-center py-12">
             <View className="bg-card border-border mb-4 h-16 w-16 items-center justify-center rounded-full border">
-              <Ionicons name="people-outline" size={32} color={colors.text.muted.dark} />
+              <UsersIcon size={32} color={colors.text.muted.dark} />
             </View>
             <Text className="mb-1 text-lg font-semibold">
               {searchQuery ? t('common:empty.noResults') : t('mobile:users.noUsers')}

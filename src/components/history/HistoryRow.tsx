@@ -132,7 +132,9 @@ function ProgressBar({ progress }: { progress: number }) {
           }}
         />
       </View>
-      <Text style={{ fontSize: 10, color: colors.text.muted.dark, width: 28, textAlign: 'right' }}>
+      <Text
+        style={{ fontSize: 10, color: colors.text.muted.dark, minWidth: 28, textAlign: 'right' }}
+      >
         {progress}%
       </Text>
     </View>

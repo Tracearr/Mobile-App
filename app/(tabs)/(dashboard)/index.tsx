@@ -11,8 +11,18 @@ import { useMemo } from 'react';
 import { View, ScrollView, RefreshControl } from 'react-native';
 import { useRouter, Stack } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
-import Ionicons, { type IoniconsIconName } from '@react-native-vector-icons/ionicons';
+import {
+  CirclePlay,
+  Clock,
+  MapPin,
+  Server,
+  TriangleAlert,
+  Tv,
+  Users,
+  type LucideIcon,
+} from 'lucide-react-native';
 import { api } from '@/lib/api';
+import { ROUTES } from '@/lib/routes';
 import { useMediaServer } from '@/providers/MediaServerProvider';
 import { useServerStatistics } from '@/hooks/useServerStatistics';
 import { useResponsive } from '@/hooks/useResponsive';
@@ -29,12 +39,12 @@ import { useTranslation } from '@tracearr/translations/mobile';
  * Compact stat pill for dashboard summary bar
  */
 function StatPill({
-  icon,
+  icon: Icon,
   value,
   unit,
   color = colors.text.secondary.dark,
 }: {
-  icon: IoniconsIconName;
+  icon: LucideIcon;
   value: string | number;
   unit?: string;
   color?: string;
@@ -51,7 +61,7 @@ function StatPill({
         gap: 6,
       }}
     >
-      <Ionicons name={icon} size={14} color={color} />
+      <Icon size={14} color={color} />
       <Text style={{ fontSize: 13, fontWeight: '600', color: colors.text.primary.dark }}>
         {value}
       </Text>
@@ -151,24 +161,24 @@ export default function DashboardScreen() {
                 {t('mobile:dashboard.today')}
               </Text>
               <StatPill
-                icon="play-circle-outline"
+                icon={CirclePlay}
                 value={stats.todayPlays}
                 unit={t('pages:dashboard.plays')}
               />
               <StatPill
-                icon="time-outline"
+                icon={Clock}
                 value={stats.watchTimeHours}
                 unit={t('mobile:dashboard.hrs')}
               />
               {isTablet && (
                 <StatPill
-                  icon="people-outline"
+                  icon={Users}
                   value={stats.activeUsersToday}
                   unit={t('pages:dashboard.activeUsers')}
                 />
               )}
               <StatPill
-                icon="warning-outline"
+                icon={TriangleAlert}
                 value={stats.alertsLast24h}
                 unit={t('pages:dashboard.alerts')}
                 color={stats.alertsLast24h > 0 ? colors.warning : colors.text.muted.dark}
@@ -181,7 +191,7 @@ export default function DashboardScreen() {
         <View style={{ marginBottom: spacing.md, paddingHorizontal: horizontalPadding }}>
           <View className="mb-3 flex-row items-center justify-between">
             <View className="flex-row items-center gap-2">
-              <Ionicons name="tv-outline" size={18} color={ACCENT_COLOR} />
+              <Tv size={18} color={ACCENT_COLOR} />
               <Text className="text-muted-foreground text-sm font-semibold tracking-wide uppercase">
                 {t('pages:dashboard.nowPlaying')}
               </Text>
@@ -219,7 +229,7 @@ export default function DashboardScreen() {
                 >
                   <NowPlayingCard
                     session={session}
-                    onPress={() => router.push(`/session/${session.id}` as never)}
+                    onPress={() => router.push(ROUTES.SESSION(session.id))}
                     isMultiServer={isMultiServer}
                     serverColor={serverColorMap.get(session.server.id)}
                   />
@@ -237,7 +247,7 @@ export default function DashboardScreen() {
                     marginBottom: 12,
                   }}
                 >
-                  <Ionicons name="tv-outline" size={32} color={colors.text.muted.dark} />
+                  <Tv size={32} color={colors.text.muted.dark} />
                 </View>
                 <Text className="text-base font-semibold">
                   {t('pages:dashboard.noActiveStreams')}
@@ -254,7 +264,7 @@ export default function DashboardScreen() {
         {sortedSessions && sortedSessions.length > 0 && (
           <View style={{ marginBottom: spacing.md, paddingHorizontal: horizontalPadding }}>
             <View className="mb-3 flex-row items-center gap-2">
-              <Ionicons name="location-outline" size={18} color={ACCENT_COLOR} />
+              <MapPin size={18} color={ACCENT_COLOR} />
               <Text className="text-muted-foreground text-sm font-semibold tracking-wide uppercase">
                 {t('pages:dashboard.streamLocations')}
               </Text>
@@ -271,7 +281,7 @@ export default function DashboardScreen() {
         {isPlexServer && (
           <View style={{ paddingHorizontal: horizontalPadding }}>
             <View className="mb-3 flex-row items-center gap-2">
-              <Ionicons name="server-outline" size={18} color={ACCENT_COLOR} />
+              <Server size={18} color={ACCENT_COLOR} />
               <Text className="text-muted-foreground text-sm font-semibold tracking-wide uppercase">
                 {t('pages:dashboard.serverResources')}
               </Text>

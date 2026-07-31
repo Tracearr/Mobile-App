@@ -15,10 +15,10 @@ const buttonVariants = cva('flex-row items-center justify-center rounded-md', {
       link: 'bg-transparent',
     },
     size: {
-      default: 'h-10 px-4 py-2',
-      sm: 'h-9 px-3',
-      lg: 'h-11 px-8',
-      icon: 'h-10 w-10',
+      default: 'min-h-10 px-4 py-2',
+      sm: 'min-h-9 px-3',
+      lg: 'min-h-11 px-8',
+      icon: 'min-h-10 min-w-10',
     },
   },
   defaultVariants: {
@@ -56,7 +56,13 @@ interface ButtonProps extends PressableProps, VariantProps<typeof buttonVariants
 
 const Button = React.forwardRef<React.ComponentRef<typeof Pressable>, ButtonProps>(
   ({ className, variant, size, children, ...props }, ref) => (
-    <Pressable ref={ref} className={cn(buttonVariants({ variant, size, className }))} {...props}>
+    <Pressable
+      ref={ref}
+      accessibilityRole="button"
+      accessibilityState={{ disabled: props.disabled === true }}
+      className={cn(buttonVariants({ variant, size, className }))}
+      {...props}
+    >
       {typeof children === 'string' ? (
         <Text className={cn(buttonTextVariants({ variant, size }))}>{children}</Text>
       ) : (

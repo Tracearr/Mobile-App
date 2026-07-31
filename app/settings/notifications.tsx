@@ -27,6 +27,7 @@ import { Text } from '@/components/ui/text';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { queryKeys } from '@/lib/queryKeys';
 import { api } from '@/lib/api';
 import { useAuthStateStore } from '@/lib/authStateStore';
 import { colors, ACCENT_COLOR } from '@/lib/theme';
@@ -107,6 +108,7 @@ function SettingRow({
       <Switch
         value={value}
         onValueChange={onValueChange}
+        accessibilityLabel={label}
         disabled={disabled}
         trackColor={{ false: colors.switch.trackOff, true: colors.switch.trackOn }}
         thumbColor={value ? colors.switch.thumbOn : colors.switch.thumbOff}
@@ -209,7 +211,7 @@ export default function NotificationSettingsScreen() {
     isLoading,
     error,
   } = useQuery({
-    queryKey: ['notifications', 'preferences'],
+    queryKey: queryKeys.notifications.preferences(),
     queryFn: api.notifications.getPreferences,
     enabled: !!server, // Still need auth
   });
@@ -218,7 +220,7 @@ export default function NotificationSettingsScreen() {
   const updateMutation = useMutation({
     mutationFn: api.notifications.updatePreferences,
     onMutate: async (newData) => {
-      await queryClient.cancelQueries({ queryKey: ['notifications', 'preferences'] });
+      await queryClient.cancelQueries({ queryKey: queryKeys.notifications.preferences() });
       const previousData = queryClient.getQueryData<NotificationPreferences>([
         'notifications',
         'preferences',
@@ -235,7 +237,7 @@ export default function NotificationSettingsScreen() {
       }
     },
     onSettled: () => {
-      void queryClient.invalidateQueries({ queryKey: ['notifications', 'preferences'] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.notifications.preferences() });
     },
   });
 

@@ -23,7 +23,7 @@ import { useAuthStateStore } from '@/lib/authStateStore';
 import { useMediaServer } from '@/providers/MediaServerProvider';
 import { useConnectionValidator } from '@/hooks/useConnectionValidator';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
-import { ACCENT_COLOR } from '@/lib/theme';
+import { ACCENT_COLOR, colors } from '@/lib/theme';
 import { i18nReady } from '@/lib/i18n';
 import { useTranslation } from '@tracearr/translations/mobile';
 
@@ -96,7 +96,7 @@ function RootLayoutNav() {
       <View
         style={{
           flex: 1,
-          backgroundColor: '#09090B',
+          backgroundColor: colors.background.dark,
           alignItems: 'center',
           justifyContent: 'center',
         }}
@@ -133,7 +133,7 @@ function RootLayoutNav() {
       <Stack
         screenOptions={{
           headerShown: false,
-          contentStyle: { backgroundColor: '#09090B' },
+          contentStyle: { backgroundColor: colors.background.dark },
         }}
       >
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
@@ -179,7 +179,7 @@ export default function RootLayout() {
       <View
         style={{
           flex: 1,
-          backgroundColor: '#09090B',
+          backgroundColor: colors.background.dark,
           alignItems: 'center',
           justifyContent: 'center',
         }}
@@ -192,7 +192,7 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <View style={{ flex: 1, backgroundColor: '#09090B' }}>
+        <View style={{ flex: 1, backgroundColor: colors.background.dark }}>
           <ErrorBoundary>
             <QueryProvider>
               <SocketProvider>

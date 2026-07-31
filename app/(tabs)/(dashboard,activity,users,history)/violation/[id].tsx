@@ -24,6 +24,8 @@ import {
   CheckCircle2,
 } from 'lucide-react-native';
 import { api } from '@/lib/api';
+import { queryKeys } from '@/lib/queryKeys';
+import { ROUTES } from '@/lib/routes';
 import { useResponsive } from '@/hooks/useResponsive';
 import { Text } from '@/components/ui/text';
 import { Card } from '@/components/ui/card';
@@ -210,7 +212,7 @@ function findViolationInCache(
   const allCaches = queryClient.getQueriesData<{
     pages?: { data: ViolationWithDetails[] }[];
     data?: ViolationWithDetails[];
-  }>({ queryKey: ['violations'] });
+  }>({ queryKey: queryKeys.violations.all() });
 
   for (const [_key, data] of allCaches) {
     if (!data) continue;
@@ -242,7 +244,7 @@ export default function ViolationDetailScreen() {
 
   // Get settings for unit system
   const { data: settings } = useQuery({
-    queryKey: ['settings'],
+    queryKey: queryKeys.settings(),
     queryFn: api.settings.get,
     staleTime: 1000 * 60 * 5,
   });
@@ -260,7 +262,7 @@ export default function ViolationDetailScreen() {
     isLoading,
     isError,
   } = useQuery({
-    queryKey: ['violations', 'detail', id],
+    queryKey: queryKeys.violations.detail(id),
     queryFn: () => api.violations.get(id),
     initialData: cachedViolation,
     staleTime: cachedViolation ? 1000 * 60 : 0,
@@ -275,7 +277,7 @@ export default function ViolationDetailScreen() {
   const acknowledgeMutation = useMutation({
     mutationFn: api.violations.acknowledge,
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['violations'] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.violations.all() });
       router.back();
     },
   });
@@ -284,7 +286,7 @@ export default function ViolationDetailScreen() {
   const dismissMutation = useMutation({
     mutationFn: api.violations.dismiss,
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['violations'] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.violations.all() });
       router.back();
     },
   });
@@ -312,7 +314,7 @@ export default function ViolationDetailScreen() {
 
   const handleUserPress = () => {
     if (violation?.user?.id) {
-      router.push(`/user/${violation.user.id}` as never);
+      router.push(ROUTES.USER(violation.user.id));
     }
   };
 

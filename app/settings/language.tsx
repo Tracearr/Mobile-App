@@ -6,7 +6,7 @@ import { View, Pressable, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Check } from 'lucide-react-native';
 import { Text } from '@/components/ui/text';
-import { ACCENT_COLOR } from '@/lib/theme';
+import { ACCENT_COLOR, colors } from '@/lib/theme';
 import { languageNames, getCurrentLanguage, changeLanguage } from '@tracearr/translations/mobile';
 import { asyncStorageAdapter } from '@/lib/i18n';
 import { useState } from 'react';
@@ -32,7 +32,7 @@ export default function LanguageScreen() {
 
   return (
     <SafeAreaView
-      style={{ flex: 1, backgroundColor: '#09090B' }}
+      style={{ flex: 1, backgroundColor: colors.background.dark }}
       edges={['left', 'right', 'bottom']}
     >
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>

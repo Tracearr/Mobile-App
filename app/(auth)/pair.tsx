@@ -217,7 +217,10 @@ export default function PairScreen() {
 
   if (manualMode) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#09090B' }} edges={['top', 'bottom']}>
+      <SafeAreaView
+        style={{ flex: 1, backgroundColor: colors.background.dark }}
+        edges={['top', 'bottom']}
+      >
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={{ flex: 1 }}
@@ -297,7 +300,10 @@ export default function PairScreen() {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#09090B' }} edges={['top', 'bottom']}>
+    <SafeAreaView
+      style={{ flex: 1, backgroundColor: colors.background.dark }}
+      edges={['top', 'bottom']}
+    >
       <View
         style={{ alignItems: 'center', paddingHorizontal: 24, paddingTop: 32, paddingBottom: 24 }}
       >
@@ -316,7 +322,7 @@ export default function PairScreen() {
           marginBottom: 24,
           borderRadius: 16,
           overflow: 'hidden',
-          backgroundColor: '#09090B',
+          backgroundColor: colors.background.dark,
         }}
       >
         {permission?.granted ? (

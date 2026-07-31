@@ -7,13 +7,14 @@
  */
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
+import { queryKeys } from '@/lib/queryKeys';
 import { useMediaServer } from '@/providers/MediaServerProvider';
 
 export function useUnacknowledgedAlertsCount() {
   const { selectedServerId } = useMediaServer();
 
   const { data } = useQuery({
-    queryKey: ['violations', 'unacknowledged-count', selectedServerId],
+    queryKey: queryKeys.violations.unacknowledgedCount(selectedServerId),
     queryFn: () =>
       api.violations.list({
         serverId: selectedServerId ?? undefined,

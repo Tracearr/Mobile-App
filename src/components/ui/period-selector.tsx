@@ -21,14 +21,17 @@ const PERIODS: { value: StatsPeriod; label: string }[] = [
 
 export function PeriodSelector({ value, onChange }: PeriodSelectorProps) {
   return (
-    <View className="bg-surface flex-row rounded-lg p-1">
+    <View accessibilityRole="radiogroup" className="bg-surface flex-row rounded-lg p-1">
       {PERIODS.map((period) => {
         const isSelected = value === period.value;
         return (
           <Pressable
             key={period.value}
             onPress={() => onChange(period.value)}
-            className={cn('rounded-md px-4 py-1.5', isSelected && 'bg-card')}
+            accessibilityRole="radio"
+            accessibilityLabel={period.label}
+            accessibilityState={{ selected: isSelected }}
+            className={cn('min-h-8 justify-center rounded-md px-4 py-1.5', isSelected && 'bg-card')}
           >
             <Text
               className={cn(

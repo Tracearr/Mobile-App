@@ -9,7 +9,6 @@
  * - hsl(240 5% 65%)  = #A1A1AA (muted-foreground)
  * - hsl(240 6% 10%)  = #18181B (surface/sidebar)
  */
-import { Platform } from 'react-native';
 
 /**
  * Primary accent color - use for native components that need a color prop
@@ -19,12 +18,13 @@ import { Platform } from 'react-native';
  */
 export const ACCENT_COLOR = '#18D1E7';
 
+// global.css is canonical for palette values; keep these in sync with it.
 export const colors = {
   // Brand colors (Tracearr identity - cyan accent hue 187)
   cyan: {
     core: '#18D1E7', // hsl(187 80% 50%) - primary accent
-    deep: '#0EAFC8', // hsl(187 86% 42%) - hover/gradients
-    dark: '#0A7C96', // hsl(187 85% 31%) - shadows/outlines
+    deep: '#0891B2',
+    dark: '#0E7490',
   },
   // Legacy blue panel colors - kept for gradual migration
   blue: {
@@ -56,14 +56,14 @@ export const colors = {
   // Status colors
   success: '#22C55E',
   warning: '#F59E0B',
-  error: '#EF4444',
-  danger: '#EF4444',
+  error: '#B91C1C',
+  danger: '#B91C1C',
   info: '#3B82F6',
 
   // Switch/toggle colors
   switch: {
     trackOff: '#27272A', // matches border color
-    trackOn: '#0EAFC8', // cyan-deep
+    trackOn: '#0891B2',
     thumbOn: '#18D1E7', // cyan-core
     thumbOff: '#71717A', // zinc-500
   },
@@ -90,7 +90,7 @@ export const colors = {
   icon: {
     default: '#A1A1AA', // matches muted-foreground
     active: '#18D1E7', // cyan-core
-    danger: '#EF4444', // matches destructive
+    danger: '#FCA5A5',
   },
 
   // Border colors - shadcn neutral
@@ -100,7 +100,7 @@ export const colors = {
   },
 
   // Chart colors (matches web --chart-1 through --chart-5)
-  chart: ['#18D1E7', '#0EAFC8', '#71717A', '#F59E0B', '#EF4444', '#22C55E'],
+  chart: ['#18D1E7', '#22D3EE', '#6B7280', '#F59E0B', '#B91C1C', '#22C55E'],
 } as const;
 
 /**
@@ -120,15 +120,6 @@ export const spacing = {
   xl: 32,
   xxl: 48,
 } as const;
-
-/**
- * Native stack header height (excluding the top safe-area inset), for layout
- * that needs to sit below the header without reading it from navigation context.
- * Android's native-stack default is 64 (react-navigation getDefaultHeaderHeight).
- * iOS uses 56 - the modal-presentation height - so it also clears the app's
- * custom 56px in-screen headers (e.g. the alerts screen) on both platforms.
- */
-export const HEADER_HEIGHT = Platform.OS === 'android' ? 64 : 56;
 
 export const borderRadius = {
   sm: 4,
@@ -204,41 +195,3 @@ export const breakpoints = {
 
 export type Breakpoint = keyof typeof breakpoints;
 export type DeviceSize = 'phone' | 'phoneLandscape' | 'tablet' | 'tabletLandscape' | 'desktop';
-
-// Helper function to get theme-aware colors
-export function getThemeColor(
-  colorKey: 'background' | 'card' | 'surface' | 'border',
-  isDark: boolean
-): string {
-  return colors[colorKey][isDark ? 'dark' : 'light'];
-}
-
-export function getTextColor(variant: 'primary' | 'secondary' | 'muted', isDark: boolean): string {
-  return colors.text[variant][isDark ? 'dark' : 'light'];
-}
-
-/**
- * Get dynamic accent colors based on hue
- * Used by components that need the current accent color
- */
-export function getAccentColors(hue: number) {
-  const hslToHex = (h: number, s: number, l: number): string => {
-    s /= 100;
-    l /= 100;
-    const a = s * Math.min(l, 1 - l);
-    const f = (n: number) => {
-      const k = (n + h / 30) % 12;
-      const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
-      return Math.round(255 * color)
-        .toString(16)
-        .padStart(2, '0');
-    };
-    return `#${f(0)}${f(8)}${f(4)}`;
-  };
-
-  return {
-    core: hslToHex(hue, 80, 50),
-    deep: hslToHex(hue, 86, 42),
-    dark: hslToHex(hue, 85, 31),
-  };
-}

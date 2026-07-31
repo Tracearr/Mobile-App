@@ -43,6 +43,8 @@ import {
   Clapperboard,
 } from 'lucide-react-native';
 import { api, getServerUrl } from '@/lib/api';
+import { queryKeys } from '@/lib/queryKeys';
+import { ROUTES } from '@/lib/routes';
 import { useMediaServer } from '@/providers/MediaServerProvider';
 import { useAuthStateStore } from '@/lib/authStateStore';
 import { colors, withAlpha, ACCENT_COLOR } from '@/lib/theme';
@@ -243,7 +245,7 @@ export default function SessionDetailScreen() {
     mutationFn: ({ sessionId, reason }: { sessionId: string; reason?: string }) =>
       api.sessions.terminate(sessionId, reason),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['sessions', 'active'] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.sessions.activePrefix() });
       setTerminateModalVisible(false);
       setTerminateReason('');
       Alert.alert(t('mobile:session.streamTerminated'), t('mobile:session.sessionStopped'));
@@ -268,7 +270,7 @@ export default function SessionDetailScreen() {
     isLoading,
     error,
   } = useQuery<SessionWithDetails>({
-    queryKey: ['session', id, selectedServerId],
+    queryKey: queryKeys.sessions.detail(id, selectedServerId),
     queryFn: () => api.sessions.get(id),
     enabled: !!id,
   });
@@ -278,7 +280,7 @@ export default function SessionDetailScreen() {
       <SafeAreaView
         style={{
           flex: 1,
-          backgroundColor: '#09090B',
+          backgroundColor: colors.background.dark,
           alignItems: 'center',
           justifyContent: 'center',
         }}
@@ -294,7 +296,7 @@ export default function SessionDetailScreen() {
       <SafeAreaView
         style={{
           flex: 1,
-          backgroundColor: '#09090B',
+          backgroundColor: colors.background.dark,
           alignItems: 'center',
           justifyContent: 'center',
           padding: 12,
@@ -341,7 +343,7 @@ export default function SessionDetailScreen() {
   return (
     <>
       <SafeAreaView
-        style={{ flex: 1, backgroundColor: '#09090B' }}
+        style={{ flex: 1, backgroundColor: colors.background.dark }}
         edges={['left', 'right', 'bottom']}
       >
         <ScrollView style={{ flex: 1 }} contentContainerClassName="gap-2 p-3">
@@ -421,7 +423,7 @@ export default function SessionDetailScreen() {
           {/* User - Tappable */}
           <Pressable
             className="border-border flex-row items-center gap-2 rounded-xl border p-2"
-            onPress={() => router.push(`/user/${session.serverUserId}` as never)}
+            onPress={() => router.push(ROUTES.USER(session.serverUserId))}
           >
             <UserAvatar
               thumbUrl={session.user.thumbUrl}
@@ -652,7 +654,7 @@ export default function SessionDetailScreen() {
                 placeholder="e.g., Please don't share your account"
                 placeholderTextColor={colors.text.muted.dark}
                 className="rounded-lg border px-3 py-2.5 text-sm text-white"
-                style={{ borderColor: colors.border.dark, backgroundColor: '#09090B' }}
+                style={{ borderColor: colors.border.dark, backgroundColor: colors.background.dark }}
                 autoFocus
                 returnKeyType="done"
                 onSubmitEditing={handleConfirmTerminate}

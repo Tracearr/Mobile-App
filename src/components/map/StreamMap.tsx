@@ -8,7 +8,7 @@
 import React, { Component, type ReactNode } from 'react';
 import { View, Platform } from 'react-native';
 import { AppleMaps, GoogleMaps } from 'expo-maps';
-import Ionicons from '@react-native-vector-icons/ionicons';
+import { Map as MapIcon } from 'lucide-react-native';
 import type { ActiveSession } from '@tracearr/shared';
 import { ACCENT_COLOR, colors } from '@/lib/theme';
 import { Text } from '@/components/ui/text';
@@ -42,7 +42,7 @@ class MapErrorBoundary extends Component<
           className="bg-card items-center justify-center gap-2 overflow-hidden rounded-xl"
           style={{ height: this.props.height }}
         >
-          <Ionicons name="map-outline" size={32} color={colors.icon.default} />
+          <MapIcon size={32} color={colors.icon.default} />
           <Text className="text-muted-foreground text-sm">Map unavailable</Text>
           {__DEV__ && this.state.error && (
             <Text className="text-destructive px-4 text-center text-xs">

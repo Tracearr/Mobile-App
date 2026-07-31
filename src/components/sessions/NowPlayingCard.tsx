@@ -11,7 +11,21 @@
 import React from 'react';
 import { View, Pressable, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
-import Ionicons, { type IoniconsIconName } from '@react-native-vector-icons/ionicons';
+import {
+  ArrowRight,
+  ChevronRight,
+  Cpu,
+  Film,
+  MapPin,
+  Monitor,
+  Pause,
+  Play,
+  Smartphone,
+  Tablet,
+  Tv,
+  Zap,
+  type LucideIcon,
+} from 'lucide-react-native';
 import { Text } from '@/components/ui/text';
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { useImageUrl } from '@/hooks/useImageUrl';
@@ -55,7 +69,7 @@ function getQualityInfo(session: ActiveSession): {
   label: string;
   color: string;
   bgColor: string;
-  icon: IoniconsIconName;
+  icon: LucideIcon;
   isHwTranscode: boolean;
 } {
   const videoDecision = session.videoDecision?.toLowerCase();
@@ -68,7 +82,7 @@ function getQualityInfo(session: ActiveSession): {
       label: 'Transcode',
       color: colors.warning,
       bgColor: 'rgba(245, 158, 11, 0.15)',
-      icon: isHwTranscode ? 'hardware-chip-outline' : 'flash',
+      icon: isHwTranscode ? Cpu : Zap,
       isHwTranscode,
     };
   }
@@ -81,7 +95,7 @@ function getQualityInfo(session: ActiveSession): {
       label: 'Direct Play',
       color: colors.success,
       bgColor: 'rgba(34, 197, 94, 0.15)',
-      icon: 'play',
+      icon: Play,
       isHwTranscode: false,
     };
   }
@@ -91,7 +105,7 @@ function getQualityInfo(session: ActiveSession): {
       label: 'Direct Stream',
       color: colors.info,
       bgColor: 'rgba(59, 130, 246, 0.15)',
-      icon: 'arrow-forward',
+      icon: ArrowRight,
       isHwTranscode: false,
     };
   }
@@ -101,7 +115,7 @@ function getQualityInfo(session: ActiveSession): {
       label: 'Transcode',
       color: colors.warning,
       bgColor: 'rgba(245, 158, 11, 0.15)',
-      icon: isHwTranscode ? 'hardware-chip-outline' : 'flash',
+      icon: isHwTranscode ? Cpu : Zap,
       isHwTranscode,
     };
   }
@@ -109,7 +123,7 @@ function getQualityInfo(session: ActiveSession): {
     label: 'Direct Play',
     color: colors.success,
     bgColor: 'rgba(34, 197, 94, 0.15)',
-    icon: 'play',
+    icon: Play,
     isHwTranscode: false,
   };
 }
@@ -117,7 +131,7 @@ function getQualityInfo(session: ActiveSession): {
 /**
  * Get device icon based on device/product/platform info
  */
-function getDeviceIcon(session: ActiveSession): IoniconsIconName {
+function getDeviceIcon(session: ActiveSession): LucideIcon {
   const device = session.device?.toLowerCase() || '';
   const product = session.product?.toLowerCase() || '';
   const platform = session.platform?.toLowerCase() || '';
@@ -134,11 +148,11 @@ function getDeviceIcon(session: ActiveSession): IoniconsIconName {
     product.includes('apple tv') ||
     product.includes('android tv')
   ) {
-    return 'tv-outline';
+    return Tv;
   }
   // Tablets
   if (device.includes('ipad') || device.includes('tablet')) {
-    return 'tablet-portrait-outline';
+    return Tablet;
   }
   // Phones
   if (
@@ -148,7 +162,7 @@ function getDeviceIcon(session: ActiveSession): IoniconsIconName {
     platform.includes('ios') ||
     platform.includes('android')
   ) {
-    return 'phone-portrait-outline';
+    return Smartphone;
   }
   // Desktop/Web
   if (
@@ -160,10 +174,10 @@ function getDeviceIcon(session: ActiveSession): IoniconsIconName {
     platform.includes('macos') ||
     platform.includes('linux')
   ) {
-    return 'desktop-outline';
+    return Monitor;
   }
   // Default
-  return 'hardware-chip-outline';
+  return Cpu;
 }
 
 /**
@@ -215,7 +229,8 @@ export function NowPlayingCard({
 
   // Tablet-only info
   const qualityInfo = getQualityInfo(session);
-  const deviceIcon = getDeviceIcon(session);
+  const QualityIcon = qualityInfo.icon;
+  const DeviceIcon = getDeviceIcon(session);
   const location = getLocationString(session);
 
   return (
@@ -252,7 +267,7 @@ export function NowPlayingCard({
               className="bg-card items-center justify-center rounded-lg"
               style={{ width: posterWidth, height: posterHeight }}
             >
-              <Ionicons name="film-outline" size={isTablet ? 28 : 24} color={colors.icon.default} />
+              <Film size={isTablet ? 28 : 24} color={colors.icon.default} />
             </View>
           )}
           {/* Play/Pause overlay on poster - like web */}
@@ -261,7 +276,7 @@ export function NowPlayingCard({
               style={StyleSheet.absoluteFill}
               className="items-center justify-center rounded-lg bg-black/60"
             >
-              <Ionicons name="pause" size={isTablet ? 24 : 20} color={colors.text.primary.dark} />
+              <Pause size={isTablet ? 24 : 20} color={colors.text.primary.dark} />
             </View>
           )}
         </View>
@@ -277,19 +292,13 @@ export function NowPlayingCard({
               >
                 {title}
               </Text>
-              <Ionicons
-                name={qualityInfo.icon}
+              <QualityIcon
                 size={isTablet ? 13 : 11}
                 color={qualityInfo.color}
                 style={{ marginLeft: 4 }}
               />
               {isTablet && (
-                <Ionicons
-                  name={deviceIcon}
-                  size={14}
-                  color={colors.text.muted.dark}
-                  style={{ marginLeft: 4 }}
-                />
+                <DeviceIcon size={14} color={colors.text.muted.dark} style={{ marginLeft: 4 }} />
               )}
             </View>
             {subtitle && (
@@ -314,8 +323,7 @@ export function NowPlayingCard({
               {displayName}
             </Text>
             {/* Chevron */}
-            <Ionicons
-              name="chevron-forward"
+            <ChevronRight
               size={isTablet ? 16 : 14}
               color={colors.icon.default}
               style={{ opacity: 0.4 }}
@@ -346,7 +354,7 @@ export function NowPlayingCard({
               )}
               {location && (
                 <View className="flex-row items-center gap-0.5" style={{ flexShrink: 1 }}>
-                  <Ionicons name="location-outline" size={9} color={colors.text.muted.dark} />
+                  <MapPin size={9} color={colors.text.muted.dark} />
                   <Text className="text-muted-foreground text-[10px]" numberOfLines={1}>
                     {location}
                   </Text>

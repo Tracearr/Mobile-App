@@ -19,6 +19,7 @@ import type { Server } from '@tracearr/shared';
 import { api } from '../lib/api';
 import { useAuthStateStore } from '../lib/authStateStore';
 
+import { queryKeys } from '@/lib/queryKeys';
 const SELECTED_SERVERS_KEY = 'tracearr_selected_media_servers';
 const LEGACY_SERVER_KEY = 'tracearr_selected_media_server';
 
@@ -81,7 +82,7 @@ export function MediaServerProvider({ children }: { children: ReactNode }) {
     isLoading,
     refetch,
   } = useQuery({
-    queryKey: ['media-servers', tracearrBackendId],
+    queryKey: queryKeys.mediaServers(tracearrBackendId),
     queryFn: () => api.servers.list(),
     enabled: isAuthenticated && !!tracearrBackendId,
     staleTime: 1000 * 60 * 5,
