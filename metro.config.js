@@ -1,5 +1,6 @@
 const { getDefaultConfig } = require('expo/metro-config');
 const { withNativewind } = require('nativewind/metro');
+const { getBundleModeMetroConfig } = require('react-native-worklets/bundleMode');
 const path = require('path');
 
 // Find the project and workspace directories
@@ -32,4 +33,6 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
   return context.resolveRequest(context, moduleName, platform);
 };
 
-module.exports = withNativewind(config, { input: './global.css' });
+// Worklets bundle mode (SDK 57 Reanimated/Hermes memory workaround) must wrap
+// last so its resolver runs before NativeWind's and the .js->.ts rewrite above.
+module.exports = getBundleModeMetroConfig(withNativewind(config, { input: './global.css' }));

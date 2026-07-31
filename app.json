@@ -7,7 +7,7 @@
     "icon": "./assets/icon.png",
     "scheme": "tracearr",
     "userInterfaceStyle": "dark",
-    "backgroundColor": "#051723",
+    "backgroundColor": "#09090B",
     "ios": {
       "icon": "./assets/ios-icon.png",
       "supportsTablet": true,
@@ -32,6 +32,7 @@
       },
       "googleServicesFile": "./google-services.json",
       "package": "com.tracearr.mobile",
+      "predictiveBackGestureEnabled": false,
       "permissions": ["android.permission.CAMERA", "android.permission.POST_NOTIFICATIONS"],
       "blockedPermissions": [
         "android.permission.RECORD_AUDIO",
@@ -49,7 +50,7 @@
           "android": {
             "usesCleartextTraffic": true,
             "compileSdkVersion": 36,
-            "targetSdkVersion": 35,
+            "targetSdkVersion": 36,
             "buildToolsVersion": "36.0.0",
             "packagingOptions": {
               "pickFirst": ["**/libcrypto.so"]
@@ -103,7 +104,7 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#051723",
+          "backgroundColor": "#09090B",
           "image": "./assets/splash-icon-transparent.png",
           "imageWidth": 200
         }

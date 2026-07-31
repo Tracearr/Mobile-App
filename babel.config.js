@@ -13,7 +13,7 @@ module.exports = function (api) {
           extensions: ['.ios.js', '.android.js', '.js', '.ts', '.tsx', '.json'],
         },
       ],
-      'react-native-worklets/plugin',
+      ['react-native-worklets/plugin', { bundleMode: true }],
     ],
   };
 };
