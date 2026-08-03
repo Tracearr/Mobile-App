@@ -1,6 +1,5 @@
 const { getDefaultConfig } = require('expo/metro-config');
 const { withNativewind } = require('nativewind/metro');
-const { getBundleModeMetroConfig } = require('react-native-worklets/bundleMode');
 const path = require('path');
 
 // Find the project and workspace directories
@@ -33,6 +32,11 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
   return context.resolveRequest(context, moduleName, platform);
 };
 
-// Worklets bundle mode (SDK 57 Reanimated/Hermes memory workaround) must wrap
-// last so its resolver runs before NativeWind's and the .js->.ts rewrite above.
-module.exports = getBundleModeMetroConfig(withNativewind(config, { input: './global.css' }));
+// Worklets bundle mode (the SDK 57 Reanimated/Hermes memory workaround) is off,
+// here and in babel.config.js. Its react-native shim ends in a bare
+// require('react-native'), which react-native-css remaps straight back to the
+// shim, so the two cycle through NativeModules until the stack blows and "main"
+// never registers. Both wrapping orders cycle, so ordering is not a way out.
+// Still unfixed in worklets 0.11.3 and in the 0.12 nightlies; the shim needs an
+// internal sentinel specifier first. Tracked as reanimated#9817.
+module.exports = withNativewind(config, { input: './global.css' });

@@ -21,22 +21,37 @@ export const unstable_settings = {
   },
 };
 
+/**
+ * Detail titles come from this map rather than <Stack.Screen> children on
+ * purpose. Declaring children makes expo-router order the stack by the
+ * declaration list and demote the group's anchor to last (see
+ * getSortedChildren in expo-router/build/useScreens.js), so every tab whose
+ * stack was still empty opened session/[id] with no id instead of its own
+ * root screen. Keeping the child list empty lets the anchor sort first.
+ */
+const DETAIL_TITLE_KEYS = {
+  'session/[id]': 'nav:session',
+  'user/[id]': 'nav:user',
+  'violation/[id]': 'nav:violation',
+} as const;
+
 export default function TabStackLayout() {
   const { t } = useTranslation(['nav']);
   return (
     <Stack
-      screenOptions={{
-        headerTintColor: colors.text.primary.dark,
-        headerTitleStyle: { fontWeight: '600' },
-        headerShadowVisible: false,
-        headerStyle: { backgroundColor: colors.background.dark },
-        contentStyle: { backgroundColor: colors.background.dark },
-        headerTitleAlign: 'center',
+      screenOptions={({ route }) => {
+        const titleKey = DETAIL_TITLE_KEYS[route.name as keyof typeof DETAIL_TITLE_KEYS];
+        return {
+          headerTintColor: colors.text.primary.dark,
+          headerTitleStyle: { fontWeight: '600' },
+          headerShadowVisible: false,
+          headerStyle: { backgroundColor: colors.background.dark },
+          contentStyle: { backgroundColor: colors.background.dark },
+          headerTitleAlign: 'center',
+          // Root screens override this with their own <Stack.Screen options>.
+          ...(titleKey ? { title: t(titleKey) } : {}),
+        };
       }}
-    >
-      <Stack.Screen name="session/[id]" options={{ title: t('nav:session') }} />
-      <Stack.Screen name="user/[id]" options={{ title: t('nav:user') }} />
-      <Stack.Screen name="violation/[id]" options={{ title: t('nav:violation') }} />
-    </Stack>
+    />
   );
 }
