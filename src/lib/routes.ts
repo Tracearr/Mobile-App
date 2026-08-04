@@ -23,5 +23,5 @@ export const ROUTES = {
   // Other
   SETTINGS: '/settings' as Href,
   ALERTS: '/alerts' as Href,
-  SERVER_SELECT: (multi: boolean) => `/server-select?multi=${multi ? '1' : '0'}` as Href,
+  SERVER_SELECT: '/server-select' as Href,
 } as const;

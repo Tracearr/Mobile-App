@@ -7,6 +7,7 @@ import { useEffect, useCallback, useRef } from 'react';
 import { AppState } from 'react-native';
 import type { AppStateStatus } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
+import { ALL_SERVERS } from '@tracearr/shared';
 import { useAuthStateStore } from '../lib/authStateStore';
 import { api } from '../lib/api';
 import type { AxiosError } from 'axios';
@@ -37,7 +38,7 @@ export function useConnectionValidator() {
 
     try {
       // Use a lightweight endpoint to validate connection
-      await api.stats.dashboard();
+      await api.stats.dashboard(ALL_SERVERS);
 
       // If we were disconnected and now succeeded, we're reconnected
       if (connectionState === 'disconnected') {

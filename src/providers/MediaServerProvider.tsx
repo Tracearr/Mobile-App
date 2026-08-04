@@ -1,7 +1,8 @@
 /**
  * Media Server selection provider
- * Fetches available servers from Tracearr API and manages selection
- * Supports multi-server selection for dashboard, single-server for other tabs
+ * Fetches the server list from the Tracearr API and owns the persisted
+ * ServerScope selection (global, default all servers), migrating two legacy
+ * storage formats and validating subsets against the live server list.
  */
 import {
   createContext,
@@ -15,16 +16,23 @@ import {
 } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import * as ResilientStorage from '../lib/resilientStorage';
-import type { Server } from '@tracearr/shared';
+import {
+  serverScopeFromIds,
+  serverScopeKey,
+  type Server,
+  type ServerScope,
+} from '@tracearr/shared';
 import { api } from '../lib/api';
 import { useAuthStateStore } from '../lib/authStateStore';
 
 import { queryKeys } from '@/lib/queryKeys';
-const SELECTED_SERVERS_KEY = 'tracearr_selected_media_servers';
-const LEGACY_SERVER_KEY = 'tracearr_selected_media_server';
+const SCOPE_KEY = 'tracearr_server_scope';
+const SELECTED_SERVERS_KEY = 'tracearr_selected_media_servers'; // pre-scope format
+const LEGACY_SERVER_KEY = 'tracearr_selected_media_server'; // single-server era
 
 interface MediaServerContextValue {
   servers: Server[];
+  scope: ServerScope;
   selectedServer: Server | null;
   selectedServerId: string | null;
   isLoading: boolean;
@@ -47,31 +55,42 @@ export function MediaServerProvider({ children }: { children: ReactNode }) {
   const isAuthenticated = tracearrServer !== null && tokenStatus !== 'revoked';
   const tracearrBackendId = tracearrServer?.id ?? null;
   const queryClient = useQueryClient();
-  const [selectedServerIds, setSelectedServerIds] = useState<string[]>([]);
+  const [scope, setScope] = useState<ServerScope>({ mode: 'all' });
   const [initialized, setInitialized] = useState(false);
 
-  // Load saved selection with legacy migration
+  // Load saved scope, migrating older formats
   useEffect(() => {
     void (async () => {
       try {
-        const stored = await ResilientStorage.getItemAsync(SELECTED_SERVERS_KEY);
+        const stored = await ResilientStorage.getItemAsync(SCOPE_KEY);
         if (stored) {
-          const parsed = JSON.parse(stored) as string[];
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            setSelectedServerIds(parsed);
+          const parsed = JSON.parse(stored) as ServerScope;
+          if (parsed.mode === 'all' || (parsed.mode === 'subset' && parsed.serverIds.length > 0)) {
+            setScope(parsed.mode === 'subset' ? serverScopeFromIds(parsed.serverIds) : parsed);
             setInitialized(true);
             return;
           }
         }
-        // Migrate from legacy single-server key
-        const legacy = await ResilientStorage.getItemAsync(LEGACY_SERVER_KEY);
-        if (legacy) {
-          setSelectedServerIds([legacy]);
-          await ResilientStorage.setItemAsync(SELECTED_SERVERS_KEY, JSON.stringify([legacy]));
+        // Migrate the pre-scope array format, then the single-server key.
+        const legacyArray = await ResilientStorage.getItemAsync(SELECTED_SERVERS_KEY);
+        if (legacyArray) {
+          const ids = JSON.parse(legacyArray) as string[];
+          const migrated = serverScopeFromIds(Array.isArray(ids) ? ids : []);
+          setScope(migrated);
+          await ResilientStorage.setItemAsync(SCOPE_KEY, JSON.stringify(migrated));
+          await ResilientStorage.deleteItemAsync(SELECTED_SERVERS_KEY);
+          setInitialized(true);
+          return;
+        }
+        const legacySingle = await ResilientStorage.getItemAsync(LEGACY_SERVER_KEY);
+        if (legacySingle) {
+          const migrated = serverScopeFromIds([legacySingle]);
+          setScope(migrated);
+          await ResilientStorage.setItemAsync(SCOPE_KEY, JSON.stringify(migrated));
           await ResilientStorage.deleteItemAsync(LEGACY_SERVER_KEY);
         }
       } catch {
-        // Ignore parse errors
+        // Ignore parse errors; fall through to default all
       }
       setInitialized(true);
     })();
@@ -88,35 +107,29 @@ export function MediaServerProvider({ children }: { children: ReactNode }) {
     staleTime: 1000 * 60 * 5,
   });
 
-  // Validate selection when servers load
+  // Validate scope when servers load: drop subset ids that no longer exist,
+  // fall back to all when nothing valid remains. A subset that ends up
+  // covering every server collapses to all-mode so the stored form stays
+  // canonical (matches what toggleServer already does).
   useEffect(() => {
-    if (!initialized || isLoading) return;
-
-    if (mediaServers.length === 0) {
-      if (selectedServerIds.length > 0) {
-        setSelectedServerIds([]);
-        void ResilientStorage.deleteItemAsync(SELECTED_SERVERS_KEY);
-      }
-      return;
-    }
+    if (!initialized || isLoading || mediaServers.length === 0) return;
+    if (scope.mode !== 'subset') return;
 
     const validIds = new Set(mediaServers.map((s) => s.id));
-    const validated = selectedServerIds.filter((id) => validIds.has(id));
-    const next = validated.length > 0 ? validated : mediaServers.map((s) => s.id);
-
-    if (
-      next.length !== selectedServerIds.length ||
-      next.some((id, i) => id !== selectedServerIds[i])
-    ) {
-      setSelectedServerIds(next);
-      void ResilientStorage.setItemAsync(SELECTED_SERVERS_KEY, JSON.stringify(next));
+    const validated = scope.serverIds.filter((id) => validIds.has(id));
+    if (validated.length === mediaServers.length && validated.length > 0) {
+      setScope({ mode: 'all' });
+      return;
     }
-  }, [mediaServers, selectedServerIds, initialized, isLoading]);
+    if (validated.length === scope.serverIds.length) return;
+    setScope(serverScopeFromIds(validated)); // [] -> all
+  }, [mediaServers, scope, initialized, isLoading]);
 
   // Clear on logout
   useEffect(() => {
     if (!isAuthenticated) {
-      setSelectedServerIds([]);
+      setScope({ mode: 'all' });
+      void ResilientStorage.deleteItemAsync(SCOPE_KEY);
       void ResilientStorage.deleteItemAsync(SELECTED_SERVERS_KEY);
       void ResilientStorage.deleteItemAsync(LEGACY_SERVER_KEY);
     }
@@ -131,58 +144,57 @@ export function MediaServerProvider({ children }: { children: ReactNode }) {
     });
   }, [queryClient]);
 
-  const persistSelection = useCallback((ids: string[]) => {
-    if (ids.length > 0) {
-      void ResilientStorage.setItemAsync(SELECTED_SERVERS_KEY, JSON.stringify(ids));
-    } else {
-      void ResilientStorage.deleteItemAsync(SELECTED_SERVERS_KEY);
-    }
-  }, []);
+  const toggleServer = useCallback(
+    (serverId: string) => {
+      setScope((prev) => {
+        const current = prev.mode === 'all' ? mediaServers.map((s) => s.id) : prev.serverIds;
+        const next = current.includes(serverId)
+          ? current.filter((id) => id !== serverId)
+          : [...current, serverId];
+        if (next.length === 0) return prev; // never empty
+        if (next.length === mediaServers.length && mediaServers.length > 0) {
+          return { mode: 'all' };
+        }
+        return { mode: 'subset', serverIds: next };
+      });
+    },
+    [mediaServers]
+  );
 
-  const toggleServer = useCallback((serverId: string) => {
-    setSelectedServerIds((prev) => {
-      const next = prev.includes(serverId)
-        ? prev.filter((id) => id !== serverId)
-        : [...prev, serverId];
-      if (next.length === 0) return prev;
-      return next;
-    });
-  }, []);
-
-  const selectAllServers = useCallback(() => {
-    setSelectedServerIds(mediaServers.map((s) => s.id));
-  }, [mediaServers]);
+  const selectAllServers = useCallback(() => setScope({ mode: 'all' }), []);
 
   const selectServer = useCallback((serverId: string | null) => {
-    setSelectedServerIds(serverId ? [serverId] : []);
+    setScope(serverId ? { mode: 'subset', serverIds: [serverId] } : { mode: 'all' });
   }, []);
 
-  // Persist and invalidate whenever selection changes (after initialization)
-  const prevIdsRef = useRef<string[]>([]);
+  // Persist and invalidate whenever scope changes (after initialization).
+  // Skip invalidation on the first transition, which is just the load effect
+  // settling the initial scope.
+  const prevKeyRef = useRef<string | null>(null);
   useEffect(() => {
     if (!initialized) return;
-    if (
-      prevIdsRef.current.length === selectedServerIds.length &&
-      prevIdsRef.current.every((id, i) => id === selectedServerIds[i])
-    ) {
-      return;
-    }
-    prevIdsRef.current = selectedServerIds;
-    persistSelection(selectedServerIds);
-    invalidateServerQueries();
-  }, [selectedServerIds, initialized, persistSelection, invalidateServerQueries]);
+    const key = `${scope.mode}:${serverScopeKey(scope)}`;
+    if (prevKeyRef.current === key) return;
+    const isFirst = prevKeyRef.current === null;
+    prevKeyRef.current = key;
+    void ResilientStorage.setItemAsync(SCOPE_KEY, JSON.stringify(scope));
+    if (!isFirst) invalidateServerQueries();
+  }, [scope, initialized, invalidateServerQueries]);
+
+  const selectedServerIds = useMemo(
+    () => (scope.mode === 'all' ? mediaServers.map((s) => s.id) : scope.serverIds),
+    [scope, mediaServers]
+  );
 
   const selectedServers = useMemo(
     () => mediaServers.filter((s) => selectedServerIds.includes(s.id)),
     [mediaServers, selectedServerIds]
   );
 
-  // Derive from validated intersection to avoid stale state between server list changes
   const isMultiServer = selectedServers.length > 1;
-  const isAllServersSelected =
-    mediaServers.length > 0 && selectedServers.length === mediaServers.length;
+  const isAllServersSelected = scope.mode === 'all';
 
-  const selectedServerId = selectedServerIds[0] ?? null;
+  const selectedServerId = selectedServerIds.length === 1 ? (selectedServerIds[0] ?? null) : null;
   const selectedServer = useMemo(() => {
     if (!selectedServerId) return null;
     return mediaServers.find((s) => s.id === selectedServerId) ?? null;
@@ -191,6 +203,7 @@ export function MediaServerProvider({ children }: { children: ReactNode }) {
   const value = useMemo<MediaServerContextValue>(
     () => ({
       servers: mediaServers,
+      scope,
       selectedServer,
       selectedServerId,
       isLoading,
@@ -205,6 +218,7 @@ export function MediaServerProvider({ children }: { children: ReactNode }) {
     }),
     [
       mediaServers,
+      scope,
       selectedServer,
       selectedServerId,
       isLoading,

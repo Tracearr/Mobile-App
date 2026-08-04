@@ -6,7 +6,7 @@ global.Buffer = Buffer;
 
 import '../global.css';
 import { useEffect, useState, useRef } from 'react';
-import { Stack, useRouter, useSegments, usePathname } from 'expo-router';
+import { Stack, ThemeProvider, DarkTheme, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { View, ActivityIndicator } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -20,7 +20,6 @@ import { UnauthenticatedScreen } from '@/components/UnauthenticatedScreen';
 import { Toast } from '@/components/Toast';
 import { useShallow } from 'zustand/react/shallow';
 import { useAuthStateStore } from '@/lib/authStateStore';
-import { useMediaServer } from '@/providers/MediaServerProvider';
 import { useConnectionValidator } from '@/hooks/useConnectionValidator';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { ACCENT_COLOR, colors } from '@/lib/theme';
@@ -49,26 +48,6 @@ function RootLayoutNav() {
   const prevConnectionState = useRef(connectionState);
 
   usePushNotifications();
-
-  // Multi-server selection is a Dashboard-only feature; collapse to one
-  // server when leaving it, and say so instead of doing it silently.
-  const pathname = usePathname();
-  const { selectedServerIds, selectedServers, selectServer } = useMediaServer();
-  const [scopeToast, setScopeToast] = useState<string | null>(null);
-  const prevIsDashboard = useRef(pathname === '/');
-  useEffect(() => {
-    const isDashboard = pathname === '/';
-    const wasDashboard = prevIsDashboard.current;
-    prevIsDashboard.current = isDashboard;
-
-    if (wasDashboard && !isDashboard && selectedServerIds.length > 1) {
-      const keep = selectedServers[0];
-      selectServer(selectedServerIds[0] ?? null);
-      if (keep) {
-        setScopeToast(t('mobile:serverScope.single', { name: keep.name }));
-      }
-    }
-  }, [pathname, selectedServerIds, selectedServers, selectServer, t]);
 
   // Track connection state changes for reconnection toast
   useEffect(() => {
@@ -124,11 +103,6 @@ function RootLayoutNav() {
         message={t('mobile:reconnected')}
         visible={showReconnectedToast}
         onHide={() => setShowReconnectedToast(false)}
-      />
-      <Toast
-        message={scopeToast ?? ''}
-        visible={scopeToast !== null}
-        onHide={() => setScopeToast(null)}
       />
       <Stack
         screenOptions={{
@@ -197,7 +171,15 @@ export default function RootLayout() {
             <QueryProvider>
               <SocketProvider>
                 <MediaServerProvider>
-                  <RootLayoutNav />
+                  {/* Must be expo-router's ThemeProvider — it vendors react-navigation
+                      theming, so the @react-navigation/native one sets a context its
+                      header code never reads. theme.dark drives the nav bar's
+                      userInterfaceStyle; without it, iOS 26 paints one white
+                      liquid-glass frame every time a tab refocus re-creates the
+                      toolbar buttons (rns#4163). */}
+                  <ThemeProvider value={DarkTheme}>
+                    <RootLayoutNav />
+                  </ThemeProvider>
                 </MediaServerProvider>
               </SocketProvider>
             </QueryProvider>

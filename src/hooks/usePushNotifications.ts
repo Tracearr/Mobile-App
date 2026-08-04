@@ -11,7 +11,6 @@ import Constants from 'expo-constants';
 import { Platform, AppState, type AppStateStatus } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSocket } from '../providers/SocketProvider';
-import { useMediaServer } from '../providers/MediaServerProvider';
 import type { ViolationWithDetails, EncryptedPushPayload } from '@tracearr/shared';
 import {
   registerBackgroundNotificationTask,
@@ -79,7 +78,6 @@ export function usePushNotifications() {
   const responseListener = useRef<Notifications.EventSubscription | null>(null);
   const router = useRouter();
   const { socket } = useSocket();
-  const { selectServer, servers } = useMediaServer();
 
   // Auth state - needed to know when we can register tokens
   const server = useAuthStateStore((s) => s.server);
@@ -274,11 +272,8 @@ export function usePushNotifications() {
           }
         }
 
-        // Auto-select the server related to this notification if provided
-        const notificationServerId = data?.serverId as string | undefined;
-        if (notificationServerId && servers.some((s) => s.id === notificationServerId)) {
-          selectServer(notificationServerId);
-        }
+        // Notification taps never mutate the server selection; detail screens
+        // are id-based and don't need it.
 
         // Navigate based on notification type
         if (data?.type === 'violation_detected' || data?.type === 'rule_notification') {
@@ -316,8 +311,6 @@ export function usePushNotifications() {
     registerTokenWithServer,
     router,
     processNotificationData,
-    selectServer,
-    servers,
   ]);
 
   // Listen for violation events from socket

@@ -52,7 +52,7 @@ function getDateRange(period: TimePeriod): { startDate: Date; endDate: Date } {
 export default function HistoryScreen() {
   const { t } = useTranslation(['mobile', 'nav']);
   const router = useRouter();
-  const { selectedServerId } = useMediaServer();
+  const { scope } = useMediaServer();
   const filterSheetRef = useRef<FilterBottomSheetRef>(null);
 
   // Filter state
@@ -79,17 +79,15 @@ export default function HistoryScreen() {
 
   // Fetch filter options for the bottom sheet
   const { data: filterOptions } = useQuery({
-    queryKey: queryKeys.sessions.filterOptions(selectedServerId),
-    queryFn: () => api.sessions.filterOptions(selectedServerId ?? undefined),
+    queryKey: queryKeys.sessions.filterOptions(scope),
+    queryFn: () => api.sessions.filterOptions(scope),
     staleTime: 1000 * 60 * 5, // 5 minutes
-    enabled: !!selectedServerId,
   });
 
   // Build filters object
   const filters = useMemo(() => {
     const { startDate, endDate } = getDateRange(period);
     return {
-      serverId: selectedServerId ?? undefined,
       startDate,
       endDate,
       search: search.trim() || undefined,
@@ -106,37 +104,36 @@ export default function HistoryScreen() {
       orderBy: 'startedAt' as const,
       orderDir: 'desc' as const,
     };
-  }, [selectedServerId, period, search, advancedFilters]);
+  }, [period, search, advancedFilters]);
 
   // Fetch history with infinite scroll
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, refetch, isRefetching, isLoading } =
     useInfiniteQuery({
-      queryKey: queryKeys.sessions.history(selectedServerId, filters),
+      queryKey: queryKeys.sessions.history(scope, filters),
       queryFn: async ({ pageParam }) => {
         return api.sessions.history({
           ...filters,
+          scope,
           cursor: pageParam,
           pageSize: PAGE_SIZE,
         });
       },
       initialPageParam: undefined as string | undefined,
       getNextPageParam: (lastPage) => lastPage.nextCursor,
-      enabled: !!selectedServerId,
     });
 
   // Fetch aggregates for summary stats
   const { data: aggregates, isLoading: isLoadingAggregates } = useQuery({
-    queryKey: queryKeys.sessions.historyAggregates(selectedServerId, period),
+    queryKey: queryKeys.sessions.historyAggregates(scope, period),
     queryFn: () => {
       const { startDate, endDate } = getDateRange(period);
       return api.sessions.historyAggregates({
-        serverId: selectedServerId ?? undefined,
+        scope,
         startDate,
         endDate,
       });
     },
     staleTime: 1000 * 60,
-    enabled: !!selectedServerId,
   });
 
   // Flatten all pages into single array

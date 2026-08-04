@@ -1,6 +1,6 @@
 /**
  * Activity tab - streaming statistics and charts
- * Query keys include selectedServerId for proper cache isolation per media server
+ * Query keys are scoped by the global ServerScope selection for cache isolation
  *
  * Responsive layout:
  * - Phone: Single column, smaller chart heights
@@ -43,7 +43,7 @@ function ChartSection({ title, children }: { title: string; children: React.Reac
 export default function ActivityScreen() {
   const { t } = useTranslation(['mobile', 'common', 'nav']);
   const [period, setPeriod] = useState<StatsPeriod>('month');
-  const { selectedServerId } = useMediaServer();
+  const { scope } = useMediaServer();
   const { isTablet, select } = useResponsive();
 
   // Responsive values
@@ -52,39 +52,39 @@ export default function ActivityScreen() {
   const chartHeightSmall = select({ base: 160, md: 220 });
   const qualityHeight = select({ base: 120, md: 160 });
 
-  // Fetch all stats data with selected period - query keys include selectedServerId for cache isolation
+  // Fetch all stats data with selected period - query keys include scope for cache isolation
   const {
     data: playsData,
     refetch: refetchPlays,
     isRefetching: isRefetchingPlays,
   } = useQuery({
-    queryKey: queryKeys.stats.plays(period, selectedServerId),
-    queryFn: () => api.stats.plays({ period, serverId: selectedServerId ?? undefined }),
+    queryKey: queryKeys.stats.plays(period, scope),
+    queryFn: () => api.stats.plays({ period, scope }),
   });
 
   const { data: dayOfWeekData, refetch: refetchDayOfWeek } = useQuery({
-    queryKey: queryKeys.stats.dayOfWeek(period, selectedServerId),
-    queryFn: () => api.stats.playsByDayOfWeek({ period, serverId: selectedServerId ?? undefined }),
+    queryKey: queryKeys.stats.dayOfWeek(period, scope),
+    queryFn: () => api.stats.playsByDayOfWeek({ period, scope }),
   });
 
   const { data: hourOfDayData, refetch: refetchHourOfDay } = useQuery({
-    queryKey: queryKeys.stats.hourOfDay(period, selectedServerId),
-    queryFn: () => api.stats.playsByHourOfDay({ period, serverId: selectedServerId ?? undefined }),
+    queryKey: queryKeys.stats.hourOfDay(period, scope),
+    queryFn: () => api.stats.playsByHourOfDay({ period, scope }),
   });
 
   const { data: platformsData, refetch: refetchPlatforms } = useQuery({
-    queryKey: queryKeys.stats.platforms(period, selectedServerId),
-    queryFn: () => api.stats.platforms({ period, serverId: selectedServerId ?? undefined }),
+    queryKey: queryKeys.stats.platforms(period, scope),
+    queryFn: () => api.stats.platforms({ period, scope }),
   });
 
   const { data: qualityData, refetch: refetchQuality } = useQuery({
-    queryKey: queryKeys.stats.quality(period, selectedServerId),
-    queryFn: () => api.stats.quality({ period, serverId: selectedServerId ?? undefined }),
+    queryKey: queryKeys.stats.quality(period, scope),
+    queryFn: () => api.stats.quality({ period, scope }),
   });
 
   const { data: concurrentData, refetch: refetchConcurrent } = useQuery({
-    queryKey: queryKeys.stats.concurrent(period, selectedServerId),
-    queryFn: () => api.stats.concurrent({ period, serverId: selectedServerId ?? undefined }),
+    queryKey: queryKeys.stats.concurrent(period, scope),
+    queryFn: () => api.stats.concurrent({ period, scope }),
   });
 
   const handleRefresh = () => {

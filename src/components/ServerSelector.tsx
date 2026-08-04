@@ -1,20 +1,17 @@
 /**
- * Server selector component for the drawer
- * Multi-select (checkboxes) on dashboard, single-select (radio) on other tabs
+ * Server selector component for the server-select form sheet.
+ * Always multi-select (checkboxes), with an explicit All row above the
+ * per-server rows.
  */
-import { Check, ChevronDown, Server, Square, SquareCheck } from 'lucide-react-native';
+import { ChevronDown, Server, Square, SquareCheck } from 'lucide-react-native';
 import { useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, Text, TouchableOpacity, View } from 'react-native';
 import { ACCENT_COLOR, colors } from '../lib/theme';
 import { useMediaServer } from '../providers/MediaServerProvider';
 import { useTranslation } from '@tracearr/translations/mobile';
 
-interface ServerSelectorProps {
-  multiSelect?: boolean;
-}
-
-export function ServerSelector({ multiSelect = false }: ServerSelectorProps) {
-  const { t } = useTranslation(['mobile', 'common']);
+export function ServerSelector() {
+  const { t } = useTranslation(['mobile']);
   const {
     servers,
     selectedServerIds,
@@ -23,7 +20,6 @@ export function ServerSelector({ multiSelect = false }: ServerSelectorProps) {
     isAllServersSelected,
     toggleServer,
     selectAllServers,
-    selectServer,
     isLoading,
   } = useMediaServer();
   const [modalVisible, setModalVisible] = useState(false);
@@ -50,18 +46,11 @@ export function ServerSelector({ multiSelect = false }: ServerSelectorProps) {
     return null;
   }
 
-  const buttonLabel = isMultiServer
-    ? `${selectedServerIds.length} ${t('mobile:serverSelector.servers')}`
-    : (selectedServers[0]?.name ?? t('mobile:navigation.selectServer'));
-
-  const handleSelect = (serverId: string) => {
-    if (multiSelect) {
-      toggleServer(serverId);
-    } else {
-      selectServer(serverId);
-      setModalVisible(false);
-    }
-  };
+  const buttonLabel = isAllServersSelected
+    ? t('mobile:serverSelector.allServers')
+    : isMultiServer
+      ? `${selectedServerIds.length} ${t('mobile:serverSelector.servers')}`
+      : (selectedServers[0]?.name ?? t('mobile:navigation.selectServer'));
 
   return (
     <>
@@ -93,39 +82,43 @@ export function ServerSelector({ multiSelect = false }: ServerSelectorProps) {
           >
             <View className="flex-row items-center justify-between border-b border-gray-800 px-4 py-3">
               <Text className="text-lg font-semibold text-white">
-                {multiSelect
-                  ? t('mobile:serverSelector.selectServers')
-                  : t('mobile:navigation.selectServer')}
+                {t('mobile:serverSelector.selectServers')}
               </Text>
-              {multiSelect && (
-                <TouchableOpacity
-                  onPress={() => {
-                    if (isAllServersSelected) {
-                      selectServer(servers[0]?.id ?? null);
-                    } else {
-                      selectAllServers();
-                    }
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <Text style={{ color: ACCENT_COLOR, fontSize: 13, fontWeight: '500' }}>
-                    {isAllServersSelected
-                      ? t('common:actions.deselectAll')
-                      : t('common:actions.selectAll')}
-                  </Text>
-                </TouchableOpacity>
-              )}
             </View>
             <View className="py-2">
+              <TouchableOpacity
+                onPress={() => selectAllServers()}
+                className="relative flex-row items-center py-3"
+                style={{ paddingLeft: 18, paddingRight: 16 }}
+                activeOpacity={0.7}
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: isAllServersSelected }}
+              >
+                {isAllServersSelected ? (
+                  <SquareCheck size={20} color={ACCENT_COLOR} />
+                ) : (
+                  <Square size={20} color={colors.text.muted.dark} />
+                )}
+                <View className="ml-3 flex-1">
+                  <Text
+                    className="text-base text-white"
+                    style={{ fontWeight: isAllServersSelected ? '500' : '400' }}
+                  >
+                    {t('mobile:serverSelector.allServers')}
+                  </Text>
+                </View>
+              </TouchableOpacity>
               {servers.map((server) => {
                 const isSelected = selectedServerIds.includes(server.id);
                 return (
                   <TouchableOpacity
                     key={server.id}
-                    onPress={() => handleSelect(server.id)}
+                    onPress={() => toggleServer(server.id)}
                     className="relative flex-row items-center py-3"
                     style={{ paddingLeft: 18, paddingRight: 16 }}
                     activeOpacity={0.7}
+                    accessibilityRole="checkbox"
+                    accessibilityState={{ checked: isSelected }}
                   >
                     <View
                       style={{
@@ -138,43 +131,33 @@ export function ServerSelector({ multiSelect = false }: ServerSelectorProps) {
                         backgroundColor: server.color ?? 'transparent',
                       }}
                     />
-                    {multiSelect ? (
-                      isSelected ? (
-                        <SquareCheck size={20} color={ACCENT_COLOR} />
-                      ) : (
-                        <Square size={20} color={colors.text.muted.dark} />
-                      )
+                    {isSelected ? (
+                      <SquareCheck size={20} color={ACCENT_COLOR} />
                     ) : (
-                      isSelected && <Check size={20} color={ACCENT_COLOR} />
+                      <Square size={20} color={colors.text.muted.dark} />
                     )}
-                    <View className={multiSelect ? 'ml-3 flex-1' : 'ml-3 flex-1'}>
+                    <View className="ml-3 flex-1">
                       <Text
-                        className="text-base"
-                        style={{
-                          fontWeight: isSelected ? '500' : '400',
-                          color: isSelected ? (multiSelect ? 'white' : ACCENT_COLOR) : 'white',
-                        }}
+                        className="text-base text-white"
+                        style={{ fontWeight: isSelected ? '500' : '400' }}
                         numberOfLines={1}
                       >
                         {server.name}
                       </Text>
                       <Text className="text-xs text-gray-500 capitalize">{server.type}</Text>
                     </View>
-                    {!multiSelect && !isSelected && <View style={{ width: 20 }} />}
                   </TouchableOpacity>
                 );
               })}
             </View>
-            {multiSelect && (
-              <View className="border-t border-gray-800 px-4 py-2.5">
-                <Text className="text-center text-xs text-gray-500">
-                  {t('mobile:serverSelector.serversSelected', {
-                    selected: selectedServerIds.length,
-                    total: servers.length,
-                  })}
-                </Text>
-              </View>
-            )}
+            <View className="border-t border-gray-800 px-4 py-2.5">
+              <Text className="text-center text-xs text-gray-500">
+                {t('mobile:serverSelector.serversSelected', {
+                  selected: selectedServerIds.length,
+                  total: servers.length,
+                })}
+              </Text>
+            </View>
           </Pressable>
         </Pressable>
       </Modal>

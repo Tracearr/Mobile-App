@@ -5,7 +5,7 @@
  * buttons; each tab screen mounts it with one line.
  */
 import { View, Pressable, Platform } from 'react-native';
-import { Stack, useRouter, usePathname } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import { Server, Bell, Settings } from 'lucide-react-native';
 import { useUnacknowledgedAlertsCount } from '@/hooks';
 import { Text } from '@/components/ui/text';
@@ -13,17 +13,12 @@ import { colors, spacing } from '@/lib/theme';
 import { ROUTES } from '@/lib/routes';
 import { useTranslation } from '@tracearr/translations/mobile';
 
-function useIsDashboard() {
-  return usePathname() === '/';
-}
-
 export function HeaderLeft() {
   const { t } = useTranslation(['mobile']);
   const router = useRouter();
-  const isDashboard = useIsDashboard();
   return (
     <Pressable
-      onPress={() => router.push(ROUTES.SERVER_SELECT(isDashboard))}
+      onPress={() => router.push(ROUTES.SERVER_SELECT)}
       accessibilityRole="button"
       accessibilityLabel={t('mobile:a11y.selectServer')}
       style={{ padding: spacing.xs }}
@@ -101,7 +96,6 @@ export const androidHeaderOptions =
 
 export function TabToolbar() {
   const router = useRouter();
-  const isDashboard = useIsDashboard();
   const { hasAlerts, displayCount } = useUnacknowledgedAlertsCount();
 
   if (Platform.OS !== 'ios') {
@@ -113,7 +107,7 @@ export function TabToolbar() {
       <Stack.Toolbar placement="left">
         <Stack.Toolbar.Button
           icon="server.rack"
-          onPress={() => router.push(ROUTES.SERVER_SELECT(isDashboard))}
+          onPress={() => router.push(ROUTES.SERVER_SELECT)}
         />
       </Stack.Toolbar>
       <Stack.Toolbar placement="right">

@@ -11,18 +11,17 @@ import { queryKeys } from '@/lib/queryKeys';
 import { useMediaServer } from '@/providers/MediaServerProvider';
 
 export function useUnacknowledgedAlertsCount() {
-  const { selectedServerId } = useMediaServer();
+  const { scope } = useMediaServer();
 
   const { data } = useQuery({
-    queryKey: queryKeys.violations.unacknowledgedCount(selectedServerId),
+    queryKey: queryKeys.violations.unacknowledgedCount(scope),
     queryFn: () =>
       api.violations.list({
-        serverId: selectedServerId ?? undefined,
+        scope,
         acknowledged: false,
         pageSize: 1, // We only need the total count
       }),
     staleTime: 1000 * 30, // 30 seconds
-    enabled: !!selectedServerId,
   });
 
   const count = data?.total ?? 0;

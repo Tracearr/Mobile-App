@@ -10,6 +10,7 @@ import type { AppStateStatus } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
 import { useShallow } from 'zustand/react/shallow';
 import * as Notifications from 'expo-notifications';
+import { ALL_SERVERS } from '@tracearr/shared';
 import { useAuthStateStore, getAccessToken } from '../lib/authStateStore';
 import { api, refreshAccessToken } from '../lib/api';
 import type {
@@ -249,6 +250,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
         void (async () => {
           try {
             const response = await api.violations.list({
+              scope: ALL_SERVERS,
               acknowledged: false,
               pageSize: 1,
             });

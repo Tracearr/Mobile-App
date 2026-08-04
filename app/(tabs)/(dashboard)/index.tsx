@@ -22,6 +22,7 @@ import {
   type LucideIcon,
 } from 'lucide-react-native';
 import { api } from '@/lib/api';
+import { queryKeys } from '@/lib/queryKeys';
 import { ROUTES } from '@/lib/routes';
 import { useMediaServer } from '@/providers/MediaServerProvider';
 import { useServerStatistics } from '@/hooks/useServerStatistics';
@@ -73,8 +74,7 @@ function StatPill({
 export default function DashboardScreen() {
   const { t } = useTranslation(['mobile', 'pages', 'common', 'nav']);
   const router = useRouter();
-  const { servers, selectedServerIds, selectedServerId, selectedServer, isMultiServer } =
-    useMediaServer();
+  const { servers, selectedServerId, selectedServer, isMultiServer, scope } = useMediaServer();
   const { isTablet, columns, select } = useResponsive();
 
   const serverColorMap = useMemo(
@@ -87,22 +87,20 @@ export default function DashboardScreen() {
     [servers]
   );
 
-  const sortedServerIds = useMemo(() => [...selectedServerIds].sort(), [selectedServerIds]);
-
   const {
     data: stats,
     refetch,
     isRefetching,
   } = useQuery({
-    queryKey: ['dashboard', 'stats', sortedServerIds],
-    queryFn: () => api.stats.dashboard(selectedServerIds),
+    queryKey: queryKeys.dashboard.stats(scope),
+    queryFn: () => api.stats.dashboard(scope),
     staleTime: 1000 * 30,
     refetchInterval: 1000 * 60,
   });
 
   const { data: activeSessions } = useQuery({
-    queryKey: ['sessions', 'active', sortedServerIds],
-    queryFn: () => api.sessions.active(selectedServerIds),
+    queryKey: queryKeys.sessions.active(scope),
+    queryFn: () => api.sessions.active(scope),
     staleTime: 1000 * 5,
     refetchInterval: 1000 * 30,
   });

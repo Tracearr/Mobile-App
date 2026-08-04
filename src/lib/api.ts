@@ -6,6 +6,7 @@
 import axios from 'axios';
 import type { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { Platform } from 'react-native';
+import { serverScopeParamEntries, type ServerScope } from '@tracearr/shared';
 import { useAuthStateStore, getAccessToken, getRefreshToken, setTokens } from './authStateStore';
 import { getDeviceTimezone } from './timezone';
 import type {
@@ -32,6 +33,10 @@ import type {
   HistoryAggregates,
   HistoryFilterOptions,
 } from '@tracearr/shared';
+
+function appendScope(params: URLSearchParams, scope: ServerScope): void {
+  for (const [k, v] of serverScopeParamEntries(scope)) params.append(k, v);
+}
 
 // Single API client instance (one server only)
 let apiClient: AxiosInstance | null = null;
@@ -371,63 +376,73 @@ export const api = {
    * Dashboard stats
    */
   stats: {
-    dashboard: async (serverIds?: string[]): Promise<DashboardStats> => {
+    dashboard: async (scope: ServerScope): Promise<DashboardStats> => {
       const client = getApiClient();
       const params = new URLSearchParams();
-      if (serverIds?.length) {
-        for (const id of serverIds) params.append('serverIds', id);
-      }
+      appendScope(params, scope);
       params.set('timezone', getDeviceTimezone());
       const response = await client.get<DashboardStats>(`/stats/dashboard?${params.toString()}`);
       return response.data;
     },
-    plays: async (params?: {
+    plays: async (params: {
       period?: string;
-      serverId?: string;
+      scope: ServerScope;
     }): Promise<{ data: { date: string; count: number }[] }> => {
       const client = getApiClient();
+      const searchParams = new URLSearchParams();
+      if (params.period) searchParams.set('period', params.period);
+      appendScope(searchParams, params.scope);
+      searchParams.set('timezone', getDeviceTimezone());
       const response = await client.get<{ data: { date: string; count: number }[] }>(
-        '/stats/plays',
-        { params: { ...params, timezone: getDeviceTimezone() } }
+        `/stats/plays?${searchParams.toString()}`
       );
       return response.data;
     },
-    playsByDayOfWeek: async (params?: {
+    playsByDayOfWeek: async (params: {
       period?: string;
-      serverId?: string;
+      scope: ServerScope;
     }): Promise<{ data: { day: number; name: string; count: number }[] }> => {
       const client = getApiClient();
+      const searchParams = new URLSearchParams();
+      if (params.period) searchParams.set('period', params.period);
+      appendScope(searchParams, params.scope);
+      searchParams.set('timezone', getDeviceTimezone());
       const response = await client.get<{ data: { day: number; name: string; count: number }[] }>(
-        '/stats/plays-by-dayofweek',
-        { params: { ...params, timezone: getDeviceTimezone() } }
+        `/stats/plays-by-dayofweek?${searchParams.toString()}`
       );
       return response.data;
     },
-    playsByHourOfDay: async (params?: {
+    playsByHourOfDay: async (params: {
       period?: string;
-      serverId?: string;
+      scope: ServerScope;
     }): Promise<{ data: { hour: number; count: number }[] }> => {
       const client = getApiClient();
+      const searchParams = new URLSearchParams();
+      if (params.period) searchParams.set('period', params.period);
+      appendScope(searchParams, params.scope);
+      searchParams.set('timezone', getDeviceTimezone());
       const response = await client.get<{ data: { hour: number; count: number }[] }>(
-        '/stats/plays-by-hourofday',
-        { params: { ...params, timezone: getDeviceTimezone() } }
+        `/stats/plays-by-hourofday?${searchParams.toString()}`
       );
       return response.data;
     },
-    platforms: async (params?: {
+    platforms: async (params: {
       period?: string;
-      serverId?: string;
+      scope: ServerScope;
     }): Promise<{ data: { platform: string; count: number }[] }> => {
       const client = getApiClient();
+      const searchParams = new URLSearchParams();
+      if (params.period) searchParams.set('period', params.period);
+      appendScope(searchParams, params.scope);
+      searchParams.set('timezone', getDeviceTimezone());
       const response = await client.get<{ data: { platform: string; count: number }[] }>(
-        '/stats/platforms',
-        { params: { ...params, timezone: getDeviceTimezone() } }
+        `/stats/platforms?${searchParams.toString()}`
       );
       return response.data;
     },
-    quality: async (params?: {
+    quality: async (params: {
       period?: string;
-      serverId?: string;
+      scope: ServerScope;
     }): Promise<{
       directPlay: number;
       directStream?: number;
@@ -438,6 +453,10 @@ export const api = {
       transcodePercent: number;
     }> => {
       const client = getApiClient();
+      const searchParams = new URLSearchParams();
+      if (params.period) searchParams.set('period', params.period);
+      appendScope(searchParams, params.scope);
+      searchParams.set('timezone', getDeviceTimezone());
       const response = await client.get<{
         directPlay: number;
         directStream?: number;
@@ -446,12 +465,12 @@ export const api = {
         directPlayPercent: number;
         directStreamPercent?: number;
         transcodePercent: number;
-      }>('/stats/quality', { params: { ...params, timezone: getDeviceTimezone() } });
+      }>(`/stats/quality?${searchParams.toString()}`);
       return response.data;
     },
-    concurrent: async (params?: {
+    concurrent: async (params: {
       period?: string;
-      serverId?: string;
+      scope: ServerScope;
     }): Promise<{
       data: {
         hour: string;
@@ -462,6 +481,10 @@ export const api = {
       }[];
     }> => {
       const client = getApiClient();
+      const searchParams = new URLSearchParams();
+      if (params.period) searchParams.set('period', params.period);
+      appendScope(searchParams, params.scope);
+      searchParams.set('timezone', getDeviceTimezone());
       const response = await client.get<{
         data: {
           hour: string;
@@ -470,7 +493,7 @@ export const api = {
           directStream?: number;
           transcode: number;
         }[];
-      }>('/stats/concurrent', { params: { ...params, timezone: getDeviceTimezone() } });
+      }>(`/stats/concurrent?${searchParams.toString()}`);
       return response.data;
     },
     locations: async (params?: {
@@ -503,12 +526,10 @@ export const api = {
    * Sessions
    */
   sessions: {
-    active: async (serverIds?: string[]): Promise<ActiveSession[]> => {
+    active: async (scope: ServerScope): Promise<ActiveSession[]> => {
       const client = getApiClient();
       const params = new URLSearchParams();
-      if (serverIds?.length) {
-        for (const id of serverIds) params.append('serverIds', id);
-      }
+      appendScope(params, scope);
       const query = params.toString();
       const response = await client.get<{ data: ActiveSession[] }>(
         `/sessions/active${query ? `?${query}` : ''}`
@@ -546,11 +567,11 @@ export const api = {
      * Query history with cursor-based pagination and filters
      * Used for the History tab with infinite scroll
      */
-    history: async (params?: {
+    history: async (params: {
       cursor?: string;
       pageSize?: number;
       serverUserIds?: string[];
-      serverId?: string;
+      scope: ServerScope;
       state?: 'playing' | 'paused' | 'stopped';
       mediaTypes?: ('movie' | 'episode' | 'track' | 'live')[];
       startDate?: Date;
@@ -572,32 +593,32 @@ export const api = {
     }): Promise<HistorySessionResponse> => {
       const client = getApiClient();
       const searchParams = new URLSearchParams();
-      if (params?.cursor) searchParams.set('cursor', params.cursor);
-      if (params?.pageSize) searchParams.set('pageSize', String(params.pageSize));
-      if (params?.serverUserIds?.length)
+      if (params.cursor) searchParams.set('cursor', params.cursor);
+      if (params.pageSize) searchParams.set('pageSize', String(params.pageSize));
+      if (params.serverUserIds?.length)
         searchParams.set('serverUserIds', params.serverUserIds.join(','));
-      if (params?.serverId) searchParams.set('serverId', params.serverId);
-      if (params?.state) searchParams.set('state', params.state);
-      if (params?.mediaTypes?.length) searchParams.set('mediaTypes', params.mediaTypes.join(','));
-      if (params?.startDate) searchParams.set('startDate', params.startDate.toISOString());
-      if (params?.endDate) searchParams.set('endDate', params.endDate.toISOString());
-      if (params?.search) searchParams.set('search', params.search);
-      if (params?.platforms?.length) searchParams.set('platforms', params.platforms.join(','));
-      if (params?.product) searchParams.set('product', params.product);
-      if (params?.device) searchParams.set('device', params.device);
-      if (params?.playerName) searchParams.set('playerName', params.playerName);
-      if (params?.ipAddress) searchParams.set('ipAddress', params.ipAddress);
-      if (params?.geoCountries?.length)
+      appendScope(searchParams, params.scope);
+      if (params.state) searchParams.set('state', params.state);
+      if (params.mediaTypes?.length) searchParams.set('mediaTypes', params.mediaTypes.join(','));
+      if (params.startDate) searchParams.set('startDate', params.startDate.toISOString());
+      if (params.endDate) searchParams.set('endDate', params.endDate.toISOString());
+      if (params.search) searchParams.set('search', params.search);
+      if (params.platforms?.length) searchParams.set('platforms', params.platforms.join(','));
+      if (params.product) searchParams.set('product', params.product);
+      if (params.device) searchParams.set('device', params.device);
+      if (params.playerName) searchParams.set('playerName', params.playerName);
+      if (params.ipAddress) searchParams.set('ipAddress', params.ipAddress);
+      if (params.geoCountries?.length)
         searchParams.set('geoCountries', params.geoCountries.join(','));
-      if (params?.geoCity) searchParams.set('geoCity', params.geoCity);
-      if (params?.geoRegion) searchParams.set('geoRegion', params.geoRegion);
-      if (params?.transcodeDecisions?.length)
+      if (params.geoCity) searchParams.set('geoCity', params.geoCity);
+      if (params.geoRegion) searchParams.set('geoRegion', params.geoRegion);
+      if (params.transcodeDecisions?.length)
         searchParams.set('transcodeDecisions', params.transcodeDecisions.join(','));
-      if (params?.watched !== undefined) searchParams.set('watched', String(params.watched));
-      if (params?.excludeShortSessions !== undefined)
+      if (params.watched !== undefined) searchParams.set('watched', String(params.watched));
+      if (params.excludeShortSessions !== undefined)
         searchParams.set('excludeShortSessions', String(params.excludeShortSessions));
-      if (params?.orderBy) searchParams.set('orderBy', params.orderBy);
-      if (params?.orderDir) searchParams.set('orderDir', params.orderDir);
+      if (params.orderBy) searchParams.set('orderBy', params.orderBy);
+      if (params.orderDir) searchParams.set('orderDir', params.orderDir);
       const response = await client.get<HistorySessionResponse>(
         `/sessions/history?${searchParams.toString()}`
       );
@@ -606,16 +627,16 @@ export const api = {
     /**
      * Get aggregate stats for history (total plays, watch time, etc.)
      */
-    historyAggregates: async (params?: {
-      serverId?: string;
+    historyAggregates: async (params: {
+      scope: ServerScope;
       startDate?: Date;
       endDate?: Date;
     }): Promise<HistoryAggregates> => {
       const client = getApiClient();
       const searchParams = new URLSearchParams();
-      if (params?.serverId) searchParams.set('serverId', params.serverId);
-      if (params?.startDate) searchParams.set('startDate', params.startDate.toISOString());
-      if (params?.endDate) searchParams.set('endDate', params.endDate.toISOString());
+      appendScope(searchParams, params.scope);
+      if (params.startDate) searchParams.set('startDate', params.startDate.toISOString());
+      if (params.endDate) searchParams.set('endDate', params.endDate.toISOString());
       const response = await client.get<HistoryAggregates>(
         `/sessions/history/aggregates?${searchParams.toString()}`
       );
@@ -624,12 +645,13 @@ export const api = {
     /**
      * Get available filter options for history filtering (users, platforms, countries, etc.)
      */
-    filterOptions: async (serverId?: string): Promise<HistoryFilterOptions> => {
+    filterOptions: async (scope: ServerScope): Promise<HistoryFilterOptions> => {
       const client = getApiClient();
-      const params = serverId ? { serverId } : undefined;
-      const response = await client.get<HistoryFilterOptions>('/sessions/filter-options', {
-        params,
-      });
+      const params = new URLSearchParams();
+      appendScope(params, scope);
+      const response = await client.get<HistoryFilterOptions>(
+        `/sessions/filter-options?${params.toString()}`
+      );
       return response.data;
     },
   },
@@ -638,11 +660,15 @@ export const api = {
    * Users
    */
   users: {
-    list: async (params?: { page?: number; pageSize?: number; serverId?: string }) => {
+    list: async (params: { page?: number; pageSize?: number; scope: ServerScope }) => {
       const client = getApiClient();
-      const response = await client.get<PaginatedResponse<ServerUserWithIdentity>>('/users', {
-        params,
-      });
+      const searchParams = new URLSearchParams();
+      if (params.page) searchParams.set('page', String(params.page));
+      if (params.pageSize) searchParams.set('pageSize', String(params.pageSize));
+      appendScope(searchParams, params.scope);
+      const response = await client.get<PaginatedResponse<ServerUserWithIdentity>>(
+        `/users?${searchParams.toString()}`
+      );
       return response.data;
     },
     get: async (id: string): Promise<ServerUserDetail> => {
@@ -684,18 +710,26 @@ export const api = {
    * Violations
    */
   violations: {
-    list: async (params?: {
+    list: async (params: {
       page?: number;
       pageSize?: number;
       userId?: string;
       severity?: string;
       acknowledged?: boolean;
-      serverId?: string;
+      scope: ServerScope;
     }) => {
       const client = getApiClient();
-      const response = await client.get<PaginatedResponse<ViolationWithDetails>>('/violations', {
-        params,
-      });
+      const searchParams = new URLSearchParams();
+      if (params.page) searchParams.set('page', String(params.page));
+      if (params.pageSize) searchParams.set('pageSize', String(params.pageSize));
+      if (params.userId) searchParams.set('userId', params.userId);
+      if (params.severity) searchParams.set('severity', params.severity);
+      if (params.acknowledged !== undefined)
+        searchParams.set('acknowledged', String(params.acknowledged));
+      appendScope(searchParams, params.scope);
+      const response = await client.get<PaginatedResponse<ViolationWithDetails>>(
+        `/violations?${searchParams.toString()}`
+      );
       return response.data;
     },
     get: async (id: string): Promise<ViolationWithDetails> => {

@@ -1,7 +1,8 @@
 /**
  * User Detail Screen
  * Shows comprehensive user information with web feature parity
- * Query keys include selectedServerId for proper cache isolation per media server
+ * User detail/sessions/locations/devices/terminations query keys still key on
+ * selectedServerId; the violations card ignores it and aggregates all servers.
  *
  * Responsive layout:
  * - Phone: Single column, 64px avatar, 2x2 stats grid
@@ -58,7 +59,7 @@ import type {
   RuleType,
   TerminationLogWithDetails,
 } from '@tracearr/shared';
-import { RULE_DISPLAY_NAMES } from '@tracearr/shared';
+import { ALL_SERVERS, RULE_DISPLAY_NAMES } from '@tracearr/shared';
 import { useTranslation } from '@tracearr/translations/mobile';
 
 const PAGE_SIZE = 10;
@@ -450,9 +451,9 @@ export default function UserDetailScreen() {
     hasNextPage: hasMoreViolations,
     isFetchingNextPage: fetchingMoreViolations,
   } = useInfiniteQuery({
-    queryKey: queryKeys.violations.byUser(id, selectedServerId),
+    queryKey: queryKeys.violations.byUser(id),
     queryFn: ({ pageParam }) =>
-      api.violations.list({ userId: id, page: pageParam, pageSize: PAGE_SIZE }),
+      api.violations.list({ userId: id, page: pageParam, pageSize: PAGE_SIZE, scope: ALL_SERVERS }),
     initialPageParam: 1,
     getNextPageParam: (lastPage: { page: number; totalPages: number }) => {
       if (lastPage.page < lastPage.totalPages) {
@@ -503,7 +504,7 @@ export default function UserDetailScreen() {
     mutationFn: api.violations.acknowledge,
     onSuccess: () => {
       void queryClient.invalidateQueries({
-        queryKey: queryKeys.violations.byUser(id, selectedServerId),
+        queryKey: queryKeys.violations.byUser(id),
       });
     },
   });
@@ -521,7 +522,7 @@ export default function UserDetailScreen() {
       queryKey: queryKeys.users.sessions(id, selectedServerId),
     });
     void queryClient.invalidateQueries({
-      queryKey: queryKeys.violations.byUser(id, selectedServerId),
+      queryKey: queryKeys.violations.byUser(id),
     });
     void queryClient.invalidateQueries({
       queryKey: queryKeys.users.locations(id, selectedServerId),

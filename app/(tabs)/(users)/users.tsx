@@ -1,6 +1,6 @@
 /**
  * Users tab - user list with infinite scroll
- * Query keys include selectedServerId for proper cache isolation per media server
+ * Query keys are scoped by the global ServerScope selection for cache isolation
  *
  * Responsive layout:
  * - Phone: Single column, compact cards
@@ -28,6 +28,7 @@ import {
 } from 'lucide-react-native';
 import { formatDistanceToNow } from 'date-fns';
 import { api } from '@/lib/api';
+import { queryKeys } from '@/lib/queryKeys';
 import { ROUTES } from '@/lib/routes';
 import { useMediaServer } from '@/providers/MediaServerProvider';
 import { useResponsive } from '@/hooks/useResponsive';
@@ -142,7 +143,7 @@ function UserCard({
 export default function UsersScreen() {
   const { t } = useTranslation(['mobile', 'common', 'nav']);
   const router = useRouter();
-  const { selectedServerId } = useMediaServer();
+  const { scope } = useMediaServer();
   const { isTablet, select } = useResponsive();
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -152,12 +153,12 @@ export default function UsersScreen() {
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, refetch, isRefetching } =
     useInfiniteQuery({
-      queryKey: ['users', selectedServerId],
+      queryKey: queryKeys.users.list(scope),
       queryFn: ({ pageParam }) =>
         api.users.list({
           page: pageParam,
           pageSize: PAGE_SIZE,
-          serverId: selectedServerId ?? undefined,
+          scope,
         }),
       initialPageParam: 1,
       getNextPageParam: (lastPage: { page: number; totalPages: number }) => {
