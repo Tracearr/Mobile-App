@@ -72,17 +72,20 @@ export function useServerStatistics(serverId: string | undefined, enabled: boole
   // Calculate averages from windowed data
   const dataPoints = query.data?.data;
   const dataLength = dataPoints?.length ?? 0;
+  // Host values are nullable in the shared type (non-Linux plugin hosts);
+  // this endpoint is Plex-only so they are numbers in practice
   const averages =
     dataPoints && dataLength > 0
       ? {
           hostCpu: Math.round(
-            dataPoints.reduce((sum: number, p) => sum + p.hostCpuUtilization, 0) / dataLength
+            dataPoints.reduce((sum: number, p) => sum + (p.hostCpuUtilization ?? 0), 0) / dataLength
           ),
           processCpu: Math.round(
             dataPoints.reduce((sum: number, p) => sum + p.processCpuUtilization, 0) / dataLength
           ),
           hostMemory: Math.round(
-            dataPoints.reduce((sum: number, p) => sum + p.hostMemoryUtilization, 0) / dataLength
+            dataPoints.reduce((sum: number, p) => sum + (p.hostMemoryUtilization ?? 0), 0) /
+              dataLength
           ),
           processMemory: Math.round(
             dataPoints.reduce((sum: number, p) => sum + p.processMemoryUtilization, 0) / dataLength
@@ -94,9 +97,9 @@ export function useServerStatistics(serverId: string | undefined, enabled: boole
   const lastDataPoint = query.data?.data?.[query.data.data.length - 1];
   const latest = lastDataPoint
     ? {
-        hostCpu: Math.round(lastDataPoint.hostCpuUtilization),
+        hostCpu: Math.round(lastDataPoint.hostCpuUtilization ?? 0),
         processCpu: Math.round(lastDataPoint.processCpuUtilization),
-        hostMemory: Math.round(lastDataPoint.hostMemoryUtilization),
+        hostMemory: Math.round(lastDataPoint.hostMemoryUtilization ?? 0),
         processMemory: Math.round(lastDataPoint.processMemoryUtilization),
       }
     : null;
