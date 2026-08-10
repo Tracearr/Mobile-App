@@ -1,6 +1,6 @@
 /**
  * Hook for fetching server resource statistics (CPU/RAM)
- * Polls every 6 seconds when enabled, stops when app is backgrounded
+ * Polls on Plex's sample interval when enabled, stops when app is backgrounded
  */
 import { useRef, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -13,8 +13,9 @@ import { api } from '@/lib/api';
 import { queryKeys } from '@/lib/queryKeys';
 
 /**
- * Hook for fetching server resource statistics with fixed 2-minute window
- * Polls every 6 seconds, displays last 2 minutes of data (20 points)
+ * Hook for fetching server resource statistics with fixed 2-minute window.
+ * Polls on Plex's sample interval; see SERVER_STATS_CONFIG for why the
+ * cadence is fixed rather than configurable.
  *
  * @param serverId - Server ID to fetch stats for
  * @param enabled - Additional enable condition (e.g., server exists)
@@ -25,7 +26,7 @@ export function useServerStatistics(serverId: string | undefined, enabled: boole
   // Accumulate data points across polls, keyed by timestamp for deduplication
   const dataMapRef = useRef<Map<number, ServerResourceDataPoint>>(new Map());
 
-  // Merge new data with existing, keep most recent DATA_POINTS
+  // Bounded by time, not count - MAX_POINTS is only a memory ceiling
   const mergeData = useCallback((newData: ServerResourceDataPoint[]) => {
     const map = dataMapRef.current;
 
@@ -34,10 +35,15 @@ export function useServerStatistics(serverId: string | undefined, enabled: boole
       map.set(point.at, point);
     }
 
-    // Sort by timestamp descending (newest first), keep DATA_POINTS
-    const sorted = Array.from(map.values())
-      .sort((a, b) => b.at - a.at)
-      .slice(0, SERVER_STATS_CONFIG.DATA_POINTS);
+    const byNewest = Array.from(map.values()).sort((a, b) => b.at - a.at);
+    const newest = byNewest[0]?.at ?? 0;
+    const sorted = byNewest
+      .filter(
+        (p) =>
+          newest - p.at <=
+          SERVER_STATS_CONFIG.WINDOW_SECONDS + SERVER_STATS_CONFIG.NOW_DELAY_SECONDS
+      )
+      .slice(0, SERVER_STATS_CONFIG.MAX_POINTS);
 
     // Rebuild map with only kept points
     dataMapRef.current = new Map(sorted.map((p) => [p.at, p]));
@@ -59,7 +65,7 @@ export function useServerStatistics(serverId: string | undefined, enabled: boole
       };
     },
     enabled: shouldPoll,
-    // Poll every 6 seconds (matches SERVER_STATS_CONFIG.POLL_INTERVAL_SECONDS)
+    // Matches Plex's sample interval; polling faster re-reads the same data
     refetchInterval: SERVER_STATS_CONFIG.POLL_INTERVAL_SECONDS * 1000,
     // Don't poll when app is backgrounded
     refetchIntervalInBackground: false,
