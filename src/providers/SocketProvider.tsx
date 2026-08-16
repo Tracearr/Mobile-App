@@ -96,13 +96,12 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
 
     connectedServerIdRef.current = serverId;
 
+    // Reconnection stays on the library defaults: unlimited attempts with 1s-5s
+    // jittered backoff. A cap meant a server restart longer than ~17s left the
+    // app without live updates until the next background/foreground cycle.
     const newSocket: Socket<ServerToClientEvents, ClientToServerEvents> = io(serverUrl, {
       auth: { token: accessToken },
       transports: ['polling', 'websocket'],
-      reconnection: true,
-      reconnectionAttempts: 5,
-      reconnectionDelay: 1000,
-      reconnectionDelayMax: 5000,
     });
 
     newSocket.on('connect', () => {
