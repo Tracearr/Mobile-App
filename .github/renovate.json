@@ -50,6 +50,23 @@
   "postUpdateOptions": ["pnpmDedupe"],
 
   "packageRules": [
+    // ----- hard blocks -----
+
+    // The only override is the lightningcss pin react-native-css 3.0.7 needs
+    // (see pnpm-workspace.yaml). Overrides are deliberate; leave them alone.
+    {
+      "matchManagers": ["npm"],
+      "matchDepTypes": ["overrides"],
+      "enabled": false
+    },
+
+    // engines are floors, not pins. The EAS build image decides the real node.
+    {
+      "matchManagers": ["npm"],
+      "matchDepTypes": ["engines"],
+      "enabled": false
+    },
+
     // ----- supply-chain hardening -----
 
     // 7d cooldown for runtime deps, 3d (best-practices default) for dev tooling.
@@ -184,7 +201,8 @@
       "automerge": false
     },
 
-    // Gate Expo SDK majors behind dashboard approval.
+    // Gate Expo SDK majors behind dashboard approval. @babel/* rides along:
+    // Expo 57 pins @babel/core 7 and babel-preset-expo is built against it.
     {
       "matchManagers": ["npm"],
       "matchPackageNames": [
@@ -192,6 +210,7 @@
         "expo-*",
         "@expo/*",
         "babel-preset-expo",
+        "@babel/*",
         "react",
         "@types/react",
         "react-native",
