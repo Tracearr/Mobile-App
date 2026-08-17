@@ -52,18 +52,10 @@
   "packageRules": [
     // ----- hard blocks -----
 
-    // The only override is the lightningcss pin react-native-css 3.0.7 needs
-    // (see pnpm-workspace.yaml). Overrides are deliberate; leave them alone.
+    // pnpm-workspace.yaml only holds deliberate pins (the lightningcss override
+    // react-native-css 3.0.7 needs). Nothing in there wants a bump PR.
     {
-      "matchManagers": ["npm"],
-      "matchDepTypes": ["overrides"],
-      "enabled": false
-    },
-
-    // engines are floors, not pins. The EAS build image decides the real node.
-    {
-      "matchManagers": ["npm"],
-      "matchDepTypes": ["engines"],
+      "matchFileNames": ["pnpm-workspace.yaml"],
       "enabled": false
     },
 
