@@ -3,11 +3,9 @@
   "compilerOptions": {
     "strict": true,
     "paths": {
-      "@/*": ["./src/*"],
-      "@tracearr/shared": ["../../packages/shared/src"],
-      "@tracearr/translations/mobile": ["../../packages/translations/src/mobile"]
+      "@/*": ["./src/*"]
     },
-    "types": ["node"],
+    "types": ["node", "expo/types"],
     "skipLibCheck": true,
     "esModuleInterop": true,
     "resolveJsonModule": true

@@ -31,8 +31,8 @@
     "@react-native-async-storage/async-storage": "2.2.0",
     "@shopify/react-native-skia": "^2.6.2",
     "@tanstack/react-query": "^5.101.4",
-    "@tracearr/shared": "workspace:*",
-    "@tracearr/translations": "workspace:*",
+    "@tracearr/shared": "2.1.0",
+    "@tracearr/translations": "2.1.0",
     "axios": "^1.19.0",
     "buffer": "^6.0.3",
     "class-variance-authority": "^0.7.1",
@@ -83,6 +83,7 @@
   "devDependencies": {
     "@babel/core": "7.29.7",
     "@tailwindcss/postcss": "^4.3.3",
+    "@types/node": "^24.13.3",
     "@types/react": "19.2.17",
     "babel-plugin-module-resolver": "5.0.3",
     "babel-preset-expo": "~57.0.0",
@@ -96,6 +97,11 @@
         "typescript"
       ]
     }
+  },
+  "packageManager": "pnpm@11.11.0+sha512.4463f65fd80ed80d69bc1d4bf163ee94f605c7380fc318bb5b2ebe15f8cd12d49c51a4d59e951b401e764d3b6ca751cbf51bc50ed7001a6bcb4935e684c34882",
+  "engines": {
+    "node": ">=22.22.1",
+    "pnpm": ">=11.8.0"
   },
   "private": true
 }

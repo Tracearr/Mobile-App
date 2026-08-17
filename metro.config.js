@@ -1,32 +1,18 @@
 const { getDefaultConfig } = require('expo/metro-config');
 const { withNativewind } = require('nativewind/metro');
-const path = require('path');
 
-// Find the project and workspace directories
 const projectRoot = __dirname;
-const monorepoRoot = path.resolve(projectRoot, '../..');
 
 const config = getDefaultConfig(projectRoot);
 
-// 1. Watch all files within the monorepo (include default watchFolders)
-config.watchFolders = [...(config.watchFolders || []), monorepoRoot];
-
-// 2. Let Metro know where to resolve packages from
-config.resolver.nodeModulesPaths = [
-  path.resolve(projectRoot, 'node_modules'),
-  path.resolve(monorepoRoot, 'node_modules'),
-];
-
-// 3. i18next and react-i18next keep their instance in module scope, so the app
-// and @tracearr/translations must land on the same copy. pnpm gives the
-// translations package its own, built against the workspace react rather than
-// the react Expo pins here, and metro resolves it from that package's source —
-// so initReactI18next registered on one instance while useTranslation read the
-// other and every string rendered as its raw key (NO_I18NEXT_INSTANCE).
-// Neither package ships a react-native export condition, so pinning each
-// specifier straight to the file node resolves from this app is safe.
-// react is pinned for the same reason, preventively: pnpm gives translations
-// its own copy (the workspace floats ahead of the version Expo pins here), and
+// 1. i18next and react-i18next keep their instance in module scope, so the app
+// and @tracearr/translations must land on the same copy. That package lists
+// both as its own dependencies and metro resolves it from source (react-native
+// export condition), so pnpm can hand it a second copy — initReactI18next then
+// registers on one instance while useTranslation reads the other and every
+// string renders as its raw key (NO_I18NEXT_INSTANCE). Neither package ships a
+// react-native export condition, so pinning each specifier straight to the file
+// node resolves from this app is safe. react is pinned for the same reason:
 // two reacts in one bundle is an invalid-hook-call crash.
 const SINGLETON_MODULES = ['i18next', 'react-i18next', 'react'];
 const singletonFiles = new Map();
@@ -47,7 +33,7 @@ for (const name of SINGLETON_MODULES) {
   }
 }
 
-// 4. Handle .js imports that should resolve to .ts files (NodeNext compatibility)
+// 2. Handle .js imports that should resolve to .ts files (NodeNext compatibility)
 // TypeScript with moduleResolution: NodeNext requires .js extensions in imports
 // even for .ts source files. Metro needs help resolving these correctly.
 config.resolver.resolveRequest = (context, moduleName, platform) => {
