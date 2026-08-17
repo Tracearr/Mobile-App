@@ -1,0 +1,245 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+
+  // best-practices includes recommended, action SHA pinning, npm cooldown, abandonment
+  // flags, weekly lockfile maintenance, and dev-dep version pinning.
+  "extends": ["config:best-practices", "security:openssf-scorecard"],
+
+  // Lockfile already pins effective versions, so pinning in package.json is just noise.
+  "ignorePresets": [":pinDevDependencies"],
+
+  // Later syntax is deprecated upstream, cron only.
+  "timezone": "UTC",
+  "schedule": ["* 0-5 * * 1"],
+
+  "prConcurrentLimit": 10,
+  "prHourlyLimit": 0,
+
+  "rebaseWhen": "conflicted",
+
+  // No required checks on main, so platform automerge would merge before CI.
+  // Renovate-side merge waits for green.
+  "platformAutomerge": false,
+
+  // No commit prefixes, no emojis, no attribution.
+  "semanticCommits": "disabled",
+  "commitMessagePrefix": "",
+  "commitMessageAction": "Update",
+  "commitMessageTopic": "{{depName}}",
+  "commitMessageExtra": "to {{newVersion}}",
+
+  // One PR per major instead of jumping to latest.
+  "separateMultipleMajor": true,
+
+  "dependencyDashboard": true,
+  "dependencyDashboardOSVVulnerabilitySummary": "unresolved",
+  "dependencyDashboardLabels": ["dependencies"],
+
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "labels": ["security", "priority"]
+  },
+  "osvVulnerabilityAlerts": true,
+
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["* 0-5 * * 1"],
+    "commitMessageAction": "Refresh",
+    "commitMessageTopic": "pnpm lockfile"
+  },
+  "postUpdateOptions": ["pnpmDedupe"],
+
+  "packageRules": [
+    // ----- supply-chain hardening -----
+
+    // 7d cooldown for runtime deps, 3d (best-practices default) for dev tooling.
+    // Only runtime deps split minor/patch: patch automerges, minor waits.
+    {
+      "matchManagers": ["npm"],
+      "matchDepTypes": ["dependencies"],
+      "minimumReleaseAge": "7 days",
+      "separateMinorPatch": true,
+      "description": "Longer cooldown for runtime deps"
+    },
+
+    // Actions automerge, so they keep the 3d cooldown.
+    {
+      "matchDatasources": ["github-tags"],
+      "minimumReleaseAge": "3 days",
+      "description": "3d cooldown for GitHub Actions"
+    },
+
+    // ----- ecosystem groups, minor + patch only -----
+    // Majors get one PR each.
+
+    // @tracearr/shared and @tracearr/translations are published from the server
+    // repo, version-locked to its release tag. Bump them together, on purpose.
+    {
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["@tracearr/shared", "@tracearr/translations"],
+      "groupName": "Tracearr packages",
+      "automerge": false,
+      "labels": ["dep-tracearr"]
+    },
+
+    {
+      "matchManagers": ["npm"],
+      "matchPackageNames": [
+        "tailwindcss",
+        "@tailwindcss/*",
+        "class-variance-authority",
+        "clsx",
+        "tailwind-merge",
+        "postcss"
+      ],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "Tailwind",
+      "labels": ["dep-ui"]
+    },
+
+    {
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["i18next", "i18next-*", "react-i18next"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "i18n"
+    },
+
+    {
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["@tanstack/react-query", "zustand", "socket.io-client", "axios"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "Data and state"
+    },
+
+    {
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["typescript"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "TypeScript tooling"
+    },
+
+    // @types/react is excluded so it stays with the Expo group below.
+    {
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["@types/*", "!@types/react"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "type definitions"
+    },
+
+    // ----- automerge -----
+
+    {
+      "matchManagers": ["npm"],
+      "matchDepTypes": ["devDependencies"],
+      "matchUpdateTypes": ["patch", "minor"],
+      "automerge": true
+    },
+
+    {
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["@types/*"],
+      "matchUpdateTypes": ["patch", "minor"],
+      "automerge": true
+    },
+
+    // Runtime patches only. Minors still need review.
+    {
+      "matchManagers": ["npm"],
+      "matchDepTypes": ["dependencies"],
+      "matchUpdateTypes": ["patch"],
+      "automerge": true
+    },
+
+    {
+      "matchUpdateTypes": ["lockFileMaintenance"],
+      "automerge": true
+    },
+
+    // ----- Expo and React Native -----
+    // After the automerge rules on purpose: later rules win, and the Expo SDK
+    // controls too many transitive pins to trust automerge for anything in this
+    // group. react and @types/react ride with the SDK, so they belong here too.
+    {
+      "matchManagers": ["npm"],
+      "matchPackageNames": [
+        "expo",
+        "expo-*",
+        "@expo/*",
+        "babel-preset-expo",
+        "react",
+        "@types/react",
+        "react-native",
+        "react-native-*",
+        "@react-native/*",
+        "@react-native-*/*",
+        "@react-navigation/*",
+        "@gorhom/bottom-sheet",
+        "@shopify/react-native-skia",
+        "nativewind",
+        "victory-native",
+        "lucide-react-native"
+      ],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "Expo and React Native",
+      "automerge": false
+    },
+
+    // Gate Expo SDK majors behind dashboard approval.
+    {
+      "matchManagers": ["npm"],
+      "matchPackageNames": [
+        "expo",
+        "expo-*",
+        "@expo/*",
+        "babel-preset-expo",
+        "react",
+        "@types/react",
+        "react-native",
+        "react-native-*",
+        "@react-native/*",
+        "@react-native-*/*",
+        "@react-navigation/*"
+      ],
+      "matchUpdateTypes": ["major"],
+      "dependencyDashboardApproval": true
+    },
+
+    // Native modules: rebuild risk, review majors by hand.
+    {
+      "matchManagers": ["npm"],
+      "matchPackageNames": [
+        "@shopify/react-native-skia",
+        "react-native-quick-crypto",
+        "react-native-nitro-modules"
+      ],
+      "matchUpdateTypes": ["major"],
+      "dependencyDashboardApproval": true,
+      "description": "Native modules: rebuild risk, review by hand"
+    },
+
+    // ----- github actions -----
+    // Action majors get reviewed by hand.
+    {
+      "matchManagers": ["github-actions"],
+      "matchUpdateTypes": ["minor", "patch", "digest"],
+      "groupName": "GitHub Actions",
+      "automerge": true,
+      "labels": ["dep-ci"]
+    },
+
+    // Lock to currently-supported macOS runners.
+    {
+      "matchManagers": ["github-actions"],
+      "matchDepTypes": ["github-runner"],
+      "matchPackageNames": ["macos"],
+      "allowedVersions": "/^(14|15)$/"
+    },
+
+    // Assign and tag all majors.
+    {
+      "matchUpdateTypes": ["major"],
+      "assignees": ["connorgallopo"],
+      "labels": ["dep-major"]
+    }
+  ]
+}

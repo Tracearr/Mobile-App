@@ -1,0 +1,324 @@
+name: Mobile Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to deploy (e.g., v1.2.3-beta.1 or v1.2.3)'
+        required: true
+        type: string
+      platform:
+        description: 'Platform to build and deploy'
+        required: true
+        type: choice
+        options:
+          - all
+          - android
+          - ios
+        default: 'all'
+      target:
+        description: 'Deployment target'
+        required: true
+        type: choice
+        options:
+          - preview
+          - production
+        default: 'preview'
+
+concurrency:
+  group: mobile-release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  HUSKY: 0
+
+jobs:
+  # Check if mobile code changed since last tag
+  check-mobile-changes:
+    name: Check Mobile Changes
+    runs-on: ubuntu-latest
+    outputs:
+      mobile_changed: ${{ steps.check.outputs.changed }}
+      previous_sha: ${{ steps.prev_tag.outputs.sha }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          fetch-depth: 0
+          ref: ${{ inputs.tag }}
+
+      - name: Find last successful mobile deploy commit
+        id: prev_tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Get the commit SHA from the last workflow run where Deploy actually succeeded
+          # (not just the overall run, but specifically the deploy job)
+          LAST_DEPLOY_SHA=""
+          for RUN_ID in $(gh api \
+            "repos/${{ github.repository }}/actions/workflows/mobile-release.yml/runs?status=success&per_page=20" \
+            --jq '[.workflow_runs[] | .id] | .[]' 2>/dev/null); do
+            DEPLOY_STATUS=$(gh api \
+              "repos/${{ github.repository }}/actions/runs/${RUN_ID}/jobs" \
+              --jq '[.jobs[] | select(.name | startswith("Deploy Mobile"))] | .[0].conclusion // "skipped"')
+            if [ "$DEPLOY_STATUS" = "success" ]; then
+              LAST_DEPLOY_SHA=$(gh api "repos/${{ github.repository }}/actions/runs/${RUN_ID}" --jq '.head_sha')
+              break
+            fi
+          done
+
+          echo "sha=$LAST_DEPLOY_SHA" >> "$GITHUB_OUTPUT"
+
+          if [ -n "$LAST_DEPLOY_SHA" ]; then
+            # Resolve to a tag name for readability
+            DEPLOY_TAG=$(git tag --points-at "$LAST_DEPLOY_SHA" 2>/dev/null | head -1)
+            echo "Last mobile deploy: ${DEPLOY_TAG:-$LAST_DEPLOY_SHA}"
+          else
+            echo "No previous mobile deploy found"
+          fi
+
+      - name: Check for mobile changes
+        id: check
+        run: |
+          CURRENT_TAG="${{ inputs.tag }}"
+          PREV_SHA="${{ steps.prev_tag.outputs.sha }}"
+
+          if [ -z "$PREV_SHA" ]; then
+            echo "No previous mobile deploy found, assuming mobile changed"
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Check if anything changed since last deploy
+          CHANGES=$(git diff --name-only "$PREV_SHA" "$CURRENT_TAG" | wc -l)
+
+          if [ "$CHANGES" -gt 0 ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "Mobile changes detected: $CHANGES files"
+            git diff --name-only "$PREV_SHA" "$CURRENT_TAG"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "No mobile changes since last deploy ($PREV_SHA)"
+          fi
+
+  # Deploy mobile app using fingerprint-based detection
+  # This action automatically:
+  # 1. Calculates the native fingerprint
+  # 2. Checks if a compatible build already exists
+  # 3. If no build exists → triggers eas build
+  # 4. If build exists → reuses it
+  # 5. Pushes OTA update to the channel
+  deploy:
+    name: Deploy Mobile (${{ inputs.target }})
+    runs-on: ubuntu-latest
+    needs: [check-mobile-changes]
+    if: needs.check-mobile-changes.outputs.mobile_changed == 'true'
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          ref: ${{ inputs.tag }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+
+      - name: Setup Expo
+        uses: expo/expo-github-action@eab7a230208c952974db8c3245cfd78402c7b385 # main
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Validate secrets
+        run: |
+          if [ -z "${{ secrets.EXPO_TOKEN }}" ]; then
+            echo "::error::EXPO_TOKEN secret is not set"
+            exit 1
+          fi
+
+      - name: Sync version from git tag
+        run: |
+          # Extract version from tag (v1.2.3-alpha.4 -> 1.2.3)
+          VERSION="${{ inputs.tag }}"
+          VERSION="${VERSION#v}"           # Remove 'v' prefix
+          VERSION="${VERSION%%-*}"         # Remove prerelease suffix (-alpha.4, -beta.1, etc.)
+          echo "Setting app version to: $VERSION"
+          # Update app.json with the version
+          jq --arg v "$VERSION" '.expo.version = $v' app.json > tmp.json && mv tmp.json app.json
+          # Verify the change
+          ACTUAL=$(jq -r '.expo.version' app.json)
+          if [ "$ACTUAL" != "$VERSION" ]; then
+            echo "::error::Version sync failed. Expected $VERSION, got $ACTUAL"
+            exit 1
+          fi
+          echo "Version synced: $ACTUAL"
+
+      - name: Decode Google Service Account
+        run: |
+          mkdir -p credentials
+          echo "${{ secrets.GOOGLE_SERVICE_ACCOUNT_KEY }}" | base64 -d > credentials/google-service-account.json
+
+      - name: Deploy with fingerprint
+        uses: expo/expo-github-action/continuous-deploy-fingerprint@eab7a230208c952974db8c3245cfd78402c7b385 # main
+        id: deploy
+        with:
+          profile: ${{ inputs.target }}
+          branch: ${{ inputs.target }}
+          platform: ${{ inputs.platform }}
+          auto-submit-builds: true
+        env:
+          EXPO_APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.EXPO_APPLE_APP_SPECIFIC_PASSWORD }}
+          GOOGLE_MAPS_API_KEY: ${{ secrets.GOOGLE_MAPS_API_KEY }}
+
+      - name: Output deployment info
+        run: |
+          echo "## Deployment Results" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Target**: ${{ inputs.target }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Fingerprint**: \`${{ steps.deploy.outputs.fingerprint }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Build needed**: ${{ steps.deploy.outputs.build-new-build }}" >> "$GITHUB_STEP_SUMMARY"
+          if [ -n "${{ steps.deploy.outputs.ios-build-id }}" ]; then
+            echo "**iOS Build ID**: ${{ steps.deploy.outputs.ios-build-id }}" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          if [ -n "${{ steps.deploy.outputs.android-build-id }}" ]; then
+            echo "**Android Build ID**: ${{ steps.deploy.outputs.android-build-id }}" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          if [ -n "${{ steps.deploy.outputs.update-id }}" ]; then
+            echo "**Update ID**: ${{ steps.deploy.outputs.update-id }}" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+  # Fallback: Manual OTA if fingerprint action has issues
+  # This job only runs if deploy fails and we want to try OTA anyway
+  ota-fallback:
+    name: OTA Fallback
+    runs-on: ubuntu-latest
+    needs: [check-mobile-changes, deploy]
+    if: |
+      always() &&
+      needs.deploy.result == 'failure' &&
+      needs.check-mobile-changes.outputs.mobile_changed == 'true'
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          ref: ${{ inputs.tag }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+
+      - name: Setup Expo
+        uses: expo/expo-github-action@eab7a230208c952974db8c3245cfd78402c7b385 # main
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Push OTA update with retry
+        run: |
+          TAG="${{ inputs.tag }}"
+          PLATFORM="${{ inputs.platform }}"
+          TARGET="${{ inputs.target }}"
+          echo "::warning::Deploy failed, attempting OTA fallback for $TAG (platform: $PLATFORM, target: $TARGET)"
+
+          # Build platform flag
+          PLATFORM_FLAG=""
+          if [ "$PLATFORM" != "all" ]; then
+            PLATFORM_FLAG="--platform $PLATFORM"
+          fi
+
+          for attempt in 1 2 3; do
+            echo "Attempt $attempt of 3..."
+            if eas update \
+                --channel "$TARGET" \
+                --message "Release $TAG (fallback)" \
+                $PLATFORM_FLAG \
+                --non-interactive; then
+              echo "OTA update successful on attempt $attempt"
+              exit 0
+            fi
+            if [ $attempt -lt 3 ]; then
+              echo "Attempt $attempt failed, waiting before retry..."
+              sleep $((30 * attempt))
+            fi
+          done
+
+          echo "::error::OTA update failed after 3 attempts"
+          exit 1
+
+  # Summary job that reports status
+  summary:
+    name: Release Summary
+    runs-on: ubuntu-latest
+    needs: [check-mobile-changes, deploy, ota-fallback]
+    if: always()
+
+    steps:
+      - name: Report status
+        env:
+          TAG: ${{ inputs.tag }}
+          PLATFORM: ${{ inputs.platform }}
+          TARGET: ${{ inputs.target }}
+          MOBILE_CHANGED: ${{ needs.check-mobile-changes.outputs.mobile_changed || 'skipped' }}
+          DEPLOY_RESULT: ${{ needs.deploy.result }}
+          FALLBACK_RESULT: ${{ needs.ota-fallback.result }}
+        run: |
+          {
+            echo "## Mobile Release Summary"
+            echo ""
+            echo "**Tag**: $TAG"
+            echo "**Platform**: $PLATFORM"
+            echo "**Target**: $TARGET"
+            echo "**Mobile Changed**: $MOBILE_CHANGED"
+            echo ""
+
+            if [[ "$MOBILE_CHANGED" != "true" ]]; then
+              echo "ℹ️ Skipped: No mobile code changes detected"
+            else
+              echo "### Deployment Status"
+              echo ""
+              if [[ "$DEPLOY_RESULT" == "success" ]]; then
+                echo "✅ **Deploy**: Success"
+                echo ""
+                echo "The fingerprint-based deployment completed successfully."
+                echo "- If native changes were detected, a new build was triggered"
+                echo "- If only JS changes, an OTA update was pushed"
+                echo "- Target: **$TARGET** (channel and store track)"
+                echo ""
+                echo "Check the [Expo dashboard](https://expo.dev) for details."
+              elif [[ "$FALLBACK_RESULT" == "success" ]]; then
+                echo "⚠️ **Deploy**: Failed (fingerprint action issue)"
+                echo "✅ **OTA Fallback**: Success"
+                echo ""
+                echo "The main deploy failed but OTA fallback succeeded."
+                echo "Users will receive the JS update on next app launch."
+              else
+                echo "❌ **Deploy**: $DEPLOY_RESULT"
+                echo "❌ **OTA Fallback**: $FALLBACK_RESULT"
+                echo ""
+                echo "Both deployment methods failed. Check workflow logs for details."
+              fi
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
