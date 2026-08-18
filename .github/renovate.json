@@ -215,6 +215,22 @@
       "dependencyDashboardApproval": true
     },
 
+    // react-native and the native modules the Expo SDK pins in
+    // bundledNativeModules only move when the SDK moves. A 0.x minor is a
+    // breaking release, so the major gate above misses react-native: 0.86.2 ->
+    // 0.87.0 arrived as a minor and left SDK 57's matrix (it pins 0.86.2 exact,
+    // screens ~4.26.0, safe-area-context ~5.7.0).
+    {
+      "matchManagers": ["npm"],
+      "matchPackageNames": [
+        "react-native",
+        "react-native-screens",
+        "react-native-safe-area-context"
+      ],
+      "matchUpdateTypes": ["major", "minor"],
+      "dependencyDashboardApproval": true
+    },
+
     // Native modules: rebuild risk, review majors by hand.
     {
       "matchManagers": ["npm"],
