@@ -40,7 +40,6 @@ concurrency:
 
 env:
   EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-  HUSKY: 0
 
 jobs:
   # Atomically prepare and reserve version numbers before builds start
@@ -79,10 +78,17 @@ jobs:
 
       - name: Reserve version numbers
         id: versions
-        env:
-          EAS_PROJECT_ID: "2e0b9595-ac62-493f-9a10-4f8758bb4b2d"
-          APP_IDENTIFIER: "com.tracearr.app"
         run: |
+          # Read the identifiers from app.json instead of duplicating them here.
+          # The hardcoded pair drifted once already: android is com.tracearr.mobile,
+          # only ios is com.tracearr.app.
+          EAS_PROJECT_ID=$(jq -r '.expo.extra.eas.projectId' app.json)
+          IOS_BUNDLE_ID=$(jq -r '.expo.ios.bundleIdentifier' app.json)
+          ANDROID_PACKAGE=$(jq -r '.expo.android.package' app.json)
+          echo "EAS project: $EAS_PROJECT_ID"
+          echo "iOS bundle id: $IOS_BUNDLE_ID"
+          echo "Android package: $ANDROID_PACKAGE"
+
           # Extract marketing version from git tag
           VERSION="${{ inputs.tag }}"
           VERSION="${VERSION#v}"
@@ -111,14 +117,14 @@ jobs:
           ANDROID_RESULT=$(curl -sf -X POST https://api.expo.dev/graphql \
             -H "Authorization: Bearer $EXPO_TOKEN" \
             -H "Content-Type: application/json" \
-            -d "{\"query\":\"mutation { appVersion { createAppVersion(appVersionInput: { appId: \\\"$EAS_PROJECT_ID\\\", platform: ANDROID, applicationIdentifier: \\\"$APP_IDENTIFIER\\\", storeVersion: \\\"$VERSION\\\", buildVersion: \\\"$NEXT_ANDROID_VC\\\" }) { id } } }\"}")
+            -d "{\"query\":\"mutation { appVersion { createAppVersion(appVersionInput: { appId: \\\"$EAS_PROJECT_ID\\\", platform: ANDROID, applicationIdentifier: \\\"$ANDROID_PACKAGE\\\", storeVersion: \\\"$VERSION\\\", buildVersion: \\\"$NEXT_ANDROID_VC\\\" }) { id } } }\"}")
           echo "Android result: $ANDROID_RESULT"
 
           echo "Reserving iOS version $NEXT_IOS_BN on EAS..."
           IOS_RESULT=$(curl -sf -X POST https://api.expo.dev/graphql \
             -H "Authorization: Bearer $EXPO_TOKEN" \
             -H "Content-Type: application/json" \
-            -d "{\"query\":\"mutation { appVersion { createAppVersion(appVersionInput: { appId: \\\"$EAS_PROJECT_ID\\\", platform: IOS, applicationIdentifier: \\\"$APP_IDENTIFIER\\\", storeVersion: \\\"$VERSION\\\", buildVersion: \\\"$NEXT_IOS_BN\\\" }) { id } } }\"}")
+            -d "{\"query\":\"mutation { appVersion { createAppVersion(appVersionInput: { appId: \\\"$EAS_PROJECT_ID\\\", platform: IOS, applicationIdentifier: \\\"$IOS_BUNDLE_ID\\\", storeVersion: \\\"$VERSION\\\", buildVersion: \\\"$NEXT_IOS_BN\\\" }) { id } } }\"}")
           echo "iOS result: $IOS_RESULT"
 
           # Output for build jobs

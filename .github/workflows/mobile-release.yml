@@ -29,9 +29,6 @@ concurrency:
   group: mobile-release-${{ github.ref }}
   cancel-in-progress: false
 
-env:
-  HUSKY: 0
-
 jobs:
   # Check if mobile code changed since last tag
   check-mobile-changes:
