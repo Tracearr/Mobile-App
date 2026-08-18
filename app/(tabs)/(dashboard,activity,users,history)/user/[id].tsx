@@ -415,13 +415,15 @@ export default function UserDetailScreen() {
     enabled: !!id,
   });
 
-  // Update header title with display name (identity name or username)
+  // Update header title with display name (identity name or username).
+  // Derived outside the effect so the deps are the name itself, not the whole
+  // user object, which gets a new identity on every refetch.
+  const displayName = user ? (user.identityName ?? user.username) : null;
   useEffect(() => {
-    if (user) {
-      const displayName = user.identityName ?? user.username;
+    if (displayName) {
       navigation.setOptions({ title: displayName });
     }
-  }, [user?.identityName, user?.username, navigation]);
+  }, [displayName, navigation]);
 
   // Fetch user sessions
   const {

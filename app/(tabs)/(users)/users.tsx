@@ -170,8 +170,9 @@ export default function UsersScreen() {
       staleTime: 1000 * 60, // 60 seconds - user list doesn't change frequently
     });
 
-  // Flatten all pages into single array
-  const allUsers = data?.pages.flatMap((page) => page.data) || [];
+  // Flatten all pages into single array. Memoized on data.pages so the search
+  // filter below it can actually cache; a fresh array each render defeated it.
+  const allUsers = useMemo(() => data?.pages.flatMap((page) => page.data) ?? [], [data?.pages]);
   const total = data?.pages[0]?.total || 0;
 
   // Filter users based on search query (client-side for now)
