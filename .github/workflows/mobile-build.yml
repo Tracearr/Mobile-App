@@ -38,6 +38,9 @@ concurrency:
   group: mobile-build
   cancel-in-progress: false
 
+permissions:
+  contents: read
+
 env:
   EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
 
@@ -71,7 +74,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Setup Expo
-        uses: expo/expo-github-action@eab7a230208c952974db8c3245cfd78402c7b385 # main
+        uses: expo/expo-github-action@eab7a230208c952974db8c3245cfd78402c7b385 # v9
         with:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
@@ -94,7 +97,7 @@ jobs:
           VERSION="${VERSION#v}"
           VERSION="${VERSION%%-*}"
           echo "Marketing version: $VERSION"
-          echo "marketing-version=$VERSION" >> $GITHUB_OUTPUT
+          echo "marketing-version=$VERSION" >> "$GITHUB_OUTPUT"
 
           # Get current versions from EAS remote
           echo "Getting current versions from EAS remote..."
@@ -128,8 +131,8 @@ jobs:
           echo "iOS result: $IOS_RESULT"
 
           # Output for build jobs
-          echo "android-version-code=$NEXT_ANDROID_VC" >> $GITHUB_OUTPUT
-          echo "ios-build-number=$NEXT_IOS_BN" >> $GITHUB_OUTPUT
+          echo "android-version-code=$NEXT_ANDROID_VC" >> "$GITHUB_OUTPUT"
+          echo "ios-build-number=$NEXT_IOS_BN" >> "$GITHUB_OUTPUT"
 
           echo "Versions reserved successfully"
 
@@ -149,7 +152,7 @@ jobs:
           ref: ${{ inputs.tag }}
 
       - name: Free disk space
-        uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be # main
+        uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be # v1.3.1
         with:
           android: false
           dotnet: true
@@ -159,7 +162,7 @@ jobs:
           swap-storage: true
 
       - name: Setup Java
-        uses: actions/setup-java@v6
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
           distribution: 'temurin'
           java-version: '17'
@@ -181,7 +184,7 @@ jobs:
 
 
       - name: Setup Expo
-        uses: expo/expo-github-action@eab7a230208c952974db8c3245cfd78402c7b385 # main
+        uses: expo/expo-github-action@eab7a230208c952974db8c3245cfd78402c7b385 # v9
         with:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
@@ -216,7 +219,7 @@ jobs:
             --output "./${OUTPUT_FILE}" \
             --non-interactive
 
-          echo "artifact-path=${OUTPUT_FILE}" >> $GITHUB_OUTPUT
+          echo "artifact-path=${OUTPUT_FILE}" >> "$GITHUB_OUTPUT"
           echo "Build complete: ${OUTPUT_FILE}"
 
       - name: Upload build artifact
@@ -260,7 +263,7 @@ jobs:
 
 
       - name: Setup Expo
-        uses: expo/expo-github-action@eab7a230208c952974db8c3245cfd78402c7b385 # main
+        uses: expo/expo-github-action@eab7a230208c952974db8c3245cfd78402c7b385 # v9
         with:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
@@ -291,7 +294,7 @@ jobs:
             --output "./${OUTPUT_FILE}" \
             --non-interactive
 
-          echo "artifact-path=${OUTPUT_FILE}" >> $GITHUB_OUTPUT
+          echo "artifact-path=${OUTPUT_FILE}" >> "$GITHUB_OUTPUT"
           echo "Build complete: ${OUTPUT_FILE}"
 
       - name: Upload build artifact
@@ -306,6 +309,7 @@ jobs:
     needs: [prepare-versions, build-android, build-ios]
     if: always() && (needs.build-android.result == 'success' || needs.build-ios.result == 'success')
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     steps:
       - name: Checkout
@@ -326,7 +330,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Setup Expo
-        uses: expo/expo-github-action@eab7a230208c952974db8c3245cfd78402c7b385 # main
+        uses: expo/expo-github-action@eab7a230208c952974db8c3245cfd78402c7b385 # v9
         with:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
@@ -348,18 +352,20 @@ jobs:
       - name: Upload Android to EAS
         if: needs.build-android.result == 'success'
         continue-on-error: true
+        env:
+          ARTIFACT: ${{ needs.build-android.outputs.artifact-path }}
         run: |
-          APK_FILE=$(ls *.apk 2>/dev/null || ls *.aab 2>/dev/null)
-          echo "Uploading $APK_FILE to EAS..."
-          eas upload --platform android --build-path "./${APK_FILE}" --non-interactive
+          echo "Uploading $ARTIFACT to EAS..."
+          eas upload --platform android --build-path "./$ARTIFACT" --non-interactive
 
       - name: Upload iOS to EAS
         if: needs.build-ios.result == 'success'
         continue-on-error: true
+        env:
+          ARTIFACT: ${{ needs.build-ios.outputs.artifact-path }}
         run: |
-          IPA_FILE=$(ls *.ipa)
-          echo "Uploading $IPA_FILE to EAS..."
-          eas upload --platform ios --build-path "./${IPA_FILE}" --non-interactive
+          echo "Uploading $ARTIFACT to EAS..."
+          eas upload --platform ios --build-path "./$ARTIFACT" --non-interactive
 
       - name: Decode Google Service Account
         if: inputs.distribution == 'store' && needs.build-android.result == 'success'
@@ -369,25 +375,27 @@ jobs:
 
       - name: Submit Android to Play Store
         if: inputs.distribution == 'store' && needs.build-android.result == 'success'
+        env:
+          ARTIFACT: ${{ needs.build-android.outputs.artifact-path }}
         run: |
-          AAB_FILE=$(ls *.aab)
-          echo "Submitting $AAB_FILE to Play Store..."
-          eas submit --platform android --path "./${AAB_FILE}" --profile ${{ inputs.profile }} --non-interactive
+          echo "Submitting $ARTIFACT to Play Store..."
+          eas submit --platform android --path "./$ARTIFACT" --profile ${{ inputs.profile }} --non-interactive
 
       - name: Submit iOS to App Store
         if: inputs.distribution == 'store' && needs.build-ios.result == 'success'
         env:
           EXPO_APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.EXPO_APPLE_APP_SPECIFIC_PASSWORD }}
+          ARTIFACT: ${{ needs.build-ios.outputs.artifact-path }}
         run: |
-          IPA_FILE=$(ls *.ipa)
-          echo "Submitting $IPA_FILE to App Store..."
-          eas submit --platform ios --path "./${IPA_FILE}" --profile ${{ inputs.profile }} --non-interactive
+          echo "Submitting $ARTIFACT to App Store..."
+          eas submit --platform ios --path "./$ARTIFACT" --profile ${{ inputs.profile }} --non-interactive
 
   summary:
     name: Build Summary
     needs: [prepare-versions, build-android, build-ios, upload-and-submit]
     if: always()
     runs-on: ubuntu-latest
+    timeout-minutes: 5
 
     steps:
       - name: Generate summary
@@ -436,4 +444,4 @@ jobs:
             else
               echo "[WARN] Upload/Submit: ${{ needs.upload-and-submit.result }}"
             fi
-          } >> $GITHUB_STEP_SUMMARY
+          } >> "$GITHUB_STEP_SUMMARY"
