@@ -94,10 +94,8 @@ jobs:
 
       - name: Pin packages
         env:
-          VERSION: ${{ steps.versions.outputs.package-version }}
-        run: |
-          pnpm pkg set "dependencies.@tracearr/shared=$VERSION"
-          pnpm pkg set "dependencies.@tracearr/translations=$VERSION"
+          TAG: ${{ steps.versions.outputs.tag }}
+        run: node scripts/release/pin-packages.mjs "$TAG"
 
       - name: Refresh lockfile
         run: pnpm install --no-frozen-lockfile
