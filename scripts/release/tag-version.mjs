@@ -1,7 +1,9 @@
 // Every version value a build needs, derived from one Tracearr release tag.
 // Local builds, CI, and EAS workflows all call this so they cannot drift apart.
 
-const TAG_RE = /^v(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?$/;
+// The leading v is optional on input and always present on output, so passing
+// either "2.2.0-beta.3" or "v2.2.0-beta.3" resolves to the same git tag.
+const TAG_RE = /^v?(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?$/;
 
 export function parseTag(tag) {
   const match = TAG_RE.exec(tag);
@@ -10,10 +12,11 @@ export function parseTag(tag) {
   }
   const [, major, minor, patch, prerelease] = match;
   const marketingVersion = `${major}.${minor}.${patch}`;
+  const packageVersion = prerelease ? `${marketingVersion}-${prerelease}` : marketingVersion;
   return {
-    tag,
+    tag: `v${packageVersion}`,
     marketingVersion,
-    packageVersion: prerelease ? `${marketingVersion}-${prerelease}` : marketingVersion,
+    packageVersion,
     isPrerelease: Boolean(prerelease),
     defaultProfile: prerelease ? 'beta' : 'production',
     npmDistTag: prerelease ? 'next' : 'latest',

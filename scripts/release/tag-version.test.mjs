@@ -28,8 +28,17 @@ test('multi-digit patch parses', () => {
   assert.equal(parseTag('v1.4.31').marketingVersion, '1.4.31');
 });
 
-test('missing v prefix is rejected', () => {
-  assert.throws(() => parseTag('2.1.0'), /Not a Tracearr release tag/);
+test('a bare version normalises to a v-prefixed tag', () => {
+  assert.equal(parseTag('2.1.0').tag, 'v2.1.0');
+  assert.equal(parseTag('2.2.0-beta.3').tag, 'v2.2.0-beta.3');
+});
+
+test('a v-prefixed tag stays unchanged', () => {
+  assert.equal(parseTag('v2.2.0-beta.3').tag, 'v2.2.0-beta.3');
+});
+
+test('both input forms produce identical output', () => {
+  assert.deepEqual(parseTag('2.2.0-beta.3'), parseTag('v2.2.0-beta.3'));
 });
 
 test('non-numeric version is rejected', () => {

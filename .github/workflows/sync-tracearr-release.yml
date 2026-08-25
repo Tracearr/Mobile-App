@@ -59,11 +59,14 @@ jobs:
         run: |
           JSON=$(node scripts/release/tag-version.mjs "$TAG")
           echo "$JSON"
-          echo "package-version=$(echo "$JSON" | jq -r .packageVersion)" >> "$GITHUB_OUTPUT"
+          {
+            echo "tag=$(echo "$JSON" | jq -r .tag)"
+            echo "package-version=$(echo "$JSON" | jq -r .packageVersion)"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Fail if the tag already exists here
         env:
-          TAG: ${{ steps.tag.outputs.tag }}
+          TAG: ${{ steps.versions.outputs.tag }}
         run: |
           if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
             echo "::error::Tag $TAG already exists in this repo. Delete it first to re-sync."
@@ -101,7 +104,7 @@ jobs:
 
       - name: Verify pins took
         env:
-          TAG: ${{ steps.tag.outputs.tag }}
+          TAG: ${{ steps.versions.outputs.tag }}
         run: node scripts/release/verify-pins.mjs "$TAG"
 
       - name: Lint
@@ -115,7 +118,7 @@ jobs:
 
       - name: Commit and tag
         env:
-          TAG: ${{ steps.tag.outputs.tag }}
+          TAG: ${{ steps.versions.outputs.tag }}
           VERSION: ${{ steps.versions.outputs.package-version }}
         run: |
           git config user.name "github-actions[bot]"
@@ -132,7 +135,7 @@ jobs:
 
       - name: Summary
         env:
-          TAG: ${{ steps.tag.outputs.tag }}
+          TAG: ${{ steps.versions.outputs.tag }}
           VERSION: ${{ steps.versions.outputs.package-version }}
         run: |
           {
