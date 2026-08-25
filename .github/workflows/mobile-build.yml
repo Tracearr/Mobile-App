@@ -4,36 +4,22 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Git tag to build (e.g., v1.2.3-beta.1)'
+        description: 'Tracearr tag to build (must be mirrored here first)'
         required: true
         type: string
       platform:
         description: 'Platform to build'
         required: true
         type: choice
-        options:
-          - android
-          - ios
-          - both
-        default: 'both'
-      distribution:
-        description: 'Distribution method'
-        required: true
-        type: choice
-        options:
-          - internal
-          - store
-        default: 'internal'
+        options: [android, ios, both]
+        default: both
       profile:
-        description: 'Build profile'
+        description: 'Build profile (auto derives from the tag)'
         required: true
         type: choice
-        options:
-          - preview
-          - production
-        default: 'preview'
+        options: [auto, development, internal, beta, production]
+        default: auto
 
-# Prevent concurrent builds that could cause version conflicts
 concurrency:
   group: mobile-build
   cancel-in-progress: false
@@ -41,22 +27,18 @@ concurrency:
 permissions:
   contents: read
 
-env:
-  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-
 jobs:
-  # Atomically prepare and reserve version numbers before builds start
-  prepare-versions:
-    name: Prepare Versions
+  prepare:
+    name: Prepare
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     outputs:
-      marketing-version: ${{ steps.versions.outputs.marketing-version }}
-      android-version-code: ${{ steps.versions.outputs.android-version-code }}
-      ios-build-number: ${{ steps.versions.outputs.ios-build-number }}
+      profile: ${{ steps.resolve.outputs.profile }}
+      marketing-version: ${{ steps.resolve.outputs.marketing-version }}
+      matrix: ${{ steps.resolve.outputs.matrix }}
 
     steps:
-      - name: Checkout
+      - name: Checkout tag
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
         with:
           ref: ${{ inputs.tag }}
@@ -67,91 +49,66 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
-          node-version: 22
+          node-version-file: .tool-versions
           cache: 'pnpm'
+
+      - name: Resolve profile, version and platform matrix
+        id: resolve
+        env:
+          TAG: ${{ inputs.tag }}
+          REQUESTED_PROFILE: ${{ inputs.profile }}
+          PLATFORM: ${{ inputs.platform }}
+        run: |
+          JSON=$(node scripts/release/tag-version.mjs "$TAG")
+          echo "$JSON"
+
+          if [ "$REQUESTED_PROFILE" = "auto" ]; then
+            PROFILE=$(echo "$JSON" | jq -r .defaultProfile)
+          else
+            PROFILE="$REQUESTED_PROFILE"
+          fi
+          echo "Resolved profile: $PROFILE"
+
+          ANDROID='{"platform":"android","runner":"ubuntu-latest"}'
+          IOS='{"platform":"ios","runner":"macos-15"}'
+          case "$PLATFORM" in
+            android) MATRIX="{\"include\":[$ANDROID]}" ;;
+            ios)     MATRIX="{\"include\":[$IOS]}" ;;
+            both)    MATRIX="{\"include\":[$ANDROID,$IOS]}" ;;
+            *)       echo "::error::Unknown platform $PLATFORM"; exit 1 ;;
+          esac
+
+          {
+            echo "profile=$PROFILE"
+            echo "marketing-version=$(echo "$JSON" | jq -r .marketingVersion)"
+            echo "matrix=$MATRIX"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Setup Expo
-        uses: expo/expo-github-action@eab7a230208c952974db8c3245cfd78402c7b385 # v9
-        with:
-          eas-version: latest
-          token: ${{ secrets.EXPO_TOKEN }}
+      - name: Verify package pins match the tag
+        env:
+          TAG: ${{ inputs.tag }}
+        run: node scripts/release/verify-pins.mjs "$TAG"
 
-      - name: Reserve version numbers
-        id: versions
-        run: |
-          # Read the identifiers from app.json instead of duplicating them here.
-          # The hardcoded pair drifted once already: android is com.tracearr.mobile,
-          # only ios is com.tracearr.app.
-          EAS_PROJECT_ID=$(jq -r '.expo.extra.eas.projectId' app.json)
-          IOS_BUNDLE_ID=$(jq -r '.expo.ios.bundleIdentifier' app.json)
-          ANDROID_PACKAGE=$(jq -r '.expo.android.package' app.json)
-          echo "EAS project: $EAS_PROJECT_ID"
-          echo "iOS bundle id: $IOS_BUNDLE_ID"
-          echo "Android package: $ANDROID_PACKAGE"
-
-          # Extract marketing version from git tag
-          VERSION="${{ inputs.tag }}"
-          VERSION="${VERSION#v}"
-          VERSION="${VERSION%%-*}"
-          echo "Marketing version: $VERSION"
-          echo "marketing-version=$VERSION" >> "$GITHUB_OUTPUT"
-
-          # Get current versions from EAS remote
-          echo "Getting current versions from EAS remote..."
-          REMOTE_VERSIONS=$(eas build:version:get --platform all --json --non-interactive 2>/dev/null || echo '{}')
-          echo "Remote versions: $REMOTE_VERSIONS"
-
-          # Parse current versions (default to 0 if not set)
-          CURRENT_ANDROID_VC=$(echo "$REMOTE_VERSIONS" | jq -r '.versionCode // "0"')
-          CURRENT_IOS_BN=$(echo "$REMOTE_VERSIONS" | jq -r '.buildNumber // "0"')
-
-          # Increment versions
-          NEXT_ANDROID_VC=$((CURRENT_ANDROID_VC + 1))
-          NEXT_IOS_BN=$((CURRENT_IOS_BN + 1))
-
-          echo "Android versionCode: $CURRENT_ANDROID_VC -> $NEXT_ANDROID_VC"
-          echo "iOS buildNumber: $CURRENT_IOS_BN -> $NEXT_IOS_BN"
-
-          # Reserve versions on EAS remote via GraphQL API
-          echo "Reserving Android version $NEXT_ANDROID_VC on EAS..."
-          ANDROID_RESULT=$(curl -sf -X POST https://api.expo.dev/graphql \
-            -H "Authorization: Bearer $EXPO_TOKEN" \
-            -H "Content-Type: application/json" \
-            -d "{\"query\":\"mutation { appVersion { createAppVersion(appVersionInput: { appId: \\\"$EAS_PROJECT_ID\\\", platform: ANDROID, applicationIdentifier: \\\"$ANDROID_PACKAGE\\\", storeVersion: \\\"$VERSION\\\", buildVersion: \\\"$NEXT_ANDROID_VC\\\" }) { id } } }\"}")
-          echo "Android result: $ANDROID_RESULT"
-
-          echo "Reserving iOS version $NEXT_IOS_BN on EAS..."
-          IOS_RESULT=$(curl -sf -X POST https://api.expo.dev/graphql \
-            -H "Authorization: Bearer $EXPO_TOKEN" \
-            -H "Content-Type: application/json" \
-            -d "{\"query\":\"mutation { appVersion { createAppVersion(appVersionInput: { appId: \\\"$EAS_PROJECT_ID\\\", platform: IOS, applicationIdentifier: \\\"$IOS_BUNDLE_ID\\\", storeVersion: \\\"$VERSION\\\", buildVersion: \\\"$NEXT_IOS_BN\\\" }) { id } } }\"}")
-          echo "iOS result: $IOS_RESULT"
-
-          # Output for build jobs
-          echo "android-version-code=$NEXT_ANDROID_VC" >> "$GITHUB_OUTPUT"
-          echo "ios-build-number=$NEXT_IOS_BN" >> "$GITHUB_OUTPUT"
-
-          echo "Versions reserved successfully"
-
-  build-android:
-    name: Build Android
-    needs: [prepare-versions]
-    if: inputs.platform == 'android' || inputs.platform == 'both'
-    runs-on: ubuntu-latest
-    timeout-minutes: 60
-    outputs:
-      artifact-path: ${{ steps.build.outputs.artifact-path }}
+  build:
+    name: Build ${{ matrix.platform }}
+    needs: [prepare]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
 
     steps:
-      - name: Checkout
+      - name: Checkout tag
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
         with:
           ref: ${{ inputs.tag }}
 
       - name: Free disk space
+        if: matrix.platform == 'android'
         uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be # v1.3.1
         with:
           android: false
@@ -162,89 +119,18 @@ jobs:
           swap-storage: true
 
       - name: Setup Java
+        if: matrix.platform == 'android'
         uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
-          distribution: 'temurin'
+          distribution: temurin
           java-version: '17'
 
       - name: Setup Android SDK
+        if: matrix.platform == 'android'
         uses: android-actions/setup-android@40fd30fb8d7440372e1316f5d1809ec01dcd3699 # v4
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6
-
-      - name: Setup Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
-        with:
-          node-version: 22
-          cache: 'pnpm'
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-
-      - name: Setup Expo
-        uses: expo/expo-github-action@eab7a230208c952974db8c3245cfd78402c7b385 # v9
-        with:
-          eas-version: latest
-          token: ${{ secrets.EXPO_TOKEN }}
-
-      - name: Set versions from prepare job
-        run: |
-          VERSION="${{ needs.prepare-versions.outputs.marketing-version }}"
-          VERSION_CODE="${{ needs.prepare-versions.outputs.android-version-code }}"
-
-          echo "Setting version: $VERSION, versionCode: $VERSION_CODE"
-
-          jq --arg v "$VERSION" \
-             --argjson vc "$VERSION_CODE" \
-             '.expo.version = $v | .expo.android.versionCode = $vc' \
-             app.json > tmp.json && mv tmp.json app.json
-
-      - name: Build Android locally
-        id: build
-        env:
-          GOOGLE_MAPS_API_KEY: ${{ secrets.GOOGLE_MAPS_API_KEY }}
-        run: |
-          BUILD_TYPE="${{ inputs.distribution == 'internal' && 'apk' || 'app-bundle' }}"
-          OUTPUT_EXT="${{ inputs.distribution == 'internal' && 'apk' || 'aab' }}"
-          OUTPUT_FILE="tracearr-${{ inputs.tag }}-android.${OUTPUT_EXT}"
-
-          echo "Building $BUILD_TYPE for ${{ inputs.profile }} profile..."
-
-          eas build \
-            --platform android \
-            --profile ${{ inputs.profile }} \
-            --local \
-            --output "./${OUTPUT_FILE}" \
-            --non-interactive
-
-          echo "artifact-path=${OUTPUT_FILE}" >> "$GITHUB_OUTPUT"
-          echo "Build complete: ${OUTPUT_FILE}"
-
-      - name: Upload build artifact
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
-        with:
-          name: android-build
-          path: ${{ steps.build.outputs.artifact-path }}
-          retention-days: 30
-
-  build-ios:
-    name: Build iOS
-    needs: [prepare-versions]
-    if: inputs.platform == 'ios' || inputs.platform == 'both'
-    runs-on: macos-15
-    timeout-minutes: 90
-    outputs:
-      artifact-path: ${{ steps.build.outputs.artifact-path }}
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
-        with:
-          ref: ${{ inputs.tag }}
-
       - name: Setup Xcode
+        if: matrix.platform == 'ios'
         uses: maxim-lobanov/setup-xcode@ed7a3b1fda3918c0306d1b724322adc0b8cc0a90 # v1
         with:
           xcode-version: latest-stable
@@ -255,12 +141,11 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
-          node-version: 22
+          node-version-file: .tool-versions
           cache: 'pnpm'
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-
 
       - name: Setup Expo
         uses: expo/expo-github-action@eab7a230208c952974db8c3245cfd78402c7b385 # v9
@@ -268,180 +153,38 @@ jobs:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
 
-      - name: Set versions from prepare job
-        run: |
-          VERSION="${{ needs.prepare-versions.outputs.marketing-version }}"
-          BUILD_NUMBER="${{ needs.prepare-versions.outputs.ios-build-number }}"
+      - name: Apply marketing version
+        env:
+          TAG: ${{ inputs.tag }}
+        run: node scripts/release/apply-version.mjs "$TAG"
 
-          echo "Setting version: $VERSION, buildNumber: $BUILD_NUMBER"
-
-          jq --arg v "$VERSION" \
-             --arg bn "$BUILD_NUMBER" \
-             '.expo.version = $v | .expo.ios.buildNumber = $bn' \
-             app.json > tmp.json && mv tmp.json app.json
-
-      - name: Build iOS locally
+      - name: Build
         id: build
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          TAG: ${{ inputs.tag }}
+          PLATFORM: ${{ matrix.platform }}
+          PROFILE: ${{ needs.prepare.outputs.profile }}
         run: |
-          OUTPUT_FILE="tracearr-${{ inputs.tag }}-ios.ipa"
-
-          echo "Building iOS for ${{ inputs.profile }} profile..."
-
+          if [ "$PLATFORM" = "ios" ]; then
+            EXT=ipa
+          elif [ "$PROFILE" = "development" ]; then
+            EXT=apk
+          else
+            EXT=aab
+          fi
+          OUTPUT="tracearr-${TAG}-${PLATFORM}.${EXT}"
           eas build \
-            --platform ios \
-            --profile ${{ inputs.profile }} \
+            --platform "$PLATFORM" \
+            --profile "$PROFILE" \
             --local \
-            --output "./${OUTPUT_FILE}" \
+            --output "./${OUTPUT}" \
             --non-interactive
+          echo "artifact=${OUTPUT}" >> "$GITHUB_OUTPUT"
 
-          echo "artifact-path=${OUTPUT_FILE}" >> "$GITHUB_OUTPUT"
-          echo "Build complete: ${OUTPUT_FILE}"
-
-      - name: Upload build artifact
+      - name: Upload artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: ios-build
-          path: ${{ steps.build.outputs.artifact-path }}
+          name: ${{ matrix.platform }}-build
+          path: ${{ steps.build.outputs.artifact }}
           retention-days: 30
-
-  upload-and-submit:
-    name: Upload and Submit
-    needs: [prepare-versions, build-android, build-ios]
-    if: always() && (needs.build-android.result == 'success' || needs.build-ios.result == 'success')
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
-        with:
-          ref: ${{ inputs.tag }}
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6
-
-      - name: Setup Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
-        with:
-          node-version: 22
-          cache: 'pnpm'
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Setup Expo
-        uses: expo/expo-github-action@eab7a230208c952974db8c3245cfd78402c7b385 # v9
-        with:
-          eas-version: latest
-          token: ${{ secrets.EXPO_TOKEN }}
-
-      - name: Download Android artifact
-        if: needs.build-android.result == 'success'
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
-        with:
-          name: android-build
-          path: .
-
-      - name: Download iOS artifact
-        if: needs.build-ios.result == 'success'
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
-        with:
-          name: ios-build
-          path: .
-
-      - name: Upload Android to EAS
-        if: needs.build-android.result == 'success'
-        continue-on-error: true
-        env:
-          ARTIFACT: ${{ needs.build-android.outputs.artifact-path }}
-        run: |
-          echo "Uploading $ARTIFACT to EAS..."
-          eas upload --platform android --build-path "./$ARTIFACT" --non-interactive
-
-      - name: Upload iOS to EAS
-        if: needs.build-ios.result == 'success'
-        continue-on-error: true
-        env:
-          ARTIFACT: ${{ needs.build-ios.outputs.artifact-path }}
-        run: |
-          echo "Uploading $ARTIFACT to EAS..."
-          eas upload --platform ios --build-path "./$ARTIFACT" --non-interactive
-
-      - name: Decode Google Service Account
-        if: inputs.distribution == 'store' && needs.build-android.result == 'success'
-        run: |
-          mkdir -p credentials
-          echo "${{ secrets.GOOGLE_SERVICE_ACCOUNT_KEY }}" | base64 -d > credentials/google-service-account.json
-
-      - name: Submit Android to Play Store
-        if: inputs.distribution == 'store' && needs.build-android.result == 'success'
-        env:
-          ARTIFACT: ${{ needs.build-android.outputs.artifact-path }}
-        run: |
-          echo "Submitting $ARTIFACT to Play Store..."
-          eas submit --platform android --path "./$ARTIFACT" --profile ${{ inputs.profile }} --non-interactive
-
-      - name: Submit iOS to App Store
-        if: inputs.distribution == 'store' && needs.build-ios.result == 'success'
-        env:
-          EXPO_APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.EXPO_APPLE_APP_SPECIFIC_PASSWORD }}
-          ARTIFACT: ${{ needs.build-ios.outputs.artifact-path }}
-        run: |
-          echo "Submitting $ARTIFACT to App Store..."
-          eas submit --platform ios --path "./$ARTIFACT" --profile ${{ inputs.profile }} --non-interactive
-
-  summary:
-    name: Build Summary
-    needs: [prepare-versions, build-android, build-ios, upload-and-submit]
-    if: always()
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-
-    steps:
-      - name: Generate summary
-        run: |
-          {
-            echo "## Mobile Build Summary"
-            echo ""
-            echo "**Tag**: ${{ inputs.tag }}"
-            echo "**Platform**: ${{ inputs.platform }}"
-            echo "**Distribution**: ${{ inputs.distribution }}"
-            echo "**Profile**: ${{ inputs.profile }}"
-            echo ""
-            echo "### Version Info"
-            echo "- **Marketing Version**: ${{ needs.prepare-versions.outputs.marketing-version }}"
-            echo "- **Android versionCode**: ${{ needs.prepare-versions.outputs.android-version-code }}"
-            echo "- **iOS buildNumber**: ${{ needs.prepare-versions.outputs.ios-build-number }}"
-            echo ""
-            echo "### Build Results"
-            echo ""
-
-            if [[ "${{ inputs.platform }}" == "android" || "${{ inputs.platform }}" == "both" ]]; then
-              if [[ "${{ needs.build-android.result }}" == "success" ]]; then
-                echo "[OK] Android: Built successfully"
-              else
-                echo "[FAIL] Android: ${{ needs.build-android.result }}"
-              fi
-            fi
-
-            if [[ "${{ inputs.platform }}" == "ios" || "${{ inputs.platform }}" == "both" ]]; then
-              if [[ "${{ needs.build-ios.result }}" == "success" ]]; then
-                echo "[OK] iOS: Built successfully"
-              else
-                echo "[FAIL] iOS: ${{ needs.build-ios.result }}"
-              fi
-            fi
-
-            echo ""
-            echo "### Upload and Submit"
-            if [[ "${{ needs.upload-and-submit.result }}" == "success" ]]; then
-              echo "[OK] Uploaded to EAS"
-              if [[ "${{ inputs.distribution }}" == "store" ]]; then
-                echo "[OK] Submitted to stores"
-              else
-                echo "[INFO] Internal distribution - check Expo dashboard for download links"
-              fi
-            else
-              echo "[WARN] Upload/Submit: ${{ needs.upload-and-submit.result }}"
-            fi
-          } >> "$GITHUB_STEP_SUMMARY"
