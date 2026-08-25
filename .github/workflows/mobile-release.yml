@@ -34,10 +34,22 @@ jobs:
     timeout-minutes: 60
 
     steps:
+      - name: Normalise tag
+        id: tag
+        env:
+          RAW_TAG: ${{ inputs.tag }}
+        run: |
+          case "$RAW_TAG" in
+            v*) TAG="$RAW_TAG" ;;
+            *)  TAG="v$RAW_TAG" ;;
+          esac
+          echo "Using tag $TAG"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
       - name: Checkout tag
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
         with:
-          ref: ${{ inputs.tag }}
+          ref: ${{ steps.tag.outputs.tag }}
 
       - name: Setup pnpm
         uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6
@@ -53,13 +65,13 @@ jobs:
 
       - name: Verify package pins match the tag
         env:
-          TAG: ${{ inputs.tag }}
+          TAG: ${{ steps.tag.outputs.tag }}
         run: node scripts/release/verify-pins.mjs "$TAG"
 
       - name: Resolve profile
         id: resolve
         env:
-          TAG: ${{ inputs.tag }}
+          TAG: ${{ steps.tag.outputs.tag }}
           REQUESTED_PROFILE: ${{ inputs.profile }}
         run: |
           JSON=$(node scripts/release/tag-version.mjs "$TAG")
@@ -74,7 +86,7 @@ jobs:
 
       - name: Apply marketing version
         env:
-          TAG: ${{ inputs.tag }}
+          TAG: ${{ steps.tag.outputs.tag }}
         run: node scripts/release/apply-version.mjs "$TAG"
 
       - name: Setup Expo
@@ -97,7 +109,7 @@ jobs:
 
       - name: Summary
         env:
-          TAG: ${{ inputs.tag }}
+          TAG: ${{ steps.tag.outputs.tag }}
           PROFILE: ${{ steps.resolve.outputs.profile }}
           FINGERPRINT: ${{ steps.deploy.outputs.fingerprint }}
           NEW_BUILD: ${{ steps.deploy.outputs.build-new-build }}

@@ -40,13 +40,26 @@ jobs:
     outputs:
       profile: ${{ steps.resolve.outputs.profile }}
       marketing-version: ${{ steps.resolve.outputs.marketing-version }}
+      tag: ${{ steps.tag.outputs.tag }}
       matrix: ${{ steps.resolve.outputs.matrix }}
 
     steps:
+      - name: Normalise tag
+        id: tag
+        env:
+          RAW_TAG: ${{ inputs.tag }}
+        run: |
+          case "$RAW_TAG" in
+            v*) TAG="$RAW_TAG" ;;
+            *)  TAG="v$RAW_TAG" ;;
+          esac
+          echo "Using tag $TAG"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
       - name: Checkout tag
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
         with:
-          ref: ${{ inputs.tag }}
+          ref: ${{ steps.tag.outputs.tag }}
 
       - name: Setup pnpm
         uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6
@@ -60,7 +73,7 @@ jobs:
       - name: Resolve profile, version and platform matrix
         id: resolve
         env:
-          TAG: ${{ inputs.tag }}
+          TAG: ${{ steps.tag.outputs.tag }}
           REQUESTED_PROFILE: ${{ inputs.profile }}
           PLATFORM: ${{ inputs.platform }}
         run: |
@@ -94,7 +107,7 @@ jobs:
 
       - name: Verify package pins match the tag
         env:
-          TAG: ${{ inputs.tag }}
+          TAG: ${{ steps.tag.outputs.tag }}
         run: node scripts/release/verify-pins.mjs "$TAG"
 
   build:
@@ -110,7 +123,7 @@ jobs:
       - name: Checkout tag
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
         with:
-          ref: ${{ inputs.tag }}
+          ref: ${{ needs.prepare.outputs.tag }}
 
       - name: Free disk space
         if: matrix.platform == 'android'
@@ -154,14 +167,14 @@ jobs:
 
       - name: Apply marketing version
         env:
-          TAG: ${{ inputs.tag }}
+          TAG: ${{ needs.prepare.outputs.tag }}
         run: node scripts/release/apply-version.mjs "$TAG"
 
       - name: Build
         id: build
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-          TAG: ${{ inputs.tag }}
+          TAG: ${{ needs.prepare.outputs.tag }}
           PLATFORM: ${{ matrix.platform }}
           PROFILE: ${{ needs.prepare.outputs.profile }}
         run: |
