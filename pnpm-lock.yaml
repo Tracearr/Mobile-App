@@ -30,11 +30,11 @@ importers:
         specifier: ^5.102.2
         version: 5.102.2(react@19.2.3)
       '@tracearr/shared':
-        specifier: 2.1.0
-        version: 2.1.0
+        specifier: 2.2.0-beta.3
+        version: 2.2.0-beta.3
       '@tracearr/translations':
-        specifier: 2.1.0
-        version: 2.1.0(react-native@0.86.2(@babel/core@7.29.7)(@react-native/metro-config@0.86.2(@babel/core@7.29.7))(@types/react@19.2.18)(react@19.2.3))(react@19.2.3)(typescript@7.0.2)
+        specifier: 2.2.0-beta.3
+        version: 2.2.0-beta.3(react-native@0.86.2(@babel/core@7.29.7)(@react-native/metro-config@0.86.2(@babel/core@7.29.7))(@types/react@19.2.18)(react@19.2.3))(react@19.2.3)(typescript@7.0.2)
       axios:
         specifier: ^1.19.0
         version: 1.19.0
@@ -1387,11 +1387,11 @@ packages:
     peerDependencies:
       react: ^18 || ^19
 
-  '@tracearr/shared@2.1.0':
-    resolution: {integrity: sha512-PVB+lvYdVvqyDC6/p25v5ds55lr3uVdKombiC0lV1KJSIbJe2B0vr3CMY7lKfi+sJE5LSMcqfoEWULu3QTdK2Q==}
+  '@tracearr/shared@2.2.0-beta.3':
+    resolution: {integrity: sha512-lqwHLNr8ep3++5iHvsrxqtGSDbrF7tKawk06Pjz4lDPI47c3eyeEG8rL7oXLrJysj4ADR94iCLduKP5U+kfI6w==}
 
-  '@tracearr/translations@2.1.0':
-    resolution: {integrity: sha512-cjM0lmBJ1X4suFC3rWlbYx2yJEPz52O/xrw+y4Ag73+vzU1d3YK9A3+cSaZb86VZghjOf1COQOLfnmgUUsIbjw==}
+  '@tracearr/translations@2.2.0-beta.3':
+    resolution: {integrity: sha512-W5jzf361ViQmVcOjVKv1zXKU4r74MyCkuu+kxrGJGVswCrzg3s72omn1HuS902vFkCuby764l4jHYHVTGMaY4A==}
     peerDependencies:
       react: '>=18.0.0'
 
@@ -5402,11 +5402,11 @@ snapshots:
       '@tanstack/query-core': 5.102.2
       react: 19.2.3
 
-  '@tracearr/shared@2.1.0':
+  '@tracearr/shared@2.2.0-beta.3':
     dependencies:
       zod: 4.4.3
 
-  '@tracearr/translations@2.1.0(react-native@0.86.2(@babel/core@7.29.7)(@react-native/metro-config@0.86.2(@babel/core@7.29.7))(@types/react@19.2.18)(react@19.2.3))(react@19.2.3)(typescript@7.0.2)':
+  '@tracearr/translations@2.2.0-beta.3(react-native@0.86.2(@babel/core@7.29.7)(@react-native/metro-config@0.86.2(@babel/core@7.29.7))(@types/react@19.2.18)(react@19.2.3))(react@19.2.3)(typescript@7.0.2)':
     dependencies:
       i18next: 26.4.0(typescript@7.0.2)
       react: 19.2.3

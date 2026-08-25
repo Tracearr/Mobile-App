@@ -35,12 +35,12 @@ import { colors, spacing, ACCENT_COLOR } from '@/lib/theme';
 import {
   getViolationDescription,
   collectViolationSessions,
-  RULE_DISPLAY_NAMES,
 } from '@tracearr/shared';
 import type { ViolationWithDetails, ViolationSessionInfo } from '@tracearr/shared';
 import { useTranslation } from '@tracearr/translations/mobile';
 
 import { ruleIcons } from '@/lib/violations';
+import type { RuleType } from '@/lib/violations';
 
 import { SeverityBadge } from '@/components/violations/SeverityBadge';
 
@@ -57,11 +57,20 @@ function getMediaIcon(mediaType: string): typeof Film {
   }
 }
 
+// 2.2 dropped userHistory from ViolationWithDetails. Shape kept locally so the
+// new-IP/new-device badges keep compiling; nothing populates it until the rework
+// restores the signal (2.2 sends new_device as its own push type instead).
+type UserHistory = {
+  previousIPs?: string[];
+  previousDevices?: string[];
+  previousLocations?: { city?: string | null; country?: string | null }[];
+};
+
 interface StreamCardProps {
   session: ViolationSessionInfo;
   index: number;
   isTriggering: boolean;
-  userHistory?: ViolationWithDetails['userHistory'];
+  userHistory?: UserHistory;
 }
 
 function StreamCard({ session, index, isTriggering, userHistory }: StreamCardProps) {
@@ -270,8 +279,8 @@ export default function ViolationDetailScreen() {
   });
 
   // Update header title
-  const ruleType = violation?.rule?.type;
-  const ruleName = ruleType ? RULE_DISPLAY_NAMES[ruleType] : 'Violation';
+  const ruleType = violation?.rule?.type as RuleType | undefined;
+  const ruleName = violation?.rule?.name || 'Violation';
 
   // Acknowledge mutation
   const acknowledgeMutation = useMutation({
@@ -553,7 +562,6 @@ export default function ViolationDetailScreen() {
                   session={session}
                   index={idx}
                   isTriggering={idx === 0 && violation.session?.id === session.id}
-                  userHistory={violation.userHistory}
                 />
               ))}
             </View>

@@ -276,8 +276,10 @@ export function usePushNotifications() {
         // are id-based and don't need it.
 
         // Navigate based on notification type
-        if (data?.type === 'violation_detected' || data?.type === 'rule_notification') {
-          // Violations and rule notifications go to Alerts
+        // 2.2 dropped rule_notification; rules are automations and arrive as one of
+        // the typed events below. The set keeps growing, so unknown types fall
+        // through to the dashboard rather than doing nothing.
+        if (data?.type === 'violation_detected') {
           router.push(ROUTES.ALERTS);
         } else if (data?.type === 'stream_started' || data?.type === 'stream_stopped') {
           // Stream notifications go to session detail if sessionId provided
@@ -289,6 +291,10 @@ export function usePushNotifications() {
           }
         } else if (data?.type === 'server_down' || data?.type === 'server_up') {
           // Server status notifications go to Dashboard
+          router.push(ROUTES.DASHBOARD);
+        } else {
+          // new_device, trust_score_changed, media_added, media_upgraded and the
+          // *_update_available types all land here until they get their own screens.
           router.push(ROUTES.DASHBOARD);
         }
       })();

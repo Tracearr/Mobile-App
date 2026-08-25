@@ -56,10 +56,10 @@ import type {
   ViolationWithDetails,
   UserLocation,
   UserDevice,
-  RuleType,
   TerminationLogWithDetails,
 } from '@tracearr/shared';
-import { ALL_SERVERS, RULE_DISPLAY_NAMES } from '@tracearr/shared';
+import { ALL_SERVERS } from '@tracearr/shared';
+import type { RuleType } from '@/lib/violations';
 import { useTranslation } from '@tracearr/translations/mobile';
 
 const PAGE_SIZE = 10;
@@ -298,7 +298,7 @@ function ViolationCard({
   onAcknowledge: () => void;
 }) {
   const ruleType = violation.rule?.type as RuleType | undefined;
-  const ruleName = ruleType ? RULE_DISPLAY_NAMES[ruleType] : violation.rule?.name || 'Unknown Rule';
+  const ruleName = violation.rule?.name || 'Unknown Rule';
   const IconComponent = ruleType ? ruleIcons[ruleType] : AlertTriangle;
   const timeAgo = safeFormatDistanceToNow(violation.createdAt);
 
@@ -635,7 +635,7 @@ export default function UserDetailScreen() {
             />
             <StatCard
               icon={Globe}
-              label={t('pages:userDetail.locations')}
+              label={t('pages:userDetail.locations', { defaultValue: 'Locations' })}
               value={locations?.length || 0}
             />
           </View>
@@ -657,7 +657,7 @@ export default function UserDetailScreen() {
               />
               <StatCard
                 icon={Globe}
-                label={t('pages:userDetail.locations')}
+                label={t('pages:userDetail.locations', { defaultValue: 'Locations' })}
                 value={locations?.length || 0}
               />
             </View>
@@ -676,7 +676,7 @@ export default function UserDetailScreen() {
           <Card style={{ flex: isTablet ? 1 : undefined, marginBottom: isTablet ? 0 : spacing.md }}>
             <CardHeader>
               <View className="flex-row items-center justify-between">
-                <CardTitle>{t('pages:userDetail.locations')}</CardTitle>
+                <CardTitle>{t('pages:userDetail.locations', { defaultValue: 'Locations' })}</CardTitle>
                 <Text className="text-muted-foreground text-xs">
                   {locations?.length || 0} {locations?.length === 1 ? 'location' : 'locations'}
                 </Text>

@@ -20,7 +20,6 @@ import type {
   UserDevice,
   Violation,
   ViolationWithDetails,
-  Rule,
   Server,
   Settings,
   MobilePairResponse,
@@ -745,24 +744,6 @@ export const api = {
     dismiss: async (id: string): Promise<void> => {
       const client = getApiClient();
       await client.delete(`/violations/${id}`);
-    },
-  },
-
-  /**
-   * Rules
-   */
-  rules: {
-    list: async (serverId?: string): Promise<Rule[]> => {
-      const client = getApiClient();
-      const response = await client.get<{ data: Rule[] }>('/rules', {
-        params: serverId ? { serverId } : undefined,
-      });
-      return response.data.data;
-    },
-    toggle: async (id: string, isActive: boolean): Promise<Rule> => {
-      const client = getApiClient();
-      const response = await client.patch<Rule>(`/rules/${id}`, { isActive });
-      return response.data;
     },
   },
 

@@ -23,13 +23,9 @@ import { Text } from '@/components/ui/text';
 import { Card } from '@/components/ui/card';
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { colors, spacing, ACCENT_COLOR } from '@/lib/theme';
-import type {
-  ViolationWithDetails,
-  RuleType,
-  ViolationSeverity,
-  UnitSystem,
-} from '@tracearr/shared';
-import { ALL_SERVERS, getViolationDescription, RULE_DISPLAY_NAMES } from '@tracearr/shared';
+import type { ViolationWithDetails, ViolationSeverity, UnitSystem } from '@tracearr/shared';
+import { ALL_SERVERS, getViolationDescription } from '@tracearr/shared';
+import type { RuleType } from '@/lib/violations';
 import { useTranslation } from '@tracearr/translations/mobile';
 
 const PAGE_SIZE = 50;
@@ -118,7 +114,7 @@ function ViolationCard({
   const displayName = violation.user?.identityName ?? violation.user?.username ?? 'Unknown User';
   const username = violation.user?.username ?? 'Unknown';
   const ruleType = violation.rule?.type as RuleType | undefined;
-  const ruleName = ruleType ? RULE_DISPLAY_NAMES[ruleType] : violation.rule?.name || 'Unknown Rule';
+  const ruleName = violation.rule?.name || 'Unknown Rule';
   const description = getViolationDescription(violation, unitSystem);
   const timeAgo = formatDistanceToNow(new Date(violation.createdAt), { addSuffix: true });
   const avatarSize = isTablet ? 48 : 40;
@@ -447,7 +443,7 @@ export default function AlertsScreen() {
                     marginBottom: 8,
                   }}
                 >
-                  {t('pages:violations.noMatches')}
+                  {t('pages:violations.noMatches', { defaultValue: 'No matching violations' })}
                 </Text>
                 <Text
                   style={{
@@ -501,7 +497,7 @@ export default function AlertsScreen() {
                     marginBottom: 8,
                   }}
                 >
-                  {t('pages:violations.allClear')}
+                  {t('pages:violations.allClear', { defaultValue: 'All clear' })}
                 </Text>
                 <Text
                   style={{
@@ -511,7 +507,7 @@ export default function AlertsScreen() {
                     lineHeight: 20,
                   }}
                 >
-                  {t('pages:violations.noViolationsDetected')}
+                  {t('pages:violations.noViolationsDetected', { defaultValue: 'No violations detected' })}
                 </Text>
               </>
             )}

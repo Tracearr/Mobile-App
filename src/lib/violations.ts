@@ -1,5 +1,13 @@
 import { MapPin, Users, Zap, Monitor, Globe, Clock, type LucideIcon } from 'lucide-react-native';
-import type { RuleType } from '@tracearr/shared';
+// 2.2 renamed rules to automations and dropped the RuleType export, loosening
+// ViolationWithDetails.rule.type to string. The closed union lives here now.
+export type RuleType =
+  | 'impossible_travel'
+  | 'simultaneous_locations'
+  | 'device_velocity'
+  | 'concurrent_streams'
+  | 'geo_restriction'
+  | 'account_inactivity';
 
 /** Rule type → Lucide icon component mapping for mobile */
 export const ruleIcons: Record<RuleType, LucideIcon> = {
