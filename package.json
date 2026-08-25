@@ -22,7 +22,8 @@
     "build:prod:android": "eas build --profile production --platform android",
     "submit:ios": "eas submit --platform ios",
     "submit:android": "eas submit --platform android",
-    "update": "eas update"
+    "update": "eas update",
+    "test": "node --test scripts/release/*.test.mjs"
   },
   "dependencies": {
     "@expo/dom-webview": "~57.0.1",
