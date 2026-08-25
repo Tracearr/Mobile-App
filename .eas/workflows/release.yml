@@ -1,0 +1,73 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      profile:
+        type: string
+        required: true
+        description: 'Build profile: internal, beta, or production'
+
+jobs:
+  fingerprint:
+    name: Fingerprint
+    type: fingerprint
+    environment: production
+
+  ios_get_build:
+    name: Find matching iOS build
+    needs: [fingerprint]
+    type: get-build
+    params:
+      platform: ios
+      fingerprint_hash: ${{ needs.fingerprint.outputs.ios_fingerprint_hash }}
+
+  android_get_build:
+    name: Find matching Android build
+    needs: [fingerprint]
+    type: get-build
+    params:
+      platform: android
+      fingerprint_hash: ${{ needs.fingerprint.outputs.android_fingerprint_hash }}
+
+  ios_build:
+    name: Build iOS
+    needs: [ios_get_build]
+    if: ${{ !needs.ios_get_build.outputs.build_id }}
+    type: build
+    params:
+      platform: ios
+      profile: ${{ inputs.profile }}
+
+  android_build:
+    name: Build Android
+    needs: [android_get_build]
+    if: ${{ !needs.android_get_build.outputs.build_id }}
+    type: build
+    params:
+      platform: android
+      profile: ${{ inputs.profile }}
+
+  ios_submit:
+    name: Submit iOS
+    needs: [ios_build]
+    type: submit
+    params:
+      build_id: ${{ needs.ios_build.outputs.build_id }}
+      profile: ${{ inputs.profile }}
+
+  android_submit:
+    name: Submit Android
+    needs: [android_build]
+    type: submit
+    params:
+      build_id: ${{ needs.android_build.outputs.build_id }}
+      profile: ${{ inputs.profile }}
+
+  publish_update:
+    name: Publish OTA update
+    after: [ios_get_build, android_get_build]
+    if: ${{ needs.ios_get_build.outputs.build_id || needs.android_get_build.outputs.build_id }}
+    type: update
+    params:
+      channel: ${{ inputs.profile }}
