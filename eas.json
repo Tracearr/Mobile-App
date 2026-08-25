@@ -7,53 +7,67 @@
     "development": {
       "developmentClient": true,
       "distribution": "internal",
+      "channel": "development",
       "ios": {
-        "simulator": false
+        "simulator": true
       },
       "android": {
         "buildType": "apk"
       }
     },
-    "preview": {
+    "internal": {
+      "autoIncrement": true,
+      "channel": "internal",
       "ios": {
-        "simulator": false,
-        "autoIncrement": true
+        "simulator": false
       },
       "android": {
-        "buildType": "app-bundle",
-        "autoIncrement": true
-      },
-      "channel": "preview"
+        "buildType": "app-bundle"
+      }
     },
-    "preview-apk": {
-      "distribution": "internal",
-      "android": {
-        "buildType": "apk"
+    "beta": {
+      "autoIncrement": true,
+      "channel": "beta",
+      "ios": {
+        "simulator": false
       },
-      "channel": "preview"
+      "android": {
+        "buildType": "app-bundle"
+      }
     },
     "production": {
+      "autoIncrement": true,
+      "channel": "production",
       "ios": {
         "resourceClass": "m-medium"
       },
       "android": {
         "buildType": "app-bundle"
-      },
-      "channel": "production",
-      "autoIncrement": true
+      }
     }
   },
   "submit": {
-    "preview": {
+    "internal": {
       "ios": {
         "appleId": "connor.gallopo@me.com",
         "ascAppId": "6755941553",
         "appleTeamId": "6DA3FJF5G5",
-        "groups": ["Internal", "VIP Testing"]
+        "groups": ["Internal"]
       },
       "android": {
-        "serviceAccountKeyPath": "./credentials/google-service-account.json",
         "track": "internal",
+        "releaseStatus": "completed"
+      }
+    },
+    "beta": {
+      "ios": {
+        "appleId": "connor.gallopo@me.com",
+        "ascAppId": "6755941553",
+        "appleTeamId": "6DA3FJF5G5",
+        "groups": ["VIP Testing"]
+      },
+      "android": {
+        "track": "beta",
         "releaseStatus": "completed"
       }
     },
@@ -62,10 +76,9 @@
         "appleId": "connor.gallopo@me.com",
         "ascAppId": "6755941553",
         "appleTeamId": "6DA3FJF5G5",
-        "groups": ["Internal", "VIP Testing"]
+        "groups": ["Internal"]
       },
       "android": {
-        "serviceAccountKeyPath": "./credentials/google-service-account.json",
         "track": "production",
         "releaseStatus": "completed"
       }
