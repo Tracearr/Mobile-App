@@ -1,0 +1,145 @@
+name: Sync Tracearr Release
+
+on:
+  repository_dispatch:
+    types: [tracearr-release]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tracearr tag to sync (e.g. v2.2.0-beta.3)'
+        required: true
+        type: string
+
+concurrency:
+  group: sync-tracearr-release
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    name: Pin packages and mirror tag
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Resolve tag
+        id: tag
+        env:
+          INPUT_TAG: ${{ github.event.inputs.tag }}
+          PAYLOAD_TAG: ${{ github.event.client_payload.tag }}
+        run: |
+          TAG="${INPUT_TAG:-$PAYLOAD_TAG}"
+          if [ -z "$TAG" ]; then
+            echo "::error::No tag supplied"
+            exit 1
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout main
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version-file: .tool-versions
+          cache: 'pnpm'
+
+      - name: Derive versions
+        id: versions
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          JSON=$(node scripts/release/tag-version.mjs "$TAG")
+          echo "$JSON"
+          echo "package-version=$(echo "$JSON" | jq -r .packageVersion)" >> "$GITHUB_OUTPUT"
+
+      - name: Fail if the tag already exists here
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
+            echo "::error::Tag $TAG already exists in this repo. Delete it first to re-sync."
+            exit 1
+          fi
+
+      - name: Wait for packages to be published
+        env:
+          VERSION: ${{ steps.versions.outputs.package-version }}
+        run: |
+          for pkg in shared translations; do
+            for attempt in 1 2 3 4 5 6; do
+              if npm view "@tracearr/${pkg}@${VERSION}" version >/dev/null 2>&1; then
+                echo "@tracearr/${pkg}@${VERSION} is published"
+                break
+              fi
+              if [ "$attempt" = "6" ]; then
+                echo "::error::@tracearr/${pkg}@${VERSION} never appeared on npm"
+                exit 1
+              fi
+              echo "Waiting for @tracearr/${pkg}@${VERSION} (attempt $attempt)"
+              sleep 20
+            done
+          done
+
+      - name: Pin packages
+        env:
+          VERSION: ${{ steps.versions.outputs.package-version }}
+        run: |
+          pnpm pkg set "dependencies.@tracearr/shared=$VERSION"
+          pnpm pkg set "dependencies.@tracearr/translations=$VERSION"
+
+      - name: Refresh lockfile
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Verify pins took
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: node scripts/release/verify-pins.mjs "$TAG"
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Unit tests
+        run: pnpm test
+
+      - name: Commit and tag
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+          VERSION: ${{ steps.versions.outputs.package-version }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet package.json pnpm-lock.yaml; then
+            echo "Pins already at $VERSION, tagging existing commit"
+          else
+            git add package.json pnpm-lock.yaml
+            git commit -m "pin tracearr packages to $VERSION"
+            git push origin main
+          fi
+          git tag -a "$TAG" -m "Tracearr $TAG"
+          git push origin "$TAG"
+
+      - name: Summary
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+          VERSION: ${{ steps.versions.outputs.package-version }}
+        run: |
+          {
+            echo "## Synced $TAG"
+            echo ""
+            echo "- Packages pinned to \`$VERSION\`"
+            echo "- Mirrored tag pushed"
+            echo ""
+            echo "Trigger a build with the Mobile Build or Mobile Release workflow."
+          } >> "$GITHUB_STEP_SUMMARY"
