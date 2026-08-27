@@ -28,6 +28,7 @@ import {
 } from 'lucide-react-native';
 import { formatDistanceToNow } from 'date-fns';
 import { api } from '@/lib/api';
+import { nextPageOf, pageMetaOf } from '@/lib/listPage';
 import { queryKeys } from '@/lib/queryKeys';
 import { ROUTES } from '@/lib/routes';
 import { useMediaServer } from '@/providers/MediaServerProvider';
@@ -161,19 +162,14 @@ export default function UsersScreen() {
           scope,
         }),
       initialPageParam: 1,
-      getNextPageParam: (lastPage: { page: number; totalPages: number }) => {
-        if (lastPage.page < lastPage.totalPages) {
-          return lastPage.page + 1;
-        }
-        return undefined;
-      },
+      getNextPageParam: (lastPage) => nextPageOf(lastPage),
       staleTime: 1000 * 60, // 60 seconds - user list doesn't change frequently
     });
 
   // Flatten all pages into single array. Memoized on data.pages so the search
   // filter below it can actually cache; a fresh array each render defeated it.
   const allUsers = useMemo(() => data?.pages.flatMap((page) => page.data) ?? [], [data?.pages]);
-  const total = data?.pages[0]?.total || 0;
+  const total = data?.pages[0] ? pageMetaOf(data.pages[0]).total : 0;
 
   // Filter users based on search query (client-side for now)
   const users = useMemo(() => {

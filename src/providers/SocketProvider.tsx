@@ -27,6 +27,7 @@ interface SocketContextValue {
 }
 
 import { queryKeys } from '@/lib/queryKeys';
+import { pageMetaOf } from '@/lib/listPage';
 const SocketContext = createContext<SocketContextValue>({
   socket: null,
   isConnected: false,
@@ -253,7 +254,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
               acknowledged: false,
               pageSize: 1,
             });
-            await Notifications.setBadgeCountAsync(response.total);
+            await Notifications.setBadgeCountAsync(pageMetaOf(response).total);
           } catch {
             // Fail silently - badge might be slightly off but app shouldn't crash
           }

@@ -8,6 +8,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { queryKeys } from '@/lib/queryKeys';
+import { pageMetaOf } from '@/lib/listPage';
 import { useMediaServer } from '@/providers/MediaServerProvider';
 
 export function useUnacknowledgedAlertsCount() {
@@ -24,7 +25,7 @@ export function useUnacknowledgedAlertsCount() {
     staleTime: 1000 * 30, // 30 seconds
   });
 
-  const count = data?.total ?? 0;
+  const count = data ? pageMetaOf(data).total : 0;
 
   return {
     count,
