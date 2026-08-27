@@ -31,6 +31,8 @@ import type {
   HistorySessionResponse,
   HistoryAggregates,
   HistoryFilterOptions,
+  ListResponse,
+  VersionInfo,
 } from '@tracearr/shared';
 
 function appendScope(params: URLSearchParams, scope: ServerScope): void {
@@ -665,9 +667,10 @@ export const api = {
       if (params.page) searchParams.set('page', String(params.page));
       if (params.pageSize) searchParams.set('pageSize', String(params.pageSize));
       appendScope(searchParams, params.scope);
-      const response = await client.get<PaginatedResponse<ServerUserWithIdentity>>(
-        `/users?${searchParams.toString()}`
-      );
+      // 2.2 returns { data, meta }, 2.1 returns the fields at the top level; see listPage.ts.
+      const response = await client.get<
+        ListResponse<ServerUserWithIdentity> | PaginatedResponse<ServerUserWithIdentity>
+      >(`/users?${searchParams.toString()}`);
       return response.data;
     },
     get: async (id: string): Promise<ServerUserDetail> => {
@@ -726,9 +729,10 @@ export const api = {
       if (params.acknowledged !== undefined)
         searchParams.set('acknowledged', String(params.acknowledged));
       appendScope(searchParams, params.scope);
-      const response = await client.get<PaginatedResponse<ViolationWithDetails>>(
-        `/violations?${searchParams.toString()}`
-      );
+      // 2.2 returns { data, meta }, 2.1 returns the fields at the top level; see listPage.ts.
+      const response = await client.get<
+        ListResponse<ViolationWithDetails> | PaginatedResponse<ViolationWithDetails>
+      >(`/violations?${searchParams.toString()}`);
       return response.data;
     },
     get: async (id: string): Promise<ViolationWithDetails> => {
@@ -805,6 +809,17 @@ export const api = {
         '/notifications/test',
         {}
       );
+      return response.data;
+    },
+  },
+
+  /**
+   * Server version. Public route; used to gate screens that only exist on 2.2+.
+   */
+  version: {
+    get: async (): Promise<VersionInfo> => {
+      const client = getApiClient();
+      const response = await client.get<VersionInfo>('/version');
       return response.data;
     },
   },

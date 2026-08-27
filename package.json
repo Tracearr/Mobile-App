@@ -20,7 +20,7 @@
     "submit:ios": "eas submit --platform ios",
     "submit:android": "eas submit --platform android",
     "update": "eas update",
-    "test": "node --test scripts/release/*.test.mjs",
+    "test": "node --test \"scripts/release/*.test.mjs\" \"src/**/*.test.mjs\"",
     "build:tag": "scripts/release/build.sh",
     "release:verify": "node scripts/release/verify-pins.mjs",
     "build:internal": "eas build --profile internal --platform all",

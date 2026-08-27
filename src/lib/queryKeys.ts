@@ -88,5 +88,7 @@ export const queryKeys = {
     preferences: () => ['notifications', 'preferences'] as const,
   },
 
+  version: (serverId: ServerId) => ['version', serverId] as const,
+
   settings: () => ['settings'] as const,
 } as const;
