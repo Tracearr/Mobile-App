@@ -8,3 +8,8 @@ publicHoistPattern:
 allowBuilds:
   '@shopify/react-native-skia': true
   react-native-nitro-modules: true
+# Our own packages are version-locked to the Tracearr release tag and built
+# minutes after they publish, so pnpm 11's 24h release-age policy must not hold
+# them back. Third-party packages keep the default.
+minimumReleaseAgeExclude:
+  - '@tracearr/*'
