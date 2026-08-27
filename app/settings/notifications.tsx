@@ -21,6 +21,7 @@ import {
   Users,
   Zap,
   Globe,
+  Clock,
   type LucideIcon,
 } from 'lucide-react-native';
 import { Text } from '@/components/ui/text';
@@ -30,6 +31,8 @@ import { cn } from '@/lib/utils';
 import { queryKeys } from '@/lib/queryKeys';
 import { api } from '@/lib/api';
 import { useAuthStateStore } from '@/lib/authStateStore';
+import { useServerVersion } from '@/hooks/useServerVersion';
+import { SERVER_2_2 } from '@/lib/serverVersion';
 import { colors, ACCENT_COLOR } from '@/lib/theme';
 import type { NotificationPreferences } from '@tracearr/shared';
 import { useTranslation } from '@tracearr/translations/mobile';
@@ -41,6 +44,7 @@ const RULE_TYPES: { value: string; label: string; icon: LucideIcon }[] = [
   { value: 'device_velocity', label: 'Device Velocity', icon: Zap },
   { value: 'concurrent_streams', label: 'Concurrent Streams', icon: Monitor },
   { value: 'geo_restriction', label: 'Geo Restriction', icon: Globe },
+  { value: 'account_inactivity', label: 'Account Inactivity', icon: Clock },
 ];
 
 // Severity levels for segmented control
@@ -204,6 +208,9 @@ export default function NotificationSettingsScreen() {
   const { t } = useTranslation(['mobile', 'common', 'notifications']);
   const queryClient = useQueryClient();
   const server = useAuthStateStore((s) => s.server);
+  // 2.2 servers ignore the per-rule-type filter (rule.type is null on automation runs).
+  const { supports } = useServerVersion();
+  const showRuleTypes = !supports(SERVER_2_2);
 
   // Fetch current preferences (per-device, not per-server)
   const {
@@ -342,15 +349,6 @@ export default function NotificationSettingsScreen() {
           />
           <Divider />
           <SettingRow
-            icon={Monitor}
-            label={t('notifications:settings.concurrentStreams')}
-            description={t('mobile:notifications.exceededStreamLimit')}
-            value={preferences.onConcurrentStreams}
-            onValueChange={(v) => handleUpdate('onConcurrentStreams', v)}
-            disabled={!pushEnabled}
-          />
-          <Divider />
-          <SettingRow
             icon={Smartphone}
             label={t('notifications:settings.newDevice')}
             description={t('mobile:notifications.newDeviceDetected')}
@@ -390,6 +388,7 @@ export default function NotificationSettingsScreen() {
         {/* Violation Filters - Only show if violation notifications are enabled */}
         {pushEnabled && preferences.onViolationDetected && (
           <>
+            {showRuleTypes && (
             <SettingsSection title="Violation Types">
               <SettingRow
                 icon={ShieldAlert}
@@ -439,6 +438,7 @@ export default function NotificationSettingsScreen() {
                 </>
               )}
             </SettingsSection>
+            )}
 
             <SettingsSection title="Minimum Severity">
               <View className="px-4 py-3">
