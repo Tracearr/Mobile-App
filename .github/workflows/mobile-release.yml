@@ -102,16 +102,21 @@ jobs:
           profile: ${{ steps.resolve.outputs.profile }}
           branch: ${{ steps.resolve.outputs.profile }}
           platform: ${{ inputs.platform }}
+          # Every profile this workflow offers builds as the production environment,
+          # so the action hashes app.config.js with the same env vars EAS does.
+          environment: production
           auto-submit-builds: true
         env:
+          # No app-specific password on purpose: with it set, eas-cli ignores the ASC
+          # API key stored on EAS and fastlane cannot log in after the upload.
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-          EXPO_APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.EXPO_APPLE_APP_SPECIFIC_PASSWORD }}
 
       - name: Summary
         env:
           TAG: ${{ steps.tag.outputs.tag }}
           PROFILE: ${{ steps.resolve.outputs.profile }}
-          FINGERPRINT: ${{ steps.deploy.outputs.fingerprint }}
+          IOS_FINGERPRINT: ${{ steps.deploy.outputs.ios-fingerprint }}
+          ANDROID_FINGERPRINT: ${{ steps.deploy.outputs.android-fingerprint }}
           NEW_BUILD: ${{ steps.deploy.outputs.build-new-build }}
         run: |
           {
@@ -119,6 +124,7 @@ jobs:
             echo ""
             echo "- Tag: \`$TAG\`"
             echo "- Profile: \`$PROFILE\`"
-            echo "- Fingerprint: \`$FINGERPRINT\`"
+            echo "- iOS fingerprint: \`$IOS_FINGERPRINT\`"
+            echo "- Android fingerprint: \`$ANDROID_FINGERPRINT\`"
             echo "- New build: $NEW_BUILD"
           } >> "$GITHUB_STEP_SUMMARY"
