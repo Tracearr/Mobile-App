@@ -20,6 +20,7 @@ import { decryptPushPayload, isEncryptionAvailable, getDeviceSecret } from '../l
 import { api } from '../lib/api';
 import { useAuthStateStore } from '../lib/authStateStore';
 import { ROUTES } from '../lib/routes';
+import { pushDestination } from '../lib/pushRoute';
 
 // Configure notification behavior
 Notifications.setNotificationHandler({
@@ -134,31 +135,22 @@ export function usePushNotifications() {
 
   // Show local notification for violations
   const showViolationNotification = useCallback(async (violation: ViolationWithDetails) => {
-    const ruleTypeLabels: Record<string, string> = {
-      impossible_travel: 'Impossible Travel',
-      simultaneous_locations: 'Simultaneous Locations',
-      device_velocity: 'Device Velocity',
-      concurrent_streams: 'Concurrent Streams',
-      geo_restriction: 'Geo Restriction',
-    };
-
     const severityLabels: Record<string, string> = {
       low: 'Low',
       warning: 'Warning',
       high: 'High',
-      critical: 'Critical',
     };
 
+    // 2.2 rows carry rule.type null; the automation's name is what identifies them.
     const title = `${severityLabels[violation.severity] || 'Warning'} Violation`;
-    const ruleType = violation.rule?.type || '';
-    const body = `${violation.user?.username || 'Unknown user'}: ${ruleTypeLabels[ruleType] || 'Rule Violation'}`;
+    const body = `${violation.user?.username || 'Unknown user'}: ${violation.rule?.name || 'Violation'}`;
 
     await Notifications.scheduleNotificationAsync({
       content: {
         title,
         body,
         data: {
-          type: 'violation',
+          type: 'violation_detected',
           violationId: violation.id,
           serverUserId: violation.serverUserId,
         },
@@ -275,27 +267,26 @@ export function usePushNotifications() {
         // Notification taps never mutate the server selection; detail screens
         // are id-based and don't need it.
 
-        // Navigate based on notification type
-        // 2.2 dropped rule_notification; rules are automations and arrive as one of
-        // the typed events below. The set keeps growing, so unknown types fall
-        // through to the dashboard rather than doing nothing.
-        if (data?.type === 'violation_detected') {
-          router.push(ROUTES.ALERTS);
-        } else if (data?.type === 'stream_started' || data?.type === 'stream_stopped') {
-          // Stream notifications go to session detail if sessionId provided
-          const sessionId = data?.sessionId as string | undefined;
-          if (sessionId) {
-            router.push(ROUTES.SESSION(sessionId));
-          } else {
+        // Routing table lives in lib/pushRoute.ts (tested); unknown types land on the dashboard.
+        const dest = pushDestination(data);
+        switch (dest.screen) {
+          case 'alerts':
+            router.push(ROUTES.ALERTS);
+            break;
+          case 'violation':
+            router.push(ROUTES.VIOLATION(dest.id));
+            break;
+          case 'session':
+            router.push(ROUTES.SESSION(dest.id));
+            break;
+          case 'activity':
             router.push(ROUTES.ACTIVITY);
-          }
-        } else if (data?.type === 'server_down' || data?.type === 'server_up') {
-          // Server status notifications go to Dashboard
-          router.push(ROUTES.DASHBOARD);
-        } else {
-          // new_device, trust_score_changed, media_added, media_upgraded and the
-          // *_update_available types all land here until they get their own screens.
-          router.push(ROUTES.DASHBOARD);
+            break;
+          case 'user':
+            router.push(ROUTES.USER(dest.id));
+            break;
+          default:
+            router.push(ROUTES.DASHBOARD);
         }
       })();
     });
