@@ -40,6 +40,7 @@ import {
 } from 'lucide-react-native';
 import { useEffect } from 'react';
 import { api, getServerUrl } from '@/lib/api';
+import { nextPageOf, pageMetaOf } from '@/lib/listPage';
 import { queryKeys } from '@/lib/queryKeys';
 import { ROUTES } from '@/lib/routes';
 import { useMediaServer } from '@/providers/MediaServerProvider';
@@ -59,7 +60,6 @@ import type {
   TerminationLogWithDetails,
 } from '@tracearr/shared';
 import { ALL_SERVERS } from '@tracearr/shared';
-import type { RuleType } from '@/lib/violations';
 import { useTranslation } from '@tracearr/translations/mobile';
 
 const PAGE_SIZE = 10;
@@ -85,7 +85,7 @@ function safeFormatDate(date: Date | string | null | undefined, formatStr: strin
   return format(parsed, formatStr);
 }
 
-import { ruleIcons } from '@/lib/violations';
+import { ruleIcon } from '@/lib/violations';
 
 function TrustScoreBadge({ score, showLabel = false }: { score: number; showLabel?: boolean }) {
   const variant = score < 50 ? 'destructive' : score < 75 ? 'warning' : 'success';
@@ -297,9 +297,8 @@ function ViolationCard({
   violation: ViolationWithDetails;
   onAcknowledge: () => void;
 }) {
-  const ruleType = violation.rule?.type as RuleType | undefined;
   const ruleName = violation.rule?.name || 'Unknown Rule';
-  const IconComponent = ruleType ? ruleIcons[ruleType] : AlertTriangle;
+  const IconComponent = ruleIcon(violation.rule?.type);
   const timeAgo = safeFormatDistanceToNow(violation.createdAt);
 
   return (
@@ -457,12 +456,7 @@ export default function UserDetailScreen() {
     queryFn: ({ pageParam }) =>
       api.violations.list({ userId: id, page: pageParam, pageSize: PAGE_SIZE, scope: ALL_SERVERS }),
     initialPageParam: 1,
-    getNextPageParam: (lastPage: { page: number; totalPages: number }) => {
-      if (lastPage.page < lastPage.totalPages) {
-        return lastPage.page + 1;
-      }
-      return undefined;
-    },
+    getNextPageParam: (lastPage) => nextPageOf(lastPage),
     enabled: !!id,
   });
 
@@ -515,7 +509,7 @@ export default function UserDetailScreen() {
   const violations = violationsData?.pages.flatMap((page) => page.data) || [];
   const terminations = terminationsData?.pages.flatMap((page) => page.data) || [];
   const totalSessions = sessionsData?.pages[0]?.total || 0;
-  const totalViolations = violationsData?.pages[0]?.total || 0;
+  const totalViolations = (violationsData?.pages[0] ? pageMetaOf(violationsData.pages[0]).total : 0);
   const totalTerminations = terminationsData?.pages[0]?.total || 0;
 
   const handleRefresh = () => {

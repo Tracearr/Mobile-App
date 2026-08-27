@@ -21,7 +21,6 @@ import {
   Tv,
   Music,
   AlertCircle,
-  CheckCircle2,
 } from 'lucide-react-native';
 import { api } from '@/lib/api';
 import { queryKeys } from '@/lib/queryKeys';
@@ -39,8 +38,8 @@ import {
 import type { ViolationWithDetails, ViolationSessionInfo } from '@tracearr/shared';
 import { useTranslation } from '@tracearr/translations/mobile';
 
-import { ruleIcons } from '@/lib/violations';
-import type { RuleType } from '@/lib/violations';
+import { ruleIcon } from '@/lib/violations';
+import { EvidenceList } from '@/components/violations/EvidenceList';
 
 import { SeverityBadge } from '@/components/violations/SeverityBadge';
 
@@ -57,37 +56,14 @@ function getMediaIcon(mediaType: string): typeof Film {
   }
 }
 
-// 2.2 dropped userHistory from ViolationWithDetails. Shape kept locally so the
-// new-IP/new-device badges keep compiling; nothing populates it until the rework
-// restores the signal (2.2 sends new_device as its own push type instead).
-type UserHistory = {
-  previousIPs?: string[];
-  previousDevices?: string[];
-  previousLocations?: { city?: string | null; country?: string | null }[];
-};
-
 interface StreamCardProps {
   session: ViolationSessionInfo;
   index: number;
   isTriggering: boolean;
-  userHistory?: UserHistory;
 }
 
-function StreamCard({ session, index, isTriggering, userHistory }: StreamCardProps) {
+function StreamCard({ session, index, isTriggering }: StreamCardProps) {
   const MediaIcon = getMediaIcon(session.mediaType);
-
-  // Check if values are new (not seen before)
-  const isNewIP = userHistory?.previousIPs
-    ? !userHistory.previousIPs.includes(session.ipAddress)
-    : false;
-  const isNewDevice = userHistory?.previousDevices
-    ? !userHistory.previousDevices.includes(session.deviceId || session.device || '')
-    : false;
-  const isNewLocation = userHistory?.previousLocations
-    ? !userHistory.previousLocations.some(
-        (loc) => loc.city === session.geoCity && loc.country === session.geoCountry
-      )
-    : false;
 
   const locationText = [session.geoCity, session.geoRegion, session.geoCountry]
     .filter(Boolean)
@@ -136,14 +112,8 @@ function StreamCard({ session, index, isTriggering, userHistory }: StreamCardPro
           <View className="flex-1">
             <View className="mb-1 flex-row items-center gap-1.5">
               <Text className="text-muted-foreground text-xs">IP Address</Text>
-              {isNewIP ? (
-                <AlertCircle size={12} color={colors.warning} />
-              ) : (
-                <CheckCircle2 size={12} color={colors.success} />
-              )}
             </View>
             <Text className="font-mono text-sm">{session.ipAddress}</Text>
-            {isNewIP && <Text className="text-warning mt-0.5 text-xs">First time seen</Text>}
           </View>
         </View>
 
@@ -152,16 +122,8 @@ function StreamCard({ session, index, isTriggering, userHistory }: StreamCardPro
           <View>
             <View className="mb-1 flex-row items-center gap-1.5">
               <Text className="text-muted-foreground text-xs">Location</Text>
-              {isNewLocation ? (
-                <AlertCircle size={12} color={colors.error} />
-              ) : (
-                <CheckCircle2 size={12} color={colors.success} />
-              )}
             </View>
             <Text className="text-sm">{locationText}</Text>
-            {isNewLocation && (
-              <Text className="text-destructive mt-0.5 text-xs">First time seen</Text>
-            )}
           </View>
         )}
 
@@ -170,21 +132,11 @@ function StreamCard({ session, index, isTriggering, userHistory }: StreamCardPro
           <View>
             <View className="mb-1 flex-row items-center gap-1.5">
               <Text className="text-muted-foreground text-xs">Device</Text>
-              {isNewDevice ? (
-                <AlertCircle size={12} color={colors.orange.core} />
-              ) : (
-                <CheckCircle2 size={12} color={colors.success} />
-              )}
             </View>
             <Text className="text-sm">
               {session.device || session.deviceId}
               {session.playerName && ` (${session.playerName})`}
             </Text>
-            {isNewDevice && (
-              <Text style={{ color: colors.orange.core }} className="mt-0.5 text-xs">
-                First time seen
-              </Text>
-            )}
           </View>
         )}
 
@@ -279,7 +231,7 @@ export default function ViolationDetailScreen() {
   });
 
   // Update header title
-  const ruleType = violation?.rule?.type as RuleType | undefined;
+  const ruleType = violation?.rule?.type ?? null;
   const ruleName = violation?.rule?.name || 'Violation';
 
   // Acknowledge mutation
@@ -389,7 +341,7 @@ export default function ViolationDetailScreen() {
   }
 
   const description = getViolationDescription(violation, unitSystem);
-  const IconComponent = ruleType ? ruleIcons[ruleType] : AlertTriangle;
+  const IconComponent = ruleIcon(ruleType);
   const isPending = !violation.acknowledgedAt;
 
   return (
@@ -445,6 +397,16 @@ export default function ViolationDetailScreen() {
           </View>
           <Text className="text-secondary leading-6">{description}</Text>
         </Card>
+
+        {/* Evidence: the condition groups the automation evaluated (2.2+) */}
+        {violation.evidence && violation.evidence.length > 0 && (
+          <Card className="mb-4">
+            <View className="mb-3 flex-row items-center gap-2">
+              <Text className="text-muted-foreground text-sm font-semibold">Evidence</Text>
+            </View>
+            <EvidenceList groups={violation.evidence} />
+          </Card>
+        )}
 
         {/* Account Inactivity Details */}
         {ruleType === 'account_inactivity' && (

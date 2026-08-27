@@ -14,7 +14,7 @@ import { useInfiniteQuery, useMutation, useQueryClient, useQuery } from '@tansta
 import { useRouter, useFocusEffect } from 'expo-router';
 import * as Notifications from 'expo-notifications';
 import { formatDistanceToNow } from 'date-fns';
-import { AlertTriangle, Check, Filter, ChevronRight, ChevronLeft } from 'lucide-react-native';
+import { Check, Filter, ChevronRight, ChevronLeft } from 'lucide-react-native';
 import { api } from '@/lib/api';
 import { queryKeys } from '@/lib/queryKeys';
 import { useMediaServer } from '@/providers/MediaServerProvider';
@@ -25,20 +25,20 @@ import { UserAvatar } from '@/components/ui/user-avatar';
 import { colors, spacing, ACCENT_COLOR } from '@/lib/theme';
 import type { ViolationWithDetails, ViolationSeverity, UnitSystem } from '@tracearr/shared';
 import { ALL_SERVERS, getViolationDescription } from '@tracearr/shared';
-import type { RuleType } from '@/lib/violations';
 import { useTranslation } from '@tracearr/translations/mobile';
 
 const PAGE_SIZE = 50;
 
 type StatusFilter = 'all' | 'pending' | 'acknowledged';
 
-import { ruleIcons } from '@/lib/violations';
+import { ruleIcon } from '@/lib/violations';
 import { ROUTES } from '@/lib/routes';
+import { nextPageOf, pageMetaOf } from '@/lib/listPage';
 
 import { SeverityBadge } from '@/components/violations/SeverityBadge';
 
-function RuleIcon({ ruleType }: { ruleType: RuleType | undefined }) {
-  const IconComponent = ruleType ? ruleIcons[ruleType] : AlertTriangle;
+function RuleIcon({ ruleType }: { ruleType: string | null | undefined }) {
+  const IconComponent = ruleIcon(ruleType);
   return (
     <View className="bg-surface h-8 w-8 items-center justify-center rounded-lg">
       <IconComponent size={16} color={ACCENT_COLOR} />
@@ -113,7 +113,7 @@ function ViolationCard({
   const { t } = useTranslation(['mobile', 'common', 'pages', 'nav', 'notifications']);
   const displayName = violation.user?.identityName ?? violation.user?.username ?? 'Unknown User';
   const username = violation.user?.username ?? 'Unknown';
-  const ruleType = violation.rule?.type as RuleType | undefined;
+  const ruleType = violation.rule?.type;
   const ruleName = violation.rule?.name || 'Unknown Rule';
   const description = getViolationDescription(violation, unitSystem);
   const timeAgo = formatDistanceToNow(new Date(violation.createdAt), { addSuffix: true });
@@ -249,12 +249,7 @@ export default function AlertsScreen() {
           page: pageParam,
         }),
       initialPageParam: 1,
-      getNextPageParam: (lastPage: { page: number; totalPages: number }) => {
-        if (lastPage.page < lastPage.totalPages) {
-          return lastPage.page + 1;
-        }
-        return undefined;
-      },
+      getNextPageParam: (lastPage) => nextPageOf(lastPage),
     });
 
   const acknowledgeMutation = useMutation({
@@ -269,7 +264,7 @@ export default function AlertsScreen() {
           acknowledged: false,
           pageSize: 1,
         });
-        await Notifications.setBadgeCountAsync(response.total);
+        await Notifications.setBadgeCountAsync(pageMetaOf(response).total);
       } catch {
         // Fail silently - badge might be slightly off but app shouldn't crash
       }
@@ -278,7 +273,7 @@ export default function AlertsScreen() {
 
   // Flatten all pages into single array
   const violations = data?.pages.flatMap((page) => page.data) || [];
-  const total = data?.pages[0]?.total || 0;
+  const total = data?.pages[0] ? pageMetaOf(data.pages[0]).total : 0;
 
   // Count unacknowledged from current filtered view
   const unacknowledgedCount = violations.filter((v) => !v.acknowledgedAt).length;
