@@ -25,7 +25,7 @@ export function useEstimatedProgress(session: ActiveSession) {
   const lastServerProgress = useRef(session.progressMs);
   const lastSessionId = useRef(session.id);
   const lastState = useRef(session.state);
-  const estimationStartTime = useRef(Date.now());
+  const estimationStartTime = useRef(0);
   const estimationStartProgress = useRef(session.progressMs ?? 0);
 
   // Reset estimation when server data changes
@@ -53,6 +53,8 @@ export function useEstimatedProgress(session: ActiveSession) {
     if (session.state !== 'playing') {
       return;
     }
+
+    estimationStartTime.current ||= Date.now();
 
     const intervalId = setInterval(() => {
       const elapsedMs = Date.now() - estimationStartTime.current;

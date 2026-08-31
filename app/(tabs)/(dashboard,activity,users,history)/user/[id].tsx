@@ -509,7 +509,7 @@ export default function UserDetailScreen() {
   const violations = violationsData?.pages.flatMap((page) => page.data) || [];
   const terminations = terminationsData?.pages.flatMap((page) => page.data) || [];
   const totalSessions = sessionsData?.pages[0]?.total || 0;
-  const totalViolations = (violationsData?.pages[0] ? pageMetaOf(violationsData.pages[0]).total : 0);
+  const totalViolations = violationsData?.pages[0] ? pageMetaOf(violationsData.pages[0]).total : 0;
   const totalTerminations = terminationsData?.pages[0]?.total || 0;
 
   const handleRefresh = () => {
@@ -670,7 +670,9 @@ export default function UserDetailScreen() {
           <Card style={{ flex: isTablet ? 1 : undefined, marginBottom: isTablet ? 0 : spacing.md }}>
             <CardHeader>
               <View className="flex-row items-center justify-between">
-                <CardTitle>{t('pages:userDetail.locations', { defaultValue: 'Locations' })}</CardTitle>
+                <CardTitle>
+                  {t('pages:userDetail.locations', { defaultValue: 'Locations' })}
+                </CardTitle>
                 <Text className="text-muted-foreground text-xs">
                   {locations?.length || 0} {locations?.length === 1 ? 'location' : 'locations'}
                 </Text>

@@ -107,28 +107,27 @@ export function MediaServerProvider({ children }: { children: ReactNode }) {
     staleTime: 1000 * 60 * 5,
   });
 
-  // Validate scope when servers load: drop subset ids that no longer exist,
-  // fall back to all when nothing valid remains. A subset that ends up
-  // covering every server collapses to all-mode so the stored form stays
-  // canonical (matches what toggleServer already does).
-  useEffect(() => {
-    if (!initialized || isLoading || mediaServers.length === 0) return;
-    if (scope.mode !== 'subset') return;
+  const prevKeyRef = useRef<string | null>(null);
 
+  // `scope` is the persisted user intent; the effective scope is derived from
+  // it against the live server list: stale subset ids are dropped, an empty
+  // result falls back to all, and a subset covering every server collapses to
+  // all-mode so the stored form stays canonical (matches toggleServer).
+  const effectiveScope = useMemo<ServerScope>(() => {
+    if (!isAuthenticated) return { mode: 'all' };
+    if (!initialized || isLoading || mediaServers.length === 0) return scope;
+    if (scope.mode !== 'subset') return scope;
     const validIds = new Set(mediaServers.map((s) => s.id));
     const validated = scope.serverIds.filter((id) => validIds.has(id));
-    if (validated.length === mediaServers.length && validated.length > 0) {
-      setScope({ mode: 'all' });
-      return;
-    }
-    if (validated.length === scope.serverIds.length) return;
-    setScope(serverScopeFromIds(validated)); // [] -> all
-  }, [mediaServers, scope, initialized, isLoading]);
+    if (validated.length === mediaServers.length && validated.length > 0) return { mode: 'all' };
+    if (validated.length === scope.serverIds.length) return scope;
+    return serverScopeFromIds(validated); // [] -> all
+  }, [isAuthenticated, initialized, isLoading, mediaServers, scope]);
 
-  // Clear on logout
+  // Clear persisted selection on logout
   useEffect(() => {
     if (!isAuthenticated) {
-      setScope({ mode: 'all' });
+      prevKeyRef.current = null;
       void ResilientStorage.deleteItemAsync(SCOPE_KEY);
       void ResilientStorage.deleteItemAsync(SELECTED_SERVERS_KEY);
       void ResilientStorage.deleteItemAsync(LEGACY_SERVER_KEY);
@@ -146,19 +145,19 @@ export function MediaServerProvider({ children }: { children: ReactNode }) {
 
   const toggleServer = useCallback(
     (serverId: string) => {
-      setScope((prev) => {
-        const current = prev.mode === 'all' ? mediaServers.map((s) => s.id) : prev.serverIds;
-        const next = current.includes(serverId)
-          ? current.filter((id) => id !== serverId)
-          : [...current, serverId];
-        if (next.length === 0) return prev; // never empty
-        if (next.length === mediaServers.length && mediaServers.length > 0) {
-          return { mode: 'all' };
-        }
-        return { mode: 'subset', serverIds: next };
-      });
+      const current =
+        effectiveScope.mode === 'all' ? mediaServers.map((s) => s.id) : effectiveScope.serverIds;
+      const next = current.includes(serverId)
+        ? current.filter((id) => id !== serverId)
+        : [...current, serverId];
+      if (next.length === 0) return; // never empty
+      if (next.length === mediaServers.length && mediaServers.length > 0) {
+        setScope({ mode: 'all' });
+        return;
+      }
+      setScope({ mode: 'subset', serverIds: next });
     },
-    [mediaServers]
+    [effectiveScope, mediaServers]
   );
 
   const selectAllServers = useCallback(() => setScope({ mode: 'all' }), []);
@@ -167,23 +166,24 @@ export function MediaServerProvider({ children }: { children: ReactNode }) {
     setScope(serverId ? { mode: 'subset', serverIds: [serverId] } : { mode: 'all' });
   }, []);
 
-  // Persist and invalidate whenever scope changes (after initialization).
+  // Persist and invalidate whenever the effective scope changes (after
+  // initialization, and only while authenticated so the logout deletes stick).
   // Skip invalidation on the first transition, which is just the load effect
   // settling the initial scope.
-  const prevKeyRef = useRef<string | null>(null);
   useEffect(() => {
-    if (!initialized) return;
-    const key = `${scope.mode}:${serverScopeKey(scope)}`;
+    if (!initialized || !isAuthenticated) return;
+    const key = `${effectiveScope.mode}:${serverScopeKey(effectiveScope)}`;
     if (prevKeyRef.current === key) return;
     const isFirst = prevKeyRef.current === null;
     prevKeyRef.current = key;
-    void ResilientStorage.setItemAsync(SCOPE_KEY, JSON.stringify(scope));
+    void ResilientStorage.setItemAsync(SCOPE_KEY, JSON.stringify(effectiveScope));
     if (!isFirst) invalidateServerQueries();
-  }, [scope, initialized, invalidateServerQueries]);
+  }, [effectiveScope, initialized, isAuthenticated, invalidateServerQueries]);
 
   const selectedServerIds = useMemo(
-    () => (scope.mode === 'all' ? mediaServers.map((s) => s.id) : scope.serverIds),
-    [scope, mediaServers]
+    () =>
+      effectiveScope.mode === 'all' ? mediaServers.map((s) => s.id) : effectiveScope.serverIds,
+    [effectiveScope, mediaServers]
   );
 
   const selectedServers = useMemo(
@@ -192,7 +192,7 @@ export function MediaServerProvider({ children }: { children: ReactNode }) {
   );
 
   const isMultiServer = selectedServers.length > 1;
-  const isAllServersSelected = scope.mode === 'all';
+  const isAllServersSelected = effectiveScope.mode === 'all';
 
   const selectedServerId = selectedServerIds.length === 1 ? (selectedServerIds[0] ?? null) : null;
   const selectedServer = useMemo(() => {
@@ -203,7 +203,7 @@ export function MediaServerProvider({ children }: { children: ReactNode }) {
   const value = useMemo<MediaServerContextValue>(
     () => ({
       servers: mediaServers,
-      scope,
+      scope: effectiveScope,
       selectedServer,
       selectedServerId,
       isLoading,
@@ -218,7 +218,7 @@ export function MediaServerProvider({ children }: { children: ReactNode }) {
     }),
     [
       mediaServers,
-      scope,
+      effectiveScope,
       selectedServer,
       selectedServerId,
       isLoading,

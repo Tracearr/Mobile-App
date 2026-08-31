@@ -29,6 +29,7 @@ export function useConnectionValidator() {
 
   const appState = useRef(AppState.currentState);
   const retryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const validateRef = useRef<(() => Promise<ValidationResult>) | null>(null);
 
   const validate = useCallback(async (): Promise<ValidationResult> => {
     if (!server) return 'error';
@@ -73,7 +74,7 @@ export function useConnectionValidator() {
           clearTimeout(retryTimeoutRef.current);
         }
         retryTimeoutRef.current = setTimeout(() => {
-          void validate();
+          void validateRef.current?.();
         }, 30000);
 
         return 'disconnected';
@@ -83,6 +84,10 @@ export function useConnectionValidator() {
       return 'error';
     }
   }, [server, connectionState, setConnectionState, setError, handleAuthFailure]);
+
+  useEffect(() => {
+    validateRef.current = validate;
+  }, [validate]);
 
   // Clean up retry timeout on unmount
   useEffect(() => {

@@ -12,10 +12,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.tracearr.app",
       "infoPlist": {
-        "UIBackgroundModes": [
-          "remote-notification",
-          "fetch"
-        ],
+        "UIBackgroundModes": ["remote-notification", "fetch"],
         "NSCameraUsageDescription": "Tracearr needs camera access to scan QR codes for server pairing.",
         "NSLocationWhenInUseUsageDescription": "Location permission is not required for this app.",
         "ITSAppUsesNonExemptEncryption": false,
@@ -34,10 +31,7 @@
       "googleServicesFile": "./google-services.json",
       "package": "com.tracearr.mobile",
       "predictiveBackGestureEnabled": true,
-      "permissions": [
-        "android.permission.CAMERA",
-        "android.permission.POST_NOTIFICATIONS"
-      ],
+      "permissions": ["android.permission.CAMERA", "android.permission.POST_NOTIFICATIONS"],
       "blockedPermissions": [
         "android.permission.RECORD_AUDIO",
         "android.permission.READ_EXTERNAL_STORAGE",
@@ -57,9 +51,7 @@
             "targetSdkVersion": 36,
             "buildToolsVersion": "36.0.0",
             "packagingOptions": {
-              "pickFirst": [
-                "**/libcrypto.so"
-              ]
+              "pickFirst": ["**/libcrypto.so"]
             }
           },
           "ios": {
@@ -118,9 +110,7 @@
       [
         "expo-font",
         {
-          "fonts": [
-            "./assets/fonts/Inter_500Medium.ttf"
-          ]
+          "fonts": ["./assets/fonts/Inter_500Medium.ttf"]
         }
       ]
     ],

@@ -143,6 +143,7 @@ function RootLayoutNav() {
 
 export default function RootLayout() {
   const [i18nLoaded, setI18nLoaded] = useState(false);
+  const pairedServerId = useAuthStateStore((s) => s.server?.id ?? null);
 
   useEffect(() => {
     void i18nReady.then(() => setI18nLoaded(true));
@@ -170,7 +171,9 @@ export default function RootLayout() {
           <ErrorBoundary>
             <QueryProvider>
               <SocketProvider>
-                <MediaServerProvider>
+                {/* Keyed on the pairing: unpair/re-pair remounts the provider so no
+                    server selection survives it. */}
+                <MediaServerProvider key={pairedServerId ?? 'unpaired'}>
                   {/* Must be expo-router's ThemeProvider — it vendors react-navigation
                       theming, so the @react-navigation/native one sets a context its
                       header code never reads. theme.dark drives the nav bar's

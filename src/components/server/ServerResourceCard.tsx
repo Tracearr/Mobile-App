@@ -10,7 +10,7 @@
  */
 import { View, Animated } from 'react-native';
 import { CircleAlert, Cpu, Gauge, Server, type LucideIcon } from 'lucide-react-native';
-import { useEffect, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { Text } from '@/components/ui/text';
 import { useResponsive } from '@/hooks/useResponsive';
 import { ACCENT_COLOR, colors, spacing } from '@/lib/theme';
@@ -30,8 +30,8 @@ interface ResourceBarProps {
 }
 
 function ResourceBar({ label, processValue, systemValue, icon: Icon, isTablet }: ResourceBarProps) {
-  const processWidth = useRef(new Animated.Value(0)).current;
-  const systemWidth = useRef(new Animated.Value(0)).current;
+  const [processWidth] = useState(() => new Animated.Value(0));
+  const [systemWidth] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
     Animated.parallel([

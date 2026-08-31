@@ -5,7 +5,7 @@
     "paths": {
       "@/*": ["./src/*"]
     },
-    "types": ["node", "expo/types"],
+    "types": ["node", "expo/types", "jest"],
     "skipLibCheck": true,
     "esModuleInterop": true,
     "resolveJsonModule": true

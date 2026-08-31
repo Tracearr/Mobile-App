@@ -1,85 +1,24 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
 
-  // best-practices includes recommended, action SHA pinning, npm cooldown, abandonment
-  // flags, weekly lockfile maintenance, and dev-dep version pinning.
-  "extends": ["config:best-practices", "security:openssf-scorecard"],
+  // House style (schedule, cooldowns, automerge, commit format, Actions) lives in the
+  // shared preset. Only mobile-specific rules belong here.
+  //
+  // These rules are evaluated after the preset's, so a group declared here wins over a
+  // broader group there. Two things depend on that: @types/react leaves the preset's
+  // "type definitions" group and rides with Expo, and the Expo group's automerge:false
+  // overrides the preset's blanket devDependency automerge.
+  "extends": ["github>Tracearr/renovate-config"],
 
-  // Lockfile already pins effective versions, so pinning in package.json is just noise.
-  "ignorePresets": [":pinDevDependencies"],
-
-  // Later syntax is deprecated upstream, cron only.
-  "timezone": "UTC",
-  "schedule": ["* 0-5 * * 1"],
-
-  "prConcurrentLimit": 10,
-  "prHourlyLimit": 0,
-
-  "rebaseWhen": "conflicted",
-
-  // No required checks on main, so platform automerge would merge before CI.
-  // Renovate-side merge waits for green.
-  "platformAutomerge": false,
-
-  // No commit prefixes, no emojis, no attribution.
-  "semanticCommits": "disabled",
-  "commitMessagePrefix": "",
-  "commitMessageAction": "Update",
-  "commitMessageTopic": "{{depName}}",
-  "commitMessageExtra": "to {{newVersion}}",
-
-  // One PR per major instead of jumping to latest.
-  "separateMultipleMajor": true,
-
-  "dependencyDashboard": true,
-  "dependencyDashboardOSVVulnerabilitySummary": "unresolved",
-  "dependencyDashboardLabels": ["dependencies"],
-
-  "vulnerabilityAlerts": {
-    "enabled": true,
-    "labels": ["security", "priority"]
-  },
-  "osvVulnerabilityAlerts": true,
-
-  "lockFileMaintenance": {
-    "enabled": true,
-    "schedule": ["* 0-5 * * 1"],
-    "commitMessageAction": "Refresh",
-    "commitMessageTopic": "pnpm lockfile"
-  },
   "postUpdateOptions": ["pnpmDedupe"],
 
   "packageRules": [
-    // ----- hard blocks -----
-
     // pnpm-workspace.yaml only holds deliberate pins (the lightningcss override
     // react-native-css 3.0.7 needs). Nothing in there wants a bump PR.
     {
       "matchFileNames": ["pnpm-workspace.yaml"],
       "enabled": false
     },
-
-    // ----- supply-chain hardening -----
-
-    // 7d cooldown for runtime deps, 3d (best-practices default) for dev tooling.
-    // Only runtime deps split minor/patch: patch automerges, minor waits.
-    {
-      "matchManagers": ["npm"],
-      "matchDepTypes": ["dependencies"],
-      "minimumReleaseAge": "7 days",
-      "separateMinorPatch": true,
-      "description": "Longer cooldown for runtime deps"
-    },
-
-    // Actions automerge, so they keep the 3d cooldown.
-    {
-      "matchDatasources": ["github-tags"],
-      "minimumReleaseAge": "3 days",
-      "description": "3d cooldown for GitHub Actions"
-    },
-
-    // ----- ecosystem groups, minor + patch only -----
-    // Majors get one PR each.
 
     // @tracearr/shared and @tracearr/translations are published from the server
     // repo, version-locked to its release tag. Bump them together, on purpose.
@@ -127,47 +66,10 @@
       "groupName": "TypeScript tooling"
     },
 
-    // @types/react is excluded so it stays with the Expo group below.
-    {
-      "matchManagers": ["npm"],
-      "matchPackageNames": ["@types/*", "!@types/react"],
-      "matchUpdateTypes": ["minor", "patch"],
-      "groupName": "type definitions"
-    },
-
-    // ----- automerge -----
-
-    {
-      "matchManagers": ["npm"],
-      "matchDepTypes": ["devDependencies"],
-      "matchUpdateTypes": ["patch", "minor"],
-      "automerge": true
-    },
-
-    {
-      "matchManagers": ["npm"],
-      "matchPackageNames": ["@types/*"],
-      "matchUpdateTypes": ["patch", "minor"],
-      "automerge": true
-    },
-
-    // Runtime patches only. Minors still need review.
-    {
-      "matchManagers": ["npm"],
-      "matchDepTypes": ["dependencies"],
-      "matchUpdateTypes": ["patch"],
-      "automerge": true
-    },
-
-    {
-      "matchUpdateTypes": ["lockFileMaintenance"],
-      "automerge": true
-    },
-
     // ----- Expo and React Native -----
-    // After the automerge rules on purpose: later rules win, and the Expo SDK
-    // controls too many transitive pins to trust automerge for anything in this
-    // group. react and @types/react ride with the SDK, so they belong here too.
+    // After the preset's automerge rules on purpose: later rules win, and the Expo SDK
+    // controls too many transitive pins to trust automerge for anything in this group.
+    // react and @types/react ride with the SDK, so they belong here too.
     {
       "matchManagers": ["npm"],
       "matchPackageNames": [
@@ -249,31 +151,6 @@
       "matchUpdateTypes": ["major"],
       "dependencyDashboardApproval": true,
       "description": "Native modules: rebuild risk, review by hand"
-    },
-
-    // ----- github actions -----
-    // Action majors get reviewed by hand.
-    {
-      "matchManagers": ["github-actions"],
-      "matchUpdateTypes": ["minor", "patch", "digest"],
-      "groupName": "GitHub Actions",
-      "automerge": true,
-      "labels": ["dep-ci"]
-    },
-
-    // Lock to currently-supported macOS runners.
-    {
-      "matchManagers": ["github-actions"],
-      "matchDepTypes": ["github-runner"],
-      "matchPackageNames": ["macos"],
-      "allowedVersions": "/^(14|15)$/"
-    },
-
-    // Assign and tag all majors.
-    {
-      "matchUpdateTypes": ["major"],
-      "assignees": ["connorgallopo"],
-      "labels": ["dep-major"]
     }
   ]
 }

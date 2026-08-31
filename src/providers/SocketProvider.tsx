@@ -198,24 +198,28 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    // Don't try to connect if we're in unauthenticated state (token was revoked)
+    // Unguarded on purpose: cleanup nulls socketRef before this body reruns, so
+    // anything behind `if (socketRef.current)` never fires on teardown.
     if (connectionState === 'unauthenticated') {
-      if (socketRef.current) {
-        socketRef.current.disconnect();
-        socketRef.current = null;
-        setSocket(null);
-        connectedServerIdRef.current = null;
-      }
+      socketRef.current?.disconnect();
+      socketRef.current = null;
+      connectedServerIdRef.current = null;
+      // oxlint-disable-next-line react/set-state-in-effect -- socket teardown is external-system sync
+      setSocket(null);
+      setIsConnected(false);
       return;
     }
 
     if (isAuthenticated && serverUrl && serverId) {
+      // False positive: the setState lives after an await in connectSocket and
+      // this effect synchronizes with an external system (the socket).
+      // oxlint-disable-next-line react/set-state-in-effect
       void connectSocket();
-    } else if (socketRef.current) {
-      socketRef.current.disconnect();
+    } else {
+      socketRef.current?.disconnect();
       socketRef.current = null;
-      setSocket(null);
       connectedServerIdRef.current = null;
+      setSocket(null);
       setIsConnected(false);
     }
 

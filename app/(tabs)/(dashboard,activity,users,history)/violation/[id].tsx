@@ -12,16 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQueryClient, useMutation, useQuery } from '@tanstack/react-query';
 import { formatDistanceToNow, format } from 'date-fns';
-import {
-  AlertTriangle,
-  Check,
-  X,
-  Clock,
-  Film,
-  Tv,
-  Music,
-  AlertCircle,
-} from 'lucide-react-native';
+import { AlertTriangle, Check, X, Clock, Film, Tv, Music, AlertCircle } from 'lucide-react-native';
 import { api } from '@/lib/api';
 import { queryKeys } from '@/lib/queryKeys';
 import { ROUTES } from '@/lib/routes';
@@ -31,10 +22,7 @@ import { Card } from '@/components/ui/card';
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { ActionResultsList } from '@/components/violations/ActionResultsList';
 import { colors, spacing, ACCENT_COLOR } from '@/lib/theme';
-import {
-  getViolationDescription,
-  collectViolationSessions,
-} from '@tracearr/shared';
+import { getViolationDescription, collectViolationSessions } from '@tracearr/shared';
 import type { ViolationWithDetails, ViolationSessionInfo } from '@tracearr/shared';
 import { useTranslation } from '@tracearr/translations/mobile';
 

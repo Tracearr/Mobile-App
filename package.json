@@ -9,7 +9,7 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "dev": "expo start",
-    "lint": "oxlint --deny-warnings",
+    "lint": "oxlint --type-aware",
     "typecheck": "tsc --noEmit",
     "build:dev": "eas build --profile development --platform all",
     "build:dev:ios": "eas build --profile development --platform ios",
@@ -21,6 +21,7 @@
     "submit:android": "eas submit --platform android",
     "update": "eas update",
     "test": "node --test \"scripts/release/*.test.mjs\" \"src/**/*.test.mjs\"",
+    "test:jest": "jest",
     "build:tag": "scripts/release/build.sh",
     "release:verify": "node scripts/release/verify-pins.mjs",
     "build:internal": "eas build --profile internal --platform all",
@@ -28,7 +29,10 @@
     "build:internal:android": "eas build --profile internal --platform android",
     "build:beta": "eas build --profile beta --platform all",
     "build:beta:ios": "eas build --profile beta --platform ios",
-    "build:beta:android": "eas build --profile beta --platform android"
+    "build:beta:android": "eas build --profile beta --platform android",
+    "format": "prettier --write \"**/*.{ts,tsx,js,json,md}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,json,md}\"",
+    "lint:fix": "oxlint --type-aware --fix"
   },
   "dependencies": {
     "@expo/dom-webview": "~57.0.1",
@@ -87,14 +91,25 @@
     "zustand": "^5.0.15"
   },
   "devDependencies": {
+    "@react-native/jest-preset": "^0.86.3",
     "@tailwindcss/postcss": "^4.3.3",
+    "@testing-library/react-native": "^14.0.1",
+    "@types/jest": "^30.0.0",
     "@types/node": "^24.13.3",
     "@types/react": "~19.2.18",
     "babel-plugin-module-resolver": "^5.0.3",
     "babel-preset-expo": "~57.0.8",
-    "oxlint": "1.78.0",
+    "jest": "^30.5.0",
+    "jest-expo": "~57.0.5",
+    "oxlint": "1.80.0",
+    "oxlint-tsgolint": "^7.0.2001",
     "postcss": "^8.5.26",
+    "prettier": "^3.8.1",
+    "prettier-plugin-tailwindcss": "^0.8.0",
+    "react-server-dom-webpack": "~19.2.8",
+    "react-test-renderer": "19.2.3",
     "tailwindcss": "^4.3.3",
+    "test-renderer": "^1.2.0",
     "typescript": "7.0.2"
   },
   "expo": {

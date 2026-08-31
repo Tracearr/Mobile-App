@@ -389,55 +389,55 @@ export default function NotificationSettingsScreen() {
         {pushEnabled && preferences.onViolationDetected && (
           <>
             {showRuleTypes && (
-            <SettingsSection title="Violation Types">
-              <SettingRow
-                icon={ShieldAlert}
-                label="All Violation Types"
-                description="Notify for every rule type"
-                value={preferences.violationRuleTypes.length === 0}
-                onValueChange={(allEnabled) => {
-                  if (allEnabled) {
-                    handleUpdate('violationRuleTypes', []);
-                  } else {
-                    // When turning off "All", enable all individual types
-                    handleUpdate(
-                      'violationRuleTypes',
-                      RULE_TYPES.map((r) => r.value)
-                    );
-                  }
-                }}
-              />
-              {preferences.violationRuleTypes.length > 0 && (
-                <>
-                  {RULE_TYPES.map((ruleType) => {
-                    const isEnabled = preferences.violationRuleTypes.includes(ruleType.value);
-                    return (
-                      <View key={ruleType.value}>
-                        <Divider />
-                        <SettingRow
-                          icon={ruleType.icon}
-                          label={ruleType.label}
-                          value={isEnabled}
-                          onValueChange={(enabled) => {
-                            const current = preferences.violationRuleTypes;
-                            if (enabled) {
-                              handleUpdate('violationRuleTypes', [...current, ruleType.value]);
-                            } else {
-                              const updated = current.filter((v) => v !== ruleType.value);
-                              // If none left, keep at least one or revert to all
-                              handleUpdate(
-                                'violationRuleTypes',
-                                updated.length === 0 ? [] : updated
-                              );
-                            }
-                          }}
-                        />
-                      </View>
-                    );
-                  })}
-                </>
-              )}
-            </SettingsSection>
+              <SettingsSection title="Violation Types">
+                <SettingRow
+                  icon={ShieldAlert}
+                  label="All Violation Types"
+                  description="Notify for every rule type"
+                  value={preferences.violationRuleTypes.length === 0}
+                  onValueChange={(allEnabled) => {
+                    if (allEnabled) {
+                      handleUpdate('violationRuleTypes', []);
+                    } else {
+                      // When turning off "All", enable all individual types
+                      handleUpdate(
+                        'violationRuleTypes',
+                        RULE_TYPES.map((r) => r.value)
+                      );
+                    }
+                  }}
+                />
+                {preferences.violationRuleTypes.length > 0 && (
+                  <>
+                    {RULE_TYPES.map((ruleType) => {
+                      const isEnabled = preferences.violationRuleTypes.includes(ruleType.value);
+                      return (
+                        <View key={ruleType.value}>
+                          <Divider />
+                          <SettingRow
+                            icon={ruleType.icon}
+                            label={ruleType.label}
+                            value={isEnabled}
+                            onValueChange={(enabled) => {
+                              const current = preferences.violationRuleTypes;
+                              if (enabled) {
+                                handleUpdate('violationRuleTypes', [...current, ruleType.value]);
+                              } else {
+                                const updated = current.filter((v) => v !== ruleType.value);
+                                // If none left, keep at least one or revert to all
+                                handleUpdate(
+                                  'violationRuleTypes',
+                                  updated.length === 0 ? [] : updated
+                                );
+                              }
+                            }}
+                          />
+                        </View>
+                      );
+                    })}
+                  </>
+                )}
+              </SettingsSection>
             )}
 
             <SettingsSection title="Minimum Severity">

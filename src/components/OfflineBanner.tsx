@@ -3,7 +3,7 @@
  * Shows persistent warning banner when disconnected from server
  * Includes pulsing animation and manual retry button
  */
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Pressable, Animated } from 'react-native';
 import { Text } from '@/components/ui/text';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -27,7 +27,7 @@ export function OfflineBanner({ onRetry }: OfflineBannerProps) {
     }))
   );
   const insets = useSafeAreaInsets();
-  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const [pulseAnim] = useState(() => new Animated.Value(1));
 
   // Only show offline banner if user is authenticated (has paired server)
   // and connection is lost. Don't show on fresh install or during pairing.

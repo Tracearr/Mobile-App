@@ -93,9 +93,11 @@ export function HistoryFilters({
   const [localSearch, setLocalSearch] = useState(search);
 
   // Sync with external search value
-  useEffect(() => {
+  const [prevSearch, setPrevSearch] = useState(search);
+  if (search !== prevSearch) {
+    setPrevSearch(search);
     setLocalSearch(search);
-  }, [search]);
+  }
 
   // Debounced search
   useEffect(() => {

@@ -502,7 +502,9 @@ export default function AlertsScreen() {
                     lineHeight: 20,
                   }}
                 >
-                  {t('pages:violations.noViolationsDetected', { defaultValue: 'No violations detected' })}
+                  {t('pages:violations.noViolationsDetected', {
+                    defaultValue: 'No violations detected',
+                  })}
                 </Text>
               </>
             )}
