@@ -107,7 +107,7 @@
     "prettier": "^3.8.1",
     "prettier-plugin-tailwindcss": "^0.8.0",
     "react-server-dom-webpack": "~19.2.8",
-    "react-test-renderer": "19.2.3",
+    "react-test-renderer": "19.2.8",
     "tailwindcss": "^4.3.3",
     "test-renderer": "^1.2.0",
     "typescript": "7.0.2"
