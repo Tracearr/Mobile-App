@@ -117,7 +117,8 @@ jobs:
           PROFILE: ${{ steps.resolve.outputs.profile }}
           IOS_FINGERPRINT: ${{ steps.deploy.outputs.ios-fingerprint }}
           ANDROID_FINGERPRINT: ${{ steps.deploy.outputs.android-fingerprint }}
-          NEW_BUILD: ${{ steps.deploy.outputs.build-new-build }}
+          IOS_NEW_BUILD: ${{ steps.deploy.outputs.ios-did-start-new-build }}
+          ANDROID_NEW_BUILD: ${{ steps.deploy.outputs.android-did-start-new-build }}
         run: |
           {
             echo "## Mobile Release"
@@ -126,5 +127,6 @@ jobs:
             echo "- Profile: \`$PROFILE\`"
             echo "- iOS fingerprint: \`$IOS_FINGERPRINT\`"
             echo "- Android fingerprint: \`$ANDROID_FINGERPRINT\`"
-            echo "- New build: $NEW_BUILD"
+            echo "- New iOS build: $IOS_NEW_BUILD"
+            echo "- New Android build: $ANDROID_NEW_BUILD"
           } >> "$GITHUB_STEP_SUMMARY"
