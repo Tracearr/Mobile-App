@@ -8,7 +8,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import Constants from 'expo-constants';
-import { Platform, AppState, type AppStateStatus } from 'react-native';
+import { Platform, AppState } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSocket } from '../providers/SocketProvider';
 import type { ViolationWithDetails, EncryptedPushPayload } from '@tracearr/shared';
@@ -85,7 +85,7 @@ export function usePushNotifications() {
   const isInitializing = useAuthStateStore((s) => s.isInitializing);
 
   // Track app state for permission re-check
-  const appState = useRef<AppStateStatus>(AppState.currentState);
+  const appState = useRef(AppState.currentState);
 
   // Register for push notifications
   const registerForPushNotifications = useCallback(async (): Promise<string | null> => {
@@ -339,7 +339,7 @@ export function usePushNotifications() {
 
     const subscription = AppState.addEventListener('change', (nextAppState) => {
       // App coming back to foreground from background/inactive
-      if (appState.current.match(/inactive|background/) && nextAppState === 'active') {
+      if (appState.current?.match(/inactive|background/) && nextAppState === 'active') {
         // Re-check and register if we don't have a token yet
         if (!expoPushToken) {
           void (async () => {

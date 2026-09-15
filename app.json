@@ -47,9 +47,9 @@
         {
           "android": {
             "usesCleartextTraffic": true,
-            "compileSdkVersion": 36,
+            "compileSdkVersion": 37,
             "targetSdkVersion": 36,
-            "buildToolsVersion": "36.0.0",
+            "buildToolsVersion": "37.0.0",
             "packagingOptions": {
               "pickFirst": ["**/libcrypto.so"]
             }
@@ -67,6 +67,9 @@
         }
       ],
       "expo-router",
+      "expo-image",
+      "expo-status-bar",
+      "expo-web-browser",
       [
         "expo-notifications",
         {
@@ -97,7 +100,6 @@
       ],
       "react-native-quick-crypto",
       "expo-localization",
-      "./plugins/withVPNNetworking",
       "expo-system-ui",
       [
         "expo-splash-screen",

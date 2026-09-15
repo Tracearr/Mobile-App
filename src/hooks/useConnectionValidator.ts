@@ -108,7 +108,7 @@ export function useConnectionValidator() {
   // Re-validate when app returns to foreground
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (nextAppState: AppStateStatus) => {
-      if (appState.current.match(/inactive|background/) && nextAppState === 'active') {
+      if (appState.current?.match(/inactive|background/) && nextAppState === 'active') {
         const currentConnectionState = useAuthStateStore.getState().connectionState;
         if (server && currentConnectionState !== 'unauthenticated') {
           void validate();

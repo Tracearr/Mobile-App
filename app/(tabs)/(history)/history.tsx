@@ -182,7 +182,7 @@ export default function HistoryScreen() {
           refreshControl={
             <RefreshControl
               refreshing={isRefetching}
-              onRefresh={refetch}
+              onRefresh={() => void refetch()}
               tintColor={ACCENT_COLOR}
             />
           }
@@ -207,7 +207,7 @@ export default function HistoryScreen() {
               <View className="items-center py-4">
                 <ActivityIndicator size="small" color={ACCENT_COLOR} />
               </View>
-            ) : null
+            ) : undefined
           }
           ListEmptyComponent={
             isLoading ? (

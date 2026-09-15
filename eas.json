@@ -10,6 +10,7 @@
       "channel": "development",
       "environment": "development",
       "ios": {
+        "image": "latest",
         "simulator": true
       },
       "android": {
@@ -21,6 +22,7 @@
       "channel": "internal",
       "environment": "production",
       "ios": {
+        "image": "latest",
         "simulator": false
       },
       "android": {
@@ -32,6 +34,7 @@
       "channel": "beta",
       "environment": "production",
       "ios": {
+        "image": "latest",
         "simulator": false
       },
       "android": {
@@ -43,6 +46,7 @@
       "channel": "production",
       "environment": "production",
       "ios": {
+        "image": "latest",
         "resourceClass": "m-medium"
       },
       "android": {

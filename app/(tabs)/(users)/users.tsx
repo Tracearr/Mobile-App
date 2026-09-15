@@ -219,7 +219,11 @@ export default function UsersScreen() {
         onEndReached={handleEndReached}
         onEndReachedThreshold={0.5}
         refreshControl={
-          <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={ACCENT_COLOR} />
+          <RefreshControl
+            refreshing={isRefetching}
+            onRefresh={() => void refetch()}
+            tintColor={ACCENT_COLOR}
+          />
         }
         ListHeaderComponent={
           <View style={{ marginBottom: spacing.md }}>
@@ -273,7 +277,7 @@ export default function UsersScreen() {
             <View className="items-center py-4">
               <ActivityIndicator size="small" color={ACCENT_COLOR} />
             </View>
-          ) : null
+          ) : undefined
         }
         ListEmptyComponent={
           <View className="items-center py-12">

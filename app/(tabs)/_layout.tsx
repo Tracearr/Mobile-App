@@ -4,7 +4,7 @@
  * (dashboard,activity,users,history) array folder so they push
  * inside each tab's stack and keep the tab bar visible.
  */
-import { NativeTabs } from 'expo-router/unstable-native-tabs';
+import { NativeTabs } from 'expo-router/native-tabs';
 import { ACCENT_COLOR } from '@/lib/theme';
 import { useTranslation } from '@tracearr/translations/mobile';
 

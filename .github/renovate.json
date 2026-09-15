@@ -14,7 +14,7 @@
 
   "packageRules": [
     // pnpm-workspace.yaml only holds deliberate pins (the lightningcss override
-    // react-native-css 3.0.7 needs). Nothing in there wants a bump PR.
+    // react-native-css needs). Nothing in there wants a bump PR.
     {
       "matchFileNames": ["pnpm-workspace.yaml"],
       "enabled": false

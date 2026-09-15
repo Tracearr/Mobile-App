@@ -52,7 +52,7 @@ interface QueryProviderProps {
 }
 
 export function QueryProvider({ children }: QueryProviderProps) {
-  const previousAppState = useRef<AppStateStatus>(AppState.currentState);
+  const previousAppState = useRef(AppState.currentState);
 
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (status: AppStateStatus) => {

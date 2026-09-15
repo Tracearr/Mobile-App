@@ -736,11 +736,11 @@ const handleIndicator: ViewStyle = {
   width: 40,
 };
 
-const scrollContent: ViewStyle = {
+const scrollContent = {
   paddingBottom: 48,
-};
+} satisfies ViewStyle;
 
-const listContent: ViewStyle = {
+const listContent = {
   paddingHorizontal: 16,
   paddingBottom: 48,
-};
+} satisfies ViewStyle;

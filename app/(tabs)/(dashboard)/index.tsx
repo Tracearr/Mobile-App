@@ -134,7 +134,11 @@ export default function DashboardScreen() {
         contentContainerClassName="pb-8"
         contentInsetAdjustmentBehavior="automatic"
         refreshControl={
-          <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={ACCENT_COLOR} />
+          <RefreshControl
+            refreshing={isRefetching}
+            onRefresh={() => void refetch()}
+            tintColor={ACCENT_COLOR}
+          />
         }
       >
         {/* Today's Stats Bar */}

@@ -42,6 +42,12 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
     return { type: 'sourceFile', filePath: pinned };
   }
 
+  // react-native-css must load as one build: its import and require conditions
+  // point at separate copies, and var() colors read the copy with no variables.
+  if (moduleName === 'react-native-css' || moduleName.startsWith('react-native-css/')) {
+    return context.resolveRequest({ ...context, isESMImport: false }, moduleName, platform);
+  }
+
   if (moduleName.startsWith('.') && moduleName.endsWith('.js')) {
     const tsModuleName = moduleName.replace(/\.js$/, '.ts');
     try {
@@ -58,6 +64,6 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
 // require('react-native'), which react-native-css remaps straight back to the
 // shim, so the two cycle through NativeModules until the stack blows and "main"
 // never registers. Both wrapping orders cycle, so ordering is not a way out.
-// Still unfixed in worklets 0.11.3 and in the 0.12 nightlies; the shim needs an
+// Still unfixed in worklets 0.12.2; the shim needs an
 // internal sentinel specifier first. Tracked as reanimated#9817.
 module.exports = withNativewind(config, { input: './global.css' });
