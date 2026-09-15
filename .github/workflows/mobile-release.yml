@@ -118,6 +118,8 @@ jobs:
         if: steps.resolve.outputs.profile == 'production' && steps.deploy.outputs.ios-did-start-new-build == 'true'
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          # The ASC key stored on EAS has no team attached, so non-interactive runs need it here.
+          EXPO_APPLE_TEAM_ID: 6DA3FJF5G5
           APP_VERSION: ${{ steps.resolve.outputs.version }}
           APPLE_REVIEW_NOTES: ${{ secrets.APPLE_REVIEW_NOTES }}
         run: eas metadata:push --profile production --non-interactive
