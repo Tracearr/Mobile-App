@@ -1,41 +1,48 @@
 /**
  * Error Boundary component for catching and displaying React errors
  */
-import type { ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { AlertTriangle, RefreshCw } from 'lucide-react-native';
-import { ObserveErrorBoundary } from 'expo-observe';
+import { ObserveErrorBoundary, type ObserveErrorBoundaryFallbackProps } from 'expo-observe';
+import { recordTrouble } from '@/lib/reviewPrompt';
 import { colors } from '@/lib/theme';
 
 export function ErrorBoundary({ children }: { children: ReactNode }) {
   return (
-    <ObserveErrorBoundary
-      fallback={({ error, resetError }) => (
-        <View style={styles.container}>
-          <View style={styles.content}>
-            <AlertTriangle size={48} color={colors.error} strokeWidth={2} />
-            <Text style={styles.title}>Something went wrong</Text>
-            <Text style={styles.message}>An unexpected error occurred. Please try again.</Text>
-
-            {__DEV__ && (
-              <ScrollView style={styles.errorContainer}>
-                <Text style={styles.errorTitle}>Error Details:</Text>
-                <Text style={styles.errorText}>
-                  {error instanceof Error ? error.message : String(error)}
-                </Text>
-              </ScrollView>
-            )}
-
-            <TouchableOpacity style={styles.button} onPress={resetError}>
-              <RefreshCw size={20} color={colors.text.primary.dark} />
-              <Text style={styles.buttonText}>Try Again</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
-    >
+    <ObserveErrorBoundary fallback={(props) => <ErrorFallback {...props} />}>
       {children}
     </ObserveErrorBoundary>
+  );
+}
+
+function ErrorFallback({ error, resetError }: ObserveErrorBoundaryFallbackProps) {
+  useEffect(() => {
+    recordTrouble();
+  }, []);
+
+  return (
+    <View style={styles.container}>
+      <View style={styles.content}>
+        <AlertTriangle size={48} color={colors.error} strokeWidth={2} />
+        <Text style={styles.title}>Something went wrong</Text>
+        <Text style={styles.message}>An unexpected error occurred. Please try again.</Text>
+
+        {__DEV__ && (
+          <ScrollView style={styles.errorContainer}>
+            <Text style={styles.errorTitle}>Error Details:</Text>
+            <Text style={styles.errorText}>
+              {error instanceof Error ? error.message : String(error)}
+            </Text>
+          </ScrollView>
+        )}
+
+        <TouchableOpacity style={styles.button} onPress={resetError}>
+          <RefreshCw size={20} color={colors.text.primary.dark} />
+          <Text style={styles.buttonText}>Try Again</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
   );
 }
 

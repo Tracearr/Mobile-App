@@ -27,6 +27,7 @@ import { i18nReady } from '@/lib/i18n';
 import { useTranslation } from '@tracearr/translations/mobile';
 import { Observe, ObserveRoot } from 'expo-observe';
 import * as Updates from 'expo-updates';
+import { startReviewTracking } from '@/lib/reviewPrompt';
 
 // Every build profile bundles with NODE_ENV=production, so the channel is what
 // separates internal, beta and production. Route params carry server-side ids
@@ -35,6 +36,7 @@ Observe.configure({
   environment: Updates.channel ?? 'development',
   integrations: { 'expo-router': { filteredParams: ['id', 'prefillUrl'] } },
 });
+startReviewTracking();
 
 function RootLayoutNav() {
   const { t } = useTranslation(['mobile']);

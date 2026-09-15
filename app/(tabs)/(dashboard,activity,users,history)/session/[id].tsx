@@ -3,7 +3,7 @@
  * Shows comprehensive information about a specific session/stream
  * Matches the design of web/src/components/history/SessionDetailSheet.tsx
  */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
   View,
@@ -18,6 +18,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ObserveInteractiveMarker } from 'expo-observe';
+import { maybeRequestReview } from '@/lib/reviewPrompt';
 import { format, formatDistanceToNow } from 'date-fns';
 import {
   Play,
@@ -275,6 +276,11 @@ export default function SessionDetailScreen() {
     queryFn: () => api.sessions.get(id),
     enabled: !!id,
   });
+
+  const loaded = session !== undefined;
+  useEffect(() => {
+    if (loaded) void maybeRequestReview();
+  }, [loaded]);
 
   if (isLoading) {
     return (
