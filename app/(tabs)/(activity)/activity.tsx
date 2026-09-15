@@ -28,6 +28,7 @@ import {
   QualityChart,
 } from '@/components/charts';
 import { useTranslation } from '@tracearr/translations/mobile';
+import { ObserveInteractiveMarker } from 'expo-observe';
 
 function ChartSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -105,6 +106,7 @@ export default function ActivityScreen() {
 
   return (
     <>
+      <ObserveInteractiveMarker />
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{

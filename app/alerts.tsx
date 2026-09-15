@@ -26,6 +26,7 @@ import { colors, spacing, ACCENT_COLOR } from '@/lib/theme';
 import type { ViolationWithDetails, ViolationSeverity, UnitSystem } from '@tracearr/shared';
 import { ALL_SERVERS, getViolationDescription } from '@tracearr/shared';
 import { useTranslation } from '@tracearr/translations/mobile';
+import { ObserveInteractiveMarker } from 'expo-observe';
 
 const PAGE_SIZE = 50;
 
@@ -305,6 +306,7 @@ export default function AlertsScreen() {
       style={{ flex: 1, backgroundColor: colors.background.dark }}
       edges={['left', 'right', 'bottom']}
     >
+      <ObserveInteractiveMarker />
       {/* Header with back button */}
       <View
         className="border-border border-b"

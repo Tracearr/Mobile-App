@@ -19,6 +19,7 @@
     },
     "internal": {
       "autoIncrement": true,
+      "uploadSourceMaps": true,
       "channel": "internal",
       "environment": "production",
       "ios": {
@@ -31,6 +32,7 @@
     },
     "beta": {
       "autoIncrement": true,
+      "uploadSourceMaps": true,
       "channel": "beta",
       "environment": "production",
       "ios": {
@@ -43,6 +45,7 @@
     },
     "production": {
       "autoIncrement": true,
+      "uploadSourceMaps": true,
       "channel": "production",
       "environment": "production",
       "ios": {

@@ -92,6 +92,9 @@ importers:
       expo-notifications:
         specifier: ~58.0.1
         version: 58.0.1(expo@58.0.0-preview.1)(react-native@0.88.0-rc.0(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.0-rc.0(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)(supports-color@8.1.1)(typescript@7.0.2)
+      expo-observe:
+        specifier: ~58.0.3
+        version: 58.0.3(expo-router@58.0.2)(expo@58.0.0-preview.1)(react-native@0.88.0-rc.0(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.0-rc.0(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)
       expo-router:
         specifier: ~58.0.2
         version: 58.0.2(c1a1c1af874aad1323c50a81acdbec66)
@@ -2669,6 +2672,13 @@ packages:
     resolution: {integrity: sha512-2Zks0hf1VLFYI1kbh0I5jP3KHHyCHpkfyHBzsSXRFgl/Bg9mWYfMW8oD+PdMPlEwy5HNsR9JutYy6pMeOh61nw==}
     engines: {node: ^14.15.0 || ^16.10.0 || >=18.0.0}
 
+  expo-app-metrics@58.0.1:
+    resolution: {integrity: sha512-Y7I0/GimuhPzD1LzIMEGzyouOE35NP1C1VBK83Haw555pTmEG2KDKids1wqqsz2FOmxp669KEp+aXCfR4/KylQ==}
+    peerDependencies:
+      expo: '*'
+      react: '*'
+      react-native: '*'
+
   expo-application@58.0.1:
     resolution: {integrity: sha512-M3kPfZUkvTjzAy/W/qgTsgN7JD+BHjy19TBSosRfbNlNDeyyGz/MYrtmyLw3eH+3fgfWje+hvaMGR9Rnx+p9aA==}
     peerDependencies:
@@ -2823,6 +2833,20 @@ packages:
       expo: '*'
       react: '*'
       react-native: '*'
+
+  expo-observe@58.0.3:
+    resolution: {integrity: sha512-dXKn/fh3K0F6By6WJhkltPghYmta2e5zwCSdurRCi8Kl/+MPrjElWf8GMtU4mv8TRocX8X6qE/xGMxlnPPcjkw==}
+    peerDependencies:
+      '@react-navigation/native': ^7.0.0
+      expo: '*'
+      expo-router: '*'
+      react: '*'
+      react-native: '*'
+    peerDependenciesMeta:
+      '@react-navigation/native':
+        optional: true
+      expo-router:
+        optional: true
 
   expo-router@58.0.2:
     resolution: {integrity: sha512-aTRV60YJvSWq+qewcFF4BmO6BmSLcFyJzqEvr8fjZ8YUIlx26avYOfjbtfmVeYXPpXTa351/hYaTY0AVhoRWFQ==}
@@ -7938,6 +7962,13 @@ snapshots:
       jest-message-util: 29.7.0
       jest-util: 29.7.0
 
+  expo-app-metrics@58.0.1(expo@58.0.0-preview.1)(react-native@0.88.0-rc.0(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.0-rc.0(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3):
+    dependencies:
+      expo: 58.0.0-preview.1(7eef617db2bfac0795a9add54b98927f)
+      expo-updates-interface: 58.0.0(expo@58.0.0-preview.1)
+      react: 19.2.3
+      react-native: 0.88.0-rc.0(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.0-rc.0(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1)
+
   expo-application@58.0.1(expo@58.0.0-preview.1):
     dependencies:
       expo: 58.0.0-preview.1(7eef617db2bfac0795a9add54b98927f)
@@ -8109,6 +8140,16 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
       - typescript
+
+  expo-observe@58.0.3(expo-router@58.0.2)(expo@58.0.0-preview.1)(react-native@0.88.0-rc.0(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.0-rc.0(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3):
+    dependencies:
+      expo: 58.0.0-preview.1(7eef617db2bfac0795a9add54b98927f)
+      expo-app-metrics: 58.0.1(expo@58.0.0-preview.1)(react-native@0.88.0-rc.0(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.0-rc.0(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)
+      expo-eas-client: 58.0.0
+      react: 19.2.3
+      react-native: 0.88.0-rc.0(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.0-rc.0(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1)
+    optionalDependencies:
+      expo-router: 58.0.2(c1a1c1af874aad1323c50a81acdbec66)
 
   expo-router@58.0.2(c1a1c1af874aad1323c50a81acdbec66):
     dependencies:

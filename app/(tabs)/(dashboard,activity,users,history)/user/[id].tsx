@@ -19,6 +19,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { ObserveInteractiveMarker } from 'expo-observe';
 import { formatDistanceToNow, format } from 'date-fns';
 import {
   Crown,
@@ -572,6 +573,7 @@ export default function UserDetailScreen() {
       style={{ flex: 1, backgroundColor: colors.background.dark }}
       edges={['left', 'right', 'bottom']}
     >
+      <ObserveInteractiveMarker />
       <ScrollView
         className="flex-1"
         contentContainerStyle={{

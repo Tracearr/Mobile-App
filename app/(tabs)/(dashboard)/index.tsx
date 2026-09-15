@@ -35,6 +35,7 @@ import { Text } from '@/components/ui/text';
 import { Card } from '@/components/ui/card';
 import { colors, spacing, ACCENT_COLOR } from '@/lib/theme';
 import { useTranslation } from '@tracearr/translations/mobile';
+import { ObserveInteractiveMarker } from 'expo-observe';
 
 /**
  * Compact stat pill for dashboard summary bar
@@ -129,6 +130,7 @@ export default function DashboardScreen() {
 
   return (
     <>
+      <ObserveInteractiveMarker />
       <ScrollView
         style={{ flex: 1 }}
         contentContainerClassName="pb-8"

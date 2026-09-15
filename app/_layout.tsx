@@ -25,6 +25,16 @@ import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { ACCENT_COLOR, colors } from '@/lib/theme';
 import { i18nReady } from '@/lib/i18n';
 import { useTranslation } from '@tracearr/translations/mobile';
+import { Observe, ObserveRoot } from 'expo-observe';
+import * as Updates from 'expo-updates';
+
+// Every build profile bundles with NODE_ENV=production, so the channel is what
+// separates internal, beta and production. Route params carry server-side ids
+// and the paired server URL.
+Observe.configure({
+  environment: Updates.channel ?? 'development',
+  integrations: { 'expo-router': { filteredParams: ['id', 'prefillUrl'] } },
+});
 
 function RootLayoutNav() {
   const { t } = useTranslation(['mobile']);
@@ -55,6 +65,11 @@ function RootLayoutNav() {
       setShowReconnectedToast(true);
     }
     prevConnectionState.current = connectionState;
+  }, [connectionState]);
+
+  // UnauthenticatedScreen renders outside any route, so the route-scoped marker has no screen.
+  useEffect(() => {
+    if (connectionState === 'unauthenticated') Observe.markInteractive();
   }, [connectionState]);
 
   // Handle navigation based on auth state
@@ -141,7 +156,7 @@ function RootLayoutNav() {
   );
 }
 
-export default function RootLayout() {
+function RootLayout() {
   const [i18nLoaded, setI18nLoaded] = useState(false);
   const pairedServerId = useAuthStateStore((s) => s.server?.id ?? null);
 
@@ -192,3 +207,5 @@ export default function RootLayout() {
     </GestureHandlerRootView>
   );
 }
+
+export default ObserveRoot.wrap(RootLayout);

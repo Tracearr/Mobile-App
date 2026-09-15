@@ -1,98 +1,45 @@
 /**
  * Error Boundary component for catching and displaying React errors
  */
-import React, { Component, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { AlertTriangle, RefreshCw } from 'lucide-react-native';
+import { ObserveErrorBoundary } from 'expo-observe';
 import { colors } from '@/lib/theme';
 
-interface Props {
-  children: ReactNode;
-  fallback?: ReactNode;
-  onError?: (error: Error, errorInfo: React.ErrorInfo) => void;
-}
-
-interface State {
-  hasError: boolean;
-  error: Error | null;
-  errorInfo: React.ErrorInfo | null;
-}
-
-export class ErrorBoundary extends Component<Props, State> {
-  constructor(props: Props) {
-    super(props);
-    this.state = {
-      hasError: false,
-      error: null,
-      errorInfo: null,
-    };
-  }
-
-  static getDerivedStateFromError(error: Error): Partial<State> {
-    return { hasError: true, error };
-  }
-
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo): void {
-    this.setState({ errorInfo });
-
-    // Log error for debugging
-    console.error('ErrorBoundary caught an error:', error, errorInfo);
-
-    // Call optional error handler
-    this.props.onError?.(error, errorInfo);
-  }
-
-  handleReset = (): void => {
-    this.setState({
-      hasError: false,
-      error: null,
-      errorInfo: null,
-    });
-  };
-
-  render(): ReactNode {
-    if (this.state.hasError) {
-      // Custom fallback provided
-      if (this.props.fallback) {
-        return this.props.fallback;
-      }
-
-      // Default error UI - Note: class components cannot use NativeWind className
-      // Keep StyleSheet for all styles in this class component
-      return (
+export function ErrorBoundary({ children }: { children: ReactNode }) {
+  return (
+    <ObserveErrorBoundary
+      fallback={({ error, resetError }) => (
         <View style={styles.container}>
           <View style={styles.content}>
             <AlertTriangle size={48} color={colors.error} strokeWidth={2} />
             <Text style={styles.title}>Something went wrong</Text>
             <Text style={styles.message}>An unexpected error occurred. Please try again.</Text>
 
-            {__DEV__ && this.state.error && (
+            {__DEV__ && (
               <ScrollView style={styles.errorContainer}>
                 <Text style={styles.errorTitle}>Error Details:</Text>
-                <Text style={styles.errorText}>{this.state.error.message}</Text>
-                {this.state.errorInfo?.componentStack && (
-                  <>
-                    <Text style={styles.errorTitle}>Component Stack:</Text>
-                    <Text style={styles.stackText}>{this.state.errorInfo.componentStack}</Text>
-                  </>
-                )}
+                <Text style={styles.errorText}>
+                  {error instanceof Error ? error.message : String(error)}
+                </Text>
               </ScrollView>
             )}
 
-            <TouchableOpacity style={styles.button} onPress={this.handleReset}>
+            <TouchableOpacity style={styles.button} onPress={resetError}>
               <RefreshCw size={20} color={colors.text.primary.dark} />
               <Text style={styles.buttonText}>Try Again</Text>
             </TouchableOpacity>
           </View>
         </View>
-      );
-    }
-
-    return this.props.children;
-  }
+      )}
+    >
+      {children}
+    </ObserveErrorBoundary>
+  );
 }
 
-// Keep StyleSheet - NativeWind className does not work in class components
+// The fallback renders when the tree above it may be broken, so it avoids NativeWind.
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -136,11 +83,6 @@ const styles = StyleSheet.create({
   errorText: {
     fontSize: 12,
     color: colors.text.secondary.dark,
-    fontFamily: 'monospace',
-  },
-  stackText: {
-    fontSize: 10,
-    color: colors.text.muted.dark,
     fontFamily: 'monospace',
   },
   button: {

@@ -25,6 +25,7 @@ import { colors, spacing, ACCENT_COLOR } from '@/lib/theme';
 import { getViolationDescription, collectViolationSessions } from '@tracearr/shared';
 import type { ViolationWithDetails, ViolationSessionInfo } from '@tracearr/shared';
 import { useTranslation } from '@tracearr/translations/mobile';
+import { ObserveInteractiveMarker } from 'expo-observe';
 
 import { ruleIcon } from '@/lib/violations';
 import { EvidenceList } from '@/components/violations/EvidenceList';
@@ -337,6 +338,7 @@ export default function ViolationDetailScreen() {
       style={{ flex: 1, backgroundColor: colors.background.dark }}
       edges={['left', 'right', 'bottom']}
     >
+      <ObserveInteractiveMarker />
       <ScrollView
         className="flex-1"
         contentContainerStyle={{
