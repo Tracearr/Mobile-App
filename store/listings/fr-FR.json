@@ -1,0 +1,26 @@
+{
+  "title": "Tracearr",
+  "description": "Tracearr surveille en temps réel vos serveurs Plex, Jellyfin et Emby, depuis un seul tableau de bord sur mobile et sur le web.\n\n\nTABLEAU DE BORD EN TEMPS RÉEL\n\nQui regarde quoi, et d'où, en direct. Les sessions actives s'affichent aussitôt avec appareil, qualité, localisation et état du transcodage. Plex se met à jour via Server-Sent Events ; Jellyfin et Emby sont interrogés régulièrement, ou envoient leurs mises à jour via le plugin Tracearr optionnel. Une carte en direct situe vos spectateurs dans le monde.\n\n\nAUTOMATISATIONS\n\nCréez des automatisations dans le tableau de bord web, avec plus de 30 champs de condition :\n\n• Sessions - lectures simultanées, vitesse de déplacement, IP ou appareils distincts sur une période, inactivité du compte\n• Qualité du flux - résolution, transcodage, seuils de débit\n• Utilisateurs - comptes précis, score de confiance, ancienneté du compte\n• Appareil et client - type, plateforme, lecteur\n• Réseau et lieu - pays, plages IP, local ou distant\n• Portée - serveurs ou types de média ciblés\n\nExigez toutes les conditions d'un groupe ou au moins une, et combinez des groupes pour affiner. Une automatisation de type règle qui correspond enregistre une violation avec un niveau de gravité, puis peut au choix :\n\n• Envoyer des notifications (push, Discord, e-mail, webhooks, ntfy, Gotify, Pushover, etc.)\n• Ajuster, définir ou réinitialiser les scores de confiance\n• Interrompre des lectures\n• Écrire directement au client (Jellyfin/Emby)\n\nEnchaînez les actions, ajoutez des branches si/sinon et des délais de réarmement contre le spam. Modèles prêts à l'emploi pour démarrer en quelques secondes : déplacement impossible, lieux simultanés, changements d'appareil rapides, lectures simultanées, restrictions géographiques.\n\n\nSCORES DE CONFIANCE\n\nLe score de confiance d'un utilisateur monte ou baisse selon son comportement, et les automatisations peuvent l'ajuster en se déclenchant. Repérez d'un coup d'œil les comptes à surveiller.\n\n\nHISTORIQUE ET STATISTIQUES\n\nFiltrez tout l'historique des sessions par période, utilisateur, plateforme, pays, type de média et décision de transcodage. Cherchez dans tout l'historique de visionnage. Statistiques cumulées : lectures totales, temps de visionnage, spectateurs uniques.\n\nLa version web analyse aussi les bibliothèques en détail : stockage, répartition par qualité, doublons, engagement et habitudes de visionnage. Reliez Seerr, Overseerr ou Jellyseerr pour voir qui a demandé chaque titre et s'il l'a regardé.\n\n\nPROFILS UTILISATEURS\n\nLa fiche d'un utilisateur montre son activité : sessions récentes, appareils connus, localisations, score de confiance actuel et violations. De quoi comprendre comment un compte est utilisé.\n\n\nNOTIFICATIONS PUSH\n\nRestez informé sans ouvrir l'application sans arrêt. Notifications disponibles pour :\n\n• Violations (filtrables par gravité)\n• Début et fin des lectures\n• Détection d'un nouvel appareil\n• Changements de score de confiance\n• Serveur en ligne ou hors ligne\n\nLes heures silencieuses coupent les notifications la nuit. Si vous l'autorisez, les violations de gravité élevée et les alertes de serveur hors ligne passent outre.\n\n\nMULTISERVEUR\n\nConnectez plusieurs serveurs Plex, Jellyfin et Emby à une même instance Tracearr. Passez de l'un à l'autre ou combinez leurs statistiques, sans jongler entre les tableaux de bord.\n\n\nAUTO-HÉBERGÉ ET PRIVÉ\n\nTracearr tourne sur votre matériel. Historique de visionnage, données utilisateurs et statistiques restent sur votre serveur, auquel les applications mobiles se connectent directement. Les notifications push passent par le service push d'Expo.\n\nImportez vos données depuis Tautulli ou Jellystat pour ne pas repartir de zéro.\n\n\nCONFIGURATION REQUISE\n\nL'application nécessite un serveur Tracearr actif, gratuit, open source, sous Docker. Instructions d'installation : github.com/connorgallopo/tracearr.\n\nUne question ou un problème ? Ouvrez une issue sur GitHub ou rejoignez le Discord.",
+  "releaseNotes": "La sélection du serveur reste correcte lorsqu'un serveur est supprimé ou que vous vous déconnectez.\n\nLes mises à jour en direct se déconnectent proprement lorsque vous annulez l'appairage ou que votre accès est révoqué.\n\nTraductions mises à jour.",
+  "apple": {
+    "locale": "fr-FR",
+    "subtitle": "Suivi Plex, Emby et Jellyfin",
+    "keywords": [
+      "auto-hébergé",
+      "homelab",
+      "serveur",
+      "média",
+      "streaming",
+      "stats",
+      "historique",
+      "partage",
+      "alerte",
+      "dashboard",
+      "monitoring"
+    ]
+  },
+  "play": {
+    "language": "fr-FR",
+    "shortDescription": "Suivez lectures, utilisateurs et partage de compte sur Plex, Jellyfin et Emby"
+  }
+}
