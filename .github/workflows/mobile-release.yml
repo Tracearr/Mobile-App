@@ -83,6 +83,7 @@ jobs:
           fi
           echo "Resolved profile: $PROFILE"
           echo "profile=$PROFILE" >> "$GITHUB_OUTPUT"
+          echo "version=$(echo "$JSON" | jq -r .marketingVersion)" >> "$GITHUB_OUTPUT"
 
       - name: Apply marketing version
         env:
@@ -110,6 +111,22 @@ jobs:
           # No app-specific password on purpose: with it set, eas-cli ignores the ASC
           # API key stored on EAS and fastlane cannot log in after the upload.
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+      # Apple ties listing text to an App Store version, so the listings only go out
+      # with a production build that creates one.
+      - name: Push App Store listing
+        if: steps.resolve.outputs.profile == 'production' && steps.deploy.outputs.ios-did-start-new-build == 'true'
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          APP_VERSION: ${{ steps.resolve.outputs.version }}
+          APPLE_REVIEW_NOTES: ${{ secrets.APPLE_REVIEW_NOTES }}
+        run: eas metadata:push --profile production --non-interactive
+
+      - name: Push Play listing
+        if: steps.resolve.outputs.profile == 'production' && steps.deploy.outputs.android-did-start-new-build == 'true'
+        env:
+          GOOGLE_SERVICE_ACCOUNT_KEY: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_KEY }}
+        run: node scripts/release/sync-play-listing.mjs
 
       - name: Summary
         env:
