@@ -28,10 +28,7 @@
         }
       }
     },
-    "categories": [
-      "UTILITIES",
-      "ENTERTAINMENT"
-    ],
+    "categories": ["UTILITIES", "ENTERTAINMENT"],
     "advisory": {
       "ageRatingOverride": "NONE",
       "alcoholTobaccoOrDrugUseOrReferences": "NONE",
