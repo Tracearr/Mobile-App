@@ -1,0 +1,72 @@
+{
+  "configVersion": 0,
+  "apple": {
+    "copyright": "2026 Connor Gallopo",
+    "release": {
+      "automaticRelease": true
+    },
+    "info": {
+      "en-US": {
+        "marketingUrl": "https://www.tracearr.com/",
+        "supportUrl": "https://github.com/connorgallopo/Tracearr/discussions",
+        "privacyPolicyUrl": "https://github.com/connorgallopo/Tracearr/blob/main/docs/PRIVACY_POLICY.md",
+        "screenshots": {
+          "APP_IPAD_PRO_3GEN_11": [
+            "store/apple/screenshot/en-US/APP_IPAD_PRO_3GEN_11/Simulator Screenshot - iPad Pro 11-inch (M5) - 2026-02-09 at 15.50.50.png",
+            "store/apple/screenshot/en-US/APP_IPAD_PRO_3GEN_11/Simulator Screenshot - iPad Pro 11-inch (M5) - 2026-02-09 at 15.50.58.png"
+          ],
+          "APP_IPAD_PRO_3GEN_129": [
+            "store/apple/screenshot/en-US/APP_IPAD_PRO_3GEN_129/Simulator Screenshot - iPad Pro 13-inch (M5) - 2026-02-09 at 15.55.25.png",
+            "store/apple/screenshot/en-US/APP_IPAD_PRO_3GEN_129/simulator_screenshot_95031DD7-9EA9-4F60-8500-A6D498264223.png"
+          ],
+          "APP_IPHONE_65": [
+            "store/apple/screenshot/en-US/APP_IPHONE_65/iOS Dashboard_1242x2688.png",
+            "store/apple/screenshot/en-US/APP_IPHONE_65/iOS History_1242x2688.png",
+            "store/apple/screenshot/en-US/APP_IPHONE_65/iOS Activity_1242x2688.png",
+            "store/apple/screenshot/en-US/APP_IPHONE_65/iOS Dashboard (No Active)_1242x2688.png"
+          ]
+        }
+      }
+    },
+    "categories": [
+      "UTILITIES",
+      "ENTERTAINMENT"
+    ],
+    "advisory": {
+      "ageRatingOverride": "NONE",
+      "alcoholTobaccoOrDrugUseOrReferences": "NONE",
+      "contests": "NONE",
+      "gambling": false,
+      "gamblingSimulated": "NONE",
+      "horrorOrFearThemes": "NONE",
+      "kidsAgeBand": null,
+      "koreaAgeRatingOverride": "NONE",
+      "lootBox": false,
+      "matureOrSuggestiveThemes": "NONE",
+      "medicalOrTreatmentInformation": "NONE",
+      "profanityOrCrudeHumor": "NONE",
+      "sexualContentGraphicAndNudity": "NONE",
+      "sexualContentOrNudity": "NONE",
+      "unrestrictedWebAccess": false,
+      "violenceCartoonOrFantasy": "NONE",
+      "violenceRealistic": "NONE",
+      "violenceRealisticProlongedGraphicOrSadistic": "NONE",
+      "advertising": false,
+      "ageAssurance": false,
+      "ageRatingOverrideV2": "NONE",
+      "developerAgeRatingInfoUrl": null,
+      "gunsOrOtherWeapons": "NONE",
+      "healthOrWellnessTopics": false,
+      "messagingAndChat": false,
+      "parentalControls": false,
+      "userGeneratedContent": false
+    },
+    "review": {
+      "firstName": "Connor",
+      "lastName": "Gallopo",
+      "email": "connor.gallopo@me.com",
+      "phone": "3397888995",
+      "demoRequired": false
+    }
+  }
+}

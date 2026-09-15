@@ -84,7 +84,8 @@
       "ios": {
         "appleId": "connor.gallopo@me.com",
         "ascAppId": "6755941553",
-        "appleTeamId": "6DA3FJF5G5"
+        "appleTeamId": "6DA3FJF5G5",
+        "metadataPath": "./store.config.js"
       },
       "android": {
         "track": "production",
