@@ -9,7 +9,7 @@ import { ACCENT_COLOR } from '@/lib/theme';
 import { useTranslation } from '@tracearr/translations/mobile';
 
 export const unstable_settings = {
-  initialRouteName: '(dashboard)',
+  anchor: '(dashboard)',
 };
 
 export default function TabLayout() {

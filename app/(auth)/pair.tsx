@@ -227,7 +227,10 @@ export default function PairScreen() {
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={{ flex: 1 }}
         >
-          <ScrollView contentContainerStyle={{ flexGrow: 1, padding: 24 }}>
+          <ScrollView
+            contentContainerStyle={{ flexGrow: 1, padding: 24 }}
+            keyboardShouldPersistTaps="handled"
+          >
             <View className="items-center px-6 pt-8 pb-6">
               <Text className="text-foreground mb-2 text-center text-2xl font-bold">
                 {t('mobile:pair.connectToServer')}

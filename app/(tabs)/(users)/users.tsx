@@ -199,6 +199,7 @@ export default function UsersScreen() {
         numColumns={numColumns}
         key={numColumns} // Force re-render when columns change
         contentInsetAdjustmentBehavior="automatic"
+        keyboardShouldPersistTaps="handled"
         renderItem={({ item, index }) => (
           <View
             style={{

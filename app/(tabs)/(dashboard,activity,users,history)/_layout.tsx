@@ -9,15 +9,15 @@ import { colors } from '@/lib/theme';
 import { useTranslation } from '@tracearr/translations/mobile';
 
 export const unstable_settings = {
-  initialRouteName: 'index',
+  anchor: 'index',
   activity: {
-    initialRouteName: 'activity',
+    anchor: 'activity',
   },
   users: {
-    initialRouteName: 'users',
+    anchor: 'users',
   },
   history: {
-    initialRouteName: 'history',
+    anchor: 'history',
   },
 };
 
