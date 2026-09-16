@@ -6,7 +6,7 @@ global.Buffer = Buffer;
 
 import '../global.css';
 import { useEffect, useState, useRef } from 'react';
-import { Stack, ThemeProvider, DarkTheme, useRouter, useSegments } from 'expo-router';
+import { Stack, ThemeProvider, DarkTheme, useRouter, useSegments, usePathname } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -26,6 +26,7 @@ import { colors } from '@/lib/theme';
 import { i18nReady } from '@/lib/i18n';
 import { useTranslation } from '@tracearr/translations/mobile';
 import { Observe, ObserveRoot } from 'expo-observe';
+import { PostHogProvider, usePostHog } from 'posthog-react-native';
 import * as Updates from 'expo-updates';
 import { startReviewTracking } from '@/lib/reviewPrompt';
 import * as SplashScreen from 'expo-splash-screen';
@@ -64,6 +65,13 @@ function RootLayoutNav() {
   const prevConnectionState = useRef(connectionState);
 
   usePushNotifications();
+
+  // Autocapture covers react-navigation v6 and below, not expo-router.
+  const posthog = usePostHog();
+  const pathname = usePathname();
+  useEffect(() => {
+    void posthog.screen(pathname);
+  }, [posthog, pathname]);
 
   // Track connection state changes for reconnection toast
   useEffect(() => {
@@ -186,7 +194,25 @@ function RootLayout() {
                       liquid-glass frame every time a tab refocus re-creates the
                       toolbar buttons (rns#4163). */}
                   <ThemeProvider value={DarkTheme}>
-                    <RootLayoutNav />
+                    <PostHogProvider
+                      apiKey={process.env.EXPO_PUBLIC_POSTHOG_KEY}
+                      options={{
+                        host: 'https://us.i.posthog.com',
+                        errorTracking: {
+                          autocapture: {
+                            uncaughtExceptions: true,
+                            unhandledRejections: true,
+                            // Render errors stop at ObserveErrorBoundary, which is above
+                            // this provider, so they only surface via React's console.
+                            console: ['error'],
+                          },
+                        },
+                      }}
+                      autocapture={{ captureScreens: true, captureTouches: false }}
+                      style={{ flex: 1 }}
+                    >
+                      <RootLayoutNav />
+                    </PostHogProvider>
                   </ThemeProvider>
                 </MediaServerProvider>
               </SocketProvider>
