@@ -26,6 +26,7 @@ import { queryKeys } from '@/lib/queryKeys';
 import { ROUTES } from '@/lib/routes';
 import { useMediaServer } from '@/providers/MediaServerProvider';
 import { useServerStatistics } from '@/hooks/useServerStatistics';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useResponsive } from '@/hooks/useResponsive';
 import { TabToolbar, androidHeaderOptions } from '@/components/navigation/TabHeaderButtons';
 import { StreamMap } from '@/components/map/StreamMap';
@@ -88,18 +89,14 @@ export default function DashboardScreen() {
     [servers]
   );
 
-  const {
-    data: stats,
-    refetch,
-    isRefetching,
-  } = useQuery({
+  const { data: stats, refetch } = useQuery({
     queryKey: queryKeys.dashboard.stats(scope),
     queryFn: () => api.stats.dashboard(scope),
     staleTime: 1000 * 30,
     refetchInterval: 1000 * 60,
   });
 
-  const { data: activeSessions } = useQuery({
+  const { data: activeSessions, refetch: refetchSessions } = useQuery({
     queryKey: queryKeys.sessions.active(scope),
     queryFn: () => api.sessions.active(scope),
     staleTime: 1000 * 5,
@@ -124,6 +121,10 @@ export default function DashboardScreen() {
     error: resourcesError,
   } = useServerStatistics(selectedServerId ?? undefined, isPlexServer);
 
+  const { refreshing, onRefresh, controlKey } = usePullToRefresh(() =>
+    Promise.all([refetch(), refetchSessions()])
+  );
+
   const horizontalPadding = select({ base: spacing.md, md: spacing.lg, lg: spacing.xl });
   const mapHeight = select({ base: 200, md: 280, lg: 320 });
   const nowPlayingColumns = columns.cards;
@@ -137,8 +138,9 @@ export default function DashboardScreen() {
         contentInsetAdjustmentBehavior="automatic"
         refreshControl={
           <RefreshControl
-            refreshing={isRefetching}
-            onRefresh={() => void refetch()}
+            key={controlKey}
+            refreshing={refreshing}
+            onRefresh={onRefresh}
             tintColor={ACCENT_COLOR}
           />
         }

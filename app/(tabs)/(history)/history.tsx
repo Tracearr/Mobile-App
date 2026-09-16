@@ -12,6 +12,7 @@ import { queryKeys } from '@/lib/queryKeys';
 import { ROUTES } from '@/lib/routes';
 import { useMediaServer } from '@/providers/MediaServerProvider';
 import { TabToolbar, androidHeaderOptions } from '@/components/navigation/TabHeaderButtons';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { ACCENT_COLOR, colors } from '@/lib/theme';
 import { Text } from '@/components/ui/text';
 import {
@@ -107,7 +108,7 @@ export default function HistoryScreen() {
   }, [period, search, advancedFilters]);
 
   // Fetch history with infinite scroll
-  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, refetch, isRefetching, isLoading } =
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, refetch, isLoading } =
     useInfiniteQuery({
       queryKey: queryKeys.sessions.history(scope, filters),
       queryFn: async ({ pageParam }) => {
@@ -167,6 +168,8 @@ export default function HistoryScreen() {
 
   const keyExtractor = useCallback((item: SessionWithDetails) => item.id, []);
 
+  const { refreshing, onRefresh, controlKey } = usePullToRefresh(() => refetch());
+
   return (
     <>
       <View style={{ flex: 1, backgroundColor: colors.background.dark }}>
@@ -181,8 +184,9 @@ export default function HistoryScreen() {
           onEndReachedThreshold={0.5}
           refreshControl={
             <RefreshControl
-              refreshing={isRefetching}
-              onRefresh={() => void refetch()}
+              key={controlKey}
+              refreshing={refreshing}
+              onRefresh={onRefresh}
               tintColor={ACCENT_COLOR}
             />
           }

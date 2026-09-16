@@ -13,6 +13,7 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { queryKeys } from '@/lib/queryKeys';
 import { useMediaServer } from '@/providers/MediaServerProvider';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useResponsive } from '@/hooks/useResponsive';
 import { TabToolbar, androidHeaderOptions } from '@/components/navigation/TabHeaderButtons';
 import { spacing, ACCENT_COLOR } from '@/lib/theme';
@@ -54,11 +55,7 @@ export default function ActivityScreen() {
   const qualityHeight = select({ base: 120, md: 160 });
 
   // Fetch all stats data with selected period - query keys include scope for cache isolation
-  const {
-    data: playsData,
-    refetch: refetchPlays,
-    isRefetching: isRefetchingPlays,
-  } = useQuery({
+  const { data: playsData, refetch: refetchPlays } = useQuery({
     queryKey: queryKeys.stats.plays(period, scope),
     queryFn: () => api.stats.plays({ period, scope }),
   });
@@ -88,14 +85,17 @@ export default function ActivityScreen() {
     queryFn: () => api.stats.concurrent({ period, scope }),
   });
 
-  const handleRefresh = () => {
-    void refetchPlays();
-    void refetchConcurrent();
-    void refetchDayOfWeek();
-    void refetchHourOfDay();
-    void refetchPlatforms();
-    void refetchQuality();
-  };
+  const handleRefresh = () =>
+    Promise.all([
+      refetchPlays(),
+      refetchConcurrent(),
+      refetchDayOfWeek(),
+      refetchHourOfDay(),
+      refetchPlatforms(),
+      refetchQuality(),
+    ]);
+
+  const { refreshing, onRefresh, controlKey } = usePullToRefresh(handleRefresh);
 
   // Period labels for display
   const periodLabels: Record<StatsPeriod, string> = {
@@ -117,8 +117,9 @@ export default function ActivityScreen() {
         contentInsetAdjustmentBehavior="automatic"
         refreshControl={
           <RefreshControl
-            refreshing={isRefetchingPlays}
-            onRefresh={handleRefresh}
+            key={controlKey}
+            refreshing={refreshing}
+            onRefresh={onRefresh}
             tintColor={ACCENT_COLOR}
           />
         }

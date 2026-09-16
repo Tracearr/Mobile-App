@@ -1,0 +1,88 @@
+/**
+ * Pull-to-refresh state for a RefreshControl.
+ *
+ * `refreshing` follows the user's gesture only. Binding it to a query flag
+ * lets background refetches drive the native control, which arms every
+ * mounted tab at once and moves the scroll offset.
+ *
+ * `controlKey` remounts the control when the app or the screen comes back.
+ * iOS drops the spinner's layer animation while the app is backgrounded and
+ * RefreshControl never restarts it, so the only repair is a fresh control.
+ */
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { AppState, type AppStateStatus } from 'react-native';
+import { useIsFocused } from 'expo-router';
+
+export function usePullToRefresh(onRefresh: () => Promise<unknown>, resetKey?: unknown) {
+  const [refreshing, setRefreshing] = useState(false);
+  const [controlKey, setControlKey] = useState(0);
+  const isFocused = useIsFocused();
+
+  const handlerRef = useRef(onRefresh);
+  const refreshingRef = useRef(false);
+  const needsRemountRef = useRef(false);
+  // Only the newest pull may clear the spinner. cancelRefetch defaults to true,
+  // so starting a second refresh settles the first one's promise immediately.
+  const generationRef = useRef(0);
+
+  useEffect(() => {
+    handlerRef.current = onRefresh;
+  });
+
+  const stop = useCallback(() => {
+    generationRef.current += 1;
+    refreshingRef.current = false;
+    setRefreshing(false);
+  }, []);
+
+  const start = useCallback(() => {
+    const generation = ++generationRef.current;
+    refreshingRef.current = true;
+    setRefreshing(true);
+    void Promise.resolve(handlerRef.current()).finally(() => {
+      if (generationRef.current !== generation) return;
+      refreshingRef.current = false;
+      setRefreshing(false);
+    });
+  }, []);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (status: AppStateStatus) => {
+      if (status === 'active') {
+        if (needsRemountRef.current) {
+          needsRemountRef.current = false;
+          setControlKey((key) => key + 1);
+        }
+        return;
+      }
+      if (refreshingRef.current) {
+        needsRemountRef.current = true;
+      }
+    });
+    return () => subscription.remove();
+  }, []);
+
+  useEffect(() => {
+    if (isFocused) {
+      if (needsRemountRef.current) {
+        needsRemountRef.current = false;
+        setControlKey((key) => key + 1);
+      }
+      return;
+    }
+    if (refreshingRef.current) {
+      needsRemountRef.current = true;
+      stop();
+    }
+  }, [isFocused, stop]);
+
+  // A subtree remount below the screen component can otherwise hand a stale
+  // `true` to a fresh control, which starts a refresh the user never asked for.
+  useEffect(() => {
+    if (refreshingRef.current) {
+      stop();
+    }
+  }, [resetKey, stop]);
+
+  return { refreshing, onRefresh: start, controlKey };
+}

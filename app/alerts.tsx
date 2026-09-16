@@ -18,6 +18,7 @@ import { Check, Filter, ChevronRight, ChevronLeft } from 'lucide-react-native';
 import { api } from '@/lib/api';
 import { queryKeys } from '@/lib/queryKeys';
 import { useMediaServer } from '@/providers/MediaServerProvider';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useResponsive } from '@/hooks/useResponsive';
 import { Text } from '@/components/ui/text';
 import { Card } from '@/components/ui/card';
@@ -240,8 +241,7 @@ export default function AlertsScreen() {
     [severityFilter, statusFilter]
   );
 
-  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, refetch, isRefetching } =
-    useInfiniteQuery({
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, refetch } = useInfiniteQuery({
       queryKey: queryKeys.violations.list(scope, severityFilter, statusFilter),
       queryFn: ({ pageParam }) =>
         api.violations.list({
@@ -252,6 +252,8 @@ export default function AlertsScreen() {
       initialPageParam: 1,
       getNextPageParam: (lastPage) => nextPageOf(lastPage),
     });
+
+  const { refreshing, onRefresh, controlKey } = usePullToRefresh(() => refetch());
 
   const acknowledgeMutation = useMutation({
     mutationFn: api.violations.acknowledge,
@@ -356,8 +358,9 @@ export default function AlertsScreen() {
         onEndReachedThreshold={0.5}
         refreshControl={
           <RefreshControl
-            refreshing={isRefetching}
-            onRefresh={() => void refetch()}
+            key={controlKey}
+            refreshing={refreshing}
+            onRefresh={onRefresh}
             tintColor={ACCENT_COLOR}
           />
         }

@@ -45,6 +45,7 @@ import { nextPageOf, pageMetaOf } from '@/lib/listPage';
 import { queryKeys } from '@/lib/queryKeys';
 import { ROUTES } from '@/lib/routes';
 import { useMediaServer } from '@/providers/MediaServerProvider';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useResponsive } from '@/hooks/useResponsive';
 import { Text } from '@/components/ui/text';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -408,7 +409,6 @@ export default function UserDetailScreen() {
     data: user,
     isLoading: userLoading,
     refetch: refetchUser,
-    isRefetching: userRefetching,
   } = useQuery({
     queryKey: queryKeys.users.detail(id, selectedServerId),
     queryFn: () => api.users.get(id),
@@ -514,7 +514,9 @@ export default function UserDetailScreen() {
   const totalTerminations = terminationsData?.pages[0]?.total || 0;
 
   const handleRefresh = () => {
-    void refetchUser();
+    // The lists below refresh in the background. Gating the spinner on them
+    // would tie it to every page the user has already scrolled through.
+    const refreshed = refetchUser();
     void queryClient.invalidateQueries({
       queryKey: queryKeys.users.sessions(id, selectedServerId),
     });
@@ -528,7 +530,10 @@ export default function UserDetailScreen() {
     void queryClient.invalidateQueries({
       queryKey: queryKeys.users.terminations(id, selectedServerId),
     });
+    return refreshed;
   };
+
+  const { refreshing, onRefresh, controlKey } = usePullToRefresh(handleRefresh, selectedServerId);
 
   const handleSessionPress = (session: Session) => {
     router.push(ROUTES.SESSION(session.id));
@@ -583,8 +588,9 @@ export default function UserDetailScreen() {
         }}
         refreshControl={
           <RefreshControl
-            refreshing={userRefetching}
-            onRefresh={handleRefresh}
+            key={controlKey}
+            refreshing={refreshing}
+            onRefresh={onRefresh}
             tintColor={ACCENT_COLOR}
           />
         }

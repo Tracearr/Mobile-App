@@ -32,6 +32,7 @@ import { nextPageOf, pageMetaOf } from '@/lib/listPage';
 import { queryKeys } from '@/lib/queryKeys';
 import { ROUTES } from '@/lib/routes';
 import { useMediaServer } from '@/providers/MediaServerProvider';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useResponsive } from '@/hooks/useResponsive';
 import { TabToolbar, androidHeaderOptions } from '@/components/navigation/TabHeaderButtons';
 import { Text } from '@/components/ui/text';
@@ -152,8 +153,7 @@ export default function UsersScreen() {
   const horizontalPadding = select({ base: spacing.md, md: spacing.lg, lg: spacing.xl });
   const numColumns = isTablet ? 2 : 1;
 
-  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, refetch, isRefetching } =
-    useInfiniteQuery({
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, refetch } = useInfiniteQuery({
       queryKey: queryKeys.users.list(scope),
       queryFn: ({ pageParam }) =>
         api.users.list({
@@ -188,6 +188,8 @@ export default function UsersScreen() {
     }
   };
 
+  const { refreshing, onRefresh, controlKey } = usePullToRefresh(() => refetch());
+
   return (
     <>
       <FlatList
@@ -220,8 +222,9 @@ export default function UsersScreen() {
         onEndReachedThreshold={0.5}
         refreshControl={
           <RefreshControl
-            refreshing={isRefetching}
-            onRefresh={() => void refetch()}
+            key={controlKey}
+            refreshing={refreshing}
+            onRefresh={onRefresh}
             tintColor={ACCENT_COLOR}
           />
         }
