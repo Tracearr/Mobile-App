@@ -12,7 +12,7 @@ export function useServerVersion() {
   const serverId = useAuthStateStore((s) => s.server?.id ?? null);
   const { data } = useQuery({
     queryKey: queryKeys.version(serverId),
-    queryFn: api.version.get,
+    queryFn: ({ signal }) => api.version.get(signal),
     enabled: serverId !== null,
     staleTime: 5 * 60 * 1000,
   });

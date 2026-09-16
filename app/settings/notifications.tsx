@@ -219,7 +219,7 @@ export default function NotificationSettingsScreen() {
     error,
   } = useQuery({
     queryKey: queryKeys.notifications.preferences(),
-    queryFn: api.notifications.getPreferences,
+    queryFn: ({ signal }) => api.notifications.getPreferences(signal),
     enabled: !!server, // Still need auth
   });
 

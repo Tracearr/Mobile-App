@@ -59,8 +59,20 @@ export function getApiClient(): AxiosInstance {
 }
 
 /**
- * Create a new API client for the server
+ * Every read goes through here so cancellation and query params attach in one
+ * place. React Query hands each queryFn an AbortSignal; forwarding it lets
+ * cancelQueries abort the request instead of only discarding its result.
  */
+type RequestOptions = {
+  signal?: AbortSignal;
+  params?: Record<string, unknown>;
+};
+
+async function apiGet<T>(url: string, options?: RequestOptions): Promise<T> {
+  const response = await getApiClient().get<T>(url, options);
+  return response.data;
+}
+
 export function createApiClient(baseURL: string): AxiosInstance {
   const client = axios.create({
     baseURL: `${baseURL}/api/v1`,
@@ -338,7 +350,9 @@ export const api = {
   /**
    * Get current user's profile info
    */
-  me: async (): Promise<{
+  me: async (
+    signal?: AbortSignal
+  ): Promise<{
     id: string;
     username: string;
     friendlyName: string;
@@ -346,16 +360,14 @@ export const api = {
     email: string | null;
     role: string;
   }> => {
-    const client = getApiClient();
-    const response = await client.get<{
+    return apiGet<{
       id: string;
       username: string;
       friendlyName: string;
       thumbUrl: string | null;
       email: string | null;
       role: string;
-    }>('/mobile/me');
-    return response.data;
+    }>('/mobile/me', { signal });
   },
 
   /**
@@ -377,74 +389,83 @@ export const api = {
    * Dashboard stats
    */
   stats: {
-    dashboard: async (scope: ServerScope): Promise<DashboardStats> => {
-      const client = getApiClient();
+    dashboard: async (scope: ServerScope, signal?: AbortSignal): Promise<DashboardStats> => {
       const params = new URLSearchParams();
       appendScope(params, scope);
       params.set('timezone', getDeviceTimezone());
-      const response = await client.get<DashboardStats>(`/stats/dashboard?${params.toString()}`);
-      return response.data;
+      return apiGet<DashboardStats>(`/stats/dashboard?${params.toString()}`, { signal });
     },
-    plays: async (params: {
-      period?: string;
-      scope: ServerScope;
-    }): Promise<{ data: { date: string; count: number }[] }> => {
-      const client = getApiClient();
+    plays: async (
+      params: {
+        period?: string;
+        scope: ServerScope;
+      },
+      signal?: AbortSignal
+    ): Promise<{ data: { date: string; count: number }[] }> => {
       const searchParams = new URLSearchParams();
       if (params.period) searchParams.set('period', params.period);
       appendScope(searchParams, params.scope);
       searchParams.set('timezone', getDeviceTimezone());
-      const response = await client.get<{ data: { date: string; count: number }[] }>(
-        `/stats/plays?${searchParams.toString()}`
+      return apiGet<{ data: { date: string; count: number }[] }>(
+        `/stats/plays?${searchParams.toString()}`,
+        { signal }
       );
-      return response.data;
     },
-    playsByDayOfWeek: async (params: {
-      period?: string;
-      scope: ServerScope;
-    }): Promise<{ data: { day: number; name: string; count: number }[] }> => {
-      const client = getApiClient();
+    playsByDayOfWeek: async (
+      params: {
+        period?: string;
+        scope: ServerScope;
+      },
+      signal?: AbortSignal
+    ): Promise<{ data: { day: number; name: string; count: number }[] }> => {
       const searchParams = new URLSearchParams();
       if (params.period) searchParams.set('period', params.period);
       appendScope(searchParams, params.scope);
       searchParams.set('timezone', getDeviceTimezone());
-      const response = await client.get<{ data: { day: number; name: string; count: number }[] }>(
-        `/stats/plays-by-dayofweek?${searchParams.toString()}`
+      return apiGet<{ data: { day: number; name: string; count: number }[] }>(
+        `/stats/plays-by-dayofweek?${searchParams.toString()}`,
+        { signal }
       );
-      return response.data;
     },
-    playsByHourOfDay: async (params: {
-      period?: string;
-      scope: ServerScope;
-    }): Promise<{ data: { hour: number; count: number }[] }> => {
-      const client = getApiClient();
+    playsByHourOfDay: async (
+      params: {
+        period?: string;
+        scope: ServerScope;
+      },
+      signal?: AbortSignal
+    ): Promise<{ data: { hour: number; count: number }[] }> => {
       const searchParams = new URLSearchParams();
       if (params.period) searchParams.set('period', params.period);
       appendScope(searchParams, params.scope);
       searchParams.set('timezone', getDeviceTimezone());
-      const response = await client.get<{ data: { hour: number; count: number }[] }>(
-        `/stats/plays-by-hourofday?${searchParams.toString()}`
+      return apiGet<{ data: { hour: number; count: number }[] }>(
+        `/stats/plays-by-hourofday?${searchParams.toString()}`,
+        { signal }
       );
-      return response.data;
     },
-    platforms: async (params: {
-      period?: string;
-      scope: ServerScope;
-    }): Promise<{ data: { platform: string; count: number }[] }> => {
-      const client = getApiClient();
+    platforms: async (
+      params: {
+        period?: string;
+        scope: ServerScope;
+      },
+      signal?: AbortSignal
+    ): Promise<{ data: { platform: string; count: number }[] }> => {
       const searchParams = new URLSearchParams();
       if (params.period) searchParams.set('period', params.period);
       appendScope(searchParams, params.scope);
       searchParams.set('timezone', getDeviceTimezone());
-      const response = await client.get<{ data: { platform: string; count: number }[] }>(
-        `/stats/platforms?${searchParams.toString()}`
+      return apiGet<{ data: { platform: string; count: number }[] }>(
+        `/stats/platforms?${searchParams.toString()}`,
+        { signal }
       );
-      return response.data;
     },
-    quality: async (params: {
-      period?: string;
-      scope: ServerScope;
-    }): Promise<{
+    quality: async (
+      params: {
+        period?: string;
+        scope: ServerScope;
+      },
+      signal?: AbortSignal
+    ): Promise<{
       directPlay: number;
       directStream?: number;
       transcode: number;
@@ -453,12 +474,11 @@ export const api = {
       directStreamPercent?: number;
       transcodePercent: number;
     }> => {
-      const client = getApiClient();
       const searchParams = new URLSearchParams();
       if (params.period) searchParams.set('period', params.period);
       appendScope(searchParams, params.scope);
       searchParams.set('timezone', getDeviceTimezone());
-      const response = await client.get<{
+      return apiGet<{
         directPlay: number;
         directStream?: number;
         transcode: number;
@@ -466,13 +486,15 @@ export const api = {
         directPlayPercent: number;
         directStreamPercent?: number;
         transcodePercent: number;
-      }>(`/stats/quality?${searchParams.toString()}`);
-      return response.data;
+      }>(`/stats/quality?${searchParams.toString()}`, { signal });
     },
-    concurrent: async (params: {
-      period?: string;
-      scope: ServerScope;
-    }): Promise<{
+    concurrent: async (
+      params: {
+        period?: string;
+        scope: ServerScope;
+      },
+      signal?: AbortSignal
+    ): Promise<{
       data: {
         hour: string;
         total: number;
@@ -481,12 +503,11 @@ export const api = {
         transcode: number;
       }[];
     }> => {
-      const client = getApiClient();
       const searchParams = new URLSearchParams();
       if (params.period) searchParams.set('period', params.period);
       appendScope(searchParams, params.scope);
       searchParams.set('timezone', getDeviceTimezone());
-      const response = await client.get<{
+      return apiGet<{
         data: {
           hour: string;
           total: number;
@@ -494,13 +515,15 @@ export const api = {
           directStream?: number;
           transcode: number;
         }[];
-      }>(`/stats/concurrent?${searchParams.toString()}`);
-      return response.data;
+      }>(`/stats/concurrent?${searchParams.toString()}`, { signal });
     },
-    locations: async (params?: {
-      serverId?: string;
-      userId?: string;
-    }): Promise<{
+    locations: async (
+      params?: {
+        serverId?: string;
+        userId?: string;
+      },
+      signal?: AbortSignal
+    ): Promise<{
       data: {
         latitude: number;
         longitude: number;
@@ -509,8 +532,7 @@ export const api = {
         playCount: number;
       }[];
     }> => {
-      const client = getApiClient();
-      const response = await client.get<{
+      return apiGet<{
         data: {
           latitude: number;
           longitude: number;
@@ -518,8 +540,7 @@ export const api = {
           country: string;
           playCount: number;
         }[];
-      }>('/stats/locations', { params });
-      return response.data;
+      }>('/stats/locations', { params, signal });
     },
   },
 
@@ -527,30 +548,29 @@ export const api = {
    * Sessions
    */
   sessions: {
-    active: async (scope: ServerScope): Promise<ActiveSession[]> => {
-      const client = getApiClient();
+    active: async (scope: ServerScope, signal?: AbortSignal): Promise<ActiveSession[]> => {
       const params = new URLSearchParams();
       appendScope(params, scope);
       const query = params.toString();
-      const response = await client.get<{ data: ActiveSession[] }>(
-        `/sessions/active${query ? `?${query}` : ''}`
+      const { data } = await apiGet<{ data: ActiveSession[] }>(
+        `/sessions/active${query ? `?${query}` : ''}`,
+        { signal }
       );
-      return response.data.data;
+      return data;
     },
-    list: async (params?: {
-      page?: number;
-      pageSize?: number;
-      userId?: string;
-      serverId?: string;
-    }) => {
-      const client = getApiClient();
-      const response = await client.get<PaginatedResponse<ActiveSession>>('/sessions', { params });
-      return response.data;
+    list: async (
+      params?: {
+        page?: number;
+        pageSize?: number;
+        userId?: string;
+        serverId?: string;
+      },
+      signal?: AbortSignal
+    ) => {
+      return apiGet<PaginatedResponse<ActiveSession>>('/sessions', { params, signal });
     },
-    get: async (id: string): Promise<SessionWithDetails> => {
-      const client = getApiClient();
-      const response = await client.get<SessionWithDetails>(`/sessions/${id}`);
-      return response.data;
+    get: async (id: string, signal?: AbortSignal): Promise<SessionWithDetails> => {
+      return apiGet<SessionWithDetails>(`/sessions/${id}`, { signal });
     },
     terminate: async (
       id: string,
@@ -568,31 +588,33 @@ export const api = {
      * Query history with cursor-based pagination and filters
      * Used for the History tab with infinite scroll
      */
-    history: async (params: {
-      cursor?: string;
-      pageSize?: number;
-      serverUserIds?: string[];
-      scope: ServerScope;
-      state?: 'playing' | 'paused' | 'stopped';
-      mediaTypes?: ('movie' | 'episode' | 'track' | 'live')[];
-      startDate?: Date;
-      endDate?: Date;
-      search?: string;
-      platforms?: string[];
-      product?: string;
-      device?: string;
-      playerName?: string;
-      ipAddress?: string;
-      geoCountries?: string[];
-      geoCity?: string;
-      geoRegion?: string;
-      transcodeDecisions?: ('directplay' | 'copy' | 'transcode')[];
-      watched?: boolean;
-      excludeShortSessions?: boolean;
-      orderBy?: 'startedAt' | 'durationMs' | 'mediaTitle';
-      orderDir?: 'asc' | 'desc';
-    }): Promise<HistorySessionResponse> => {
-      const client = getApiClient();
+    history: async (
+      params: {
+        cursor?: string;
+        pageSize?: number;
+        serverUserIds?: string[];
+        scope: ServerScope;
+        state?: 'playing' | 'paused' | 'stopped';
+        mediaTypes?: ('movie' | 'episode' | 'track' | 'live')[];
+        startDate?: Date;
+        endDate?: Date;
+        search?: string;
+        platforms?: string[];
+        product?: string;
+        device?: string;
+        playerName?: string;
+        ipAddress?: string;
+        geoCountries?: string[];
+        geoCity?: string;
+        geoRegion?: string;
+        transcodeDecisions?: ('directplay' | 'copy' | 'transcode')[];
+        watched?: boolean;
+        excludeShortSessions?: boolean;
+        orderBy?: 'startedAt' | 'durationMs' | 'mediaTitle';
+        orderDir?: 'asc' | 'desc';
+      },
+      signal?: AbortSignal
+    ): Promise<HistorySessionResponse> => {
       const searchParams = new URLSearchParams();
       if (params.cursor) searchParams.set('cursor', params.cursor);
       if (params.pageSize) searchParams.set('pageSize', String(params.pageSize));
@@ -620,40 +642,41 @@ export const api = {
         searchParams.set('excludeShortSessions', String(params.excludeShortSessions));
       if (params.orderBy) searchParams.set('orderBy', params.orderBy);
       if (params.orderDir) searchParams.set('orderDir', params.orderDir);
-      const response = await client.get<HistorySessionResponse>(
-        `/sessions/history?${searchParams.toString()}`
-      );
-      return response.data;
+      return apiGet<HistorySessionResponse>(`/sessions/history?${searchParams.toString()}`, {
+        signal,
+      });
     },
     /**
      * Get aggregate stats for history (total plays, watch time, etc.)
      */
-    historyAggregates: async (params: {
-      scope: ServerScope;
-      startDate?: Date;
-      endDate?: Date;
-    }): Promise<HistoryAggregates> => {
-      const client = getApiClient();
+    historyAggregates: async (
+      params: {
+        scope: ServerScope;
+        startDate?: Date;
+        endDate?: Date;
+      },
+      signal?: AbortSignal
+    ): Promise<HistoryAggregates> => {
       const searchParams = new URLSearchParams();
       appendScope(searchParams, params.scope);
       if (params.startDate) searchParams.set('startDate', params.startDate.toISOString());
       if (params.endDate) searchParams.set('endDate', params.endDate.toISOString());
-      const response = await client.get<HistoryAggregates>(
-        `/sessions/history/aggregates?${searchParams.toString()}`
-      );
-      return response.data;
+      return apiGet<HistoryAggregates>(`/sessions/history/aggregates?${searchParams.toString()}`, {
+        signal,
+      });
     },
     /**
      * Get available filter options for history filtering (users, platforms, countries, etc.)
      */
-    filterOptions: async (scope: ServerScope): Promise<HistoryFilterOptions> => {
-      const client = getApiClient();
+    filterOptions: async (
+      scope: ServerScope,
+      signal?: AbortSignal
+    ): Promise<HistoryFilterOptions> => {
       const params = new URLSearchParams();
       appendScope(params, scope);
-      const response = await client.get<HistoryFilterOptions>(
-        `/sessions/filter-options?${params.toString()}`
-      );
-      return response.data;
+      return apiGet<HistoryFilterOptions>(`/sessions/filter-options?${params.toString()}`, {
+        signal,
+      });
     },
   },
 
@@ -661,50 +684,46 @@ export const api = {
    * Users
    */
   users: {
-    list: async (params: { page?: number; pageSize?: number; scope: ServerScope }) => {
-      const client = getApiClient();
+    list: async (
+      params: { page?: number; pageSize?: number; scope: ServerScope },
+      signal?: AbortSignal
+    ) => {
       const searchParams = new URLSearchParams();
       if (params.page) searchParams.set('page', String(params.page));
       if (params.pageSize) searchParams.set('pageSize', String(params.pageSize));
       appendScope(searchParams, params.scope);
       // 2.2 returns { data, meta }, 2.1 returns the fields at the top level; see listPage.ts.
-      const response = await client.get<
+      return apiGet<
         ListResponse<ServerUserWithIdentity> | PaginatedResponse<ServerUserWithIdentity>
-      >(`/users?${searchParams.toString()}`);
-      return response.data;
+      >(`/users?${searchParams.toString()}`, { signal });
     },
-    get: async (id: string): Promise<ServerUserDetail> => {
-      const client = getApiClient();
-      const response = await client.get<ServerUserDetail>(`/users/${id}`);
-      return response.data;
+    get: async (id: string, signal?: AbortSignal): Promise<ServerUserDetail> => {
+      return apiGet<ServerUserDetail>(`/users/${id}`, { signal });
     },
-    sessions: async (id: string, params?: { page?: number; pageSize?: number }) => {
-      const client = getApiClient();
-      const response = await client.get<PaginatedResponse<Session>>(`/users/${id}/sessions`, {
-        params,
-      });
-      return response.data;
+    sessions: async (
+      id: string,
+      params?: { page?: number; pageSize?: number },
+      signal?: AbortSignal
+    ) => {
+      return apiGet<PaginatedResponse<Session>>(`/users/${id}/sessions`, { params, signal });
     },
-    locations: async (id: string): Promise<UserLocation[]> => {
-      const client = getApiClient();
-      const response = await client.get<{ data: UserLocation[] }>(`/users/${id}/locations`);
-      return response.data.data;
+    locations: async (id: string, signal?: AbortSignal): Promise<UserLocation[]> => {
+      const { data } = await apiGet<{ data: UserLocation[] }>(`/users/${id}/locations`, { signal });
+      return data;
     },
-    devices: async (id: string): Promise<UserDevice[]> => {
-      const client = getApiClient();
-      const response = await client.get<{ data: UserDevice[] }>(`/users/${id}/devices`);
-      return response.data.data;
+    devices: async (id: string, signal?: AbortSignal): Promise<UserDevice[]> => {
+      const { data } = await apiGet<{ data: UserDevice[] }>(`/users/${id}/devices`, { signal });
+      return data;
     },
     terminations: async (
       id: string,
-      params?: { page?: number; pageSize?: number }
+      params?: { page?: number; pageSize?: number },
+      signal?: AbortSignal
     ): Promise<PaginatedResponse<TerminationLogWithDetails>> => {
-      const client = getApiClient();
-      const response = await client.get<PaginatedResponse<TerminationLogWithDetails>>(
-        `/users/${id}/terminations`,
-        { params }
-      );
-      return response.data;
+      return apiGet<PaginatedResponse<TerminationLogWithDetails>>(`/users/${id}/terminations`, {
+        params,
+        signal,
+      });
     },
   },
 
@@ -712,15 +731,17 @@ export const api = {
    * Violations
    */
   violations: {
-    list: async (params: {
-      page?: number;
-      pageSize?: number;
-      userId?: string;
-      severity?: string;
-      acknowledged?: boolean;
-      scope: ServerScope;
-    }) => {
-      const client = getApiClient();
+    list: async (
+      params: {
+        page?: number;
+        pageSize?: number;
+        userId?: string;
+        severity?: string;
+        acknowledged?: boolean;
+        scope: ServerScope;
+      },
+      signal?: AbortSignal
+    ) => {
       const searchParams = new URLSearchParams();
       if (params.page) searchParams.set('page', String(params.page));
       if (params.pageSize) searchParams.set('pageSize', String(params.pageSize));
@@ -730,15 +751,13 @@ export const api = {
         searchParams.set('acknowledged', String(params.acknowledged));
       appendScope(searchParams, params.scope);
       // 2.2 returns { data, meta }, 2.1 returns the fields at the top level; see listPage.ts.
-      const response = await client.get<
-        ListResponse<ViolationWithDetails> | PaginatedResponse<ViolationWithDetails>
-      >(`/violations?${searchParams.toString()}`);
-      return response.data;
+      return apiGet<ListResponse<ViolationWithDetails> | PaginatedResponse<ViolationWithDetails>>(
+        `/violations?${searchParams.toString()}`,
+        { signal }
+      );
     },
-    get: async (id: string): Promise<ViolationWithDetails> => {
-      const client = getApiClient();
-      const response = await client.get<ViolationWithDetails>(`/violations/${id}`);
-      return response.data;
+    get: async (id: string, signal?: AbortSignal): Promise<ViolationWithDetails> => {
+      return apiGet<ViolationWithDetails>(`/violations/${id}`, { signal });
     },
     acknowledge: async (id: string): Promise<Violation> => {
       const client = getApiClient();
@@ -755,15 +774,12 @@ export const api = {
    * Servers
    */
   servers: {
-    list: async (): Promise<Server[]> => {
-      const client = getApiClient();
-      const response = await client.get<{ data: Server[] }>('/servers');
-      return response.data.data;
+    list: async (signal?: AbortSignal): Promise<Server[]> => {
+      const { data } = await apiGet<{ data: Server[] }>('/servers', { signal });
+      return data;
     },
-    statistics: async (id: string): Promise<ServerResourceStats> => {
-      const client = getApiClient();
-      const response = await client.get<ServerResourceStats>(`/servers/${id}/statistics`);
-      return response.data;
+    statistics: async (id: string, signal?: AbortSignal): Promise<ServerResourceStats> => {
+      return apiGet<ServerResourceStats>(`/servers/${id}/statistics`, { signal });
     },
   },
 
@@ -775,12 +791,8 @@ export const api = {
      * Get notification preferences for current device
      * Returns preferences with live rate limit status from Redis
      */
-    getPreferences: async (): Promise<NotificationPreferencesWithStatus> => {
-      const client = getApiClient();
-      const response = await client.get<NotificationPreferencesWithStatus>(
-        '/notifications/preferences'
-      );
-      return response.data;
+    getPreferences: async (signal?: AbortSignal): Promise<NotificationPreferencesWithStatus> => {
+      return apiGet<NotificationPreferencesWithStatus>('/notifications/preferences', { signal });
     },
 
     /**
@@ -817,10 +829,8 @@ export const api = {
    * Server version. Public route; used to gate screens that only exist on 2.2+.
    */
   version: {
-    get: async (): Promise<VersionInfo> => {
-      const client = getApiClient();
-      const response = await client.get<VersionInfo>('/version');
-      return response.data;
+    get: async (signal?: AbortSignal): Promise<VersionInfo> => {
+      return apiGet<VersionInfo>('/version', { signal });
     },
   },
 
@@ -828,10 +838,8 @@ export const api = {
    * Global settings (display preferences, etc.)
    */
   settings: {
-    get: async (): Promise<Settings> => {
-      const client = getApiClient();
-      const response = await client.get<Settings>('/settings');
-      return response.data;
+    get: async (signal?: AbortSignal): Promise<Settings> => {
+      return apiGet<Settings>('/settings', { signal });
     },
   },
 };

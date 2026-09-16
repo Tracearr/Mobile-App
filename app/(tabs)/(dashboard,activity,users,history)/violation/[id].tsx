@@ -195,7 +195,7 @@ export default function ViolationDetailScreen() {
   // Get settings for unit system
   const { data: settings } = useQuery({
     queryKey: queryKeys.settings(),
-    queryFn: api.settings.get,
+    queryFn: ({ signal }) => api.settings.get(signal),
     staleTime: 1000 * 60 * 5,
   });
   const unitSystem = settings?.unitSystem ?? 'metric';
