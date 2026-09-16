@@ -213,7 +213,7 @@ export default function ViolationDetailScreen() {
     isError,
   } = useQuery({
     queryKey: queryKeys.violations.detail(id),
-    queryFn: () => api.violations.get(id),
+    queryFn: ({ signal }) => api.violations.get(id, signal),
     initialData: cachedViolation,
     staleTime: cachedViolation ? 1000 * 60 : 0,
     enabled: !!id,

@@ -273,7 +273,7 @@ export default function SessionDetailScreen() {
     error,
   } = useQuery<SessionWithDetails>({
     queryKey: queryKeys.sessions.detail(id, selectedServerId),
-    queryFn: () => api.sessions.get(id),
+    queryFn: ({ signal }) => api.sessions.get(id, signal),
     enabled: !!id,
   });
 

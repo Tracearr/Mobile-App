@@ -156,12 +156,15 @@ export default function UsersScreen() {
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, refetch, isLoading } =
     useInfiniteQuery({
       queryKey: queryKeys.users.list(scope),
-      queryFn: ({ pageParam }) =>
-        api.users.list({
-          page: pageParam,
-          pageSize: PAGE_SIZE,
-          scope,
-        }),
+      queryFn: ({ pageParam, signal }) =>
+        api.users.list(
+          {
+            page: pageParam,
+            pageSize: PAGE_SIZE,
+            scope,
+          },
+          signal
+        ),
       initialPageParam: 1,
       getNextPageParam: (lastPage) => nextPageOf(lastPage),
       staleTime: 1000 * 60, // 60 seconds - user list doesn't change frequently

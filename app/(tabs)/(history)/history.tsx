@@ -81,7 +81,7 @@ export default function HistoryScreen() {
   // Fetch filter options for the bottom sheet
   const { data: filterOptions } = useQuery({
     queryKey: queryKeys.sessions.filterOptions(scope),
-    queryFn: () => api.sessions.filterOptions(scope),
+    queryFn: ({ signal }) => api.sessions.filterOptions(scope, signal),
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
@@ -111,13 +111,16 @@ export default function HistoryScreen() {
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, refetch, isLoading } =
     useInfiniteQuery({
       queryKey: queryKeys.sessions.history(scope, filters),
-      queryFn: async ({ pageParam }) => {
-        return api.sessions.history({
-          ...filters,
-          scope,
-          cursor: pageParam,
-          pageSize: PAGE_SIZE,
-        });
+      queryFn: async ({ pageParam, signal }) => {
+        return api.sessions.history(
+          {
+            ...filters,
+            scope,
+            cursor: pageParam,
+            pageSize: PAGE_SIZE,
+          },
+          signal
+        );
       },
       initialPageParam: undefined as string | undefined,
       getNextPageParam: (lastPage) => lastPage.nextCursor,
@@ -126,13 +129,16 @@ export default function HistoryScreen() {
   // Fetch aggregates for summary stats
   const { data: aggregates, isLoading: isLoadingAggregates } = useQuery({
     queryKey: queryKeys.sessions.historyAggregates(scope, period),
-    queryFn: () => {
+    queryFn: ({ signal }) => {
       const { startDate, endDate } = getDateRange(period);
-      return api.sessions.historyAggregates({
-        scope,
-        startDate,
-        endDate,
-      });
+      return api.sessions.historyAggregates(
+        {
+          scope,
+          startDate,
+          endDate,
+        },
+        signal
+      );
     },
     staleTime: 1000 * 60,
   });

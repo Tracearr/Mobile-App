@@ -61,9 +61,9 @@ export function useServerStatistics(serverId: string | undefined, enabled: boole
 
   const query = useQuery<ServerResourceStats>({
     queryKey: queryKeys.servers.statistics(serverId),
-    queryFn: async (): Promise<ServerResourceStats> => {
+    queryFn: async ({ signal }): Promise<ServerResourceStats> => {
       if (!serverId) throw new Error('Server ID required');
-      const response = await api.servers.statistics(serverId);
+      const response = await api.servers.statistics(serverId, signal);
       // Merge with accumulated data
       const mergedData = mergeData(response.data, serverId);
       return {

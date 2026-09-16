@@ -16,12 +16,15 @@ export function useUnacknowledgedAlertsCount() {
 
   const { data } = useQuery({
     queryKey: queryKeys.violations.unacknowledgedCount(scope),
-    queryFn: () =>
-      api.violations.list({
-        scope,
-        acknowledged: false,
-        pageSize: 1, // We only need the total count
-      }),
+    queryFn: ({ signal }) =>
+      api.violations.list(
+        {
+          scope,
+          acknowledged: false,
+          pageSize: 1, // We only need the total count
+        },
+        signal
+      ),
     staleTime: 1000 * 30, // 30 seconds
   });
 

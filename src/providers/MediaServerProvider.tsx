@@ -102,7 +102,7 @@ export function MediaServerProvider({ children }: { children: ReactNode }) {
     refetch,
   } = useQuery({
     queryKey: queryKeys.mediaServers(tracearrBackendId),
-    queryFn: () => api.servers.list(),
+    queryFn: ({ signal }) => api.servers.list(signal),
     enabled: isAuthenticated && !!tracearrBackendId,
     staleTime: 1000 * 60 * 5,
   });

@@ -411,7 +411,7 @@ export default function UserDetailScreen() {
     refetch: refetchUser,
   } = useQuery({
     queryKey: queryKeys.users.detail(id, selectedServerId),
-    queryFn: () => api.users.get(id),
+    queryFn: ({ signal }) => api.users.get(id, signal),
     enabled: !!id,
   });
 
@@ -434,7 +434,8 @@ export default function UserDetailScreen() {
     isFetchingNextPage: fetchingMoreSessions,
   } = useInfiniteQuery({
     queryKey: queryKeys.users.sessions(id, selectedServerId),
-    queryFn: ({ pageParam }) => api.users.sessions(id, { page: pageParam, pageSize: PAGE_SIZE }),
+    queryFn: ({ pageParam, signal }) =>
+      api.users.sessions(id, { page: pageParam, pageSize: PAGE_SIZE }, signal),
     initialPageParam: 1,
     getNextPageParam: (lastPage: { page: number; totalPages: number }) => {
       if (lastPage.page < lastPage.totalPages) {
@@ -454,8 +455,11 @@ export default function UserDetailScreen() {
     isFetchingNextPage: fetchingMoreViolations,
   } = useInfiniteQuery({
     queryKey: queryKeys.violations.byUser(id),
-    queryFn: ({ pageParam }) =>
-      api.violations.list({ userId: id, page: pageParam, pageSize: PAGE_SIZE, scope: ALL_SERVERS }),
+    queryFn: ({ pageParam, signal }) =>
+      api.violations.list(
+        { userId: id, page: pageParam, pageSize: PAGE_SIZE, scope: ALL_SERVERS },
+        signal
+      ),
     initialPageParam: 1,
     getNextPageParam: (lastPage) => nextPageOf(lastPage),
     enabled: !!id,
@@ -464,14 +468,14 @@ export default function UserDetailScreen() {
   // Fetch user locations
   const { data: locations, isLoading: locationsLoading } = useQuery({
     queryKey: queryKeys.users.locations(id, selectedServerId),
-    queryFn: () => api.users.locations(id),
+    queryFn: ({ signal }) => api.users.locations(id, signal),
     enabled: !!id,
   });
 
   // Fetch user devices
   const { data: devices, isLoading: devicesLoading } = useQuery({
     queryKey: queryKeys.users.devices(id, selectedServerId),
-    queryFn: () => api.users.devices(id),
+    queryFn: ({ signal }) => api.users.devices(id, signal),
     enabled: !!id,
   });
 
@@ -484,8 +488,8 @@ export default function UserDetailScreen() {
     isFetchingNextPage: fetchingMoreTerminations,
   } = useInfiniteQuery({
     queryKey: queryKeys.users.terminations(id, selectedServerId),
-    queryFn: ({ pageParam }) =>
-      api.users.terminations(id, { page: pageParam, pageSize: PAGE_SIZE }),
+    queryFn: ({ pageParam, signal }) =>
+      api.users.terminations(id, { page: pageParam, pageSize: PAGE_SIZE }, signal),
     initialPageParam: 1,
     getNextPageParam: (lastPage: { page: number; totalPages: number }) => {
       if (lastPage.page < lastPage.totalPages) {

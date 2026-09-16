@@ -87,7 +87,7 @@ function SettingsRow({
 function ProfileRow() {
   const { data: user, isLoading } = useQuery({
     queryKey: queryKeys.me(),
-    queryFn: () => api.me(),
+    queryFn: ({ signal }) => api.me(signal),
     staleTime: 5 * 60 * 1000,
   });
 

@@ -244,12 +244,15 @@ export default function AlertsScreen() {
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, refetch, isLoading } =
     useInfiniteQuery({
       queryKey: queryKeys.violations.list(scope, severityFilter, statusFilter),
-      queryFn: ({ pageParam }) =>
-        api.violations.list({
-          ...queryParams,
-          scope,
-          page: pageParam,
-        }),
+      queryFn: ({ pageParam, signal }) =>
+        api.violations.list(
+          {
+            ...queryParams,
+            scope,
+            page: pageParam,
+          },
+          signal
+        ),
       initialPageParam: 1,
       getNextPageParam: (lastPage) => nextPageOf(lastPage),
     });

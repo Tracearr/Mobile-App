@@ -91,7 +91,7 @@ export default function DashboardScreen() {
 
   const { data: stats, refetch } = useQuery({
     queryKey: queryKeys.dashboard.stats(scope),
-    queryFn: () => api.stats.dashboard(scope),
+    queryFn: ({ signal }) => api.stats.dashboard(scope, signal),
     staleTime: 1000 * 30,
     refetchInterval: 1000 * 60,
   });
@@ -102,7 +102,7 @@ export default function DashboardScreen() {
     isLoading: sessionsLoading,
   } = useQuery({
     queryKey: queryKeys.sessions.active(scope),
-    queryFn: () => api.sessions.active(scope),
+    queryFn: ({ signal }) => api.sessions.active(scope, signal),
     staleTime: 1000 * 5,
     refetchInterval: 1000 * 30,
   });

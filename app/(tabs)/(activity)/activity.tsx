@@ -57,32 +57,32 @@ export default function ActivityScreen() {
   // Fetch all stats data with selected period - query keys include scope for cache isolation
   const { data: playsData, refetch: refetchPlays } = useQuery({
     queryKey: queryKeys.stats.plays(period, scope),
-    queryFn: () => api.stats.plays({ period, scope }),
+    queryFn: ({ signal }) => api.stats.plays({ period, scope }, signal),
   });
 
   const { data: dayOfWeekData, refetch: refetchDayOfWeek } = useQuery({
     queryKey: queryKeys.stats.dayOfWeek(period, scope),
-    queryFn: () => api.stats.playsByDayOfWeek({ period, scope }),
+    queryFn: ({ signal }) => api.stats.playsByDayOfWeek({ period, scope }, signal),
   });
 
   const { data: hourOfDayData, refetch: refetchHourOfDay } = useQuery({
     queryKey: queryKeys.stats.hourOfDay(period, scope),
-    queryFn: () => api.stats.playsByHourOfDay({ period, scope }),
+    queryFn: ({ signal }) => api.stats.playsByHourOfDay({ period, scope }, signal),
   });
 
   const { data: platformsData, refetch: refetchPlatforms } = useQuery({
     queryKey: queryKeys.stats.platforms(period, scope),
-    queryFn: () => api.stats.platforms({ period, scope }),
+    queryFn: ({ signal }) => api.stats.platforms({ period, scope }, signal),
   });
 
   const { data: qualityData, refetch: refetchQuality } = useQuery({
     queryKey: queryKeys.stats.quality(period, scope),
-    queryFn: () => api.stats.quality({ period, scope }),
+    queryFn: ({ signal }) => api.stats.quality({ period, scope }, signal),
   });
 
   const { data: concurrentData, refetch: refetchConcurrent } = useQuery({
     queryKey: queryKeys.stats.concurrent(period, scope),
-    queryFn: () => api.stats.concurrent({ period, scope }),
+    queryFn: ({ signal }) => api.stats.concurrent({ period, scope }, signal),
   });
 
   const handleRefresh = () =>
