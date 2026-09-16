@@ -8,7 +8,7 @@ import '../global.css';
 import { useEffect, useState, useRef } from 'react';
 import { Stack, ThemeProvider, DarkTheme, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { View, ActivityIndicator } from 'react-native';
+import { View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { QueryProvider } from '@/providers/QueryProvider';
@@ -22,12 +22,13 @@ import { useShallow } from 'zustand/react/shallow';
 import { useAuthStateStore } from '@/lib/authStateStore';
 import { useConnectionValidator } from '@/hooks/useConnectionValidator';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
-import { ACCENT_COLOR, colors } from '@/lib/theme';
+import { colors } from '@/lib/theme';
 import { i18nReady } from '@/lib/i18n';
 import { useTranslation } from '@tracearr/translations/mobile';
 import { Observe, ObserveRoot } from 'expo-observe';
 import * as Updates from 'expo-updates';
 import { startReviewTracking } from '@/lib/reviewPrompt';
+import * as SplashScreen from 'expo-splash-screen';
 
 // Every build profile bundles with NODE_ENV=production, so the channel is what
 // separates internal, beta and production. Route params carry server-side ids
@@ -37,6 +38,9 @@ Observe.configure({
   integrations: { 'expo-router': { filteredParams: ['id', 'prefillUrl'] } },
 });
 startReviewTracking();
+
+// Held until the first real screen can render; hidden in RootLayoutNav.
+void SplashScreen.preventAutoHideAsync();
 
 function RootLayoutNav() {
   const { t } = useTranslation(['mobile']);
@@ -87,19 +91,14 @@ function RootLayoutNav() {
     }
   }, [isAuthenticated, isInitializing, segments, router, connectionState]);
 
+  useEffect(() => {
+    if (!isInitializing) {
+      void SplashScreen.hideAsync();
+    }
+  }, [isInitializing]);
+
   if (isInitializing) {
-    return (
-      <View
-        style={{
-          flex: 1,
-          backgroundColor: colors.background.dark,
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        <ActivityIndicator size="large" color={ACCENT_COLOR} />
-      </View>
-    );
+    return null;
   }
 
   // Show unauthenticated screen when token is revoked
@@ -167,18 +166,7 @@ function RootLayout() {
   }, []);
 
   if (!i18nLoaded) {
-    return (
-      <View
-        style={{
-          flex: 1,
-          backgroundColor: colors.background.dark,
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        <ActivityIndicator size="large" color={ACCENT_COLOR} />
-      </View>
-    );
+    return null;
   }
 
   return (
