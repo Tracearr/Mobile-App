@@ -5,13 +5,17 @@
  * lets background refetches drive the native control, which arms every
  * mounted tab at once and moves the scroll offset.
  *
- * `controlKey` remounts the control when the app or the screen comes back.
- * iOS drops the spinner's layer animation while the app is backgrounded and
- * RefreshControl never restarts it, so the only repair is a fresh control.
+ * `controlKey` remounts the control when the app or the screen comes back, on
+ * iOS only. iOS drops the spinner's layer animation while the app is
+ * backgrounded and RefreshControl never restarts it, so a fresh control is the
+ * only repair. Android renders the control as the ScrollView's wrapper, where
+ * a new key would tear the list down instead.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AppState, type AppStateStatus } from 'react-native';
+import { AppState, Platform, type AppStateStatus } from 'react-native';
 import { useIsFocused } from 'expo-router';
+
+const CAN_REMOUNT = Platform.OS === 'ios';
 
 export function usePullToRefresh(onRefresh: () => Promise<unknown>, resetKey?: unknown) {
   const [refreshing, setRefreshing] = useState(false);
@@ -55,7 +59,7 @@ export function usePullToRefresh(onRefresh: () => Promise<unknown>, resetKey?: u
         }
         return;
       }
-      if (refreshingRef.current) {
+      if (refreshingRef.current && CAN_REMOUNT) {
         needsRemountRef.current = true;
       }
     });
@@ -71,7 +75,9 @@ export function usePullToRefresh(onRefresh: () => Promise<unknown>, resetKey?: u
       return;
     }
     if (refreshingRef.current) {
-      needsRemountRef.current = true;
+      if (CAN_REMOUNT) {
+        needsRemountRef.current = true;
+      }
       stop();
     }
   }, [isFocused, stop]);
