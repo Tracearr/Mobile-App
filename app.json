@@ -51,6 +51,8 @@
             "compileSdkVersion": 37,
             "targetSdkVersion": 36,
             "buildToolsVersion": "37.0.0",
+            "enableMinifyInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true,
             "packagingOptions": {
               "pickFirst": ["**/libcrypto.so"]
             }
@@ -64,7 +66,8 @@
         "./plugins/withGradleProperties",
         {
           "org.gradle.jvmargs": "-Xmx4g -XX:MaxMetaspaceSize=1g -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8",
-          "org.gradle.daemon": "false"
+          "org.gradle.daemon": "false",
+          "expo.camera.document-scanner-enabled": "false"
         }
       ],
       "expo-router",
