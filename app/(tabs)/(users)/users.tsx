@@ -154,17 +154,17 @@ export default function UsersScreen() {
   const numColumns = isTablet ? 2 : 1;
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, refetch } = useInfiniteQuery({
-      queryKey: queryKeys.users.list(scope),
-      queryFn: ({ pageParam }) =>
-        api.users.list({
-          page: pageParam,
-          pageSize: PAGE_SIZE,
-          scope,
-        }),
-      initialPageParam: 1,
-      getNextPageParam: (lastPage) => nextPageOf(lastPage),
-      staleTime: 1000 * 60, // 60 seconds - user list doesn't change frequently
-    });
+    queryKey: queryKeys.users.list(scope),
+    queryFn: ({ pageParam }) =>
+      api.users.list({
+        page: pageParam,
+        pageSize: PAGE_SIZE,
+        scope,
+      }),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => nextPageOf(lastPage),
+    staleTime: 1000 * 60, // 60 seconds - user list doesn't change frequently
+  });
 
   // Flatten all pages into single array. Memoized on data.pages so the search
   // filter below it can actually cache; a fresh array each render defeated it.

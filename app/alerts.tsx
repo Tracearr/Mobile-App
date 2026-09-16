@@ -242,16 +242,16 @@ export default function AlertsScreen() {
   );
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, refetch } = useInfiniteQuery({
-      queryKey: queryKeys.violations.list(scope, severityFilter, statusFilter),
-      queryFn: ({ pageParam }) =>
-        api.violations.list({
-          ...queryParams,
-          scope,
-          page: pageParam,
-        }),
-      initialPageParam: 1,
-      getNextPageParam: (lastPage) => nextPageOf(lastPage),
-    });
+    queryKey: queryKeys.violations.list(scope, severityFilter, statusFilter),
+    queryFn: ({ pageParam }) =>
+      api.violations.list({
+        ...queryParams,
+        scope,
+        page: pageParam,
+      }),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => nextPageOf(lastPage),
+  });
 
   const { refreshing, onRefresh, controlKey } = usePullToRefresh(() => refetch());
 
