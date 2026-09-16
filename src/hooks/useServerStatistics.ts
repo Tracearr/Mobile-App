@@ -25,9 +25,16 @@ export function useServerStatistics(serverId: string | undefined, enabled: boole
 
   // Accumulate data points across polls, keyed by timestamp for deduplication
   const dataMapRef = useRef<Map<number, ServerResourceDataPoint>>(new Map());
+  // The accumulator outlives a serverId change, so without this the previous
+  // server's samples blend into the new server's window.
+  const dataOwnerRef = useRef<string | undefined>(serverId);
 
   // Bounded by time, not count - MAX_POINTS is only a memory ceiling
-  const mergeData = useCallback((newData: ServerResourceDataPoint[]) => {
+  const mergeData = useCallback((newData: ServerResourceDataPoint[], owner: string) => {
+    if (dataOwnerRef.current !== owner) {
+      dataOwnerRef.current = owner;
+      dataMapRef.current = new Map();
+    }
     const map = dataMapRef.current;
 
     // Add/update data points
@@ -58,7 +65,7 @@ export function useServerStatistics(serverId: string | undefined, enabled: boole
       if (!serverId) throw new Error('Server ID required');
       const response = await api.servers.statistics(serverId);
       // Merge with accumulated data
-      const mergedData = mergeData(response.data);
+      const mergedData = mergeData(response.data, serverId);
       return {
         ...response,
         data: mergedData,
