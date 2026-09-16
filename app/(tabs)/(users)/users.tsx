@@ -153,18 +153,19 @@ export default function UsersScreen() {
   const horizontalPadding = select({ base: spacing.md, md: spacing.lg, lg: spacing.xl });
   const numColumns = isTablet ? 2 : 1;
 
-  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, refetch } = useInfiniteQuery({
-    queryKey: queryKeys.users.list(scope),
-    queryFn: ({ pageParam }) =>
-      api.users.list({
-        page: pageParam,
-        pageSize: PAGE_SIZE,
-        scope,
-      }),
-    initialPageParam: 1,
-    getNextPageParam: (lastPage) => nextPageOf(lastPage),
-    staleTime: 1000 * 60, // 60 seconds - user list doesn't change frequently
-  });
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, refetch, isLoading } =
+    useInfiniteQuery({
+      queryKey: queryKeys.users.list(scope),
+      queryFn: ({ pageParam }) =>
+        api.users.list({
+          page: pageParam,
+          pageSize: PAGE_SIZE,
+          scope,
+        }),
+      initialPageParam: 1,
+      getNextPageParam: (lastPage) => nextPageOf(lastPage),
+      staleTime: 1000 * 60, // 60 seconds - user list doesn't change frequently
+    });
 
   // Flatten all pages into single array. Memoized on data.pages so the search
   // filter below it can actually cache; a fresh array each render defeated it.
@@ -283,19 +284,25 @@ export default function UsersScreen() {
           ) : undefined
         }
         ListEmptyComponent={
-          <View className="items-center py-12">
-            <View className="bg-card border-border mb-4 h-16 w-16 items-center justify-center rounded-full border">
-              <UsersIcon size={32} color={colors.text.muted.dark} />
+          isLoading ? (
+            <View className="items-center py-12">
+              <ActivityIndicator size="large" color={ACCENT_COLOR} />
             </View>
-            <Text className="mb-1 text-lg font-semibold">
-              {searchQuery ? t('common:empty.noResults') : t('mobile:users.noUsers')}
-            </Text>
-            <Text className="text-muted-foreground px-4 text-center text-sm">
-              {searchQuery
-                ? t('mobile:users.noUsersMatch', { query: searchQuery })
-                : t('mobile:users.usersWillAppear')}
-            </Text>
-          </View>
+          ) : (
+            <View className="items-center py-12">
+              <View className="bg-card border-border mb-4 h-16 w-16 items-center justify-center rounded-full border">
+                <UsersIcon size={32} color={colors.text.muted.dark} />
+              </View>
+              <Text className="mb-1 text-lg font-semibold">
+                {searchQuery ? t('common:empty.noResults') : t('mobile:users.noUsers')}
+              </Text>
+              <Text className="text-muted-foreground px-4 text-center text-sm">
+                {searchQuery
+                  ? t('mobile:users.noUsersMatch', { query: searchQuery })
+                  : t('mobile:users.usersWillAppear')}
+              </Text>
+            </View>
+          )
         }
       />
 

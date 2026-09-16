@@ -241,17 +241,18 @@ export default function AlertsScreen() {
     [severityFilter, statusFilter]
   );
 
-  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, refetch } = useInfiniteQuery({
-    queryKey: queryKeys.violations.list(scope, severityFilter, statusFilter),
-    queryFn: ({ pageParam }) =>
-      api.violations.list({
-        ...queryParams,
-        scope,
-        page: pageParam,
-      }),
-    initialPageParam: 1,
-    getNextPageParam: (lastPage) => nextPageOf(lastPage),
-  });
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, refetch, isLoading } =
+    useInfiniteQuery({
+      queryKey: queryKeys.violations.list(scope, severityFilter, statusFilter),
+      queryFn: ({ pageParam }) =>
+        api.violations.list({
+          ...queryParams,
+          scope,
+          page: pageParam,
+        }),
+      initialPageParam: 1,
+      getNextPageParam: (lastPage) => nextPageOf(lastPage),
+    });
 
   const { refreshing, onRefresh, controlKey } = usePullToRefresh(() => refetch());
 
@@ -414,110 +415,116 @@ export default function AlertsScreen() {
           ) : undefined
         }
         ListEmptyComponent={
-          <View
-            style={{
-              flex: 1,
-              alignItems: 'center',
-              justifyContent: 'center',
-              paddingHorizontal: 24,
-              paddingVertical: 80,
-            }}
-          >
-            {hasActiveFilters ? (
-              <>
-                {/* No matches for current filters */}
-                <View
-                  style={{
-                    width: 72,
-                    minHeight: 72,
-                    borderRadius: 36,
-                    backgroundColor: colors.surface.dark,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    marginBottom: 20,
-                  }}
-                >
-                  <Filter size={32} color={colors.text.muted.dark} />
-                </View>
-                <Text
-                  style={{
-                    fontSize: 20,
-                    fontWeight: '600',
-                    color: colors.text.primary.dark,
-                    marginBottom: 8,
-                  }}
-                >
-                  {t('pages:violations.noMatches', { defaultValue: 'No matching violations' })}
-                </Text>
-                <Text
-                  style={{
-                    fontSize: 14,
-                    color: colors.text.muted.dark,
-                    textAlign: 'center',
-                    marginBottom: 24,
-                    lineHeight: 20,
-                  }}
-                >
-                  {t('pages:violations.tryAdjustingFilters')}
-                </Text>
-                <Pressable
-                  onPress={() => {
-                    setSeverityFilter('all');
-                    setStatusFilter('all');
-                  }}
-                  style={{
-                    backgroundColor: colors.surface.dark,
-                    paddingHorizontal: 20,
-                    paddingVertical: 10,
-                    borderRadius: 8,
-                  }}
-                >
-                  <Text style={{ color: ACCENT_COLOR, fontSize: 14, fontWeight: '600' }}>
-                    {t('mobile:alerts.clearFilters')}
+          isLoading ? (
+            <View className="items-center py-12">
+              <ActivityIndicator size="large" color={ACCENT_COLOR} />
+            </View>
+          ) : (
+            <View
+              style={{
+                flex: 1,
+                alignItems: 'center',
+                justifyContent: 'center',
+                paddingHorizontal: 24,
+                paddingVertical: 80,
+              }}
+            >
+              {hasActiveFilters ? (
+                <>
+                  {/* No matches for current filters */}
+                  <View
+                    style={{
+                      width: 72,
+                      minHeight: 72,
+                      borderRadius: 36,
+                      backgroundColor: colors.surface.dark,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      marginBottom: 20,
+                    }}
+                  >
+                    <Filter size={32} color={colors.text.muted.dark} />
+                  </View>
+                  <Text
+                    style={{
+                      fontSize: 20,
+                      fontWeight: '600',
+                      color: colors.text.primary.dark,
+                      marginBottom: 8,
+                    }}
+                  >
+                    {t('pages:violations.noMatches', { defaultValue: 'No matching violations' })}
                   </Text>
-                </Pressable>
-              </>
-            ) : (
-              <>
-                {/* All clear - simple centered design */}
-                <View
-                  style={{
-                    width: 80,
-                    minHeight: 80,
-                    borderRadius: 40,
-                    backgroundColor: `${colors.success}20`,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    marginBottom: 24,
-                  }}
-                >
-                  <Check size={40} color={colors.success} strokeWidth={2.5} />
-                </View>
-                <Text
-                  style={{
-                    fontSize: 22,
-                    fontWeight: '700',
-                    color: colors.text.primary.dark,
-                    marginBottom: 8,
-                  }}
-                >
-                  {t('pages:violations.allClear', { defaultValue: 'All clear' })}
-                </Text>
-                <Text
-                  style={{
-                    fontSize: 14,
-                    color: colors.text.muted.dark,
-                    textAlign: 'center',
-                    lineHeight: 20,
-                  }}
-                >
-                  {t('pages:violations.noViolationsDetected', {
-                    defaultValue: 'No violations detected',
-                  })}
-                </Text>
-              </>
-            )}
-          </View>
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      color: colors.text.muted.dark,
+                      textAlign: 'center',
+                      marginBottom: 24,
+                      lineHeight: 20,
+                    }}
+                  >
+                    {t('pages:violations.tryAdjustingFilters')}
+                  </Text>
+                  <Pressable
+                    onPress={() => {
+                      setSeverityFilter('all');
+                      setStatusFilter('all');
+                    }}
+                    style={{
+                      backgroundColor: colors.surface.dark,
+                      paddingHorizontal: 20,
+                      paddingVertical: 10,
+                      borderRadius: 8,
+                    }}
+                  >
+                    <Text style={{ color: ACCENT_COLOR, fontSize: 14, fontWeight: '600' }}>
+                      {t('mobile:alerts.clearFilters')}
+                    </Text>
+                  </Pressable>
+                </>
+              ) : (
+                <>
+                  {/* All clear - simple centered design */}
+                  <View
+                    style={{
+                      width: 80,
+                      minHeight: 80,
+                      borderRadius: 40,
+                      backgroundColor: `${colors.success}20`,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      marginBottom: 24,
+                    }}
+                  >
+                    <Check size={40} color={colors.success} strokeWidth={2.5} />
+                  </View>
+                  <Text
+                    style={{
+                      fontSize: 22,
+                      fontWeight: '700',
+                      color: colors.text.primary.dark,
+                      marginBottom: 8,
+                    }}
+                  >
+                    {t('pages:violations.allClear', { defaultValue: 'All clear' })}
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      color: colors.text.muted.dark,
+                      textAlign: 'center',
+                      lineHeight: 20,
+                    }}
+                  >
+                    {t('pages:violations.noViolationsDetected', {
+                      defaultValue: 'No violations detected',
+                    })}
+                  </Text>
+                </>
+              )}
+            </View>
+          )
         }
       />
     </SafeAreaView>

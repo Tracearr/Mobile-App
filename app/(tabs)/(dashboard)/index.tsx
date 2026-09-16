@@ -8,7 +8,7 @@
  * - Large tablet (lg+): 3-column grid for Now Playing
  */
 import { useMemo } from 'react';
-import { View, ScrollView, RefreshControl } from 'react-native';
+import { View, ScrollView, RefreshControl, ActivityIndicator } from 'react-native';
 import { useRouter, Stack } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -96,7 +96,11 @@ export default function DashboardScreen() {
     refetchInterval: 1000 * 60,
   });
 
-  const { data: activeSessions, refetch: refetchSessions } = useQuery({
+  const {
+    data: activeSessions,
+    refetch: refetchSessions,
+    isLoading: sessionsLoading,
+  } = useQuery({
     queryKey: queryKeys.sessions.active(scope),
     queryFn: () => api.sessions.active(scope),
     staleTime: 1000 * 5,
@@ -242,6 +246,12 @@ export default function DashboardScreen() {
                 </View>
               ))}
             </View>
+          ) : sessionsLoading ? (
+            <Card className="py-8">
+              <View className="items-center">
+                <ActivityIndicator size="large" color={ACCENT_COLOR} />
+              </View>
+            </Card>
           ) : (
             <Card className="py-8">
               <View className="items-center">
