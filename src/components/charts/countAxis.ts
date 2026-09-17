@@ -12,3 +12,17 @@ export function countDomain(values: readonly number[]): [number, number] {
 export function hasCounts(values: readonly number[]): boolean {
   return values.some((value) => value > 0);
 }
+
+/**
+ * /stats/plays returns one row per (date, server), so a multi-server selection
+ * has several rows for the same date. Order follows each date's first row.
+ */
+export function sumByDate(
+  rows: readonly { date: string; count: number }[]
+): { date: string; count: number }[] {
+  const totals = new Map<string, number>();
+  for (const { date, count } of rows) {
+    totals.set(date, (totals.get(date) ?? 0) + count);
+  }
+  return Array.from(totals, ([date, count]) => ({ date, count }));
+}

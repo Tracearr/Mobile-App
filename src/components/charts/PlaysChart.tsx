@@ -11,7 +11,7 @@ import type { SharedValue } from 'react-native-reanimated';
 import { colors, ACCENT_COLOR } from '../../lib/theme';
 import { useChartFont } from './useChartFont';
 import { ChartCard, PlaysReadout } from './ChartCard';
-import { COUNT_TICKS, countDomain, hasCounts } from './countAxis';
+import { COUNT_TICKS, countDomain, hasCounts, sumByDate } from './countAxis';
 import {
   DATE_TICKS,
   formatAxisDate,
@@ -50,13 +50,13 @@ export function PlaysChart({ data, period = 'month', height = 200, isLoading }: 
     count: number;
   } | null>(null);
 
-  // Transform data for victory-native
-  const chartData = data.map((d, index) => ({
+  const byDate = sumByDate(data);
+  const chartData = byDate.map((d, index) => ({
     x: index,
     count: d.count,
   }));
   const counts = chartData.map((d) => d.count);
-  const dates = data.map((d) => new Date(d.date));
+  const dates = byDate.map((d) => new Date(d.date));
   const monthLabels = usesMonthLabels(dates[0] ?? null, dates[dates.length - 1] ?? null);
 
   // Sync SharedValue changes to React state
