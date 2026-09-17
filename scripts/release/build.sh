@@ -5,7 +5,8 @@
 # The CLI version is pinned explicitly rather than using an ambient `eas`: a
 # globally installed eas-cli lives under one node version's bin directory, so
 # switching node silently changes the CLI. Keep this in step with
-# `eas-version` in .github/workflows/mobile-release.yml. It is deliberately not
+# `eas-version` in .github/workflows/mobile-release.yml and `npm:eas-cli` in
+# .tool-versions, which is what a bare `eas` resolves to here. It is deliberately not
 # a devDependency; expo-doctor fails the project when eas-cli is installed locally.
 set -euo pipefail
 
