@@ -25,5 +25,6 @@ export const ROUTES = {
   // Other
   SETTINGS: '/settings',
   ALERTS: '/alerts',
+  AUTOMATIONS: '/automations',
   SERVER_SELECT: '/server-select',
 } as const;

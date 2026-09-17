@@ -4,8 +4,8 @@ import {
   getIdentityServers,
   getMergedIdentityServers,
   isPersonRemoved,
-  pageableSections,
   parseServerTimestamp,
+  violationsPageFilter,
 } from './identity.ts';
 
 test('a row with no identityServers still shows its own server', () => {
@@ -50,17 +50,11 @@ test('parses the Postgres text timestamps the users list sends', () => {
   assert.equal(parseServerTimestamp('not a date'), null);
 });
 
-test('load more follows what each paged endpoint can scope to', () => {
-  assert.deepEqual(pageableSections(false, true), {
-    sessionsAndTerminations: true,
-    violations: true,
+test('violations page by person in identity scope and by account otherwise', () => {
+  assert.deepEqual(violationsPageFilter('identity', 'account-1', 'person-1'), {
+    userId: 'person-1',
   });
-  assert.deepEqual(pageableSections(true, true), {
-    sessionsAndTerminations: false,
-    violations: true,
-  });
-  assert.deepEqual(pageableSections(true, false), {
-    sessionsAndTerminations: true,
-    violations: false,
+  assert.deepEqual(violationsPageFilter('account', 'account-1', 'person-1'), {
+    serverUserId: 'account-1',
   });
 });

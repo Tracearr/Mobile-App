@@ -151,10 +151,10 @@ function formatReason(reason: string): string {
 }
 
 // Get country name from country code
-function getCountryName(countryCode: string | null): string | null {
+function getCountryName(countryCode: string | null, language: string): string | null {
   if (!countryCode) return null;
   try {
-    const displayNames = new Intl.DisplayNames(['en'], { type: 'region' });
+    const displayNames = new Intl.DisplayNames([language], { type: 'region' });
     return displayNames.of(countryCode) ?? countryCode;
   } catch {
     return countryCode;
@@ -210,7 +210,7 @@ function InfoRow({
 }
 
 export default function SessionDetailScreen() {
-  const { t } = useTranslation(['mobile', 'common', 'pages']);
+  const { t, i18n } = useTranslation(['mobile', 'common', 'pages']);
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { selectedServerId } = useMediaServer();
@@ -298,7 +298,7 @@ export default function SessionDetailScreen() {
   const locationParts = [
     session.geoCity,
     session.geoRegion,
-    getCountryName(session.geoCountry),
+    getCountryName(session.geoCountry, i18n.language),
   ].filter(Boolean);
   const locationString = locationParts.join(', ');
 

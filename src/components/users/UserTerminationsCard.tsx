@@ -2,7 +2,7 @@ import { View } from 'react-native';
 import { XCircle, Check, User, Bot } from 'lucide-react-native';
 import type { TerminationLogWithDetails } from '@tracearr/shared';
 import { useTranslation } from '@tracearr/translations/mobile';
-import { api } from '@/lib/api';
+import { api, type UserDetailScope } from '@/lib/api';
 import { queryKeys } from '@/lib/queryKeys';
 import { Text } from '@/components/ui/text';
 import { Badge } from '@/components/ui/badge';
@@ -10,7 +10,7 @@ import { ServerTag } from '@/components/server/ServerTag';
 import { useMediaServer } from '@/providers/MediaServerProvider';
 import { safeFormatDistanceToNow } from '@/lib/formatters';
 import { ACCENT_COLOR, colors } from '@/lib/theme';
-import { UserSection, SectionRow, SectionEmptyText, SectionNote } from './UserSection';
+import { UserSection, SectionRow, SectionEmptyText } from './UserSection';
 import { LoadMoreButton } from './LoadMoreButton';
 import { useMoreRows, SECTION_PAGE_SIZE } from './useMoreRows';
 import { mediaTypeLabelKey } from './mediaTypeLabel';
@@ -25,7 +25,7 @@ function TerminationRow({
   showServer: boolean;
 }) {
   const { t } = useTranslation(['common', 'pages', 'mobile']);
-  const { servers } = useMediaServer();
+  const { serverColor } = useMediaServer();
   const unknown = t('common:labels.unknown');
   const isManual = termination.trigger === 'manual';
   const TriggerIcon = isManual ? User : Bot;
@@ -80,10 +80,7 @@ function TerminationRow({
             )}
           </View>
           {showServer && (
-            <ServerTag
-              name={termination.serverName}
-              color={servers.find((server) => server.id === termination.serverId)?.color}
-            />
+            <ServerTag name={termination.serverName} color={serverColor(termination.serverId)} />
           )}
         </View>
       </View>
@@ -94,24 +91,26 @@ function TerminationRow({
 interface UserTerminationsCardProps {
   userId: string;
   first: { data: TerminationLogWithDetails[]; total: number; hasMore: boolean };
-  /** False when the rows span accounts that /users/:id/terminations cannot page across. */
-  canPage: boolean;
+  scope: UserDetailScope;
   showServer: boolean;
 }
 
 export function UserTerminationsCard({
   userId,
   first,
-  canPage,
+  scope,
   showServer,
 }: UserTerminationsCardProps) {
   const { t } = useTranslation(['common', 'pages', 'mobile']);
   const { rows, canLoadMore, isLoadingMore, loadMore } = useMoreRows({
-    queryKey: queryKeys.users.terminations(userId, null),
+    queryKey: queryKeys.users.terminations(userId, scope),
     first,
     fetchPage: (page, signal) =>
-      api.users.terminations(userId, { page, pageSize: SECTION_PAGE_SIZE }, signal),
-    enabled: canPage,
+      api.users.terminations(
+        userId,
+        { page, pageSize: SECTION_PAGE_SIZE, scope: scope === 'identity' ? scope : undefined },
+        signal
+      ),
   });
 
   return (
@@ -133,14 +132,6 @@ export function UserTerminationsCard({
         />
       ))}
       {canLoadMore && <LoadMoreButton onPress={loadMore} isLoading={isLoadingMore} />}
-      {!canPage && first.hasMore && (
-        <SectionNote>
-          {t('mobile:userDetail.pickServerForMore', {
-            shown: SECTION_PAGE_SIZE,
-            defaultValue: 'Showing the latest {{shown}}. Pick a server above to see more.',
-          })}
-        </SectionNote>
-      )}
     </UserSection>
   );
 }

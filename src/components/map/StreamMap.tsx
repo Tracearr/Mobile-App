@@ -57,7 +57,7 @@ class MapErrorBoundary extends Component<
 interface StreamMapProps {
   sessions: ActiveSession[];
   height?: number;
-  serverColorMap?: Map<string, string | null>;
+  serverColor?: (serverId: string) => string | null;
 }
 
 type SessionWithLocation = ActiveSession & {
@@ -80,7 +80,7 @@ interface MarkerData {
 
 function buildMarkers(
   sessions: SessionWithLocation[],
-  serverColorMap?: Map<string, string | null>
+  serverColor?: (serverId: string) => string | null
 ): MarkerData[] {
   return sessions.map((session) => {
     const username = session.user?.username ?? 'Unknown';
@@ -96,7 +96,7 @@ function buildMarkers(
       longitude: session.geoLon,
       title: displayName,
       snippet: [truncatedTitle, location].filter(Boolean).join('\n'),
-      color: serverColorMap?.get(session.server.id) ?? ACCENT_COLOR,
+      color: serverColor?.(session.server.id) ?? ACCENT_COLOR,
     };
   });
 }
@@ -119,7 +119,7 @@ function calculateZoom(sessions: SessionWithLocation[]): number {
   return 10;
 }
 
-export function StreamMap({ sessions, height = 300, serverColorMap }: StreamMapProps) {
+export function StreamMap({ sessions, height = 300, serverColor }: StreamMapProps) {
   const { t } = useTranslation(['mobile']);
   const sessionsWithLocation = sessions.filter(hasLocation);
 
@@ -134,7 +134,7 @@ export function StreamMap({ sessions, height = 300, serverColorMap }: StreamMapP
     );
   }
 
-  const markers = buildMarkers(sessionsWithLocation, serverColorMap);
+  const markers = buildMarkers(sessionsWithLocation, serverColor);
   const avgLat =
     sessionsWithLocation.reduce((sum, s) => sum + s.geoLat, 0) / sessionsWithLocation.length;
   const avgLon =

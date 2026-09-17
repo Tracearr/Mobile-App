@@ -15,7 +15,7 @@ interface ServerPillsProps {
 
 export function ServerPills({ servers, max = 3, size = 'sm', className }: ServerPillsProps) {
   const { t } = useTranslation(['pages']);
-  const { servers: mediaServers } = useMediaServer();
+  const { serverColor } = useMediaServer();
   if (servers.length === 0) return null;
 
   const hidden = servers.slice(max);
@@ -23,12 +23,7 @@ export function ServerPills({ servers, max = 3, size = 'sm', className }: Server
   return (
     <View className={cn('flex-row flex-wrap items-center gap-x-2.5 gap-y-1', className)}>
       {servers.slice(0, max).map((server) => (
-        <ServerTag
-          key={server.id}
-          size={size}
-          name={server.name}
-          color={mediaServers.find((s) => s.id === server.id)?.color}
-        />
+        <ServerTag key={server.id} size={size} name={server.name} color={serverColor(server.id)} />
       ))}
       {hidden.length > 0 && (
         <Text

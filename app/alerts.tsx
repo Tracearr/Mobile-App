@@ -12,7 +12,7 @@ import { View, RefreshControl, Pressable, ActivityIndicator, Alert, Platform } f
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FlashList } from '@shopify/flash-list';
 import { useInfiniteQuery, useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
-import { Stack, useRouter, useFocusEffect, type Href } from 'expo-router';
+import { Stack, useRouter, useFocusEffect } from 'expo-router';
 import * as Notifications from 'expo-notifications';
 import { Check, CheckCheck, Filter, ChevronRight, Workflow } from 'lucide-react-native';
 import { api } from '@/lib/api';
@@ -48,9 +48,6 @@ import { useTranslation } from '@tracearr/translations/mobile';
 import { ObserveInteractiveMarker } from 'expo-observe';
 
 const PAGE_SIZE = 50;
-
-// Typed routes only learn this path once the automations screen exists in the route table.
-const AUTOMATIONS_ROUTE = '/automations' as Href;
 
 type SeverityFilter = ViolationSeverity | 'all';
 type StatusFilter = 'all' | 'pending' | 'acknowledged';
@@ -331,7 +328,7 @@ export default function AlertsScreen() {
     [unitSystem, isTablet, acknowledgingId]
   );
 
-  const openAutomations = () => router.push(AUTOMATIONS_ROUTE);
+  const openAutomations = () => router.push(ROUTES.AUTOMATIONS);
   const isBulkBusy = isCountingPending || bulkAcknowledge.isPending;
 
   return (

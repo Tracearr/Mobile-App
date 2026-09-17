@@ -3,7 +3,7 @@ import { Image } from 'expo-image';
 import { Play, Clock, Tv, Globe, Film, Music } from 'lucide-react-native';
 import { formatEpisodeLabel, type Session } from '@tracearr/shared';
 import { useTranslation } from '@tracearr/translations/mobile';
-import { api } from '@/lib/api';
+import { api, type UserDetailScope } from '@/lib/api';
 import { queryKeys } from '@/lib/queryKeys';
 import { useImageUrl } from '@/hooks/useImageUrl';
 import { Text } from '@/components/ui/text';
@@ -12,7 +12,7 @@ import { ServerTag } from '@/components/server/ServerTag';
 import { useMediaServer } from '@/providers/MediaServerProvider';
 import { formatDuration } from '@/lib/formatters';
 import { colors } from '@/lib/theme';
-import { UserSection, SectionRow, SectionEmptyText, SectionNote } from './UserSection';
+import { UserSection, SectionRow, SectionEmptyText } from './UserSection';
 import { LoadMoreButton } from './LoadMoreButton';
 import { useMoreRows, SECTION_PAGE_SIZE } from './useMoreRows';
 import { mediaTypeLabelKey } from './mediaTypeLabel';
@@ -47,7 +47,7 @@ function SessionRow({
 }) {
   const { t } = useTranslation(['common', 'pages']);
   const getImageUrl = useImageUrl();
-  const { servers } = useMediaServer();
+  const { serverColor } = useMediaServer();
   const posterUrl = getImageUrl({
     serverId: session.serverId,
     path: session.thumbPath,
@@ -119,10 +119,7 @@ function SessionRow({
               </View>
             ) : null}
             {showServer && (
-              <ServerTag
-                name={session.serverName}
-                color={servers.find((server) => server.id === session.serverId)?.color}
-              />
+              <ServerTag name={session.serverName} color={serverColor(session.serverId)} />
             )}
           </View>
         </View>
@@ -134,8 +131,7 @@ function SessionRow({
 interface UserSessionsCardProps {
   userId: string;
   first: { data: Session[]; total: number; hasMore: boolean };
-  /** False when the rows span accounts that /users/:id/sessions cannot page across. */
-  canPage: boolean;
+  scope: UserDetailScope;
   showServer: boolean;
   onSessionPress: (session: Session) => void;
 }
@@ -143,17 +139,20 @@ interface UserSessionsCardProps {
 export function UserSessionsCard({
   userId,
   first,
-  canPage,
+  scope,
   showServer,
   onSessionPress,
 }: UserSessionsCardProps) {
   const { t } = useTranslation(['common', 'mobile']);
   const { rows, canLoadMore, isLoadingMore, loadMore } = useMoreRows({
-    queryKey: queryKeys.users.sessions(userId, null),
+    queryKey: queryKeys.users.sessions(userId, scope),
     first,
     fetchPage: (page, signal) =>
-      api.users.sessions(userId, { page, pageSize: SECTION_PAGE_SIZE }, signal),
-    enabled: canPage,
+      api.users.sessions(
+        userId,
+        { page, pageSize: SECTION_PAGE_SIZE, scope: scope === 'identity' ? scope : undefined },
+        signal
+      ),
   });
 
   return (
@@ -176,14 +175,6 @@ export function UserSessionsCard({
         />
       ))}
       {canLoadMore && <LoadMoreButton onPress={loadMore} isLoading={isLoadingMore} />}
-      {!canPage && first.hasMore && (
-        <SectionNote>
-          {t('mobile:userDetail.pickServerForMore', {
-            shown: SECTION_PAGE_SIZE,
-            defaultValue: 'Showing the latest {{shown}}. Pick a server above to see more.',
-          })}
-        </SectionNote>
-      )}
     </UserSection>
   );
 }

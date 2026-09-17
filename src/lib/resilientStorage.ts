@@ -9,7 +9,7 @@ import { Platform } from 'react-native';
 
 const MAX_RETRIES = 2;
 const RETRY_DELAY_MS = 500;
-const OPERATION_TIMEOUT_MS = 2000;
+export const OPERATION_TIMEOUT_MS = 2000;
 
 // Track consecutive failures to determine if storage is persistently unavailable
 let consecutiveFailures = 0;
@@ -32,7 +32,7 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+export function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error('Operation timed out')), ms);
     promise

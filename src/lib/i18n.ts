@@ -1,9 +1,12 @@
 import { initI18n, detectLanguage, type SupportedLanguage } from '@tracearr/translations/mobile';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { withTimeout, OPERATION_TIMEOUT_MS } from './resilientStorage';
 
-// AsyncStorage adapter for the translations package's language detection/persistence
+// AsyncStorage adapter for the translations package's language detection/persistence.
+// The root layout waits on i18nReady, so a read that never settles would block app start:
+// detectLanguage catches the timeout and falls back to the device locale.
 const asyncStorageAdapter = {
-  getItem: (key: string) => AsyncStorage.getItem(key),
+  getItem: (key: string) => withTimeout(AsyncStorage.getItem(key), OPERATION_TIMEOUT_MS),
   setItem: (key: string, value: string) => AsyncStorage.setItem(key, value),
 };
 

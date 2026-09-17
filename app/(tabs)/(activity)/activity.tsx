@@ -148,6 +148,7 @@ export default function ActivityScreen() {
           >
             <PlaysChart
               data={plays.data?.data ?? []}
+              period={period}
               isLoading={plays.isLoading}
               height={chartHeightLarge}
             />
@@ -161,6 +162,7 @@ export default function ActivityScreen() {
           >
             <ConcurrentChart
               data={concurrent.data?.data ?? []}
+              period={period}
               isLoading={concurrent.isLoading}
               height={chartHeightLarge}
             />

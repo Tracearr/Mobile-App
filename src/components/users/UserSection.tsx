@@ -38,8 +38,3 @@ export function SectionRow({ isFirst, className, ...props }: ViewProps & { isFir
 export function SectionEmptyText({ children }: { children: string }) {
   return <Text className="text-muted-foreground py-4 text-center text-sm">{children}</Text>;
 }
-
-/** Shown in place of "load more" when no paged endpoint covers the rows on screen. */
-export function SectionNote({ children }: { children: string }) {
-  return <Text className="text-muted-foreground pt-3 text-center text-xs">{children}</Text>;
-}

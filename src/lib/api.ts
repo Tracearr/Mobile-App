@@ -17,11 +17,8 @@ import type {
   AutomationRunSummary,
   DashboardStats,
   ServerUserWithIdentity,
-  ServerUserDetail,
   Session,
   SessionWithDetails,
-  UserLocation,
-  UserDevice,
   Violation,
   ViolationWithDetails,
   Server,
@@ -83,12 +80,12 @@ export interface UnhealthyServer {
   serverName: string;
 }
 
-// `acknowledged` stops at false: 2.1 servers ignore `true` in a bulk filter, which
-// would widen selectAll to every violation of that severity.
+// `acknowledged` is always false. 2.1 servers ignore `true` in a bulk filter, and with the
+// key missing selectAll also matches acknowledged rows and re-stamps their acknowledgedAt.
 export interface BulkAcknowledgeFilters {
   scope: ServerScope;
   severity: ViolationSeverity | undefined;
-  acknowledged: false | undefined;
+  acknowledged: false;
 }
 
 export type BulkAcknowledgeInput =
@@ -720,9 +717,6 @@ export const api = {
         ListResponse<ServerUserWithIdentity> | PaginatedResponse<ServerUserWithIdentity>
       >(`/users?${searchParams.toString()}`, { signal });
     },
-    get: async (id: string, signal?: AbortSignal): Promise<ServerUserDetail> => {
-      return apiGet<ServerUserDetail>(`/users/${id}`, { signal });
-    },
     full: async (
       id: string,
       scope: UserDetailScope,
@@ -754,22 +748,14 @@ export const api = {
     },
     sessions: async (
       id: string,
-      params?: { page?: number; pageSize?: number },
+      params?: { page?: number; pageSize?: number; scope?: 'identity' },
       signal?: AbortSignal
     ) => {
       return apiGet<PaginatedResponse<Session>>(`/users/${id}/sessions`, { params, signal });
     },
-    locations: async (id: string, signal?: AbortSignal): Promise<UserLocation[]> => {
-      const { data } = await apiGet<{ data: UserLocation[] }>(`/users/${id}/locations`, { signal });
-      return data;
-    },
-    devices: async (id: string, signal?: AbortSignal): Promise<UserDevice[]> => {
-      const { data } = await apiGet<{ data: UserDevice[] }>(`/users/${id}/devices`, { signal });
-      return data;
-    },
     terminations: async (
       id: string,
-      params?: { page?: number; pageSize?: number },
+      params?: { page?: number; pageSize?: number; scope?: 'identity' },
       signal?: AbortSignal
     ): Promise<PaginatedResponse<TerminationLogWithDetails>> => {
       return apiGet<PaginatedResponse<TerminationLogWithDetails>>(`/users/${id}/terminations`, {
@@ -788,6 +774,7 @@ export const api = {
         page?: number;
         pageSize?: number;
         userId?: string;
+        serverUserId?: string;
         severity?: string;
         acknowledged?: boolean;
         scope: ServerScope;
@@ -798,6 +785,7 @@ export const api = {
       if (params.page) searchParams.set('page', String(params.page));
       if (params.pageSize) searchParams.set('pageSize', String(params.pageSize));
       if (params.userId) searchParams.set('userId', params.userId);
+      if (params.serverUserId) searchParams.set('serverUserId', params.serverUserId);
       if (params.severity) searchParams.set('severity', params.severity);
       if (params.acknowledged !== undefined)
         searchParams.set('acknowledged', String(params.acknowledged));

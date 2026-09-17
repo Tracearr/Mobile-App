@@ -15,9 +15,17 @@ import { useChartFont } from './useChartFont';
 import { ChartCard } from './ChartCard';
 import { PLAYBACK_COLORS } from './chartColors';
 import { COUNT_TICKS, countDomain, hasCounts } from './countAxis';
+import {
+  DATE_TICKS,
+  formatAxisDate,
+  formatReadoutDate,
+  usesMonthLabels,
+  type ChartPeriod,
+} from './dateLabels';
 
 interface ConcurrentChartProps {
   data: { hour: string; total: number; direct: number; directStream?: number; transcode: number }[];
+  period?: ChartPeriod;
   height?: number;
   isLoading?: boolean;
 }
@@ -43,8 +51,13 @@ function parseTimestamp(timestamp: string): Date | null {
   return isNaN(date.getTime()) ? null : date;
 }
 
-export function ConcurrentChart({ data, height = 200, isLoading }: ConcurrentChartProps) {
-  const { t, i18n } = useTranslation(['common']);
+export function ConcurrentChart({
+  data,
+  period = 'month',
+  height = 200,
+  isLoading,
+}: ConcurrentChartProps) {
+  const { t, i18n } = useTranslation(['common', 'mobile']);
   const hasDirectStream = data.some((d) => (d.directStream ?? 0) > 0);
   const font = useChartFont(10);
   const { state, isActive } = useChartPressState({
@@ -66,10 +79,11 @@ export function ConcurrentChart({ data, height = 200, isLoading }: ConcurrentCha
     direct: d.direct,
     directStream: d.directStream ?? 0,
     transcode: d.transcode,
-    label: d.hour,
   }));
   // The areas stack, so the axis has to fit the sum, not the largest single series.
   const stackTotals = chartData.map((d) => d.direct + d.directStream + d.transcode);
+  const dates = data.map((d) => parseTimestamp(d.hour));
+  const monthLabels = usesMonthLabels(dates[0] ?? null, dates[dates.length - 1] ?? null);
 
   // Sync SharedValue changes to React state
   const updateDisplayValue = useCallback(
@@ -113,9 +127,12 @@ export function ConcurrentChart({ data, height = 200, isLoading }: ConcurrentCha
   );
 
   const currentItem = displayValue ? chartData[displayValue.index] : null;
-  const activeDate = currentItem ? parseTimestamp(currentItem.label) : null;
+  const activeDate = displayValue ? dates[displayValue.index] : null;
+  const activeLabel = activeDate ? formatReadoutDate(activeDate, period, i18n.language) : '';
   const dateLabel =
-    activeDate?.toLocaleDateString(i18n.language, { month: 'short', day: 'numeric' }) ?? '';
+    period === 'all' && activeLabel
+      ? t('mobile:charts.weekOf', { date: activeLabel, defaultValue: 'Week of {{date}}' })
+      : activeLabel;
 
   const total = displayValue
     ? displayValue.direct + displayValue.directStream + displayValue.transcode
@@ -189,15 +206,12 @@ export function ConcurrentChart({ data, height = 200, isLoading }: ConcurrentCha
         chartPressState={state}
         axisOptions={{
           font,
-          tickCount: { x: 5, y: COUNT_TICKS },
+          tickCount: { x: DATE_TICKS, y: COUNT_TICKS },
           lineColor: colors.border.dark,
           labelColor: colors.text.muted.dark,
           formatXLabel: (value) => {
-            const item = chartData[Math.round(value)];
-            if (!item) return '';
-            const date = parseTimestamp(item.label);
-            if (!date) return '';
-            return `${date.getMonth() + 1}/${date.getDate()}`;
+            const date = dates[Math.round(value)];
+            return date ? formatAxisDate(date, monthLabels, i18n.language) : '';
           },
           formatYLabel: (value) => String(Math.round(value)),
         }}

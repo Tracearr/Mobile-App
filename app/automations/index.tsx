@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { View, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { useIsFetching, useQueryClient } from '@tanstack/react-query';
 import { Workflow } from 'lucide-react-native';
 import { useTranslation } from '@tracearr/translations/mobile';
 import { SERVER_2_2, useServerVersion } from '@/hooks';
@@ -14,7 +13,6 @@ import { ScreenHeader } from '@/components/ui/screen-header';
 import { SegmentedControl } from '@/components/ui/segmented-control';
 import { useResponsive } from '@/hooks/useResponsive';
 import { haptics } from '@/lib/haptics';
-import { queryKeys } from '@/lib/queryKeys';
 import { ROUTES } from '@/lib/routes';
 import { ACCENT_COLOR, colors, spacing } from '@/lib/theme';
 
@@ -23,10 +21,8 @@ type Segment = 'automations' | 'activity';
 export default function AutomationsScreen() {
   const { t } = useTranslation(['pages', 'mobile', 'common']);
   const router = useRouter();
-  const queryClient = useQueryClient();
   const { select } = useResponsive();
-  const { version, supports } = useServerVersion();
-  const versionFetching = useIsFetching({ queryKey: queryKeys.versionPrefix() }) > 0;
+  const { version, supports, isError, refetch } = useServerVersion();
   const [segment, setSegment] = useState<Segment>('automations');
 
   const horizontalPadding = select({ base: spacing.md, md: spacing.lg, lg: spacing.xl });
@@ -72,21 +68,21 @@ export default function AutomationsScreen() {
         })}
       />
     );
-  } else if (versionFetching) {
-    body = (
-      <View className="flex-1 items-center justify-center">
-        <ActivityIndicator size="large" color={ACCENT_COLOR} />
-      </View>
-    );
-  } else {
+  } else if (isError) {
     body = (
       <ErrorState
         className="flex-1 justify-center"
         title={t('mobile:automations.versionCheckFailed', {
           defaultValue: 'Could not check the server version',
         })}
-        onRetry={() => void queryClient.refetchQueries({ queryKey: queryKeys.versionPrefix() })}
+        onRetry={() => void refetch()}
       />
+    );
+  } else {
+    body = (
+      <View className="flex-1 items-center justify-center">
+        <ActivityIndicator size="large" color={ACCENT_COLOR} />
+      </View>
     );
   }
 

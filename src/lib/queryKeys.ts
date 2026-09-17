@@ -40,6 +40,9 @@ export interface RunKeyFilters {
   endDate?: string;
 }
 
+/** /violations filters by person (`userId`) or by one account (`serverUserId`). */
+export type UserViolationsFilter = { userId: string } | { serverUserId: string };
+
 type ServerId = string | null | undefined;
 
 export const queryKeys = {
@@ -72,21 +75,19 @@ export const queryKeys = {
     list: (scope: ServerScope, params: UserListKeyParams = {}) =>
       ['users', serverScopeKey(scope), params] as const,
     one: (id: string) => ['user', id] as const,
-    detail: (id: string, serverId: ServerId) => ['user', id, serverId] as const,
     fullPrefix: () => ['user-full'] as const,
     full: (id: string, scope: 'account' | 'identity') => ['user-full', id, scope] as const,
-    sessions: (id: string, serverId: ServerId) => ['user', id, 'sessions', serverId] as const,
-    locations: (id: string, serverId: ServerId) => ['user', id, 'locations', serverId] as const,
-    devices: (id: string, serverId: ServerId) => ['user', id, 'devices', serverId] as const,
-    terminations: (id: string, serverId: ServerId) =>
-      ['user', id, 'terminations', serverId] as const,
+    sessions: (id: string, scope: 'account' | 'identity') =>
+      ['user', id, 'sessions', scope] as const,
+    terminations: (id: string, scope: 'account' | 'identity') =>
+      ['user', id, 'terminations', scope] as const,
   },
 
   violations: {
     all: () => ['violations'] as const,
     list: (scope: ServerScope, severity: string, status: string) =>
       ['violations', serverScopeKey(scope), severity, status] as const,
-    byUser: (userId: string) => ['violations', { userId }] as const,
+    byUser: (filter: UserViolationsFilter) => ['violations', filter] as const,
     detail: (id: string) => ['violations', 'detail', id] as const,
     unacknowledgedCount: (scope: ServerScope, severity: string = 'all') =>
       ['violations', 'unacknowledged-count', serverScopeKey(scope), severity] as const,

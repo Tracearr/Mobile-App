@@ -38,7 +38,7 @@ import { UserSessionsCard } from '@/components/users/UserSessionsCard';
 import { UserViolationsCard } from '@/components/users/UserViolationsCard';
 import { UserTerminationsCard } from '@/components/users/UserTerminationsCard';
 import type { TrustEditTarget } from '@/components/users/TrustScoreEditor';
-import { pageableSections } from '@/components/users/identity';
+import { violationsPageFilter } from '@/components/users/identity';
 import { formatWatchTime, safeFormatDate } from '@/lib/formatters';
 import { haptics } from '@/lib/haptics';
 import { colors, spacing, ACCENT_COLOR } from '@/lib/theme';
@@ -124,10 +124,14 @@ export default function UserDetailScreen() {
       isAllScope ? undefined : account.refetch(),
       queryClient.invalidateQueries({ queryKey: queryKeys.requests.user(effectiveId, scope) }),
     ]);
-    queryClient.removeQueries({ queryKey: queryKeys.users.sessions(effectiveId, null) });
-    queryClient.removeQueries({ queryKey: queryKeys.users.terminations(effectiveId, null) });
+    queryClient.removeQueries({ queryKey: queryKeys.users.sessions(effectiveId, scope) });
+    queryClient.removeQueries({ queryKey: queryKeys.users.terminations(effectiveId, scope) });
     if (identityUserId) {
-      queryClient.removeQueries({ queryKey: queryKeys.violations.byUser(identityUserId) });
+      queryClient.removeQueries({
+        queryKey: queryKeys.violations.byUser(
+          violationsPageFilter(scope, effectiveId, identityUserId)
+        ),
+      });
     }
     setRefreshGeneration((generation) => generation + 1);
   };
@@ -176,7 +180,6 @@ export default function UserDetailScreen() {
 
   const isMergedIdentity = identity.serverUsers.length > 1;
   const showServer = isAllScope && isMergedIdentity;
-  const canPage = pageableSections(isMergedIdentity, isAllScope);
   const detail = view.data;
   const sectionKey = `${effectiveId}-${scope}-${refreshGeneration}`;
 
@@ -300,16 +303,15 @@ export default function UserDetailScreen() {
               key={`sessions-${sectionKey}`}
               userId={effectiveId}
               first={detail.sessions}
-              canPage={canPage.sessionsAndTerminations}
+              scope={scope}
               showServer={showServer}
               onSessionPress={handleSessionPress}
             />
 
             <UserViolationsCard
               key={`violations-${sectionKey}`}
-              identityUserId={identity.userId}
+              filter={violationsPageFilter(scope, effectiveId, identity.userId)}
               first={detail.violations}
-              canPage={canPage.violations}
               showServer={showServer}
             />
 
@@ -317,7 +319,7 @@ export default function UserDetailScreen() {
               key={`terminations-${sectionKey}`}
               userId={effectiveId}
               first={detail.terminations}
-              canPage={canPage.sessionsAndTerminations}
+              scope={scope}
               showServer={showServer}
             />
           </>

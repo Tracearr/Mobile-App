@@ -1,6 +1,7 @@
 export { Text } from './text';
 export { Button, buttonVariants, buttonTextVariants } from './button';
 export { Badge, badgeVariants, badgeTextVariants } from './badge';
+export { Banner, type BannerProps } from './banner';
 export {
   Card,
   cardVariants,
@@ -25,4 +26,3 @@ export {
   type SegmentedControlProps,
   type SegmentedOption,
 } from './segmented-control';
-export { PeriodSelector, type StatsPeriod } from './period-selector';

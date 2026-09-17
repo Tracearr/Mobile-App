@@ -20,12 +20,10 @@ export function useMoreRows<TRow>({
   queryKey,
   first,
   fetchPage,
-  enabled,
 }: {
   queryKey: QueryKey;
   first: FirstPage<TRow>;
   fetchPage: (page: number, signal: AbortSignal) => Promise<AnyPage & { data: TRow[] }>;
-  enabled: boolean;
 }) {
   const [requested, setRequested] = useState(false);
 
@@ -34,7 +32,7 @@ export function useMoreRows<TRow>({
     queryFn: ({ pageParam, signal }) => fetchPage(pageParam, signal),
     initialPageParam: 2,
     getNextPageParam: (lastPage) => nextPageOf(lastPage),
-    enabled: enabled && requested,
+    enabled: requested,
   });
 
   const rows = more.data
@@ -43,7 +41,7 @@ export function useMoreRows<TRow>({
 
   return {
     rows,
-    canLoadMore: enabled && (more.data ? more.hasNextPage : first.hasMore),
+    canLoadMore: more.data ? more.hasNextPage : first.hasMore,
     isLoadingMore: more.isFetching,
     loadMore: () => {
       if (requested) void more.fetchNextPage();

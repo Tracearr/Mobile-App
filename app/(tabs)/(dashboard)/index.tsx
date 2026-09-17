@@ -92,13 +92,8 @@ export default function DashboardScreen() {
   const { t } = useTranslation(['pages', 'common', 'nav']);
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { servers, selectedServers, isMultiServer, scope } = useMediaServer();
+  const { servers, selectedServers, isMultiServer, scope, serverColor } = useMediaServer();
   const { isTablet, columns, select } = useResponsive();
-
-  const serverColorMap = useMemo(
-    () => new Map(servers.map((s) => [s.id, s.color ?? null])),
-    [servers]
-  );
 
   const serverOrderMap = useMemo(
     () => new Map(servers.map((s) => [s.id, s.displayOrder ?? 0])),
@@ -274,7 +269,7 @@ export default function DashboardScreen() {
                         session={session}
                         onPress={() => router.push(ROUTES.SESSION(session.id))}
                         isMultiServer={isMultiServer}
-                        serverColor={serverColorMap.get(session.server.id)}
+                        serverColor={serverColor(session.server.id)}
                       />
                     </View>
                   ))}
@@ -304,7 +299,7 @@ export default function DashboardScreen() {
                 <StreamMap
                   sessions={sortedSessions}
                   height={mapHeight}
-                  serverColorMap={isMultiServer ? serverColorMap : undefined}
+                  serverColor={isMultiServer ? serverColor : undefined}
                 />
               </View>
             )}
@@ -322,7 +317,7 @@ export default function DashboardScreen() {
                       isLoading={stats.isLoading}
                       error={stats.error}
                       serverName={isMultiServer ? server.name : undefined}
-                      serverColor={isMultiServer ? serverColorMap.get(server.id) : undefined}
+                      serverColor={isMultiServer ? serverColor(server.id) : undefined}
                       showSystem={!isMultiServer}
                     />
                   ))}

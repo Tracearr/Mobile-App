@@ -44,6 +44,8 @@ interface MediaServerContextValue {
   isAllServersSelected: boolean;
   toggleServer: (serverId: string) => void;
   selectAllServers: () => void;
+  /** Looks across every server, not only the selected ones. */
+  serverColor: (serverId: string) => string | null;
 }
 
 const MediaServerContext = createContext<MediaServerContextValue | null>(null);
@@ -200,6 +202,11 @@ export function MediaServerProvider({ children }: { children: ReactNode }) {
     return mediaServers.find((s) => s.id === selectedServerId) ?? null;
   }, [mediaServers, selectedServerId]);
 
+  const serverColor = useMemo(() => {
+    const colorById = new Map(mediaServers.map((s) => [s.id, s.color ?? null]));
+    return (serverId: string) => colorById.get(serverId) ?? null;
+  }, [mediaServers]);
+
   const value = useMemo<MediaServerContextValue>(
     () => ({
       servers: mediaServers,
@@ -215,6 +222,7 @@ export function MediaServerProvider({ children }: { children: ReactNode }) {
       isAllServersSelected,
       toggleServer,
       selectAllServers,
+      serverColor,
     }),
     [
       mediaServers,
@@ -230,6 +238,7 @@ export function MediaServerProvider({ children }: { children: ReactNode }) {
       isAllServersSelected,
       toggleServer,
       selectAllServers,
+      serverColor,
     ]
   );
 

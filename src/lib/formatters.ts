@@ -91,16 +91,20 @@ export function formatDuration(
 }
 
 /**
- * Format a total watch time in milliseconds as "3d 4h" or "17h"
+ * Format a total watch time in milliseconds the way web's stat cards do:
+ * "1yr 12d 4h", "3d 4h", "5h 30m" or "45m"
  */
 export function formatWatchTime(ms: number | null | undefined): string {
-  if (!ms) return '0h';
-  const totalHours = Math.floor(ms / (1000 * 60 * 60));
-  const days = Math.floor(totalHours / 24);
-  const hours = totalHours % 24;
+  if (!ms) return '0m';
+  const totalMinutes = Math.floor(ms / 60000);
+  const hours = Math.floor(totalMinutes / 60);
+  const days = Math.floor(hours / 24);
+  const years = Math.floor(days / 365);
 
-  if (days > 0) return `${days}d ${hours}h`;
-  return `${totalHours}h`;
+  if (years > 0) return `${years}yr ${days % 365}d ${hours % 24}h`;
+  if (days > 0) return `${days}d ${hours % 24}h`;
+  if (hours > 0) return `${hours}h ${totalMinutes % 60}m`;
+  return `${totalMinutes}m`;
 }
 
 /**

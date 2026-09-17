@@ -12,9 +12,17 @@ import { colors, ACCENT_COLOR } from '../../lib/theme';
 import { useChartFont } from './useChartFont';
 import { ChartCard, PlaysReadout } from './ChartCard';
 import { COUNT_TICKS, countDomain, hasCounts } from './countAxis';
+import {
+  DATE_TICKS,
+  formatAxisDate,
+  formatReadoutDate,
+  usesMonthLabels,
+  type ChartPeriod,
+} from './dateLabels';
 
 interface PlaysChartProps {
   data: { date: string; count: number }[];
+  period?: ChartPeriod;
   height?: number;
   isLoading?: boolean;
 }
@@ -31,8 +39,8 @@ function ToolTip({
   return <Circle cx={x} cy={y} r={6} color={color} />;
 }
 
-export function PlaysChart({ data, height = 200, isLoading }: PlaysChartProps) {
-  const { i18n } = useTranslation(['common']);
+export function PlaysChart({ data, period = 'month', height = 200, isLoading }: PlaysChartProps) {
+  const { t, i18n } = useTranslation(['common', 'mobile']);
   const font = useChartFont(10);
   const { state, isActive } = useChartPressState({ x: 0, y: { count: 0 } });
 
@@ -46,9 +54,10 @@ export function PlaysChart({ data, height = 200, isLoading }: PlaysChartProps) {
   const chartData = data.map((d, index) => ({
     x: index,
     count: d.count,
-    label: d.date,
   }));
   const counts = chartData.map((d) => d.count);
+  const dates = data.map((d) => new Date(d.date));
+  const monthLabels = usesMonthLabels(dates[0] ?? null, dates[dates.length - 1] ?? null);
 
   // Sync SharedValue changes to React state
   const updateDisplayValue = useCallback((index: number, count: number) => {
@@ -76,20 +85,24 @@ export function PlaysChart({ data, height = 200, isLoading }: PlaysChartProps) {
     [isActive]
   );
 
-  const activeItem = displayValue ? chartData[displayValue.index] : undefined;
+  const activeDate = displayValue ? dates[displayValue.index] : undefined;
+  const activeLabel = activeDate ? formatReadoutDate(activeDate, period, i18n.language) : '';
 
   return (
     <ChartCard height={height} isLoading={isLoading} isEmpty={!hasCounts(counts)}>
       <PlaysReadout
         color={ACCENT_COLOR}
         active={
-          displayValue && activeItem
+          displayValue && activeDate
             ? {
                 count: displayValue.count,
-                label: new Date(activeItem.label).toLocaleDateString(i18n.language, {
-                  month: 'short',
-                  day: 'numeric',
-                }),
+                label:
+                  period === 'all'
+                    ? t('mobile:charts.weekOf', {
+                        date: activeLabel,
+                        defaultValue: 'Week of {{date}}',
+                      })
+                    : activeLabel,
               }
             : null
         }
@@ -104,14 +117,12 @@ export function PlaysChart({ data, height = 200, isLoading }: PlaysChartProps) {
         chartPressState={state}
         axisOptions={{
           font,
-          tickCount: { x: 5, y: COUNT_TICKS },
+          tickCount: { x: DATE_TICKS, y: COUNT_TICKS },
           lineColor: colors.border.dark,
           labelColor: colors.text.muted.dark,
           formatXLabel: (value) => {
-            const item = chartData[Math.round(value)];
-            if (!item) return '';
-            const date = new Date(item.label);
-            return `${date.getMonth() + 1}/${date.getDate()}`;
+            const date = dates[Math.round(value)];
+            return date ? formatAxisDate(date, monthLabels, i18n.language) : '';
           },
           formatYLabel: (value) => String(Math.round(value)),
         }}

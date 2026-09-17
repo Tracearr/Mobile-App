@@ -5,7 +5,7 @@ import { AlertTriangle, Check } from 'lucide-react-native';
 import { ALL_SERVERS, type ViolationSummary, type ViolationWithDetails } from '@tracearr/shared';
 import { useTranslation } from '@tracearr/translations/mobile';
 import { api } from '@/lib/api';
-import { queryKeys } from '@/lib/queryKeys';
+import { queryKeys, type UserViolationsFilter } from '@/lib/queryKeys';
 import { ruleIcon } from '@/lib/violations';
 import { Text } from '@/components/ui/text';
 import { Button } from '@/components/ui/button';
@@ -16,7 +16,7 @@ import { useMediaServer } from '@/providers/MediaServerProvider';
 import { safeFormatDistanceToNow } from '@/lib/formatters';
 import { haptics } from '@/lib/haptics';
 import { ACCENT_COLOR, colors } from '@/lib/theme';
-import { UserSection, SectionRow, SectionNote } from './UserSection';
+import { UserSection, SectionRow } from './UserSection';
 import { LoadMoreButton } from './LoadMoreButton';
 import { useMoreRows, SECTION_PAGE_SIZE } from './useMoreRows';
 
@@ -47,7 +47,7 @@ function ViolationRow({
   onAcknowledge: () => void;
 }) {
   const { t } = useTranslation(['common', 'pages']);
-  const { servers } = useMediaServer();
+  const { serverColor } = useMediaServer();
   const RuleIcon = ruleIcon(violation.rule.type);
   const server = showServer ? violationServer(violation) : null;
 
@@ -66,11 +66,7 @@ function ViolationRow({
               {safeFormatDistanceToNow(violation.createdAt, t('common:labels.unknown'))}
             </Text>
             {server && (
-              <ServerTag
-                className="mt-0.5"
-                name={server.name}
-                color={servers.find((s) => s.id === server.id)?.color}
-              />
+              <ServerTag className="mt-0.5" name={server.name} color={serverColor(server.id)} />
             )}
           </View>
         </View>
@@ -100,31 +96,23 @@ function ViolationRow({
 }
 
 interface UserViolationsCardProps {
-  identityUserId: string;
+  filter: UserViolationsFilter;
   first: { data: ViolationSummary[]; total: number; hasMore: boolean };
-  /** False when the rows cover one account of several: /violations can only page by person. */
-  canPage: boolean;
   showServer: boolean;
 }
 
-export function UserViolationsCard({
-  identityUserId,
-  first,
-  canPage,
-  showServer,
-}: UserViolationsCardProps) {
+export function UserViolationsCard({ filter, first, showServer }: UserViolationsCardProps) {
   const { t } = useTranslation(['common', 'pages', 'mobile']);
   const queryClient = useQueryClient();
 
   const { rows, canLoadMore, isLoadingMore, loadMore } = useMoreRows<ViolationRowData>({
-    queryKey: queryKeys.violations.byUser(identityUserId),
+    queryKey: queryKeys.violations.byUser(filter),
     first,
     fetchPage: (page, signal) =>
       api.violations.list(
-        { userId: identityUserId, page, pageSize: SECTION_PAGE_SIZE, scope: ALL_SERVERS },
+        { ...filter, page, pageSize: SECTION_PAGE_SIZE, scope: ALL_SERVERS },
         signal
       ),
-    enabled: canPage,
   });
 
   const acknowledge = useMutation({
@@ -171,14 +159,6 @@ export function UserViolationsCard({
         />
       ))}
       {canLoadMore && <LoadMoreButton onPress={loadMore} isLoading={isLoadingMore} />}
-      {!canPage && first.hasMore && (
-        <SectionNote>
-          {t('mobile:userDetail.allServersForMore', {
-            shown: SECTION_PAGE_SIZE,
-            defaultValue: 'Showing the latest {{shown}}. Switch to all servers to see more.',
-          })}
-        </SectionNote>
-      )}
     </UserSection>
   );
 }

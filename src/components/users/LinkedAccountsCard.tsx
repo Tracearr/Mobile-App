@@ -27,7 +27,7 @@ export function LinkedAccountsCard({
   onEditTrust,
 }: LinkedAccountsCardProps) {
   const { t } = useTranslation(['pages', 'common']);
-  const { servers } = useMediaServer();
+  const { serverColor } = useMediaServer();
   const editingId = editTarget?.origin === 'linkedAccount' ? editTarget.id : null;
 
   return (
@@ -51,7 +51,7 @@ export function LinkedAccountsCard({
               <ServerTag
                 size="md"
                 name={account.serverName}
-                color={servers.find((server) => server.id === account.serverId)?.color}
+                color={serverColor(account.serverId)}
               />
               <Text className="text-muted-foreground text-xs">
                 {t('common:count.session', { count: account.sessionCount })}

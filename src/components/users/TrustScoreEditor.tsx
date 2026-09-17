@@ -101,6 +101,7 @@ export function TrustScoreEditor({ target, onClose }: TrustScoreEditorProps) {
           maximumValue={MAX_SCORE}
           disabled={update.isPending}
           minimumTrackTintColor={ACCENT_COLOR}
+          thumbTintColor={ACCENT_COLOR}
           onValueChange={(value) => setScore(clampScore(value))}
         />
         <Button

@@ -1,20 +1,31 @@
 /**
- * Background Task Handler for Push Notifications
- *
- * Handles push notifications when the app is in the background or killed.
- * Uses expo-task-manager to register background tasks that process
- * incoming notifications.
+ * Tasks the OS runs while the app is in the background or not running.
+ * Both are defined at module scope because expo-task-manager loads the bundle
+ * headless and only finds tasks that exist once the modules have evaluated.
  */
 import * as TaskManager from 'expo-task-manager';
 import * as Notifications from 'expo-notifications';
-import { decryptPushPayload, type DecryptedPayload } from './crypto';
+import * as BackgroundTask from 'expo-background-task';
+import { AppState } from 'react-native';
 import type { EncryptedPushPayload } from '@tracearr/shared';
+import { decryptPushPayload } from './crypto';
+import { refreshNowPlayingWidget } from './nowPlayingSnapshot';
 
-// Task identifier for background notification handling
 export const BACKGROUND_NOTIFICATION_TASK = 'BACKGROUND_NOTIFICATION_TASK';
+export const WIDGET_REFRESH_TASK = 'WIDGET_REFRESH_TASK';
 
-// Check if notification payload is encrypted
-function isEncrypted(data: unknown): data is EncryptedPushPayload {
+// The OS treats this as a floor. iOS usually runs the worker far less often.
+const WIDGET_REFRESH_MINUTES = 15;
+
+const WIDGET_PUSH_TYPES = new Set([
+  'stream_started',
+  'stream_stopped',
+  'server_down',
+  'server_up',
+  'data_sync',
+]);
+
+export function isEncrypted(data: unknown): data is EncryptedPushPayload {
   if (!data || typeof data !== 'object') return false;
   const payload = data as Record<string, unknown>;
   return (
@@ -25,148 +36,84 @@ function isEncrypted(data: unknown): data is EncryptedPushPayload {
   );
 }
 
-/**
- * Process notification payload (decrypt if needed)
- */
-async function processPayload(data: Record<string, unknown>): Promise<DecryptedPayload | null> {
-  // Check if payload is encrypted
-  if (isEncrypted(data)) {
-    try {
-      return await decryptPushPayload(data);
-    } catch (error) {
-      console.error('[BackgroundTask] Failed to decrypt payload:', error);
-      return null;
-    }
-  }
-
-  // Not encrypted, return as-is
-  return data as DecryptedPayload;
+// Both platforms deliver the Expo `data` object as a JSON string in data.dataString.
+async function pushTypeOf(payload: Notifications.NotificationTaskPayload): Promise<unknown> {
+  if ('actionIdentifier' in payload) return undefined;
+  const raw = payload.data?.dataString;
+  if (typeof raw !== 'string') return undefined;
+  const data: unknown = JSON.parse(raw);
+  const decoded = isEncrypted(data) ? await decryptPushPayload(data) : data;
+  return (decoded as { type?: unknown } | null)?.type;
 }
 
-/**
- * Handle different notification types in background
- */
-async function handleNotificationType(payload: DecryptedPayload): Promise<void> {
-  const notificationType = payload.type as string;
-
-  // Handle based on notification type
-  if (notificationType === 'violation_detected') {
-    // Violation notifications are critical - ensure they're displayed
-    console.log('[BackgroundTask] Processing violation notification');
-  } else if (notificationType === 'stream_started' || notificationType === 'stream_stopped') {
-    // Session notifications are informational
-    console.log('[BackgroundTask] Processing session notification');
-  } else if (notificationType === 'server_down' || notificationType === 'server_up') {
-    // Server status notifications are important
-    console.log('[BackgroundTask] Processing server status notification');
-  } else if (notificationType === 'data_sync') {
-    // Silent notification for background data refresh
-    const syncType = payload.syncType as string | undefined;
-    console.log('[BackgroundTask] Processing data sync request:', syncType);
-
-    // Import QueryClient dynamically to avoid circular dependencies
-    try {
-      // Invalidate relevant query caches based on sync type
-      // The actual data will be refetched when the app becomes active
-      // This is handled by React Query's cache invalidation
-      if (syncType === 'stats') {
-        console.log('[BackgroundTask] Marking stats cache for refresh');
-        // Stats will be refetched on next app focus
-      } else if (syncType === 'sessions') {
-        console.log('[BackgroundTask] Marking sessions cache for refresh');
-        // Sessions will be refetched on next app focus
-      }
-    } catch (error) {
-      console.error('[BackgroundTask] Data sync error:', error);
-    }
-  } else {
-    console.log('[BackgroundTask] Unknown notification type:', notificationType);
-  }
-}
-
-/**
- * Define the background notification task
- *
- * This task is executed by the OS when a background notification arrives.
- * It must complete within the OS-defined time limit (usually 30 seconds).
- */
-TaskManager.defineTask(
+TaskManager.defineTask<Notifications.NotificationTaskPayload>(
   BACKGROUND_NOTIFICATION_TASK,
-  async ({ data, error }: TaskManager.TaskManagerTaskBody) => {
-    if (error) {
-      console.error('[BackgroundTask] Error:', error);
-      return;
-    }
-
-    if (!data) {
-      console.log('[BackgroundTask] No data received');
-      return;
-    }
-
+  async ({ data, error }) => {
+    if (error || !data) return Notifications.BackgroundNotificationTaskResult.NoData;
     try {
-      // Extract notification from task data
-      const taskData = data as { notification?: Notifications.Notification };
-      const notificationData = taskData.notification?.request.content.data;
-
-      if (!notificationData) {
-        console.log('[BackgroundTask] No notification data');
-        return;
+      const type = await pushTypeOf(data);
+      // In the foreground the active-sessions query already feeds the widget.
+      if (
+        typeof type === 'string' &&
+        WIDGET_PUSH_TYPES.has(type) &&
+        AppState.currentState !== 'active' &&
+        (await refreshNowPlayingWidget())
+      ) {
+        return Notifications.BackgroundNotificationTaskResult.NewData;
       }
-
-      // Process the payload (decrypt if encrypted)
-      const payload = await processPayload(notificationData);
-      if (!payload) {
-        console.error('[BackgroundTask] Failed to process payload');
-        return;
-      }
-
-      // Handle the notification based on type
-      await handleNotificationType(payload);
     } catch (err) {
-      console.error('[BackgroundTask] Processing error:', err);
+      console.error('[BackgroundTask] Push handling failed:', err);
+      return Notifications.BackgroundNotificationTaskResult.Failed;
     }
+    return Notifications.BackgroundNotificationTaskResult.NoData;
   }
 );
 
-/**
- * Register the background notification task
- * Call this during app initialization
- */
+TaskManager.defineTask(WIDGET_REFRESH_TASK, async () =>
+  (await refreshNowPlayingWidget())
+    ? BackgroundTask.BackgroundTaskResult.Success
+    : BackgroundTask.BackgroundTaskResult.Failed
+);
+
 export async function registerBackgroundNotificationTask(): Promise<void> {
   try {
-    const isRegistered = await TaskManager.isTaskRegisteredAsync(BACKGROUND_NOTIFICATION_TASK);
-
-    if (!isRegistered) {
+    if (!(await TaskManager.isTaskRegisteredAsync(BACKGROUND_NOTIFICATION_TASK))) {
       await Notifications.registerTaskAsync(BACKGROUND_NOTIFICATION_TASK);
-      console.log('[BackgroundTask] Registered background notification task');
-    } else {
-      console.log('[BackgroundTask] Background task already registered');
     }
   } catch (error) {
     console.error('[BackgroundTask] Failed to register task:', error);
   }
 }
 
-/**
- * Unregister the background notification task
- * Call this on logout/cleanup
- */
 export async function unregisterBackgroundNotificationTask(): Promise<void> {
   try {
-    const isRegistered = await TaskManager.isTaskRegisteredAsync(BACKGROUND_NOTIFICATION_TASK);
-
-    if (isRegistered) {
+    if (await TaskManager.isTaskRegisteredAsync(BACKGROUND_NOTIFICATION_TASK)) {
       await Notifications.unregisterTaskAsync(BACKGROUND_NOTIFICATION_TASK);
-      console.log('[BackgroundTask] Unregistered background notification task');
     }
   } catch (error) {
     console.error('[BackgroundTask] Failed to unregister task:', error);
   }
 }
 
-/**
- * Check if background notifications are supported
- */
-export function isBackgroundNotificationSupported(): boolean {
-  return TaskManager.isAvailableAsync !== undefined;
+// Restricted covers the iOS simulator, which has no BGTaskScheduler.
+export async function registerWidgetRefreshTask(): Promise<void> {
+  try {
+    const status = await BackgroundTask.getStatusAsync();
+    if (status !== BackgroundTask.BackgroundTaskStatus.Available) return;
+    await BackgroundTask.registerTaskAsync(WIDGET_REFRESH_TASK, {
+      minimumInterval: WIDGET_REFRESH_MINUTES,
+    });
+  } catch (error) {
+    console.error('[BackgroundTask] Failed to register widget refresh:', error);
+  }
+}
+
+export async function unregisterWidgetRefreshTask(): Promise<void> {
+  try {
+    if (await TaskManager.isTaskRegisteredAsync(WIDGET_REFRESH_TASK)) {
+      await BackgroundTask.unregisterTaskAsync(WIDGET_REFRESH_TASK);
+    }
+  } catch (error) {
+    console.error('[BackgroundTask] Failed to unregister widget refresh:', error);
+  }
 }

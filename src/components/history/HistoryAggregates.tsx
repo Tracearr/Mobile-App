@@ -11,10 +11,8 @@ import { Card } from '@/components/ui/card';
 import { ErrorState } from '@/components/ui/error-state';
 import { cn } from '@/lib/utils';
 import { ACCENT_COLOR } from '@/lib/theme';
-import { formatDuration, formatWatchTime } from '@/lib/formatters';
+import { formatWatchTime } from '@/lib/formatters';
 import type { HistoryAggregates as AggregatesType } from '@tracearr/shared';
-
-const DAY_MS = 24 * 60 * 60 * 1000;
 
 interface HistoryAggregatesProps {
   aggregates: AggregatesType | undefined;
@@ -22,11 +20,6 @@ interface HistoryAggregatesProps {
   isFetching?: boolean;
   error?: Error | null;
   onRetry: () => void;
-}
-
-// formatWatchTime drops minutes, so a filtered total under a day would read "0h".
-function formatTotalWatchTime(ms: number): string {
-  return ms > 0 && ms < DAY_MS ? formatDuration(ms) : formatWatchTime(ms);
 }
 
 interface StatItemProps {
@@ -97,7 +90,7 @@ export function HistoryAggregates({
       <StatItem
         icon={Clock}
         label={t('common:labels.watchTime')}
-        value={formatTotalWatchTime(aggregates?.totalWatchTimeMs ?? 0)}
+        value={formatWatchTime(aggregates?.totalWatchTimeMs ?? 0)}
         isLoading={isLoading}
       />
       <Divider />

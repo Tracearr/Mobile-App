@@ -1,4 +1,5 @@
 import type { UserSortField } from '@tracearr/shared';
+import type { UserViolationsFilter } from '@/lib/queryKeys';
 
 export interface IdentityServerMembership {
   id: string;
@@ -60,15 +61,13 @@ export const DEFAULT_SORT_DIR: Record<UserSortField, 'asc' | 'desc'> = {
 };
 
 /**
- * Which paged endpoints can extend a section past the 10 rows in /users/:id/full.
- * /users/:id/sessions and /terminations are called without scope=identity, so they
- * only match the full payload when it covers one account. /violations filters by
- * identity (userId), so it only matches when the payload covers the whole person.
- * A person with one account is the same set either way.
+ * The /violations filter that pages the same rows /users/:id/full embeds: the whole
+ * person (`userId` is the identity id) in identity scope, one account otherwise.
  */
-export function pageableSections(isMergedIdentity: boolean, isAllScope: boolean) {
-  return {
-    sessionsAndTerminations: !isMergedIdentity || !isAllScope,
-    violations: !isMergedIdentity || isAllScope,
-  };
+export function violationsPageFilter(
+  scope: 'account' | 'identity',
+  accountId: string,
+  identityUserId: string
+): UserViolationsFilter {
+  return scope === 'identity' ? { userId: identityUserId } : { serverUserId: accountId };
 }

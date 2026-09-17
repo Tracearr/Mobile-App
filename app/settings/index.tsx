@@ -4,7 +4,7 @@
  */
 import { View, Pressable, Alert, ScrollView, Linking, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter, type Href } from 'expo-router';
+import { useRouter } from 'expo-router';
 import {
   ArrowUpCircle,
   Bell,
@@ -30,6 +30,7 @@ import { UserAvatar } from '@/components/ui/user-avatar';
 import { useServerVersion, SERVER_2_2 } from '@/hooks/useServerVersion';
 import { api } from '@/lib/api';
 import { queryKeys } from '@/lib/queryKeys';
+import { ROUTES } from '@/lib/routes';
 import { useAuthStateStore } from '@/lib/authStateStore';
 import { colors } from '@/lib/theme';
 import {
@@ -43,8 +44,6 @@ const DOCS_URL = 'https://docs.tracearr.com/';
 const WEBSITE_URL = 'https://tracearr.com';
 const GITHUB_URL = 'https://github.com/connorgallopo/Tracearr';
 const SPONSOR_URL = 'https://github.com/sponsors/connorgallopo';
-// Not in the generated route table until the automations screen exists in this tree.
-const AUTOMATIONS_ROUTE = '/automations' as Href;
 
 function openUrl(url: string) {
   void Linking.openURL(url);
@@ -111,6 +110,7 @@ function SettingsRow({
 }
 
 function ProfileRow() {
+  const { t } = useTranslation(['mobile']);
   const { data: user, isLoading } = useQuery({
     queryKey: queryKeys.me(),
     queryFn: ({ signal }) => api.me(signal),
@@ -133,7 +133,9 @@ function ProfileRow() {
         <Text className="text-[15px] font-semibold" numberOfLines={1}>
           {user.friendlyName}
         </Text>
-        <Text className="text-muted-foreground text-xs capitalize">{user.role}</Text>
+        <Text className="text-muted-foreground text-xs capitalize">
+          {user.role === 'owner' ? t('mobile:users.owner') : user.role}
+        </Text>
       </View>
     </View>
   );
@@ -166,7 +168,7 @@ export default function SettingsScreen() {
           onPress: () => {
             void (async () => {
               await unpairServer();
-              router.replace('/(auth)/pair');
+              router.replace(ROUTES.PAIR);
             })();
           },
         },
@@ -219,7 +221,7 @@ export default function SettingsScreen() {
                 icon={<Workflow size={20} color={colors.icon.default} />}
                 label={t('nav:automations')}
                 description={t('pages:automations.description')}
-                onPress={() => router.push(AUTOMATIONS_ROUTE)}
+                onPress={() => router.push(ROUTES.AUTOMATIONS)}
               />
             )}
           </SettingsSection>

@@ -16,7 +16,7 @@ export const SERVER_2_3 = '2.3.0-beta.5';
 
 export function useServerVersion() {
   const serverId = useAuthStateStore((s) => s.server?.id ?? null);
-  const { data } = useQuery({
+  const { data, isError, refetch } = useQuery({
     queryKey: queryKeys.version(serverId),
     queryFn: ({ signal }) => api.version.get(signal),
     enabled: serverId !== null,
@@ -32,5 +32,7 @@ export function useServerVersion() {
     releaseUrl: latest?.releaseUrl ?? null,
     // Servers before 2.3 send `latest` without upgradeWarnings.
     upgradeWarnings: latest?.upgradeWarnings ?? [],
+    isError,
+    refetch,
   };
 }
