@@ -6,7 +6,7 @@ global.Buffer = Buffer;
 
 import '../global.css';
 import { useEffect, useState, useRef } from 'react';
-import { Stack, ThemeProvider, DarkTheme, useRouter, useSegments, usePathname } from 'expo-router';
+import { Stack, ThemeProvider, DarkTheme, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -66,12 +66,12 @@ function RootLayoutNav() {
 
   usePushNotifications();
 
-  // Autocapture covers react-navigation v6 and below, not expo-router.
+  // Route pattern, not pathname: ids stay out of PostHog as filteredParams keeps them out of Observe.
   const posthog = usePostHog();
-  const pathname = usePathname();
+  const screen = '/' + segments.filter((s) => !(s.startsWith('(') && s.endsWith(')'))).join('/');
   useEffect(() => {
-    void posthog.screen(pathname);
-  }, [posthog, pathname]);
+    void posthog.screen(screen);
+  }, [posthog, screen]);
 
   // Track connection state changes for reconnection toast
   useEffect(() => {
@@ -208,7 +208,7 @@ function RootLayout() {
                           },
                         },
                       }}
-                      autocapture={{ captureScreens: true, captureTouches: false }}
+                      autocapture={{ captureScreens: false, captureTouches: false }}
                       style={{ flex: 1 }}
                     >
                       <RootLayoutNav />
