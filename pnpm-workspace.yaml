@@ -7,6 +7,7 @@ publicHoistPattern:
   - '@babel/types'
 allowBuilds:
   '@parcel/watcher': false
+  '@posthog/cli': true
   '@shopify/react-native-skia': true
   react-native-nitro-modules: true
   unrs-resolver: false

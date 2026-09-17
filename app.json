@@ -120,7 +120,8 @@
         {
           "fonts": ["./assets/fonts/Inter_500Medium.ttf"]
         }
-      ]
+      ],
+      "posthog-react-native/expo"
     ],
     "experiments": {
       "typedRoutes": true,

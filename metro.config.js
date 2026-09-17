@@ -1,9 +1,9 @@
-const { getDefaultConfig } = require('expo/metro-config');
+const { getPostHogExpoConfig } = require('posthog-react-native/metro');
 const { withNativewind } = require('nativewind/metro');
 
 const projectRoot = __dirname;
 
-const config = getDefaultConfig(projectRoot);
+const config = getPostHogExpoConfig(projectRoot);
 
 // 1. i18next and react-i18next keep their instance in module scope, so the app
 // and @tracearr/translations must land on the same copy. That package lists

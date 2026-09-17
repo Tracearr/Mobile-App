@@ -19,7 +19,7 @@
     "build:prod:android": "eas build --profile production --platform android",
     "submit:ios": "eas submit --platform ios",
     "submit:android": "eas submit --platform android",
-    "update": "eas update",
+    "update": "eas update && posthog-cli hermes upload --directory dist",
     "test": "node --test \"scripts/release/*.test.mjs\" \"src/**/*.test.mjs\"",
     "test:jest": "jest",
     "build:tag": "scripts/release/build.sh",
@@ -103,6 +103,7 @@
     "zustand": "^5.0.15"
   },
   "devDependencies": {
+    "@posthog/cli": "^0.18.3",
     "@react-native/jest-preset": "^0.88.0-rc.0",
     "@tailwindcss/postcss": "^4.3.3",
     "@testing-library/react-native": "^14.0.1",
