@@ -4,8 +4,9 @@
  */
 import { View, Pressable, Alert, ScrollView, Linking, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, type Href } from 'expo-router';
 import {
+  ArrowUpCircle,
   Bell,
   ChevronRight,
   Languages,
@@ -17,11 +18,16 @@ import {
   BookOpen,
   Globe,
   Heart,
+  Workflow,
 } from 'lucide-react-native';
 import * as Application from 'expo-application';
 import { useQuery } from '@tanstack/react-query';
 import { Text } from '@/components/ui/text';
+import { Card } from '@/components/ui/card';
+import { ScreenHeader } from '@/components/ui/screen-header';
+import { SectionHeader } from '@/components/ui/section-header';
 import { UserAvatar } from '@/components/ui/user-avatar';
+import { useServerVersion, SERVER_2_2 } from '@/hooks/useServerVersion';
 import { api } from '@/lib/api';
 import { queryKeys } from '@/lib/queryKeys';
 import { useAuthStateStore } from '@/lib/authStateStore';
@@ -37,14 +43,30 @@ const DOCS_URL = 'https://docs.tracearr.com/';
 const WEBSITE_URL = 'https://tracearr.com';
 const GITHUB_URL = 'https://github.com/connorgallopo/Tracearr';
 const SPONSOR_URL = 'https://github.com/sponsors/connorgallopo';
+// Not in the generated route table until the automations screen exists in this tree.
+const AUTOMATIONS_ROUTE = '/automations' as Href;
+
+function openUrl(url: string) {
+  void Linking.openURL(url);
+}
+
+// The pairing response names the first media server, not the Tracearr instance,
+// so the paired URL is the only true description of what the app talks to.
+function instanceHost(url: string): string {
+  try {
+    return new URL(url).host || url;
+  } catch {
+    return url;
+  }
+}
 
 function SettingsSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <View className="mb-6">
-      <Text className="text-muted-foreground mb-2 ml-1 text-[11px] font-semibold tracking-wider uppercase">
-        {title}
-      </Text>
-      <View className="bg-card overflow-hidden rounded-xl">{children}</View>
+      <SectionHeader title={title} className="mb-2" />
+      <Card padding="none" className="overflow-hidden">
+        {children}
+      </Card>
     </View>
   );
 }
@@ -67,16 +89,20 @@ function SettingsRow({
   external?: boolean;
 }) {
   return (
-    <Pressable onPress={onPress} className="flex-row items-center justify-between px-4 py-3.5">
+    <Pressable
+      onPress={onPress}
+      accessibilityRole={external ? 'link' : 'button'}
+      className="flex-row items-center justify-between px-4 py-3.5"
+    >
       <View className="flex-1 flex-row items-center gap-4">
         {icon}
         <View className="flex-1">
           <Text className={`text-[15px] font-medium ${destructive ? 'text-destructive' : ''}`}>
             {label}
           </Text>
-          {description && (
+          {description ? (
             <Text className="text-muted-foreground mt-0.5 text-xs">{description}</Text>
-          )}
+          ) : null}
         </View>
       </View>
       {showChevron && !external && <ChevronRight size={20} color={colors.icon.default} />}
@@ -114,18 +140,23 @@ function ProfileRow() {
 }
 
 export default function SettingsScreen() {
-  const { t } = useTranslation(['mobile', 'common']);
+  const { t } = useTranslation(['mobile', 'common', 'nav', 'settings', 'pages']);
   const router = useRouter();
   const server = useAuthStateStore((s) => s.server);
   const unpairServer = useAuthStateStore((s) => s.unpairServer);
+  const { supports, updateAvailable, latestVersion, releaseUrl, upgradeWarnings } =
+    useServerVersion();
+  const host = server ? instanceHost(server.url) : null;
+  const showUpdate = updateAvailable && latestVersion !== null && releaseUrl !== null;
+  const showAutomations = supports(SERVER_2_2);
   const appVersion = Application.nativeApplicationVersion ?? '1.0.0';
   const buildNumber = Application.nativeBuildVersion ?? 'dev';
 
   const handleDisconnect = () => {
     Alert.alert(
       t('mobile:settings.disconnectServer'),
-      server
-        ? t('mobile:settings.disconnectConfirm', { serverName: server.name })
+      host
+        ? t('mobile:settings.disconnectConfirm', { serverName: host })
         : t('mobile:settings.disconnectConfirmGeneric'),
       [
         { text: t('common:actions.cancel'), style: 'cancel' },
@@ -143,24 +174,20 @@ export default function SettingsScreen() {
     );
   };
 
-  const handleDiscordPress = () => {
-    void Linking.openURL(DISCORD_URL);
-  };
-
-  const handleDocsPress = () => {
-    void Linking.openURL(DOCS_URL);
-  };
-
-  const handleWebsitePress = () => {
-    void Linking.openURL(WEBSITE_URL);
-  };
-
-  const handleGithubPress = () => {
-    void Linking.openURL(GITHUB_URL);
-  };
-
-  const handleSponsorPress = () => {
-    void Linking.openURL(SPONSOR_URL);
+  const handleUpdatePress = () => {
+    if (!releaseUrl) return;
+    if (upgradeWarnings.length === 0) {
+      openUrl(releaseUrl);
+      return;
+    }
+    Alert.alert(
+      t('settings:update.beforeUpdating'),
+      upgradeWarnings.map((w) => `v${w.version}: ${w.text}`).join('\n\n'),
+      [
+        { text: t('common:actions.later'), style: 'cancel' },
+        { text: t('common:actions.viewOnGithub'), onPress: () => openUrl(releaseUrl) },
+      ]
+    );
   };
 
   return (
@@ -168,7 +195,36 @@ export default function SettingsScreen() {
       style={{ flex: 1, backgroundColor: colors.background.dark }}
       edges={['left', 'right', 'bottom']}
     >
+      <ScreenHeader title={t('nav:settings')} onBack={() => router.back()} />
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, padding: 16 }}>
+        {(showUpdate || showAutomations) && (
+          <SettingsSection title={t('common:labels.server')}>
+            {showUpdate && (
+              <SettingsRow
+                icon={<ArrowUpCircle size={20} color={colors.success} />}
+                label={t('settings:update.title')}
+                description={
+                  upgradeWarnings.length > 0
+                    ? `${t('settings:update.versionAvailable', { version: latestVersion })} · ${t('settings:update.beforeUpdating')}`
+                    : t('settings:update.versionAvailable', { version: latestVersion })
+                }
+                onPress={handleUpdatePress}
+                showChevron={false}
+                external
+              />
+            )}
+            {showUpdate && showAutomations && <View className="bg-border ml-14 h-px" />}
+            {showAutomations && (
+              <SettingsRow
+                icon={<Workflow size={20} color={colors.icon.default} />}
+                label={t('nav:automations')}
+                description={t('pages:automations.description')}
+                onPress={() => router.push(AUTOMATIONS_ROUTE)}
+              />
+            )}
+          </SettingsSection>
+        )}
+
         {/* Preferences */}
         <SettingsSection title={t('mobile:settings.preferences')}>
           <SettingsRow
@@ -192,7 +248,7 @@ export default function SettingsScreen() {
             icon={<MessageCircle size={20} color="#5865F2" />}
             label={t('mobile:settings.discord')}
             description={t('mobile:settings.joinCommunity')}
-            onPress={handleDiscordPress}
+            onPress={() => openUrl(DISCORD_URL)}
             showChevron={false}
             external
           />
@@ -201,7 +257,7 @@ export default function SettingsScreen() {
             icon={<BookOpen size={20} color={colors.icon.default} />}
             label={t('mobile:settings.docs')}
             description={t('mobile:settings.readDocs')}
-            onPress={handleDocsPress}
+            onPress={() => openUrl(DOCS_URL)}
             showChevron={false}
             external
           />
@@ -210,7 +266,7 @@ export default function SettingsScreen() {
             icon={<Globe size={20} color={colors.icon.default} />}
             label={t('mobile:settings.website')}
             description={t('mobile:settings.visitWebsite')}
-            onPress={handleWebsitePress}
+            onPress={() => openUrl(WEBSITE_URL)}
             showChevron={false}
             external
           />
@@ -219,7 +275,7 @@ export default function SettingsScreen() {
             icon={<Code2 size={20} color={colors.icon.default} />}
             label={t('mobile:settings.github')}
             description={t('mobile:settings.viewSourceCode')}
-            onPress={handleGithubPress}
+            onPress={() => openUrl(GITHUB_URL)}
             showChevron={false}
             external
           />
@@ -228,7 +284,7 @@ export default function SettingsScreen() {
             icon={<Heart size={20} color="#DB61A2" />}
             label={t('mobile:settings.sponsor')}
             description={t('mobile:settings.supportDevelopment')}
-            onPress={handleSponsorPress}
+            onPress={() => openUrl(SPONSOR_URL)}
             showChevron={false}
             external
           />
@@ -241,9 +297,7 @@ export default function SettingsScreen() {
             icon={<LogOut size={20} color={colors.icon.danger} />}
             label={t('mobile:settings.disconnect')}
             description={
-              server
-                ? t('mobile:settings.currentlyConnected', { serverName: server.name })
-                : undefined
+              host ? t('mobile:settings.currentlyConnected', { serverName: host }) : undefined
             }
             onPress={handleDisconnect}
             showChevron={false}

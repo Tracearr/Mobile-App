@@ -6,6 +6,8 @@ import { View, Pressable, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Check } from 'lucide-react-native';
 import { Text } from '@/components/ui/text';
+import { Card } from '@/components/ui/card';
+import { haptics } from '@/lib/haptics';
 import { ACCENT_COLOR, colors } from '@/lib/theme';
 import { languageNames, getCurrentLanguage, changeLanguage } from '@tracearr/translations/mobile';
 import { asyncStorageAdapter } from '@/lib/i18n';
@@ -21,6 +23,7 @@ export default function LanguageScreen() {
     try {
       await changeLanguage(code, asyncStorageAdapter);
       setCurrentLang(code);
+      haptics.selection();
     } catch (error) {
       console.error('[Language] Failed to change language:', error);
     } finally {
@@ -36,13 +39,15 @@ export default function LanguageScreen() {
       edges={['left', 'right', 'bottom']}
     >
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
-        <View className="bg-card overflow-hidden rounded-xl">
+        <Card padding="none" className="overflow-hidden" accessibilityRole="radiogroup">
           {languages.map(([code, name], index) => (
             <View key={code}>
               {index > 0 && <View className="bg-border ml-4 h-px" />}
               <Pressable
                 onPress={() => void handleSelect(code)}
-                className="flex-row items-center justify-between px-4 py-3.5"
+                accessibilityRole="radio"
+                accessibilityState={{ checked: code === currentLang, disabled: changing }}
+                className="min-h-11 flex-row items-center justify-between px-4 py-3.5"
                 disabled={changing}
               >
                 <View className="flex-1">
@@ -55,7 +60,7 @@ export default function LanguageScreen() {
               </Pressable>
             </View>
           ))}
-        </View>
+        </Card>
       </ScrollView>
     </SafeAreaView>
   );

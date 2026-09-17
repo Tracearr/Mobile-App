@@ -5,10 +5,14 @@
 import React, { useState } from 'react';
 import { View, Pressable } from 'react-native';
 import { ArrowRight, Video, AudioLines, Subtitles, Cpu, ChevronDown } from 'lucide-react-native';
+import { useTranslation } from '@tracearr/translations/mobile';
 import { Text } from '@/components/ui/text';
 import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 import { colors, withAlpha, ACCENT_COLOR } from '@/lib/theme';
+import { PLAYBACK_DECISION_LABEL_KEYS } from '@/lib/playbackDecision';
 import {
+  formatMediaTech,
   formatResolutionDisplay,
   type SourceVideoDetails,
   type SourceAudioDetails,
@@ -43,9 +47,11 @@ interface StreamDetailsPanelProps {
   serverType: ServerType;
 }
 
+const EMPTY = '-';
+
 // Format bitrate for display
 function formatBitrate(bitrate: number | null | undefined): string {
-  if (!bitrate) return '—';
+  if (!bitrate) return EMPTY;
   if (bitrate >= 1000) {
     const mbps = bitrate / 1000;
     const formatted = mbps % 1 === 0 ? mbps.toFixed(0) : mbps.toFixed(1);
@@ -54,65 +60,28 @@ function formatBitrate(bitrate: number | null | undefined): string {
   return `${bitrate} kbps`;
 }
 
-// Format channels
-function formatChannels(channels: number | null | undefined): string {
-  if (!channels) return '—';
-  if (channels === 8) return '7.1';
-  if (channels === 6) return '5.1';
-  if (channels === 2) return 'Stereo';
-  if (channels === 1) return 'Mono';
-  return `${channels}ch`;
-}
-
 function formatFramerate(framerate: string | number | null | undefined): string {
-  if (framerate === null || framerate === undefined || framerate === '') return '—';
+  if (framerate === null || framerate === undefined || framerate === '') return EMPTY;
   const numeric = typeof framerate === 'number' ? framerate : parseFloat(String(framerate));
   if (Number.isNaN(numeric)) return String(framerate);
   return numeric % 1 === 0 ? numeric.toFixed(0) : numeric.toFixed(1);
 }
 
-// Get decision badge variant and label
-function getDecisionBadge(decision: string | null): {
-  variant: 'success' | 'warning' | 'secondary';
-  label: string;
-} {
+function getDecisionVariant(decision: string | null): 'success' | 'warning' | 'secondary' {
   switch (decision) {
     case 'directplay':
-      return { variant: 'success', label: 'Direct Play' };
     case 'copy':
-      return { variant: 'success', label: 'Direct Stream' };
+      return 'success';
     case 'transcode':
-      return { variant: 'warning', label: 'Transcode' };
     case 'burn':
-      return { variant: 'warning', label: 'Burn-in' };
+      return 'warning';
     default:
-      return { variant: 'secondary', label: '—' };
+      return 'secondary';
   }
 }
 
-// Format codec name for display
 function formatCodec(codec: string | null | undefined): string {
-  if (!codec) return '—';
-  const upper = codec.toUpperCase();
-  if (
-    [
-      'H264',
-      'H265',
-      'HEVC',
-      'AV1',
-      'VP9',
-      'AAC',
-      'AC3',
-      'EAC3',
-      'DTS',
-      'TRUEHD',
-      'FLAC',
-      'OPUS',
-    ].includes(upper)
-  ) {
-    return upper;
-  }
-  return codec.charAt(0).toUpperCase() + codec.slice(1);
+  return codec ? formatMediaTech(codec) : EMPTY;
 }
 
 function formatTranscodeReason(reason: string): string {
@@ -145,15 +114,14 @@ function ComparisonRow({
   highlight?: boolean;
 }) {
   const isDifferent =
-    streamValue && sourceValue !== streamValue && sourceValue !== '—' && streamValue !== '—';
+    !!streamValue && sourceValue !== streamValue && sourceValue !== EMPTY && streamValue !== EMPTY;
 
   return (
     <View className="flex-row items-center py-0.5">
       <Text className="text-muted-foreground w-20 text-[13px]">{label}</Text>
       <View className="flex-1">
         <Text
-          className="text-[13px] font-medium"
-          style={{ color: highlight ? colors.warning : colors.text.primary.dark }}
+          className={cn('text-[13px] font-medium', highlight ? 'text-warning' : 'text-foreground')}
           numberOfLines={1}
         >
           {sourceValue}
@@ -170,8 +138,10 @@ function ComparisonRow({
       <View className="flex-1">
         {streamValue !== undefined && (
           <Text
-            className={`text-[13px] ${isDifferent ? 'font-medium' : ''}`}
-            style={{ color: isDifferent ? colors.warning : colors.text.primary.dark }}
+            className={cn(
+              'text-[13px]',
+              isDifferent ? 'text-warning font-medium' : 'text-foreground'
+            )}
             numberOfLines={1}
           >
             {streamValue}
@@ -205,15 +175,20 @@ function SectionHeader({
 
 // Column labels
 function SectionColumnLabels() {
+  const { t } = useTranslation(['mobile']);
   return (
     <View className="border-border mb-1 flex-row items-center border-b pb-1">
       <View className="w-20" />
       <View className="flex-1">
-        <Text className="text-muted-foreground text-[9px] font-medium tracking-wider">SOURCE</Text>
+        <Text className="text-muted-foreground text-[9px] font-medium tracking-wider uppercase">
+          {t('mobile:streamDetails.source', { defaultValue: 'Source' })}
+        </Text>
       </View>
       <View className="w-6" />
       <View className="flex-1">
-        <Text className="text-muted-foreground text-[9px] font-medium tracking-wider">STREAM</Text>
+        <Text className="text-muted-foreground text-[9px] font-medium tracking-wider uppercase">
+          {t('mobile:streamDetails.stream', { defaultValue: 'Stream' })}
+        </Text>
       </View>
     </View>
   );
@@ -238,24 +213,52 @@ export function StreamDetailsPanel({
   bitrate,
   serverType,
 }: StreamDetailsPanelProps) {
+  const { t } = useTranslation(['mobile', 'common', 'pages']);
   const [transcodeOpen, setTranscodeOpen] = useState(false);
 
-  const hasVideoDetails = sourceVideoCodec || streamVideoCodec || sourceVideoWidth;
-  const hasAudioDetails = sourceAudioCodec || streamAudioCodec || sourceAudioChannels;
-  const hasSubtitleDetails = subtitleInfo?.codec || subtitleInfo?.language;
-  const hasTranscodeDetails =
-    transcodeInfo && (transcodeInfo.hwDecoding || transcodeInfo.hwEncoding || transcodeInfo.speed);
+  // Booleans, not the raw values: a bare 0 or '' from `value && <View />` crashes outside <Text>.
+  const hasVideoDetails = !!(sourceVideoCodec || streamVideoCodec || sourceVideoWidth);
+  const hasAudioDetails = !!(sourceAudioCodec || streamAudioCodec || sourceAudioChannels);
+  const hasSubtitleDetails = !!(subtitleInfo?.codec || subtitleInfo?.language);
+  const hasTranscodeDetails = !!(
+    transcodeInfo?.hwDecoding ||
+    transcodeInfo?.hwEncoding ||
+    transcodeInfo?.speed
+  );
 
   if (!hasVideoDetails && !hasAudioDetails) {
     return (
       <Text className="text-muted-foreground py-2 text-sm">
-        No detailed stream information available
+        {t('mobile:streamDetails.noDetails', {
+          defaultValue: 'No detailed stream information available',
+        })}
       </Text>
     );
   }
 
-  const videoBadge = getDecisionBadge(videoDecision);
-  const audioBadge = getDecisionBadge(audioDecision);
+  const decisionLabel = (decision: string | null): string => {
+    switch (decision) {
+      case 'directplay':
+      case 'copy':
+      case 'transcode':
+        return t(PLAYBACK_DECISION_LABEL_KEYS[decision]);
+      case 'burn':
+        return t('common:playback.burnIn', { defaultValue: 'Burn-in' });
+      default:
+        return EMPTY;
+    }
+  };
+  const formatChannels = (channels: number | null | undefined): string => {
+    if (!channels) return EMPTY;
+    if (channels === 8) return '7.1';
+    if (channels === 6) return '5.1';
+    if (channels === 2) return t('mobile:streamDetails.stereo', { defaultValue: 'Stereo' });
+    if (channels === 1) return t('mobile:streamDetails.mono', { defaultValue: 'Mono' });
+    return `${channels}ch`;
+  };
+  const bitrateLabel = t('mobile:streamDetails.bitrate', { defaultValue: 'Bitrate' });
+  const codecLabel = t('mobile:streamDetails.codec', { defaultValue: 'Codec' });
+  const notAvailable = t('mobile:streamDetails.notAvailable', { defaultValue: 'N/A' });
   const transcodeReasons = transcodeInfo?.reasons ?? [];
   const videoTranscodeReasons = filterTranscodeReasons(transcodeReasons, 'video');
   const audioTranscodeReasons = filterTranscodeReasons(transcodeReasons, 'audio');
@@ -263,47 +266,50 @@ export function StreamDetailsPanel({
   return (
     <View className="gap-2">
       {/* Container and overall bitrate */}
-      {(transcodeInfo?.sourceContainer || bitrate) && (
+      {transcodeInfo?.sourceContainer || bitrate ? (
         <>
-          {transcodeInfo?.sourceContainer && (
+          {transcodeInfo?.sourceContainer ? (
             <ComparisonRow
-              label="Container"
-              sourceValue={transcodeInfo.sourceContainer.toUpperCase()}
-              streamValue={
-                transcodeInfo.streamContainer?.toUpperCase() ??
-                transcodeInfo.sourceContainer.toUpperCase()
-              }
+              label={t('mobile:streamDetails.container', { defaultValue: 'Container' })}
+              sourceValue={formatMediaTech(transcodeInfo.sourceContainer)}
+              streamValue={formatMediaTech(
+                transcodeInfo.streamContainer ?? transcodeInfo.sourceContainer
+              )}
             />
-          )}
-          {bitrate && (
+          ) : null}
+          {bitrate ? (
             <View className="flex-row items-center py-0.5">
-              <Text className="text-muted-foreground w-20 text-[13px]">Bitrate</Text>
-              <Text className="text-[13px] font-medium" style={{ color: colors.text.primary.dark }}>
+              <Text className="text-muted-foreground w-20 text-[13px]">{bitrateLabel}</Text>
+              <Text className="text-foreground text-[13px] font-medium">
                 {formatBitrate(bitrate)}
               </Text>
             </View>
-          )}
+          ) : null}
           <View className="bg-border mt-1 h-px" />
         </>
-      )}
+      ) : null}
 
       {/* Video Section */}
       {hasVideoDetails && (
         <>
           <SectionHeader
             icon={Video}
-            title="Video"
-            badge={<Badge variant={videoBadge.variant}>{videoBadge.label}</Badge>}
+            title={t('pages:automations.options.video')}
+            badge={
+              <Badge variant={getDecisionVariant(videoDecision)}>
+                {decisionLabel(videoDecision)}
+              </Badge>
+            }
           />
           <View className="gap-0.5">
             <SectionColumnLabels />
             <ComparisonRow
-              label="Codec"
+              label={codecLabel}
               sourceValue={formatCodec(sourceVideoCodec)}
               streamValue={formatCodec(streamVideoCodec ?? sourceVideoCodec)}
             />
             <ComparisonRow
-              label="Resolution"
+              label={t('common:labels.resolution')}
               sourceValue={formatResolutionDisplay(sourceVideoWidth, sourceVideoHeight)}
               streamValue={formatResolutionDisplay(
                 streamVideoDetails?.width ?? sourceVideoWidth,
@@ -311,50 +317,52 @@ export function StreamDetailsPanel({
               )}
             />
             <ComparisonRow
-              label="Bitrate"
+              label={bitrateLabel}
               sourceValue={formatBitrate(sourceVideoDetails?.bitrate)}
               streamValue={
                 // Show N/A for Jellyfin/Emby transcodes without stream bitrate
                 videoDecision === 'transcode' &&
                 !streamVideoDetails?.bitrate &&
                 serverType !== 'plex'
-                  ? 'N/A'
+                  ? notAvailable
                   : formatBitrate(streamVideoDetails?.bitrate ?? sourceVideoDetails?.bitrate)
               }
             />
-            {sourceVideoDetails?.framerate && (
+            {sourceVideoDetails?.framerate ? (
               <ComparisonRow
-                label="Framerate"
+                label={t('mobile:streamDetails.framerate', { defaultValue: 'Framerate' })}
                 sourceValue={formatFramerate(sourceVideoDetails.framerate)}
                 streamValue={formatFramerate(
                   streamVideoDetails?.framerate ?? sourceVideoDetails.framerate
                 )}
               />
-            )}
-            {sourceVideoDetails?.dynamicRange && (
+            ) : null}
+            {sourceVideoDetails?.dynamicRange ? (
               <ComparisonRow
-                label="HDR"
-                sourceValue={sourceVideoDetails.dynamicRange}
-                streamValue={streamVideoDetails?.dynamicRange ?? sourceVideoDetails.dynamicRange}
+                label={t('pages:automations.options.hdr')}
+                sourceValue={formatMediaTech(sourceVideoDetails.dynamicRange)}
+                streamValue={formatMediaTech(
+                  streamVideoDetails?.dynamicRange ?? sourceVideoDetails.dynamicRange
+                )}
               />
-            )}
-            {sourceVideoDetails?.profile && (
+            ) : null}
+            {sourceVideoDetails?.profile ? (
               <ComparisonRow
-                label="Profile"
+                label={t('mobile:streamDetails.profile', { defaultValue: 'Profile' })}
                 sourceValue={sourceVideoDetails.profile}
                 showArrow={false}
               />
-            )}
-            {sourceVideoDetails?.colorSpace && (
+            ) : null}
+            {sourceVideoDetails?.colorSpace ? (
               <ComparisonRow
-                label="Color"
+                label={t('mobile:streamDetails.color', { defaultValue: 'Color' })}
                 sourceValue={`${sourceVideoDetails.colorSpace}${sourceVideoDetails.colorDepth ? ` ${sourceVideoDetails.colorDepth}bit` : ''}`}
                 showArrow={false}
               />
-            )}
+            ) : null}
             {videoDecision === 'transcode' && videoTranscodeReasons.length > 0 && (
               <ComparisonRow
-                label="Transcode Reason"
+                label={t('common:labels.transcodeReason')}
                 sourceValue={videoTranscodeReasons.join(', ')}
                 showArrow={false}
                 highlight
@@ -370,50 +378,54 @@ export function StreamDetailsPanel({
           <View className="bg-border my-2 h-px" />
           <SectionHeader
             icon={AudioLines}
-            title="Audio"
-            badge={<Badge variant={audioBadge.variant}>{audioBadge.label}</Badge>}
+            title={t('pages:automations.options.audio')}
+            badge={
+              <Badge variant={getDecisionVariant(audioDecision)}>
+                {decisionLabel(audioDecision)}
+              </Badge>
+            }
           />
           <View className="gap-0.5">
             <SectionColumnLabels />
             <ComparisonRow
-              label="Codec"
+              label={codecLabel}
               sourceValue={formatCodec(sourceAudioCodec)}
               streamValue={formatCodec(streamAudioCodec ?? sourceAudioCodec)}
             />
             <ComparisonRow
-              label="Channels"
+              label={t('mobile:streamDetails.channels', { defaultValue: 'Channels' })}
               sourceValue={formatChannels(sourceAudioChannels)}
               streamValue={formatChannels(streamAudioDetails?.channels ?? sourceAudioChannels)}
             />
             <ComparisonRow
-              label="Bitrate"
+              label={bitrateLabel}
               sourceValue={formatBitrate(sourceAudioDetails?.bitrate)}
               streamValue={
                 // Show N/A for Jellyfin/Emby transcodes without stream bitrate
                 audioDecision === 'transcode' &&
                 !streamAudioDetails?.bitrate &&
                 serverType !== 'plex'
-                  ? 'N/A'
+                  ? notAvailable
                   : formatBitrate(streamAudioDetails?.bitrate ?? sourceAudioDetails?.bitrate)
               }
             />
-            {sourceAudioDetails?.language && (
+            {sourceAudioDetails?.language ? (
               <ComparisonRow
-                label="Language"
+                label={t('mobile:settings.language')}
                 sourceValue={sourceAudioDetails.language}
                 streamValue={streamAudioDetails?.language ?? sourceAudioDetails.language}
               />
-            )}
-            {sourceAudioDetails?.sampleRate && (
+            ) : null}
+            {sourceAudioDetails?.sampleRate ? (
               <ComparisonRow
-                label="Sample Rate"
+                label={t('mobile:streamDetails.sampleRate', { defaultValue: 'Sample Rate' })}
                 sourceValue={`${sourceAudioDetails.sampleRate / 1000} kHz`}
                 showArrow={false}
               />
-            )}
+            ) : null}
             {audioDecision === 'transcode' && audioTranscodeReasons.length > 0 && (
               <ComparisonRow
-                label="Transcode Reason"
+                label={t('common:labels.transcodeReason')}
                 sourceValue={audioTranscodeReasons.join(', ')}
                 showArrow={false}
                 highlight
@@ -429,29 +441,31 @@ export function StreamDetailsPanel({
           <View className="bg-border my-2 h-px" />
           <SectionHeader
             icon={Subtitles}
-            title="Subtitles"
+            title={t('mobile:streamDetails.subtitles', { defaultValue: 'Subtitles' })}
             badge={
               subtitleInfo?.decision ? (
-                <Badge variant={getDecisionBadge(subtitleInfo.decision).variant}>
-                  {getDecisionBadge(subtitleInfo.decision).label}
+                <Badge variant={getDecisionVariant(subtitleInfo.decision)}>
+                  {decisionLabel(subtitleInfo.decision)}
                 </Badge>
               ) : undefined
             }
           />
           <View className="flex-row items-center gap-2">
-            <Text className="text-muted-foreground text-[13px]">Format:</Text>
-            <Text className="text-[13px]" style={{ color: colors.text.primary.dark }}>
-              {formatCodec(subtitleInfo?.codec)}
+            <Text className="text-muted-foreground text-[13px]">
+              {t('mobile:streamDetails.format', { defaultValue: 'Format:' })}
             </Text>
-            {subtitleInfo?.language && (
+            <Text className="text-foreground text-[13px]">{formatCodec(subtitleInfo?.codec)}</Text>
+            {subtitleInfo?.language ? (
               <>
                 <Text className="text-muted-foreground text-[13px]">·</Text>
-                <Text className="text-[13px]" style={{ color: colors.text.primary.dark }}>
-                  {subtitleInfo.language}
-                </Text>
+                <Text className="text-foreground text-[13px]">{subtitleInfo.language}</Text>
               </>
+            ) : null}
+            {subtitleInfo?.forced && (
+              <Badge variant="outline">
+                {t('mobile:streamDetails.forced', { defaultValue: 'Forced' })}
+              </Badge>
             )}
-            {subtitleInfo?.forced && <Badge variant="outline">Forced</Badge>}
           </View>
         </>
       )}
@@ -460,12 +474,16 @@ export function StreamDetailsPanel({
       {hasTranscodeDetails && (
         <>
           <Pressable
-            className="flex-row items-center justify-between py-2"
+            accessibilityRole="button"
+            accessibilityState={{ expanded: transcodeOpen }}
+            className="min-h-11 flex-row items-center justify-between py-2"
             onPress={() => setTranscodeOpen(!transcodeOpen)}
           >
             <View className="flex-row items-center gap-2">
               <Cpu size={16} color={ACCENT_COLOR} />
-              <Text className="text-foreground text-sm font-medium">Transcode Details</Text>
+              <Text className="text-foreground text-sm font-medium">
+                {t('mobile:streamDetails.transcodeDetails', { defaultValue: 'Transcode Details' })}
+              </Text>
             </View>
             <ChevronDown
               size={16}
@@ -475,32 +493,37 @@ export function StreamDetailsPanel({
           </Pressable>
           {transcodeOpen && (
             <View className="border-border gap-0.5 rounded-lg border p-2">
-              {transcodeInfo?.hwDecoding && (
+              {transcodeInfo?.hwDecoding ? (
                 <View className="flex-row items-center justify-between py-0.5">
-                  <Text className="text-muted-foreground text-[13px]">HW Decode</Text>
-                  <Text className="text-[13px]" style={{ color: colors.text.primary.dark }}>
-                    {transcodeInfo.hwDecoding}
+                  <Text className="text-muted-foreground text-[13px]">
+                    {t('mobile:streamDetails.hwDecode', { defaultValue: 'HW Decode' })}
                   </Text>
+                  <Text className="text-foreground text-[13px]">{transcodeInfo.hwDecoding}</Text>
                 </View>
-              )}
-              {transcodeInfo?.hwEncoding && (
+              ) : null}
+              {transcodeInfo?.hwEncoding ? (
                 <View className="flex-row items-center justify-between py-0.5">
-                  <Text className="text-muted-foreground text-[13px]">HW Encode</Text>
-                  <Text className="text-[13px]" style={{ color: colors.text.primary.dark }}>
-                    {transcodeInfo.hwEncoding}
+                  <Text className="text-muted-foreground text-[13px]">
+                    {t('mobile:streamDetails.hwEncode', { defaultValue: 'HW Encode' })}
                   </Text>
+                  <Text className="text-foreground text-[13px]">{transcodeInfo.hwEncoding}</Text>
                 </View>
-              )}
+              ) : null}
               {transcodeInfo?.speed !== undefined && (
                 <View className="flex-row items-center justify-between py-0.5">
-                  <Text className="text-muted-foreground text-[13px]">Speed</Text>
+                  <Text className="text-muted-foreground text-[13px]">
+                    {t('mobile:streamDetails.speed', { defaultValue: 'Speed' })}
+                  </Text>
                   <Text
-                    className="text-[13px]"
-                    style={{
-                      color: transcodeInfo.speed < 1 ? colors.warning : colors.text.primary.dark,
-                    }}
+                    className={cn(
+                      'text-[13px]',
+                      transcodeInfo.speed < 1 ? 'text-warning' : 'text-foreground'
+                    )}
                   >
-                    {transcodeInfo.speed.toFixed(1)}x{transcodeInfo.throttled && ' (throttled)'}
+                    {transcodeInfo.speed.toFixed(1)}x
+                    {transcodeInfo.throttled
+                      ? ` (${t('mobile:streamDetails.throttled', { defaultValue: 'throttled' })})`
+                      : ''}
                   </Text>
                 </View>
               )}

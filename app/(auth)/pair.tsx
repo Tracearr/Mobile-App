@@ -6,7 +6,6 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import {
   View,
   TextInput,
-  Pressable,
   StyleSheet,
   Alert,
   KeyboardAvoidingView,
@@ -20,7 +19,8 @@ import { useAuthStateStore } from '@/lib/authStateStore';
 import { validateServerUrl, isInternalUrl, showInternalUrlWarning } from '@/lib/validation';
 import { ROUTES } from '@/lib/routes';
 import { Text } from '@/components/ui/text';
-import { colors } from '@/lib/theme';
+import { Button } from '@/components/ui/button';
+import { ACCENT_COLOR, colors } from '@/lib/theme';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@tracearr/translations/mobile';
 import { ObserveInteractiveMarker } from 'expo-observe';
@@ -249,6 +249,7 @@ export default function PairScreen() {
                   className="bg-card border-border text-foreground rounded-md border p-4 text-base"
                   value={serverUrl}
                   onChangeText={handleServerUrlChange}
+                  accessibilityLabel={t('mobile:pair.serverUrl')}
                   placeholder={t('mobile:pair.urlPlaceholder')}
                   placeholderTextColor={colors.text.muted.dark}
                   autoCapitalize="none"
@@ -266,6 +267,7 @@ export default function PairScreen() {
                   className="bg-card border-border text-foreground rounded-md border p-4 text-base"
                   value={token}
                   onChangeText={handleTokenChange}
+                  accessibilityLabel={t('mobile:pair.accessToken')}
                   placeholder={t('mobile:pair.tokenPlaceholder')}
                   placeholderTextColor={colors.text.muted.dark}
                   autoCapitalize="none"
@@ -277,26 +279,23 @@ export default function PairScreen() {
 
               {error && <Text className="text-destructive text-center text-sm">{error}</Text>}
 
-              <Pressable
-                className={cn(
-                  'bg-primary mt-2 items-center rounded-md px-6 py-4',
-                  isLoading && 'opacity-60'
-                )}
+              <Button
+                size="lg"
+                className={cn('mt-2 py-4', isLoading && 'opacity-60')}
                 onPress={handleManualPair}
                 disabled={isLoading}
               >
-                <Text className="text-primary-foreground text-base font-semibold">
-                  {isLoading ? t('common:states.connecting') : t('common:actions.connect')}
-                </Text>
-              </Pressable>
+                {isLoading ? t('common:states.connecting') : t('common:actions.connect')}
+              </Button>
 
-              <Pressable
-                className="items-center py-4"
+              <Button
+                variant="ghost"
+                className="py-4"
                 onPress={() => setManualMode(false)}
                 disabled={isLoading}
               >
                 <Text className="text-primary text-base">{t('mobile:pair.scanQrCodeInstead')}</Text>
-              </Pressable>
+              </Button>
             </View>
           </ScrollView>
         </KeyboardAvoidingView>
@@ -339,23 +338,15 @@ export default function PairScreen() {
               onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
             />
             <View
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                justifyContent: 'center',
-                alignItems: 'center',
-                backgroundColor: 'rgba(0,0,0,0.3)',
-              }}
+              style={StyleSheet.absoluteFill}
+              className="items-center justify-center bg-black/30"
             >
               <View
                 style={{
                   width: 250,
                   height: 250,
                   borderWidth: 2,
-                  borderColor: '#18D1E7',
+                  borderColor: ACCENT_COLOR,
                   borderRadius: 12,
                 }}
               />
@@ -366,28 +357,17 @@ export default function PairScreen() {
             <Text className="text-muted-foreground mb-6 text-center text-base">
               {t('mobile:pair.cameraPermissionRequired')}
             </Text>
-            <Pressable
-              style={{
-                backgroundColor: '#18D1E7',
-                paddingVertical: 16,
-                paddingHorizontal: 24,
-                borderRadius: 8,
-                alignItems: 'center',
-              }}
-              onPress={requestPermission}
-            >
-              <Text style={{ fontSize: 16, fontWeight: '600', color: '#18181B' }}>
-                {t('common:actions.continue')}
-              </Text>
-            </Pressable>
+            <Button size="lg" className="py-4" onPress={requestPermission}>
+              {t('common:actions.continue')}
+            </Button>
           </View>
         )}
       </View>
 
       <View className="items-center px-6 pb-6">
-        <Pressable className="items-center py-4" onPress={() => setManualMode(true)}>
+        <Button variant="ghost" className="py-4" onPress={() => setManualMode(true)}>
           <Text className="text-primary text-base">{t('mobile:pair.enterManually')}</Text>
-        </Pressable>
+        </Button>
       </View>
     </SafeAreaView>
   );

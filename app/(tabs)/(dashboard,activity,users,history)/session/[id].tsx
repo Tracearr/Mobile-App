@@ -5,21 +5,12 @@
  */
 import { useEffect, useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import {
-  View,
-  ScrollView,
-  Pressable,
-  ActivityIndicator,
-  Image,
-  Alert,
-  Modal,
-  TextInput,
-} from 'react-native';
+import { View, ScrollView, Pressable, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Image } from 'expo-image';
+import { useQuery } from '@tanstack/react-query';
 import { ObserveInteractiveMarker } from 'expo-observe';
 import { maybeRequestReview } from '@/lib/reviewPrompt';
-import { format, formatDistanceToNow } from 'date-fns';
 import {
   Play,
   Pause,
@@ -36,71 +27,72 @@ import {
   ImageIcon,
   CircleHelp,
   Globe,
-  MonitorPlay,
-  Zap,
-  Cpu,
   Eye,
   ChevronRight,
   X,
   Clapperboard,
 } from 'lucide-react-native';
-import { api, getServerUrl } from '@/lib/api';
+import { api } from '@/lib/api';
 import { queryKeys } from '@/lib/queryKeys';
 import { ROUTES } from '@/lib/routes';
+import { haptics } from '@/lib/haptics';
+import {
+  formatDuration,
+  safeFormatDate,
+  safeFormatDistanceToNow,
+  safeParseDate,
+} from '@/lib/formatters';
 import { useMediaServer } from '@/providers/MediaServerProvider';
 import { useAuthStateStore } from '@/lib/authStateStore';
-import { colors, withAlpha, ACCENT_COLOR } from '@/lib/theme';
+import { useImageUrl } from '@/hooks/useImageUrl';
+import { useResponsive } from '@/hooks/useResponsive';
+import { ACCENT_COLOR, colors, spacing, withAlpha } from '@/lib/theme';
+import { cn } from '@/lib/utils';
 import { Text } from '@/components/ui/text';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { ErrorState } from '@/components/ui/error-state';
+import { SectionHeader } from '@/components/ui/section-header';
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { StreamDetailsPanel } from '@/components/session';
-import type { SessionWithDetails, SessionState, MediaType, ServerType } from '@tracearr/shared';
+import { QualityBadge } from '@/components/sessions/QualityBadge';
+import { TerminateSessionDialog } from '@/components/sessions';
+import {
+  SERVER_TYPE_BRAND_COLORS,
+  formatEpisodeLabel,
+  type SessionWithDetails,
+  type SessionState,
+  type MediaType,
+  type ServerType,
+} from '@tracearr/shared';
 import { useTranslation } from '@tracearr/translations/mobile';
 
-// Server type configuration
-const SERVER_CONFIG: Record<ServerType, { label: string; color: string }> = {
-  plex: { label: 'Plex', color: '#E5A00D' },
-  jellyfin: { label: 'Jellyfin', color: '#A855F7' },
-  emby: { label: 'Emby', color: '#22C55E' },
+const POSTER_WIDTH = 56;
+const POSTER_HEIGHT = 80;
+const DATE_TIME_FORMAT = 'MMM d, h:mm a';
+
+const SERVER_LABELS: Record<ServerType, string> = {
+  plex: 'Plex',
+  jellyfin: 'Jellyfin',
+  emby: 'Emby',
 };
 
-// State configuration
-const STATE_CONFIG: Record<SessionState, { icon: typeof Play; color: string; label: string }> = {
-  playing: { icon: Play, color: colors.success, label: 'Playing' },
-  paused: { icon: Pause, color: colors.warning, label: 'Paused' },
-  stopped: { icon: Square, color: colors.text.muted.dark, label: 'Stopped' },
-};
+const STATE_CONFIG = {
+  playing: { icon: Play, color: colors.success, labelKey: 'common:playback.playing' },
+  paused: { icon: Pause, color: colors.warning, labelKey: 'common:playback.paused' },
+  stopped: { icon: Square, color: colors.text.muted.dark, labelKey: 'common:playback.stopped' },
+} as const satisfies Record<SessionState, { icon: typeof Play; color: string; labelKey: string }>;
 
-// Media type configuration
-const MEDIA_CONFIG: Record<MediaType, { icon: typeof Film; label: string }> = {
-  movie: { icon: Film, label: 'Movie' },
-  episode: { icon: Tv, label: 'Episode' },
-  track: { icon: Music, label: 'Track' },
-  live: { icon: Radio, label: 'Live TV' },
-  photo: { icon: ImageIcon, label: 'Photo' },
-  trailer: { icon: Clapperboard, label: 'Trailer' },
-  unknown: { icon: CircleHelp, label: 'Unknown' },
-};
-
-// Safe date parsing helper
-function safeParseDate(date: Date | string | null | undefined): Date | null {
-  if (!date) return null;
-  const parsed = new Date(date);
-  return isNaN(parsed.getTime()) ? null : parsed;
-}
-
-// Format duration
-function formatDuration(ms: number | null): string {
-  if (!ms) return '—';
-  const totalSeconds = Math.floor(ms / 1000);
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
-
-  if (hours > 0) return `${hours}h ${minutes}m`;
-  if (minutes > 0) return `${minutes}m ${seconds}s`;
-  return `${seconds}s`;
-}
+const MEDIA_CONFIG = {
+  movie: { icon: Film, labelKey: 'common:media.movie' },
+  episode: { icon: Tv, labelKey: 'common:media.episode' },
+  track: { icon: Music, labelKey: 'common:media.track' },
+  live: { icon: Radio, labelKey: 'common:media.liveTV' },
+  photo: { icon: ImageIcon, labelKey: 'common:media.photo' },
+  trailer: { icon: Clapperboard, labelKey: 'pages:automations.options.trailer' },
+  unknown: { icon: CircleHelp, labelKey: 'common:labels.unknown' },
+} as const satisfies Record<MediaType, { icon: typeof Film; labelKey: string }>;
 
 function getWatchTime(session: SessionWithDetails): number | null {
   if (session.durationMs) {
@@ -118,8 +110,8 @@ function getWatchTime(session: SessionWithDetails): number | null {
 
 // Get progress percentage (playback position)
 // Uses progressMs (where in the video) not durationMs (how long watched)
-function getProgress(session: SessionWithDetails): number {
-  if (!session.totalDurationMs || session.totalDurationMs === 0) return 0;
+function getProgress(session: SessionWithDetails): number | null {
+  if (!session.totalDurationMs) return null;
   const progress = session.progressMs ?? 0;
   return Math.min(100, Math.round((progress / session.totalDurationMs) * 100));
 }
@@ -127,13 +119,12 @@ function getProgress(session: SessionWithDetails): number {
 // Get media title formatted
 function getMediaTitle(session: SessionWithDetails): { primary: string; secondary?: string } {
   if (session.mediaType === 'episode' && session.grandparentTitle) {
-    const epNum =
-      session.seasonNumber && session.episodeNumber
-        ? `S${session.seasonNumber.toString().padStart(2, '0')} E${session.episodeNumber.toString().padStart(2, '0')}`
-        : '';
+    const epNum = formatEpisodeLabel(session.seasonNumber, session.episodeNumber, {
+      spaced: true,
+    });
     return {
       primary: session.grandparentTitle,
-      secondary: `${epNum}${epNum ? ' · ' : ''}${session.mediaTitle}`,
+      secondary: epNum ? `${epNum} · ${session.mediaTitle}` : session.mediaTitle,
     };
   }
   if (session.mediaType === 'track') {
@@ -147,7 +138,7 @@ function getMediaTitle(session: SessionWithDetails): { primary: string; secondar
   }
   return {
     primary: session.mediaTitle,
-    secondary: session.year ? `(${session.year})` : undefined,
+    secondary: session.year ? `${session.year}` : undefined,
   };
 }
 
@@ -183,18 +174,10 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <View className="border-border rounded-xl border p-2">
-      <View className="mb-2 flex-row items-center justify-between">
-        <View className="flex-row items-center gap-2">
-          <View className="bg-primary/15 h-6 w-6 items-center justify-center rounded-full">
-            <Icon size={14} color={ACCENT_COLOR} />
-          </View>
-          <Text className="text-foreground text-sm font-medium">{title}</Text>
-        </View>
-        {badge}
-      </View>
+    <Card padding="compact">
+      <SectionHeader icon={Icon} title={title} right={badge} className="mb-2" />
       {children}
-    </View>
+    </Card>
   );
 }
 
@@ -202,13 +185,11 @@ function Section({
 function InfoRow({
   label,
   value,
-  valueColor,
   subValue,
   mono,
 }: {
   label: string;
   value: string;
-  valueColor?: string;
   subValue?: string;
   mono?: boolean;
 }) {
@@ -217,13 +198,12 @@ function InfoRow({
       <Text className="text-muted-foreground text-[13px]">{label}</Text>
       <View className="flex-1 flex-row items-center justify-end gap-1">
         <Text
-          className={`text-[13px] font-medium ${mono ? 'font-mono text-[11px]' : ''}`}
-          style={{ color: valueColor ?? '#FAFAFA' }}
+          className={`text-foreground text-[13px] font-medium ${mono ? 'font-mono text-[11px]' : ''}`}
           numberOfLines={1}
         >
           {value}
         </Text>
-        {subValue && <Text className="text-muted-foreground text-[11px]">{subValue}</Text>}
+        {subValue ? <Text className="text-muted-foreground text-[11px]">{subValue}</Text> : null}
       </View>
     </View>
   );
@@ -233,44 +213,25 @@ export default function SessionDetailScreen() {
   const { t } = useTranslation(['mobile', 'common', 'pages']);
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const queryClient = useQueryClient();
   const { selectedServerId } = useMediaServer();
   const connectionState = useAuthStateStore((s) => s.connectionState);
   const isOffline = connectionState !== 'connected';
-  const serverUrl = getServerUrl();
+  const getImageUrl = useImageUrl();
+  const { select } = useResponsive();
+  const horizontalPadding = select({ base: spacing.md, md: spacing.lg, lg: spacing.xl });
 
-  // Terminate session state and mutation
   const [terminateModalVisible, setTerminateModalVisible] = useState(false);
-  const [terminateReason, setTerminateReason] = useState('');
-
-  const terminateMutation = useMutation({
-    mutationFn: ({ sessionId, reason }: { sessionId: string; reason?: string }) =>
-      api.sessions.terminate(sessionId, reason),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: queryKeys.sessions.activePrefix() });
-      setTerminateModalVisible(false);
-      setTerminateReason('');
-      Alert.alert(t('mobile:session.streamTerminated'), t('mobile:session.sessionStopped'));
-      router.back();
-    },
-    onError: (error: Error) => {
-      Alert.alert(t('mobile:session.failedToTerminate'), error.message);
-    },
-  });
 
   const handleTerminate = () => {
-    setTerminateReason('');
+    haptics.warning();
     setTerminateModalVisible(true);
-  };
-
-  const handleConfirmTerminate = () => {
-    terminateMutation.mutate({ sessionId: id, reason: terminateReason.trim() || undefined });
   };
 
   const {
     data: session,
     isLoading,
     error,
+    refetch,
   } = useQuery<SessionWithDetails>({
     queryKey: queryKeys.sessions.detail(id, selectedServerId),
     queryFn: ({ signal }) => api.sessions.get(id, signal),
@@ -298,26 +259,22 @@ export default function SessionDetailScreen() {
     );
   }
 
-  if (error || !session) {
+  if (!session) {
     return (
       <SafeAreaView
-        style={{
-          flex: 1,
-          backgroundColor: colors.background.dark,
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: 12,
-        }}
+        style={{ flex: 1, backgroundColor: colors.background.dark }}
         edges={['left', 'right', 'bottom']}
       >
-        <Text className="text-destructive text-center">
-          {error instanceof Error ? error.message : t('mobile:errors.failedToLoadSession')}
-        </Text>
+        <ErrorState
+          className="flex-1 justify-center"
+          title={t('mobile:errors.failedToLoadSession')}
+          message={error?.message}
+          onRetry={() => void refetch()}
+        />
       </SafeAreaView>
     );
   }
 
-  const serverConfig = SERVER_CONFIG[session.server.type];
   const stateConfig = STATE_CONFIG[session.state];
   const mediaConfig = MEDIA_CONFIG[session.mediaType];
   const MediaIcon = mediaConfig.icon;
@@ -325,11 +282,17 @@ export default function SessionDetailScreen() {
   const title = getMediaTitle(session);
   const progress = getProgress(session);
 
-  // Get poster URL
-  const posterUrl =
-    session.thumbPath && serverUrl
-      ? `${serverUrl}/api/v1/images/proxy?server=${session.serverId}&url=${encodeURIComponent(session.thumbPath)}&width=120&height=180&fallback=poster`
-      : null;
+  // /sessions/:id answers a live stream from the poller cache, which carries
+  // canTerminate. A row read from the database has no such field.
+  const canTerminate =
+    session.state !== 'stopped' && !('canTerminate' in session && session.canTerminate === false);
+
+  const posterUrl = getImageUrl({
+    serverId: session.serverId,
+    path: session.thumbPath,
+    width: POSTER_WIDTH * 2,
+    height: POSTER_HEIGHT * 2,
+  });
 
   // Build location string
   const locationParts = [
@@ -342,10 +305,9 @@ export default function SessionDetailScreen() {
   const transcodeReasons = session.transcodeInfo?.reasons ?? [];
   const hasTranscodeReason = transcodeReasons.length > 0;
   const transcodeReasonText = transcodeReasons.map(formatReason).join(', ');
-
-  // Format dates safely
   const startedAt = safeParseDate(session.startedAt);
   const stoppedAt = safeParseDate(session.stoppedAt);
+  const displayName = session.user.identityName ?? session.user.username;
 
   return (
     <>
@@ -354,12 +316,23 @@ export default function SessionDetailScreen() {
         style={{ flex: 1, backgroundColor: colors.background.dark }}
         edges={['left', 'right', 'bottom']}
       >
-        <ScrollView style={{ flex: 1 }} contentContainerClassName="gap-2 p-3">
-          {/* Header with state badge and terminate button */}
-          <View className="flex-row items-center justify-between pb-2">
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={{
+            gap: 12,
+            paddingHorizontal: horizontalPadding,
+            paddingTop: spacing.sm,
+            paddingBottom: spacing.xl,
+          }}
+        >
+          <View className="flex-row items-center justify-between gap-2">
             <View className="flex-1 flex-row items-center gap-2">
               <StateIcon size={16} color={stateConfig.color} />
-              <Text className="text-foreground text-base font-semibold">
+              <Text
+                accessibilityRole="header"
+                className="text-foreground flex-shrink text-base font-semibold"
+                numberOfLines={1}
+              >
                 {t('common:labels.sessionDetails')}
               </Text>
               <Badge
@@ -371,38 +344,43 @@ export default function SessionDetailScreen() {
                       : 'secondary'
                 }
               >
-                {stateConfig.label}
+                {t(stateConfig.labelKey)}
               </Badge>
             </View>
-            {session.state !== 'stopped' && (
-              <Pressable
+            {canTerminate && (
+              <Button
+                variant="destructive"
+                size="sm"
+                className={cn('min-h-11 gap-1.5', isOffline && 'opacity-50')}
                 onPress={handleTerminate}
-                disabled={terminateMutation.isPending || isOffline}
-                className={`h-8 w-8 items-center justify-center rounded-full ${terminateMutation.isPending || isOffline ? 'opacity-50' : ''}`}
-                style={{ backgroundColor: withAlpha(colors.error, '15') }}
+                disabled={isOffline}
+                accessibilityLabel={t('pages:terminateStream.title')}
               >
-                <X size={18} color={colors.error} />
-              </Pressable>
+                <X size={16} color={colors.text.primary.dark} />
+                <Text className="text-destructive-foreground text-xs font-medium">
+                  {t('common:actions.terminate')}
+                </Text>
+              </Button>
             )}
           </View>
 
-          {/* Media Info - Hero section */}
-          <View className="border-border flex-row gap-2 rounded-xl border p-2">
-            {posterUrl && (
+          <Card padding="compact" className="flex-row gap-3">
+            {posterUrl ? (
               <Image
                 source={{ uri: posterUrl }}
                 className="bg-surface rounded-lg"
-                style={{ width: 56, height: 80 }}
-                resizeMode="cover"
+                style={{ width: POSTER_WIDTH, height: POSTER_HEIGHT }}
+                contentFit="cover"
+                transition={{ duration: 200, skipOnCacheHit: 'all' }}
               />
-            )}
+            ) : null}
             <View className="min-w-0 flex-1">
               <View className="mb-1 flex-row items-center gap-1">
                 <MediaIcon size={12} color={colors.text.muted.dark} />
-                <Text className="text-muted-foreground text-[11px]">{mediaConfig.label}</Text>
-                {session.year && (
+                <Text className="text-muted-foreground text-[11px]">{t(mediaConfig.labelKey)}</Text>
+                {session.year ? (
                   <Text className="text-muted-foreground text-[11px]">· {session.year}</Text>
-                )}
+                ) : null}
               </View>
               <View className="flex-row items-center gap-1">
                 <Text className="text-foreground flex-1 text-[15px] font-medium" numberOfLines={2}>
@@ -410,89 +388,99 @@ export default function SessionDetailScreen() {
                 </Text>
                 {session.watched && <Eye size={14} color={colors.success} />}
               </View>
-              {title.secondary && (
+              {title.secondary ? (
                 <Text className="text-muted-foreground mt-0.5 text-[13px]" numberOfLines={1}>
                   {title.secondary}
                 </Text>
-              )}
-              {/* Progress inline */}
-              <View className="mt-2 flex-row items-center gap-2">
-                <View className="bg-border h-1.5 flex-1 overflow-hidden rounded-sm">
-                  <View
-                    className="bg-primary h-full rounded-sm"
-                    style={{ width: `${progress}%` }}
-                  />
+              ) : null}
+              {progress !== null && (
+                <View className="mt-2 flex-row items-center gap-2">
+                  <View className="bg-border h-1.5 flex-1 overflow-hidden rounded-sm">
+                    <View
+                      className="bg-primary h-full rounded-sm"
+                      style={{ width: `${progress}%` }}
+                    />
+                  </View>
+                  <Text className="text-muted-foreground w-8 text-[11px]">{progress}%</Text>
                 </View>
-                <Text className="text-muted-foreground w-8 text-[11px]">{progress}%</Text>
-              </View>
+              )}
             </View>
-          </View>
+          </Card>
 
-          {/* User - Tappable */}
           <Pressable
-            className="border-border flex-row items-center gap-2 rounded-xl border p-2"
+            accessibilityRole="button"
+            accessibilityLabel={`${displayName}, ${t('common:actions.viewProfile')}`}
             onPress={() => router.push(ROUTES.USER(session.serverUserId))}
           >
-            <UserAvatar
-              thumbUrl={session.user.thumbUrl}
-              serverId={session.serverId}
-              username={session.user.username}
-              size={36}
-            />
-            <View className="min-w-0 flex-1">
-              <Text className="text-foreground text-[15px] font-medium" numberOfLines={1}>
-                {session.user.identityName ?? session.user.username}
-              </Text>
-              {session.user.identityName && session.user.identityName !== session.user.username && (
-                <Text className="text-muted-foreground text-xs">@{session.user.username}</Text>
-              )}
-              {!session.user.identityName && (
-                <Text className="text-muted-foreground text-xs">
-                  {t('common:actions.viewProfile')}
+            <Card padding="compact" className="flex-row items-center gap-3">
+              <UserAvatar
+                thumbUrl={session.user.thumbUrl}
+                serverId={session.serverId}
+                username={session.user.username}
+                size={36}
+              />
+              <View className="min-w-0 flex-1">
+                <Text className="text-foreground text-[15px] font-medium" numberOfLines={1}>
+                  {displayName}
                 </Text>
-              )}
-            </View>
-            <ChevronRight size={16} color={colors.text.muted.dark} />
+                {session.user.identityName &&
+                  session.user.identityName !== session.user.username && (
+                    <Text className="text-muted-foreground text-xs">@{session.user.username}</Text>
+                  )}
+                {!session.user.identityName && (
+                  <Text className="text-muted-foreground text-xs">
+                    {t('common:actions.viewProfile')}
+                  </Text>
+                )}
+              </View>
+              <ChevronRight size={16} color={colors.text.muted.dark} />
+            </Card>
           </Pressable>
 
-          {/* Server */}
           <Section icon={Server} title={t('common:labels.server')}>
             <View className="flex-row items-center justify-between">
-              <Text className="text-muted-foreground text-[13px]">Server</Text>
+              <Text className="text-muted-foreground text-[13px]">{t('common:labels.server')}</Text>
               <View className="flex-row items-center gap-1">
-                <Text className="text-[13px] font-medium" style={{ color: serverConfig.color }}>
-                  {serverConfig.label}
+                <Text
+                  className="text-[13px] font-medium"
+                  style={{ color: SERVER_TYPE_BRAND_COLORS[session.server.type] }}
+                >
+                  {SERVER_LABELS[session.server.type]}
                 </Text>
                 <Text className="text-muted-foreground text-[13px]">·</Text>
-                <Text className="text-[13px] font-medium" style={{ color: '#FAFAFA' }}>
+                <Text className="text-foreground text-[13px] font-medium">
                   {session.server.name}
                 </Text>
               </View>
             </View>
           </Section>
 
-          {/* Playback Info */}
           <Section
             icon={Clock}
-            title="Playback"
+            title={t('common:labels.playback', { defaultValue: 'Playback' })}
             badge={
               session.segmentCount && session.segmentCount > 1 ? (
-                <Badge variant="outline">{session.segmentCount} segments</Badge>
+                <Badge variant="outline">
+                  {t('common:count.segment', {
+                    count: session.segmentCount,
+                    defaultValue: '{{count}} segments',
+                  })}
+                </Badge>
               ) : null
             }
           >
-            <View className="gap-1">
+            <View className="gap-1.5">
               {startedAt && (
                 <InfoRow
                   label={t('common:labels.started')}
-                  value={format(startedAt, 'MMM d, h:mm a')}
-                  subValue={formatDistanceToNow(startedAt, { addSuffix: true })}
+                  value={safeFormatDate(startedAt, DATE_TIME_FORMAT)}
+                  subValue={`(${safeFormatDistanceToNow(startedAt)})`}
                 />
               )}
               {stoppedAt && (
                 <InfoRow
                   label={t('common:labels.stopped')}
-                  value={format(stoppedAt, 'MMM d, h:mm a')}
+                  value={safeFormatDate(stoppedAt, DATE_TIME_FORMAT)}
                 />
               )}
               <InfoRow
@@ -505,87 +493,53 @@ export default function SessionDetailScreen() {
                   value={formatDuration(session.pausedDurationMs)}
                 />
               )}
-              {session.totalDurationMs && (
+              {session.totalDurationMs ? (
                 <InfoRow
                   label={t('common:labels.mediaLength')}
                   value={formatDuration(session.totalDurationMs)}
                 />
-              )}
+              ) : null}
             </View>
           </Section>
 
-          {/* Location & Network */}
-          <Section icon={MapPin} title="Location">
-            <View className="gap-1">
-              <InfoRow label={t('common:labels.ipAddress')} value={session.ipAddress || '—'} mono />
-              {locationString && (
+          <Section icon={MapPin} title={t('common:labels.location')}>
+            <View className="gap-1.5">
+              <InfoRow label={t('common:labels.ipAddress')} value={session.ipAddress || '-'} mono />
+              {locationString ? (
                 <View className="flex-row items-center gap-1">
                   <Globe size={14} color={colors.text.muted.dark} />
-                  <Text className="flex-1 text-[13px] font-medium" style={{ color: '#FAFAFA' }}>
+                  <Text className="text-foreground flex-1 text-[13px] font-medium">
                     {locationString}
                   </Text>
                 </View>
-              )}
+              ) : null}
             </View>
           </Section>
 
-          {/* Device */}
           <Section icon={Smartphone} title={t('common:labels.device')}>
-            <View className="gap-1">
-              {session.platform && (
+            <View className="gap-1.5">
+              {session.platform ? (
                 <InfoRow label={t('common:labels.platform')} value={session.platform} />
-              )}
-              {session.product && (
+              ) : null}
+              {session.product ? (
                 <InfoRow label={t('common:labels.product')} value={session.product} />
-              )}
-              {session.device && (
+              ) : null}
+              {session.device ? (
                 <InfoRow label={t('common:labels.device')} value={session.device} />
-              )}
-              {session.playerName && (
+              ) : null}
+              {session.playerName ? (
                 <InfoRow label={t('common:labels.player')} value={session.playerName} />
-              )}
-              {session.deviceId && (
+              ) : null}
+              {session.deviceId ? (
                 <InfoRow label={t('common:labels.deviceId')} value={session.deviceId} mono />
-              )}
+              ) : null}
             </View>
           </Section>
 
-          {/* Stream Details */}
           <Section
             icon={Gauge}
             title={t('common:labels.streamDetails')}
-            badge={(() => {
-              const isHwTranscode =
-                session.isTranscode &&
-                !!(session.transcodeInfo?.hwEncoding || session.transcodeInfo?.hwDecoding);
-              const TranscodeIcon = isHwTranscode ? Cpu : Zap;
-
-              if (session.isTranscode) {
-                return (
-                  <Badge variant="warning">
-                    <View className="flex-row items-center gap-1">
-                      <TranscodeIcon size={12} color={colors.warning} />
-                      <Text className="text-warning text-[11px] font-semibold">
-                        {t('common:playback.transcode')}
-                      </Text>
-                    </View>
-                  </Badge>
-                );
-              }
-
-              return (
-                <Badge variant="secondary">
-                  <View className="flex-row items-center gap-1">
-                    <MonitorPlay size={12} color={colors.text.primary.dark} />
-                    <Text className="text-foreground text-[11px] font-semibold">
-                      {session.videoDecision === 'copy' || session.audioDecision === 'copy'
-                        ? t('common:playback.directStream')
-                        : t('common:playback.directPlay')}
-                    </Text>
-                  </View>
-                </Badge>
-              );
-            })()}
+            badge={<QualityBadge session={session} />}
           >
             <StreamDetailsPanel
               sourceVideoCodec={session.sourceVideoCodec ?? null}
@@ -608,10 +562,10 @@ export default function SessionDetailScreen() {
             />
           </Section>
 
-          {/* Transcode reason tooltip equivalent */}
+          {/* Web shows the reasons in a tooltip on the transcode badge */}
           {session.isTranscode && hasTranscodeReason && (
             <View
-              className="rounded-xl border p-2"
+              className="rounded-xl border p-3"
               style={{
                 backgroundColor: withAlpha(colors.warning, '10'),
                 borderColor: withAlpha(colors.warning, '30'),
@@ -620,79 +574,20 @@ export default function SessionDetailScreen() {
               <Text className="text-warning mb-1 text-[11px] font-semibold">
                 {t('common:labels.transcodeReason')}
               </Text>
-              <Text className="text-xs font-medium" style={{ color: '#FAFAFA' }}>
-                {transcodeReasonText}
-              </Text>
+              <Text className="text-foreground text-xs font-medium">{transcodeReasonText}</Text>
             </View>
           )}
-
-          {/* Bottom padding */}
-          <View className="h-6" />
         </ScrollView>
       </SafeAreaView>
 
-      {/* Terminate stream confirmation modal */}
-      <Modal
+      <TerminateSessionDialog
         visible={terminateModalVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setTerminateModalVisible(false)}
-      >
-        <Pressable
-          className="flex-1 items-center justify-center bg-black/60"
-          onPress={() => setTerminateModalVisible(false)}
-        >
-          <Pressable
-            className="w-4/5 max-w-sm overflow-hidden rounded-xl"
-            style={{ backgroundColor: '#18181B' }}
-            onPress={(e) => e.stopPropagation()}
-          >
-            <View className="px-4 pt-4 pb-2">
-              <Text className="text-lg font-semibold text-white">
-                {t('pages:terminateStream.title')}
-              </Text>
-              <Text className="mt-1 text-sm" style={{ color: colors.text.muted.dark }}>
-                {t('pages:terminateStream.messageLabel')}
-              </Text>
-            </View>
-            <View className="px-4 pb-3">
-              <TextInput
-                value={terminateReason}
-                onChangeText={setTerminateReason}
-                placeholder="e.g., Please don't share your account"
-                placeholderTextColor={colors.text.muted.dark}
-                className="rounded-lg border px-3 py-2.5 text-sm text-white"
-                style={{ borderColor: colors.border.dark, backgroundColor: colors.background.dark }}
-                autoFocus
-                returnKeyType="done"
-                onSubmitEditing={handleConfirmTerminate}
-              />
-            </View>
-            <View className="flex-row border-t" style={{ borderColor: colors.border.dark }}>
-              <Pressable
-                className="flex-1 items-center py-3"
-                onPress={() => setTerminateModalVisible(false)}
-              >
-                <Text className="text-sm font-medium" style={{ color: colors.text.muted.dark }}>
-                  {t('common:actions.cancel')}
-                </Text>
-              </Pressable>
-              <View style={{ width: 1, backgroundColor: colors.border.dark }} />
-              <Pressable
-                className="flex-1 items-center py-3"
-                onPress={handleConfirmTerminate}
-                disabled={terminateMutation.isPending}
-              >
-                <Text className="text-sm font-medium" style={{ color: colors.error }}>
-                  {terminateMutation.isPending
-                    ? t('pages:terminateStream.terminating')
-                    : t('common:actions.terminate')}
-                </Text>
-              </Pressable>
-            </View>
-          </Pressable>
-        </Pressable>
-      </Modal>
+        onClose={() => setTerminateModalVisible(false)}
+        sessionId={id}
+        mediaTitle={title.primary}
+        username={session.user.username}
+        onTerminated={() => router.back()}
+      />
     </>
   );
 }
