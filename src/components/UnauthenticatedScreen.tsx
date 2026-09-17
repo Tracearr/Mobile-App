@@ -9,20 +9,15 @@ import { Text } from '@/components/ui/text';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Unlink } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
-import { useShallow } from 'zustand/react/shallow';
 import { useAuthStateStore } from '../lib/authStateStore';
 import { colors } from '../lib/theme';
+import { instanceHost } from '../lib/utils';
 import { useTranslation } from '@tracearr/translations/mobile';
 
 export function UnauthenticatedScreen() {
   const { t } = useTranslation(['mobile']);
   const router = useRouter();
-  const { cachedServerUrl, cachedServerName } = useAuthStateStore(
-    useShallow((s) => ({
-      cachedServerUrl: s._cachedServerUrl,
-      cachedServerName: s._cachedServerName,
-    }))
-  );
+  const cachedServerUrl = useAuthStateStore((s) => s._cachedServerUrl);
   const unpairServer = useAuthStateStore((s) => s.unpairServer);
 
   const handleScanQR = async () => {
@@ -40,7 +35,7 @@ export function UnauthenticatedScreen() {
     });
   };
 
-  const serverDisplay = cachedServerName || cachedServerUrl || 'your server';
+  const serverDisplay = cachedServerUrl ? instanceHost(cachedServerUrl) : 'your server';
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background.dark }}>

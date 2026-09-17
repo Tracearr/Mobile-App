@@ -5,6 +5,16 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+// The pairing response names the first media server, not the Tracearr instance,
+// so the paired URL is the only true description of what the app talks to.
+export function instanceHost(url: string): string {
+  try {
+    return new URL(url).host || url;
+  } catch {
+    return url;
+  }
+}
+
 /**
  * Check if a URL points to a local/internal address that won't be reachable
  * from a mobile device outside the local network.

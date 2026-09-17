@@ -33,6 +33,7 @@ import { queryKeys } from '@/lib/queryKeys';
 import { ROUTES } from '@/lib/routes';
 import { useAuthStateStore } from '@/lib/authStateStore';
 import { colors } from '@/lib/theme';
+import { instanceHost } from '@/lib/utils';
 import {
   getCurrentLanguage,
   getLanguageDisplayName,
@@ -47,16 +48,6 @@ const SPONSOR_URL = 'https://github.com/sponsors/connorgallopo';
 
 function openUrl(url: string) {
   void Linking.openURL(url);
-}
-
-// The pairing response names the first media server, not the Tracearr instance,
-// so the paired URL is the only true description of what the app talks to.
-function instanceHost(url: string): string {
-  try {
-    return new URL(url).host || url;
-  } catch {
-    return url;
-  }
 }
 
 function SettingsSection({ title, children }: { title: string; children: React.ReactNode }) {
