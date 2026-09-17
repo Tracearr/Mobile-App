@@ -9,8 +9,12 @@ import { Platform } from 'react-native';
 import { serverScopeParamEntries, type ServerScope } from '@tracearr/shared';
 import { useAuthStateStore, getAccessToken, getRefreshToken, setTokens } from './authStateStore';
 import { getDeviceTimezone } from './timezone';
+import { pageMetaOf } from './listPage';
 import type {
   ActiveSession,
+  Automation,
+  AutomationKind,
+  AutomationRunSummary,
   DashboardStats,
   ServerUserWithIdentity,
   ServerUserDetail,
@@ -33,10 +37,98 @@ import type {
   HistoryFilterOptions,
   ListResponse,
   VersionInfo,
+  RequestsStatus,
+  RunCounts,
+  RunListQuery,
+  ServerUserFullDetail,
+  UserRequestsResponse,
+  UserSortField,
+  ViolationSeverity,
 } from '@tracearr/shared';
+
+export interface HistoryFilterParams {
+  scope: ServerScope;
+  serverUserIds?: string[];
+  state?: 'playing' | 'paused' | 'stopped';
+  mediaTypes?: ('movie' | 'episode' | 'track' | 'live')[];
+  startDate?: Date;
+  endDate?: Date;
+  search?: string;
+  platforms?: string[];
+  product?: string;
+  device?: string;
+  playerName?: string;
+  ipAddress?: string;
+  geoCountries?: string[];
+  geoCity?: string;
+  geoRegion?: string;
+  transcodeDecisions?: ('directplay' | 'copy' | 'transcode')[];
+  watched?: boolean;
+  excludeShortSessions?: boolean;
+}
+
+export type RunFilters = Partial<
+  Pick<RunListQuery, 'kind' | 'outcome' | 'automationId' | 'startDate' | 'endDate'>
+>;
+
+export type UserDetailScope = 'account' | 'identity';
+
+// The route returns terminations; ServerUserFullDetail in shared 2.3.0 leaves them out.
+export type UserFullDetail = ServerUserFullDetail & {
+  terminations: { data: TerminationLogWithDetails[]; total: number; hasMore: boolean };
+};
+
+export interface UnhealthyServer {
+  serverId: string;
+  serverName: string;
+}
+
+// `acknowledged` stops at false: 2.1 servers ignore `true` in a bulk filter, which
+// would widen selectAll to every violation of that severity.
+export interface BulkAcknowledgeFilters {
+  scope: ServerScope;
+  severity: ViolationSeverity | undefined;
+  acknowledged: false | undefined;
+}
+
+export type BulkAcknowledgeInput =
+  | { ids: string[] }
+  | { selectAll: true; filters: BulkAcknowledgeFilters };
 
 function appendScope(params: URLSearchParams, scope: ServerScope): void {
   for (const [k, v] of serverScopeParamEntries(scope)) params.append(k, v);
+}
+
+// JSON bodies take the same version-skew encoding serverScopeParamEntries gives query strings.
+function scopeBody(scope: ServerScope): { serverId?: string; serverIds?: string[] } {
+  if (scope.mode === 'all' || scope.serverIds.length === 0) return {};
+  return scope.serverIds.length === 1
+    ? { serverId: scope.serverIds[0] }
+    : { serverIds: scope.serverIds };
+}
+
+function appendHistoryFilters(searchParams: URLSearchParams, params: HistoryFilterParams): void {
+  if (params.serverUserIds?.length)
+    searchParams.set('serverUserIds', params.serverUserIds.join(','));
+  appendScope(searchParams, params.scope);
+  if (params.state) searchParams.set('state', params.state);
+  if (params.mediaTypes?.length) searchParams.set('mediaTypes', params.mediaTypes.join(','));
+  if (params.startDate) searchParams.set('startDate', params.startDate.toISOString());
+  if (params.endDate) searchParams.set('endDate', params.endDate.toISOString());
+  if (params.search) searchParams.set('search', params.search);
+  if (params.platforms?.length) searchParams.set('platforms', params.platforms.join(','));
+  if (params.product) searchParams.set('product', params.product);
+  if (params.device) searchParams.set('device', params.device);
+  if (params.playerName) searchParams.set('playerName', params.playerName);
+  if (params.ipAddress) searchParams.set('ipAddress', params.ipAddress);
+  if (params.geoCountries?.length) searchParams.set('geoCountries', params.geoCountries.join(','));
+  if (params.geoCity) searchParams.set('geoCity', params.geoCity);
+  if (params.geoRegion) searchParams.set('geoRegion', params.geoRegion);
+  if (params.transcodeDecisions?.length)
+    searchParams.set('transcodeDecisions', params.transcodeDecisions.join(','));
+  if (params.watched !== undefined) searchParams.set('watched', String(params.watched));
+  if (params.excludeShortSessions !== undefined)
+    searchParams.set('excludeShortSessions', String(params.excludeShortSessions));
 }
 
 // Single API client instance (one server only)
@@ -146,7 +238,7 @@ export function resetApiClient(): void {
   apiClient = null;
 }
 
-// Mutex for token refresh — prevents concurrent 401s from racing
+// Mutex for token refresh: prevents concurrent 401s from racing
 let activeRefreshPromise: Promise<string> | null = null;
 // Bumped on every refresh attempt so a stray, timed-out attempt that resolves
 // late can't clobber a newer attempt's mutex or auth state.
@@ -239,7 +331,7 @@ async function performTokenRefresh(generation: number): Promise<string> {
     const saved = await setTokens(response.data.accessToken, response.data.refreshToken);
     if (!saved) {
       console.error(
-        '[Auth] Failed to persist refreshed tokens — session will not survive app restart'
+        '[Auth] Failed to persist refreshed tokens, session will not survive app restart'
       );
       useAuthStateStore
         .getState()
@@ -250,7 +342,7 @@ async function performTokenRefresh(generation: number): Promise<string> {
     return response.data.accessToken;
   } catch (error) {
     if (axios.isAxiosError(error) && error.response && isCurrent()) {
-      // Server explicitly rejected the refresh token — auth is dead
+      // Server explicitly rejected the refresh token, so auth is dead
       resetApiClient();
       useAuthStateStore.getState().handleAuthFailure();
     }
@@ -517,31 +609,6 @@ export const api = {
         }[];
       }>(`/stats/concurrent?${searchParams.toString()}`, { signal });
     },
-    locations: async (
-      params?: {
-        serverId?: string;
-        userId?: string;
-      },
-      signal?: AbortSignal
-    ): Promise<{
-      data: {
-        latitude: number;
-        longitude: number;
-        city: string;
-        country: string;
-        playCount: number;
-      }[];
-    }> => {
-      return apiGet<{
-        data: {
-          latitude: number;
-          longitude: number;
-          city: string;
-          country: string;
-          playCount: number;
-        }[];
-      }>('/stats/locations', { params, signal });
-    },
   },
 
   /**
@@ -557,17 +624,6 @@ export const api = {
         { signal }
       );
       return data;
-    },
-    list: async (
-      params?: {
-        page?: number;
-        pageSize?: number;
-        userId?: string;
-        serverId?: string;
-      },
-      signal?: AbortSignal
-    ) => {
-      return apiGet<PaginatedResponse<ActiveSession>>('/sessions', { params, signal });
     },
     get: async (id: string, signal?: AbortSignal): Promise<SessionWithDetails> => {
       return apiGet<SessionWithDetails>(`/sessions/${id}`, { signal });
@@ -589,27 +645,9 @@ export const api = {
      * Used for the History tab with infinite scroll
      */
     history: async (
-      params: {
+      params: HistoryFilterParams & {
         cursor?: string;
         pageSize?: number;
-        serverUserIds?: string[];
-        scope: ServerScope;
-        state?: 'playing' | 'paused' | 'stopped';
-        mediaTypes?: ('movie' | 'episode' | 'track' | 'live')[];
-        startDate?: Date;
-        endDate?: Date;
-        search?: string;
-        platforms?: string[];
-        product?: string;
-        device?: string;
-        playerName?: string;
-        ipAddress?: string;
-        geoCountries?: string[];
-        geoCity?: string;
-        geoRegion?: string;
-        transcodeDecisions?: ('directplay' | 'copy' | 'transcode')[];
-        watched?: boolean;
-        excludeShortSessions?: boolean;
         orderBy?: 'startedAt' | 'durationMs' | 'mediaTitle';
         orderDir?: 'asc' | 'desc';
       },
@@ -618,28 +656,7 @@ export const api = {
       const searchParams = new URLSearchParams();
       if (params.cursor) searchParams.set('cursor', params.cursor);
       if (params.pageSize) searchParams.set('pageSize', String(params.pageSize));
-      if (params.serverUserIds?.length)
-        searchParams.set('serverUserIds', params.serverUserIds.join(','));
-      appendScope(searchParams, params.scope);
-      if (params.state) searchParams.set('state', params.state);
-      if (params.mediaTypes?.length) searchParams.set('mediaTypes', params.mediaTypes.join(','));
-      if (params.startDate) searchParams.set('startDate', params.startDate.toISOString());
-      if (params.endDate) searchParams.set('endDate', params.endDate.toISOString());
-      if (params.search) searchParams.set('search', params.search);
-      if (params.platforms?.length) searchParams.set('platforms', params.platforms.join(','));
-      if (params.product) searchParams.set('product', params.product);
-      if (params.device) searchParams.set('device', params.device);
-      if (params.playerName) searchParams.set('playerName', params.playerName);
-      if (params.ipAddress) searchParams.set('ipAddress', params.ipAddress);
-      if (params.geoCountries?.length)
-        searchParams.set('geoCountries', params.geoCountries.join(','));
-      if (params.geoCity) searchParams.set('geoCity', params.geoCity);
-      if (params.geoRegion) searchParams.set('geoRegion', params.geoRegion);
-      if (params.transcodeDecisions?.length)
-        searchParams.set('transcodeDecisions', params.transcodeDecisions.join(','));
-      if (params.watched !== undefined) searchParams.set('watched', String(params.watched));
-      if (params.excludeShortSessions !== undefined)
-        searchParams.set('excludeShortSessions', String(params.excludeShortSessions));
+      appendHistoryFilters(searchParams, params);
       if (params.orderBy) searchParams.set('orderBy', params.orderBy);
       if (params.orderDir) searchParams.set('orderDir', params.orderDir);
       return apiGet<HistorySessionResponse>(`/sessions/history?${searchParams.toString()}`, {
@@ -650,17 +667,11 @@ export const api = {
      * Get aggregate stats for history (total plays, watch time, etc.)
      */
     historyAggregates: async (
-      params: {
-        scope: ServerScope;
-        startDate?: Date;
-        endDate?: Date;
-      },
+      params: HistoryFilterParams,
       signal?: AbortSignal
     ): Promise<HistoryAggregates> => {
       const searchParams = new URLSearchParams();
-      appendScope(searchParams, params.scope);
-      if (params.startDate) searchParams.set('startDate', params.startDate.toISOString());
-      if (params.endDate) searchParams.set('endDate', params.endDate.toISOString());
+      appendHistoryFilters(searchParams, params);
       return apiGet<HistoryAggregates>(`/sessions/history/aggregates?${searchParams.toString()}`, {
         signal,
       });
@@ -685,13 +696,25 @@ export const api = {
    */
   users: {
     list: async (
-      params: { page?: number; pageSize?: number; scope: ServerScope },
+      params: {
+        page?: number;
+        pageSize?: number;
+        scope: ServerScope;
+        search?: string;
+        orderBy?: UserSortField;
+        orderDir?: 'asc' | 'desc';
+      },
       signal?: AbortSignal
     ) => {
       const searchParams = new URLSearchParams();
       if (params.page) searchParams.set('page', String(params.page));
       if (params.pageSize) searchParams.set('pageSize', String(params.pageSize));
       appendScope(searchParams, params.scope);
+      // The server rejects an empty search with a 400.
+      const search = params.search?.trim();
+      if (search) searchParams.set('search', search);
+      if (params.orderBy) searchParams.set('orderBy', params.orderBy);
+      if (params.orderDir) searchParams.set('orderDir', params.orderDir);
       // 2.2 returns { data, meta }, 2.1 returns the fields at the top level; see listPage.ts.
       return apiGet<
         ListResponse<ServerUserWithIdentity> | PaginatedResponse<ServerUserWithIdentity>
@@ -699,6 +722,35 @@ export const api = {
     },
     get: async (id: string, signal?: AbortSignal): Promise<ServerUserDetail> => {
       return apiGet<ServerUserDetail>(`/users/${id}`, { signal });
+    },
+    full: async (
+      id: string,
+      scope: UserDetailScope,
+      signal?: AbortSignal
+    ): Promise<UserFullDetail> => {
+      return apiGet<UserFullDetail>(`/users/${id}/full`, {
+        params: scope === 'identity' ? { scope } : undefined,
+        signal,
+      });
+    },
+    updateTrustScore: async (id: string, trustScore: number): Promise<{ trustScore: number }> => {
+      const client = getApiClient();
+      const response = await client.patch<{ trustScore: number }>(`/users/${id}`, { trustScore });
+      return response.data;
+    },
+    requests: async (
+      id: string,
+      params: { scope: UserDetailScope; page: number; pageSize: number },
+      signal?: AbortSignal
+    ): Promise<UserRequestsResponse> => {
+      return apiGet<UserRequestsResponse>(`/users/${id}/requests`, {
+        params: {
+          scope: params.scope === 'identity' ? params.scope : undefined,
+          page: params.page,
+          pageSize: params.pageSize,
+        },
+        signal,
+      });
     },
     sessions: async (
       id: string,
@@ -756,6 +808,13 @@ export const api = {
         { signal }
       );
     },
+    unacknowledgedCount: async (
+      params: { scope: ServerScope; severity?: ViolationSeverity },
+      signal?: AbortSignal
+    ): Promise<number> => {
+      const page = await api.violations.list({ ...params, acknowledged: false, pageSize: 1 }, signal);
+      return pageMetaOf(page).total;
+    },
     get: async (id: string, signal?: AbortSignal): Promise<ViolationWithDetails> => {
       return apiGet<ViolationWithDetails>(`/violations/${id}`, { signal });
     },
@@ -767,6 +826,27 @@ export const api = {
     dismiss: async (id: string): Promise<void> => {
       const client = getApiClient();
       await client.delete(`/violations/${id}`);
+    },
+    bulkAcknowledge: async (
+      input: BulkAcknowledgeInput
+    ): Promise<{ success: boolean; acknowledged: number }> => {
+      const client = getApiClient();
+      const body =
+        'ids' in input
+          ? { ids: input.ids }
+          : {
+              selectAll: true,
+              filters: {
+                ...scopeBody(input.filters.scope),
+                severity: input.filters.severity,
+                acknowledged: input.filters.acknowledged,
+              },
+            };
+      const response = await client.post<{ success: boolean; acknowledged: number }>(
+        '/violations/bulk/acknowledge',
+        body
+      );
+      return response.data;
     },
   },
 
@@ -780,6 +860,52 @@ export const api = {
     },
     liveStats: async (id: string, signal?: AbortSignal): Promise<ServerLiveStats> => {
       return apiGet<ServerLiveStats>(`/servers/${id}/live-stats`, { signal });
+    },
+    health: async (signal?: AbortSignal): Promise<UnhealthyServer[]> => {
+      const { data } = await apiGet<{ data: UnhealthyServer[] }>('/servers/health', { signal });
+      return data;
+    },
+  },
+
+  /**
+   * Automations and their runs. Servers from SERVER_2_2 on.
+   */
+  automations: {
+    // One page at the server's 100-row cap; meta.total says when an install has more.
+    list: async (
+      params: { kind?: AutomationKind } = {},
+      signal?: AbortSignal
+    ): Promise<ListResponse<Automation>> => {
+      return apiGet<ListResponse<Automation>>('/automations', {
+        params: { ...params, pageSize: 100, orderBy: 'name' },
+        signal,
+      });
+    },
+    setActive: async (id: string, isActive: boolean): Promise<Automation> => {
+      const client = getApiClient();
+      const response = await client.patch<Automation>(`/automations/${id}`, { isActive });
+      return response.data;
+    },
+  },
+
+  runs: {
+    list: async (
+      params: RunFilters & { page?: number; pageSize?: number },
+      signal?: AbortSignal
+    ): Promise<ListResponse<AutomationRunSummary>> => {
+      return apiGet<ListResponse<AutomationRunSummary>>('/runs', { params, signal });
+    },
+    counts: async (params: RunFilters = {}, signal?: AbortSignal): Promise<RunCounts> => {
+      return apiGet<RunCounts>('/runs/counts', { params, signal });
+    },
+  },
+
+  /**
+   * Seerr request history. Servers from SERVER_2_3 on.
+   */
+  requests: {
+    status: async (signal?: AbortSignal): Promise<RequestsStatus> => {
+      return apiGet<RequestsStatus>('/requests/status', { signal });
     },
   },
 

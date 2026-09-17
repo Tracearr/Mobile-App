@@ -12,7 +12,7 @@ import { useShallow } from 'zustand/react/shallow';
 import * as Notifications from 'expo-notifications';
 import { ALL_SERVERS } from '@tracearr/shared';
 import { useAuthStateStore, getAccessToken } from '../lib/authStateStore';
-import { api, refreshAccessToken } from '../lib/api';
+import { api, refreshAccessToken, type UnhealthyServer } from '../lib/api';
 import type {
   ServerToClientEvents,
   ClientToServerEvents,
@@ -27,7 +27,6 @@ interface SocketContextValue {
 }
 
 import { queryKeys } from '@/lib/queryKeys';
-import { pageMetaOf } from '@/lib/listPage';
 const SocketContext = createContext<SocketContextValue>({
   socket: null,
   isConnected: false,
@@ -36,6 +35,10 @@ const SocketContext = createContext<SocketContextValue>({
 // session:updated fires once per active session per poll tick; trailing-edge
 // throttle so a busy tick doesn't trigger a refetch per session.
 const SESSION_UPDATED_THROTTLE_MS = 2000;
+// The web app's windows: a stopped session or a finished run refetches whole
+// lists, and both arrive in bursts.
+const SESSION_STOPPED_HISTORY_THROTTLE_MS = 5000;
+const RUNS_REFRESH_THROTTLE_MS = 2000;
 
 export function useSocket() {
   const context = useContext(SocketContext);
@@ -68,6 +71,8 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
   // Track which Tracearr backend we're connected to
   const connectedServerIdRef = useRef<string | null>(null);
   const sessionUpdatedThrottleRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const historyThrottleRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const runsThrottleRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const connectSocket = useCallback(async () => {
     // Don't try to connect during initialization or if not authenticated
@@ -117,6 +122,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       void queryClient.invalidateQueries({ queryKey: queryKeys.sessions.activePrefix() });
       void queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.statsPrefix() });
       void queryClient.invalidateQueries({ queryKey: queryKeys.violations.all() });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.servers.health(serverId) });
     });
 
     newSocket.on('disconnect', (_reason) => {
@@ -144,7 +150,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
         void (async () => {
           try {
             await refreshAccessToken();
-            // Refresh succeeded — mark as disconnected to trigger the
+            // Refresh succeeded, so mark as disconnected to trigger the
             // useEffect that calls connectSocket() with the fresh token.
             useAuthStateStore.getState().setConnectionState('disconnected');
           } catch {
@@ -168,6 +174,11 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     newSocket.on('session:stopped', (_sessionId: string) => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.sessions.activePrefix() });
       void queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.statsPrefix() });
+      if (historyThrottleRef.current) return;
+      historyThrottleRef.current = setTimeout(() => {
+        historyThrottleRef.current = null;
+        void queryClient.invalidateQueries({ queryKey: queryKeys.sessions.historyPrefix() });
+      }, SESSION_STOPPED_HISTORY_THROTTLE_MS);
     });
 
     newSocket.on('session:updated', (_session: ActiveSession) => {
@@ -185,6 +196,39 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
 
     newSocket.on('stats:updated', (_stats: DashboardStats) => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.statsPrefix() });
+    });
+
+    newSocket.on('run:finished', () => {
+      if (runsThrottleRef.current) return;
+      runsThrottleRef.current = setTimeout(() => {
+        runsThrottleRef.current = null;
+        void queryClient.invalidateQueries({ queryKey: queryKeys.runs.all() });
+      }, RUNS_REFRESH_THROTTLE_MS);
+    });
+
+    newSocket.on('server:down', (down) => {
+      queryClient.setQueryData<UnhealthyServer[]>(queryKeys.servers.health(serverId), (old = []) =>
+        old.some((s) => s.serverId === down.serverId) ? old : [...old, down]
+      );
+    });
+
+    newSocket.on('server:up', (up) => {
+      queryClient.setQueryData<UnhealthyServer[]>(queryKeys.servers.health(serverId), (old) =>
+        old?.filter((s) => s.serverId !== up.serverId)
+      );
+    });
+
+    newSocket.on('version:update', () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.versionPrefix() });
+    });
+
+    newSocket.on('servers:changed', () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.mediaServersPrefix() });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.sessions.filterOptionsPrefix() });
+    });
+
+    newSocket.on('requests:changed', () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.requests.all() });
     });
 
     socketRef.current = newSocket;
@@ -229,9 +273,11 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
         socketRef.current = null;
         connectedServerIdRef.current = null;
       }
-      if (sessionUpdatedThrottleRef.current) {
-        clearTimeout(sessionUpdatedThrottleRef.current);
-        sessionUpdatedThrottleRef.current = null;
+      for (const ref of [sessionUpdatedThrottleRef, historyThrottleRef, runsThrottleRef]) {
+        if (ref.current) {
+          clearTimeout(ref.current);
+          ref.current = null;
+        }
       }
     };
   }, [isInitializing, isAuthenticated, serverUrl, serverId, connectSocket, connectionState]);
@@ -253,12 +299,8 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
         // Sync iOS app icon badge with actual unacknowledged count
         void (async () => {
           try {
-            const response = await api.violations.list({
-              scope: ALL_SERVERS,
-              acknowledged: false,
-              pageSize: 1,
-            });
-            await Notifications.setBadgeCountAsync(pageMetaOf(response).total);
+            const count = await api.violations.unacknowledgedCount({ scope: ALL_SERVERS });
+            await Notifications.setBadgeCountAsync(count);
           } catch {
             // Fail silently - badge might be slightly off but app shouldn't crash
           }

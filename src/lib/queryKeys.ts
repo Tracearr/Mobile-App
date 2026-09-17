@@ -21,11 +21,31 @@ export interface HistoryQueryFilters {
   orderDir?: 'asc' | 'desc';
 }
 
+export type HistoryAggregateFilters = Omit<
+  HistoryQueryFilters,
+  'startDate' | 'endDate' | 'orderBy' | 'orderDir'
+>;
+
+export interface UserListKeyParams {
+  search?: string;
+  orderBy?: string;
+  orderDir?: 'asc' | 'desc';
+}
+
+export interface RunKeyFilters {
+  kind?: string;
+  outcome?: string;
+  automationId?: string;
+  startDate?: string;
+  endDate?: string;
+}
+
 type ServerId = string | null | undefined;
 
 export const queryKeys = {
   me: () => ['mobile', 'me'] as const,
 
+  mediaServersPrefix: () => ['media-servers'] as const,
   mediaServers: (backendId: ServerId) => ['media-servers', backendId] as const,
 
   dashboard: {
@@ -39,15 +59,22 @@ export const queryKeys = {
     detail: (id: string, serverId: ServerId) => ['session', id, serverId] as const,
     history: (scope: ServerScope, filters: HistoryQueryFilters) =>
       ['sessions', 'history', serverScopeKey(scope), filters] as const,
-    historyAggregates: (scope: ServerScope, period: string) =>
-      ['sessions', 'history', 'aggregates', serverScopeKey(scope), period] as const,
+    historyPrefix: () => ['sessions', 'history'] as const,
+    historyAggregates: (scope: ServerScope, period: string, filters: HistoryAggregateFilters = {}) =>
+      ['sessions', 'history', 'aggregates', serverScopeKey(scope), period, filters] as const,
+    filterOptionsPrefix: () => ['sessions', 'filter-options'] as const,
     filterOptions: (scope: ServerScope) =>
       ['sessions', 'filter-options', serverScopeKey(scope)] as const,
   },
 
   users: {
-    list: (scope: ServerScope) => ['users', serverScopeKey(scope)] as const,
+    listPrefix: () => ['users'] as const,
+    list: (scope: ServerScope, params: UserListKeyParams = {}) =>
+      ['users', serverScopeKey(scope), params] as const,
+    one: (id: string) => ['user', id] as const,
     detail: (id: string, serverId: ServerId) => ['user', id, serverId] as const,
+    fullPrefix: () => ['user-full'] as const,
+    full: (id: string, scope: 'account' | 'identity') => ['user-full', id, scope] as const,
     sessions: (id: string, serverId: ServerId) => ['user', id, 'sessions', serverId] as const,
     locations: (id: string, serverId: ServerId) => ['user', id, 'locations', serverId] as const,
     devices: (id: string, serverId: ServerId) => ['user', id, 'devices', serverId] as const,
@@ -61,8 +88,8 @@ export const queryKeys = {
       ['violations', serverScopeKey(scope), severity, status] as const,
     byUser: (userId: string) => ['violations', { userId }] as const,
     detail: (id: string) => ['violations', 'detail', id] as const,
-    unacknowledgedCount: (scope: ServerScope) =>
-      ['violations', 'unacknowledged-count', serverScopeKey(scope)] as const,
+    unacknowledgedCount: (scope: ServerScope, severity: string = 'all') =>
+      ['violations', 'unacknowledged-count', serverScopeKey(scope), severity] as const,
   },
 
   stats: {
@@ -82,12 +109,32 @@ export const queryKeys = {
 
   servers: {
     liveStats: (serverId: ServerId) => ['servers', 'live-stats', serverId] as const,
+    health: (backendId: ServerId) => ['servers', 'health', backendId] as const,
+  },
+
+  automations: {
+    all: () => ['automations'] as const,
+    listPrefix: () => ['automations', 'list'] as const,
+    list: (kind?: string) => ['automations', 'list', kind ?? 'all'] as const,
+  },
+
+  runs: {
+    all: () => ['runs'] as const,
+    list: (filters: RunKeyFilters = {}) => ['runs', 'list', filters] as const,
+    counts: (filters: RunKeyFilters = {}) => ['runs', 'counts', filters] as const,
+  },
+
+  requests: {
+    all: () => ['requests'] as const,
+    status: () => ['requests', 'status'] as const,
+    user: (id: string, scope: 'account' | 'identity') => ['requests', 'user', id, scope] as const,
   },
 
   notifications: {
     preferences: () => ['notifications', 'preferences'] as const,
   },
 
+  versionPrefix: () => ['version'] as const,
   version: (serverId: ServerId) => ['version', serverId] as const,
 
   settings: () => ['settings'] as const,
