@@ -4,38 +4,62 @@
  *
  * Responsive layout:
  * - Phone: Single column, compact layout
- * - Tablet (md+): Responsive padding, 2-column stream comparison grid
+ * - Tablet (md+): Responsive padding, side-by-side actions
  */
 import { useMemo } from 'react';
 import { View, ScrollView, Pressable, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQueryClient, useMutation, useQuery } from '@tanstack/react-query';
-import { formatDistanceToNow, format } from 'date-fns';
-import { AlertTriangle, Check, X, Clock, Film, Tv, Music, AlertCircle } from 'lucide-react-native';
+import { isAxiosError } from 'axios';
+import {
+  AlertTriangle,
+  Check,
+  ChevronRight,
+  Clock,
+  Film,
+  Tv,
+  Music,
+  AlertCircle,
+  Shield,
+  User,
+  ListChecks,
+  Zap,
+} from 'lucide-react-native';
 import { api } from '@/lib/api';
 import { queryKeys } from '@/lib/queryKeys';
 import { ROUTES } from '@/lib/routes';
+import { haptics } from '@/lib/haptics';
+import { safeFormatDate, safeFormatDistanceToNow } from '@/lib/formatters';
 import { useResponsive } from '@/hooks/useResponsive';
+import { useMediaServer } from '@/providers/MediaServerProvider';
 import { Text } from '@/components/ui/text';
 import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/components/ui/empty-state';
+import { ErrorState } from '@/components/ui/error-state';
+import { SectionHeader } from '@/components/ui/section-header';
 import { UserAvatar } from '@/components/ui/user-avatar';
+import { ServerTag } from '@/components/server/ServerTag';
 import { ActionResultsList } from '@/components/violations/ActionResultsList';
+import { EvidenceList } from '@/components/violations/EvidenceList';
+import { SeverityBadge } from '@/components/violations/SeverityBadge';
 import { colors, spacing, ACCENT_COLOR } from '@/lib/theme';
-import { getViolationDescription, collectViolationSessions } from '@tracearr/shared';
+import {
+  getViolationDetails,
+  collectViolationSessions,
+  formatEpisodeLabel,
+} from '@tracearr/shared';
 import type { ViolationWithDetails, ViolationSessionInfo } from '@tracearr/shared';
 import { useTranslation } from '@tracearr/translations/mobile';
 import { ObserveInteractiveMarker } from 'expo-observe';
+import { ruleIcon, violationDescription } from '@/lib/violations';
 
-import { ruleIcon } from '@/lib/violations';
-import { EvidenceList } from '@/components/violations/EvidenceList';
-
-import { SeverityBadge } from '@/components/violations/SeverityBadge';
+const FULL_DATE_TIME = 'PPpp';
 
 function getMediaIcon(mediaType: string): typeof Film {
   switch (mediaType) {
-    case 'movie':
-      return Film;
     case 'episode':
       return Tv;
     case 'track':
@@ -45,137 +69,132 @@ function getMediaIcon(mediaType: string): typeof Film {
   }
 }
 
-interface StreamCardProps {
-  session: ViolationSessionInfo;
-  index: number;
-  isTriggering: boolean;
+function detailText(value: unknown): string {
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  return JSON.stringify(value) ?? '';
 }
 
-function StreamCard({ session, index, isTriggering }: StreamCardProps) {
+function Field({
+  label,
+  value,
+  mono,
+  className,
+}: {
+  label: string;
+  value: string;
+  mono?: boolean;
+  className?: string;
+}) {
+  return (
+    <View className={className}>
+      <Text className="text-muted-foreground mb-1 text-xs">{label}</Text>
+      <Text className={mono ? 'font-mono text-sm' : 'text-sm'}>{value}</Text>
+    </View>
+  );
+}
+
+function StreamCard({
+  session,
+  isTriggering,
+}: {
+  session: ViolationSessionInfo;
+  isTriggering: boolean;
+}) {
+  const { t } = useTranslation(['common', 'pages']);
   const MediaIcon = getMediaIcon(session.mediaType);
+
+  const isEpisode = session.mediaType === 'episode' && !!session.grandparentTitle;
+  const episodeLabel = formatEpisodeLabel(session.seasonNumber, session.episodeNumber, {
+    spaced: true,
+  });
+  const title = isEpisode ? session.grandparentTitle : session.mediaTitle;
+  const subtitle = isEpisode
+    ? [episodeLabel, session.mediaTitle].filter(Boolean).join(' · ')
+    : session.year
+      ? String(session.year)
+      : null;
 
   const locationText = [session.geoCity, session.geoRegion, session.geoCountry]
     .filter(Boolean)
     .join(', ');
+  const deviceText = session.device || session.platform || t('common:labels.unknown');
 
   return (
-    <Card
-      className={isTriggering ? 'bg-surface/50' : ''}
-      style={isTriggering ? { borderColor: `${ACCENT_COLOR}80` } : undefined}
-    >
-      {/* Header */}
-      <View className="mb-3">
-        <View className="mb-1 flex-row items-center gap-2">
-          <Text className="text-muted-foreground text-xs font-medium">
-            {isTriggering ? 'Triggering Stream' : `Stream #${index + 1}`}
+    <Card style={isTriggering ? { borderColor: ACCENT_COLOR } : undefined}>
+      <View className="mb-3 flex-row items-center gap-2">
+        <View className="bg-surface h-8 w-8 items-center justify-center rounded">
+          <MediaIcon size={14} color={colors.icon.default} />
+        </View>
+        <View className="flex-1">
+          <Text className="text-sm font-medium" numberOfLines={1}>
+            {title}
           </Text>
-          {isTriggering && (
-            <View className="bg-primary/20 rounded px-1.5 py-0.5">
-              <Text className="text-primary text-xs">Primary</Text>
-            </View>
-          )}
+          <Text className="text-muted-foreground text-xs capitalize" numberOfLines={1}>
+            {subtitle || session.mediaType}
+          </Text>
         </View>
-        <View className="flex-row items-center gap-2">
-          <View className="bg-surface h-8 w-8 items-center justify-center rounded">
-            <MediaIcon size={14} color={colors.text.muted.dark} />
-          </View>
-          <View className="flex-1">
-            <Text className="text-sm font-medium" numberOfLines={1}>
-              {session.mediaTitle}
-              {session.grandparentTitle && (
-                <Text className="text-muted-foreground"> - {session.grandparentTitle}</Text>
-              )}
-            </Text>
-            <Text className="text-muted-foreground text-xs capitalize">
-              {session.mediaType}
-              {session.quality && ` - ${session.quality}`}
-            </Text>
-          </View>
-        </View>
+        {isTriggering && <Badge variant="outline">{t('pages:violations.detail.trigger')}</Badge>}
       </View>
 
-      {/* Details Grid */}
-      <View className="gap-3">
-        {/* IP Address */}
-        <View className="flex-row items-start justify-between">
-          <View className="flex-1">
-            <View className="mb-1 flex-row items-center gap-1.5">
-              <Text className="text-muted-foreground text-xs">IP Address</Text>
-            </View>
-            <Text className="font-mono text-sm">{session.ipAddress}</Text>
-          </View>
-        </View>
-
-        {/* Location */}
-        {locationText && (
-          <View>
-            <View className="mb-1 flex-row items-center gap-1.5">
-              <Text className="text-muted-foreground text-xs">Location</Text>
-            </View>
-            <Text className="text-sm">{locationText}</Text>
-          </View>
-        )}
-
-        {/* Device */}
-        {(session.device || session.deviceId) && (
-          <View>
-            <View className="mb-1 flex-row items-center gap-1.5">
-              <Text className="text-muted-foreground text-xs">Device</Text>
-            </View>
-            <Text className="text-sm">
-              {session.device || session.deviceId}
-              {session.playerName && ` (${session.playerName})`}
-            </Text>
-          </View>
-        )}
-
-        {/* Platform */}
-        {session.platform && (
-          <View>
-            <Text className="text-muted-foreground mb-1 text-xs">Platform</Text>
-            <Text className="text-sm">
-              {session.platform}
-              {session.product && ` - ${session.product}`}
-            </Text>
-          </View>
-        )}
-
-        {/* Started At */}
-        <Text className="text-muted-foreground text-xs">
-          Started {formatDistanceToNow(new Date(session.startedAt), { addSuffix: true })}
-        </Text>
+      <View className="flex-row flex-wrap gap-y-3">
+        <Field
+          className="w-1/2 pr-2"
+          label={t('common:labels.ipAddress')}
+          value={session.ipAddress}
+          mono
+        />
+        <Field
+          className="w-1/2 pr-2"
+          label={t('common:labels.location')}
+          value={locationText || '-'}
+        />
+        <Field
+          className="w-1/2 pr-2"
+          label={t('common:labels.device')}
+          value={session.playerName ? `${deviceText} (${session.playerName})` : deviceText}
+        />
+        <Field
+          className="w-1/2 pr-2"
+          label={t('common:labels.quality')}
+          value={session.quality ?? '-'}
+        />
+        <Field
+          className="w-full"
+          label={t('common:labels.started')}
+          value={safeFormatDistanceToNow(session.startedAt, t('common:labels.unknown'))}
+        />
       </View>
     </Card>
   );
 }
 
+function isViolationRow(value: unknown): value is ViolationWithDetails {
+  return typeof value === 'object' && value !== null && 'id' in value && 'rule' in value;
+}
+
 /**
- * Search all violation caches for a specific violation by ID.
- * Uses getQueriesData to match any cache key starting with ['violations'],
- * which covers the alerts list (with filters), user detail, etc.
+ * Search the violation list caches for a specific violation by ID.
+ * Every key under ['violations'] is visited: infinite lists ({ pages }), flat
+ * lists ({ data: [] }), detail entries (whose `data` is the violation's own
+ * payload object) and the unacknowledged counts (numbers).
  */
 function findViolationInCache(
   queryClient: ReturnType<typeof useQueryClient>,
   violationId: string
 ): ViolationWithDetails | undefined {
-  // Search paginated caches (alerts list uses { pages: [...] } shape)
-  const allCaches = queryClient.getQueriesData<{
-    pages?: { data: ViolationWithDetails[] }[];
-    data?: ViolationWithDetails[];
-  }>({ queryKey: queryKeys.violations.all() });
+  const allCaches = queryClient.getQueriesData<unknown>({ queryKey: queryKeys.violations.all() });
 
-  for (const [_key, data] of allCaches) {
-    if (!data) continue;
-    // Paginated (infinite query) shape
-    if (data.pages) {
-      for (const page of data.pages) {
-        const found = page.data?.find((v) => v.id === violationId);
-        if (found) return found;
-      }
-    }
-    // Flat list shape
-    if (data.data) {
-      const found = data.data.find((v) => v.id === violationId);
+  for (const [, cached] of allCaches) {
+    if (typeof cached !== 'object' || cached === null) continue;
+    const pages: unknown[] =
+      'pages' in cached && Array.isArray(cached.pages) ? cached.pages : [cached];
+    for (const page of pages) {
+      if (typeof page !== 'object' || page === null || !('data' in page)) continue;
+      if (!Array.isArray(page.data)) continue;
+      const found = page.data.find(
+        (row): row is ViolationWithDetails => isViolationRow(row) && row.id === violationId
+      );
       if (found) return found;
     }
   }
@@ -187,12 +206,11 @@ export default function ViolationDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { servers } = useMediaServer();
   const { isTablet, select } = useResponsive();
 
-  // Responsive values
   const horizontalPadding = select({ base: spacing.md, md: spacing.lg, lg: spacing.xl });
 
-  // Get settings for unit system
   const { data: settings } = useQuery({
     queryKey: queryKeys.settings(),
     queryFn: ({ signal }) => api.settings.get(signal),
@@ -200,84 +218,58 @@ export default function ViolationDetailScreen() {
   });
   const unitSystem = settings?.unitSystem ?? 'metric';
 
-  // Try to find the violation in any existing cache
   const cachedViolation = useMemo(
     () => (id ? findViolationInCache(queryClient, id) : undefined),
     [queryClient, id]
   );
 
-  // Fetch from API with cache as initial data
   const {
     data: violation,
     isLoading,
-    isError,
+    error,
+    refetch,
   } = useQuery({
     queryKey: queryKeys.violations.detail(id),
     queryFn: ({ signal }) => api.violations.get(id, signal),
     initialData: cachedViolation,
-    staleTime: cachedViolation ? 1000 * 60 : 0,
+    // A list row has no `userNames`, so the cached copy always refetches behind the content.
+    staleTime: 0,
     enabled: !!id,
   });
 
-  // Update header title
-  const ruleType = violation?.rule?.type ?? null;
-  const ruleName = violation?.rule?.name || 'Violation';
+  const showMutationError = (mutationError: Error) => {
+    haptics.error();
+    Alert.alert(t('common:errors.somethingWentWrong'), mutationError.message);
+  };
 
-  // Acknowledge mutation
+  // Stays on the screen like the web does: the refetch flips the record to acknowledged.
   const acknowledgeMutation = useMutation({
     mutationFn: api.violations.acknowledge,
     onSuccess: () => {
+      haptics.success();
       void queryClient.invalidateQueries({ queryKey: queryKeys.violations.all() });
-      router.back();
     },
+    onError: showMutationError,
   });
 
-  // Dismiss mutation
   const dismissMutation = useMutation({
     mutationFn: api.violations.dismiss,
     onSuccess: () => {
+      haptics.success();
       void queryClient.invalidateQueries({ queryKey: queryKeys.violations.all() });
       router.back();
     },
+    onError: showMutationError,
   });
 
-  const handleAcknowledge = () => {
-    if (!violation) return;
-    acknowledgeMutation.mutate(violation.id);
-  };
-
-  const handleDismiss = () => {
-    if (!violation) return;
-    Alert.alert(
-      t('pages:violations.dismissViolation'),
-      t('pages:violations.dismissViolationConfirm'),
-      [
-        { text: t('common:actions.cancel'), style: 'cancel' },
-        {
-          text: t('common:actions.dismiss'),
-          style: 'destructive',
-          onPress: () => dismissMutation.mutate(violation.id),
-        },
-      ]
-    );
-  };
-
-  const handleUserPress = () => {
-    if (violation?.user?.id) {
-      router.push(ROUTES.USER(violation.user.id));
-    }
-  };
-
-  // Collect all sessions for comparison (skip for inactivity violations)
   const allSessions = useMemo(
     () =>
-      violation && violation.rule?.type !== 'account_inactivity'
+      violation && violation.rule.type !== 'account_inactivity'
         ? collectViolationSessions(violation)
         : [],
     [violation]
   );
 
-  // Analysis stats
   const analysis = useMemo(() => {
     if (allSessions.length <= 1) return null;
     return {
@@ -291,47 +283,66 @@ export default function ViolationDetailScreen() {
     };
   }, [allSessions]);
 
-  // Loading state (only shown when no cached data)
-  if (isLoading && !violation) {
+  if (!violation) {
+    const isNotFound = !error || (isAxiosError(error) && error.response?.status === 404);
     return (
       <SafeAreaView
         style={{ flex: 1, backgroundColor: colors.background.dark }}
         edges={['left', 'right', 'bottom']}
       >
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color={ACCENT_COLOR} />
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  if (!violation || isError) {
-    return (
-      <SafeAreaView
-        style={{ flex: 1, backgroundColor: colors.background.dark }}
-        edges={['left', 'right', 'bottom']}
-      >
-        <View className="flex-1 items-center justify-center px-8">
-          <View className="bg-card border-border mb-4 h-20 w-20 items-center justify-center rounded-full border">
-            <AlertTriangle size={32} color={colors.text.muted.dark} />
+        {isLoading ? (
+          <View className="flex-1 items-center justify-center">
+            <ActivityIndicator size="large" color={ACCENT_COLOR} />
           </View>
-          <Text className="mb-1 text-center text-xl font-semibold">
-            {t('pages:violations.detail.notFound')}
-          </Text>
-          <Text className="text-muted-foreground text-center text-sm">
-            {t('mobile:violation.violationNotFoundDesc')}
-          </Text>
-          <Pressable className="bg-primary mt-6 rounded-lg px-6 py-3" onPress={() => router.back()}>
-            <Text className="font-semibold text-white">{t('common:actions.back')}</Text>
-          </Pressable>
-        </View>
+        ) : isNotFound ? (
+          <EmptyState
+            className="flex-1 justify-center"
+            icon={AlertTriangle}
+            title={t('pages:violations.detail.notFound')}
+            description={t('mobile:violation.violationNotFoundDesc')}
+            action={{ label: t('common:actions.back'), onPress: () => router.back() }}
+          />
+        ) : (
+          <ErrorState
+            className="flex-1 justify-center"
+            message={error.message}
+            onRetry={() => void refetch()}
+          />
+        )}
       </SafeAreaView>
     );
   }
 
-  const description = getViolationDescription(violation, unitSystem);
-  const IconComponent = ruleIcon(ruleType);
+  const unknown = t('common:labels.unknown');
+  const username = violation.user.username;
+  const displayName = violation.user.identityName ?? username;
+  const description = violationDescription(violation, unitSystem);
+  const details = Object.entries(getViolationDetails(violation, unitSystem)).map(
+    ([key, value]): [string, unknown] => [key, value === violation.user.id ? displayName : value]
+  );
+  const userNames = { ...violation.userNames, [violation.user.id]: displayName };
+  const IconComponent = ruleIcon(violation.rule.type);
   const isPending = !violation.acknowledgedAt;
+  const isInactivity = violation.rule.type === 'account_inactivity';
+  const serverColor = servers.find((s) => s.id === violation.server?.id)?.color;
+
+  const { inactiveDays, thresholdDays, lastActivityAt, neverActive } = violation.data ?? {};
+
+  const handleDismiss = () => {
+    haptics.warning();
+    Alert.alert(
+      t('pages:violations.dismissViolation'),
+      t('pages:violations.dismissViolationConfirm'),
+      [
+        { text: t('common:actions.cancel'), style: 'cancel' },
+        {
+          text: t('common:actions.dismiss'),
+          style: 'destructive',
+          onPress: () => dismissMutation.mutate(violation.id),
+        },
+      ]
+    );
+  };
 
   return (
     <SafeAreaView
@@ -347,250 +358,267 @@ export default function ViolationDetailScreen() {
           paddingBottom: spacing.xl,
         }}
       >
-        {/* User Info */}
-        <Card className="mb-4">
-          <Pressable className="flex-row items-center gap-4" onPress={handleUserPress}>
-            <UserAvatar
-              thumbUrl={violation.user?.thumbUrl}
-              serverId={violation.user?.serverId}
-              username={violation.user?.username || 'Unknown'}
-              size={isTablet ? 64 : 56}
-            />
-            <View className="flex-1">
-              <Text className="text-lg font-semibold">
-                {violation.user?.identityName ?? violation.user?.username}
-              </Text>
-              {violation.user?.identityName &&
-                violation.user.identityName !== violation.user.username && (
-                  <Text className="text-muted-foreground text-sm">@{violation.user.username}</Text>
-                )}
-              {violation.server?.name && (
-                <Text className="text-muted-foreground text-sm">{violation.server.name}</Text>
-              )}
-            </View>
-            <SeverityBadge severity={violation.severity} />
-          </Pressable>
-        </Card>
-
-        {/* Rule Info */}
         <Card className="mb-4">
           <View className="mb-3 flex-row items-center gap-3">
             <View className="bg-primary/15 h-10 w-10 items-center justify-center rounded-lg">
               <IconComponent size={20} color={ACCENT_COLOR} />
             </View>
-            <View className="flex-1">
-              <Text className="text-base font-semibold">{violation.rule?.name || ruleName}</Text>
-              <Text className="text-muted-foreground text-sm capitalize">
-                {ruleType?.replace(/_/g, ' ') || t('mobile:violation.customRule')}
+            <Text className="flex-1 text-base font-semibold">{violation.rule.name || unknown}</Text>
+            <SeverityBadge severity={violation.severity} />
+          </View>
+          <Text className="text-foreground leading-6">{description}</Text>
+          <View className="mt-3 gap-1">
+            <View className="flex-row items-center gap-1.5">
+              <Clock size={14} color={colors.icon.default} />
+              <Text className="text-muted-foreground text-sm">
+                {t('pages:violations.detail.detected')}{' '}
+                {safeFormatDistanceToNow(violation.createdAt, unknown)}
               </Text>
             </View>
+            {violation.acknowledgedAt && (
+              <View className="flex-row items-center gap-1.5">
+                <Check size={14} color={colors.success} />
+                <Text className="text-success text-sm">
+                  {t('common:states.acknowledged')}{' '}
+                  {safeFormatDistanceToNow(violation.acknowledgedAt, unknown)}
+                </Text>
+              </View>
+            )}
           </View>
-          <Text className="text-secondary leading-6">{description}</Text>
         </Card>
 
-        {/* Evidence: the condition groups the automation evaluated (2.2+) */}
-        {violation.evidence && violation.evidence.length > 0 && (
-          <Card className="mb-4">
-            <View className="mb-3 flex-row items-center gap-2">
-              <Text className="text-muted-foreground text-sm font-semibold">Evidence</Text>
-            </View>
-            <EvidenceList groups={violation.evidence} />
-          </Card>
-        )}
+        <View
+          className="mb-6"
+          style={{ flexDirection: isTablet ? 'row' : 'column', gap: spacing.sm }}
+        >
+          {isPending && (
+            <Button
+              size="lg"
+              className="flex-1"
+              onPress={() => acknowledgeMutation.mutate(violation.id)}
+              disabled={acknowledgeMutation.isPending}
+            >
+              {acknowledgeMutation.isPending
+                ? t('common:states.acknowledging')
+                : t('common:actions.acknowledge')}
+            </Button>
+          )}
+          <Button
+            size="lg"
+            variant="destructive"
+            className="flex-1"
+            onPress={handleDismiss}
+            disabled={dismissMutation.isPending}
+          >
+            {dismissMutation.isPending
+              ? t('common:states.dismissing')
+              : t('common:actions.dismiss')}
+          </Button>
+        </View>
 
-        {/* Account Inactivity Details */}
-        {ruleType === 'account_inactivity' && (
-          <Card className="mb-4">
-            <View className="mb-3 flex-row items-center gap-2">
-              <Clock size={16} color={colors.text.muted.dark} />
-              <Text className="text-muted-foreground text-sm font-semibold">
-                {t('pages:violations.detail.inactivity')}
-              </Text>
-            </View>
-            <View className="bg-surface rounded-lg p-4">
-              <View className="flex-row gap-4">
-                {/* Days Inactive */}
-                <View className="flex-1">
-                  <Text className="text-muted-foreground mb-1 text-xs">
-                    {t('pages:violations.detail.daysInactive')}
-                  </Text>
-                  <Text className="text-2xl font-bold">
-                    {(violation.data?.inactiveDays as number) ?? 'N/A'}
-                  </Text>
-                </View>
-                {/* Threshold */}
-                <View className="flex-1">
-                  <Text className="text-muted-foreground mb-1 text-xs">
-                    {t('pages:violations.detail.threshold')}
-                  </Text>
-                  <Text className="text-2xl font-bold">
-                    {(violation.data?.thresholdDays as number) ?? 'N/A'}
-                    <Text className="text-muted-foreground text-sm font-normal"> days</Text>
-                  </Text>
-                </View>
-              </View>
-              {/* Last Activity */}
-              <View className="mt-4">
-                <Text className="text-muted-foreground mb-1 text-xs">
-                  {t('pages:violations.detail.lastActivity')}
-                </Text>
-                {violation.data?.neverActive ? (
-                  <View className="flex-row items-center gap-1">
-                    <AlertCircle size={14} color={colors.warning} />
-                    <Text className="text-warning text-sm font-medium">
-                      {t('pages:violations.detail.neverActive')}
-                    </Text>
-                  </View>
-                ) : violation.data?.lastActivityAt ? (
-                  <View>
-                    <Text className="text-sm font-medium">
-                      {format(new Date(violation.data.lastActivityAt as string), 'PPpp')}
-                    </Text>
-                    <Text className="text-muted-foreground text-xs">
-                      {formatDistanceToNow(new Date(violation.data.lastActivityAt as string), {
-                        addSuffix: true,
-                      })}
-                    </Text>
-                  </View>
-                ) : (
-                  <Text className="text-muted-foreground text-sm">Unknown</Text>
+        {details.length > 0 && (
+          <View className="mb-4">
+            <SectionHeader
+              icon={ListChecks}
+              title={t('pages:violations.detail.violationDetails')}
+            />
+            <Card>
+              <View className="flex-row flex-wrap gap-y-3">
+                {details.map(([key, value]) =>
+                  Array.isArray(value) ? (
+                    <View key={key} className="w-full">
+                      <Text className="text-muted-foreground mb-1 text-xs">{key}</Text>
+                      <View className="flex-row flex-wrap gap-1">
+                        {value.map((item: unknown, idx) => (
+                          <Badge key={idx} variant="secondary">
+                            {detailText(item)}
+                          </Badge>
+                        ))}
+                      </View>
+                    </View>
+                  ) : (
+                    <Field key={key} className="w-1/2 pr-2" label={key} value={detailText(value)} />
+                  )
                 )}
               </View>
-            </View>
-          </Card>
+            </Card>
+          </View>
         )}
 
-        {/* Stream Comparison (not for inactivity violations) */}
+        <View className="mb-4">
+          <SectionHeader icon={User} title={t('pages:violations.detail.userInfo')} />
+          <Card>
+            <Pressable
+              className="flex-row items-center gap-4 active:opacity-80"
+              onPress={() => router.push(ROUTES.USER(violation.user.id))}
+              accessibilityRole="button"
+              accessibilityLabel={displayName}
+              accessibilityHint={t('common:actions.viewProfile')}
+            >
+              <UserAvatar
+                thumbUrl={violation.user.thumbUrl}
+                serverId={violation.user.serverId}
+                username={username}
+                size={isTablet ? 64 : 56}
+              />
+              <View className="flex-1">
+                <Text className="text-lg font-semibold">{displayName}</Text>
+                {violation.user.identityName && violation.user.identityName !== username && (
+                  <Text className="text-muted-foreground text-sm">@{username}</Text>
+                )}
+                <ServerTag
+                  size="md"
+                  name={violation.server?.name}
+                  color={serverColor}
+                  className="mt-1"
+                />
+              </View>
+              <ChevronRight size={16} color={colors.icon.default} />
+            </Pressable>
+          </Card>
+        </View>
+
+        {violation.evidence && violation.evidence.length > 0 && (
+          <View className="mb-4">
+            <SectionHeader icon={Shield} title={t('pages:violations.detail.conditionEvidence')} />
+            <EvidenceList
+              groups={violation.evidence}
+              unitSystem={unitSystem}
+              userNames={userNames}
+            />
+          </View>
+        )}
+
         {allSessions.length > 0 && (
           <View className="mb-4">
-            <View className="mb-3 flex-row items-center justify-between">
-              <View className="flex-row items-center gap-2">
-                <Film size={16} color={colors.text.muted.dark} />
-                <Text className="text-muted-foreground text-sm font-semibold">
-                  {t('mobile:violation.streamComparison')}
-                </Text>
-                {allSessions.length > 1 && (
-                  <View className="bg-surface rounded px-2 py-0.5">
-                    <Text className="text-muted-foreground text-xs">
-                      {allSessions.length} streams
-                    </Text>
-                  </View>
+            <SectionHeader
+              icon={Film}
+              title={t('pages:violations.detail.sessions')}
+              right={<Badge variant="secondary">{String(allSessions.length)}</Badge>}
+            />
+            {analysis && (
+              <View className="mb-3 flex-row flex-wrap gap-1.5">
+                {analysis.uniqueIPs > 1 && (
+                  <Badge variant="warning">
+                    {`${analysis.uniqueIPs} ${t('mobile:violation.ips')}`}
+                  </Badge>
+                )}
+                {analysis.uniqueDevices > 1 && (
+                  <Badge variant="warning">
+                    {t('common:count.device', { count: analysis.uniqueDevices })}
+                  </Badge>
+                )}
+                {analysis.uniqueLocations > 1 && (
+                  <Badge variant="danger">
+                    {t('common:count.location', { count: analysis.uniqueLocations })}
+                  </Badge>
                 )}
               </View>
-              {/* Analysis badges */}
-              {analysis && (
-                <View className="flex-row gap-1.5">
-                  {analysis.uniqueIPs > 1 && (
-                    <View className="bg-warning/20 rounded px-2 py-0.5">
-                      <Text className="text-warning text-xs">{analysis.uniqueIPs} IPs</Text>
-                    </View>
-                  )}
-                  {analysis.uniqueDevices > 1 && (
-                    <View
-                      style={{ backgroundColor: `${colors.orange.core}20` }}
-                      className="rounded px-2 py-0.5"
-                    >
-                      <Text style={{ color: colors.orange.core }} className="text-xs">
-                        {analysis.uniqueDevices} Devices
-                      </Text>
-                    </View>
-                  )}
-                  {analysis.uniqueLocations > 1 && (
-                    <View className="bg-destructive/20 rounded px-2 py-0.5">
-                      <Text className="text-destructive text-xs">
-                        {analysis.uniqueLocations} Locations
-                      </Text>
-                    </View>
-                  )}
-                </View>
-              )}
-            </View>
-
-            {/* Stream cards */}
+            )}
             <View style={{ gap: spacing.sm }}>
-              {allSessions.map((session, idx) => (
+              {allSessions.map((session) => (
                 <StreamCard
                   key={session.id}
                   session={session}
-                  index={idx}
-                  isTriggering={idx === 0 && violation.session?.id === session.id}
+                  isTriggering={violation.session?.id === session.id}
                 />
               ))}
             </View>
           </View>
         )}
 
-        {/* Action Results (V2 Rules) */}
-        {violation.actionResults && violation.actionResults.length > 0 && (
-          <Card className="mb-4">
-            <ActionResultsList results={violation.actionResults} />
-          </Card>
-        )}
-
-        {/* Timestamps */}
-        <Card className="mb-4">
-          <View className="gap-3">
-            <View className="flex-row items-center gap-2">
-              <Clock size={16} color={colors.text.muted.dark} />
-              <View className="flex-1">
-                <Text className="text-muted-foreground text-xs">{t('common:labels.created')}</Text>
-                <Text className="text-sm">
-                  {formatDistanceToNow(new Date(violation.createdAt), { addSuffix: true })}
-                </Text>
-                <Text className="text-muted-foreground text-xs">
-                  {format(new Date(violation.createdAt), 'PPpp')}
-                </Text>
-              </View>
-            </View>
-            {violation.acknowledgedAt && (
-              <View className="flex-row items-center gap-2">
-                <Check size={16} color={colors.success} />
+        {isInactivity && (
+          <View className="mb-4">
+            <SectionHeader icon={Clock} title={t('pages:violations.detail.inactivity')} />
+            <Card>
+              <View className="flex-row gap-4">
                 <View className="flex-1">
-                  <Text className="text-success text-sm">
-                    Acknowledged{' '}
-                    {formatDistanceToNow(new Date(violation.acknowledgedAt), { addSuffix: true })}
+                  <Text className="text-muted-foreground mb-1 text-xs">
+                    {t('pages:violations.detail.daysInactive')}
+                  </Text>
+                  <Text className="text-2xl font-bold">
+                    {typeof inactiveDays === 'number' ? inactiveDays : '-'}
                   </Text>
                 </View>
+                <View className="flex-1">
+                  <Text className="text-muted-foreground mb-1 text-xs">
+                    {t('pages:violations.detail.threshold')}
+                  </Text>
+                  <Text className="text-2xl font-bold">
+                    {typeof thresholdDays === 'number' ? thresholdDays : '-'}
+                    <Text className="text-muted-foreground text-sm font-normal">
+                      {' '}
+                      {t('common:labels.days')}
+                    </Text>
+                  </Text>
+                </View>
+              </View>
+              <View className="mt-4">
+                <Text className="text-muted-foreground mb-1 text-xs">
+                  {t('pages:violations.detail.lastActivity')}
+                </Text>
+                {neverActive ? (
+                  <View className="flex-row items-center gap-1">
+                    <AlertCircle size={14} color={colors.warning} />
+                    <Text className="text-warning text-sm font-medium">
+                      {t('pages:violations.detail.neverActive')}
+                    </Text>
+                  </View>
+                ) : typeof lastActivityAt === 'string' ? (
+                  <View>
+                    <Text className="text-sm font-medium">
+                      {safeFormatDate(lastActivityAt, FULL_DATE_TIME, unknown)}
+                    </Text>
+                    <Text className="text-muted-foreground text-xs">
+                      {safeFormatDistanceToNow(lastActivityAt, unknown)}
+                    </Text>
+                  </View>
+                ) : (
+                  <Text className="text-muted-foreground text-sm">{unknown}</Text>
+                )}
+              </View>
+            </Card>
+          </View>
+        )}
+
+        {violation.actionResults && violation.actionResults.length > 0 && (
+          <View className="mb-4">
+            <SectionHeader icon={Zap} title={t('pages:violations.detail.actions')} />
+            <Card>
+              <ActionResultsList results={violation.actionResults} />
+            </Card>
+          </View>
+        )}
+
+        <SectionHeader icon={Clock} title={t('pages:violations.detail.timestamps')} />
+        <Card>
+          <View className="flex-row flex-wrap gap-y-3">
+            <View className="w-1/2 pr-2">
+              <Text className="text-muted-foreground mb-1 text-xs">
+                {t('pages:violations.detail.created')}
+              </Text>
+              <Text className="text-sm font-medium">
+                {safeFormatDate(violation.createdAt, FULL_DATE_TIME, unknown)}
+              </Text>
+              <Text className="text-muted-foreground text-xs">
+                {safeFormatDistanceToNow(violation.createdAt, unknown)}
+              </Text>
+            </View>
+            {violation.acknowledgedAt && (
+              <View className="w-1/2 pr-2">
+                <Text className="text-muted-foreground mb-1 text-xs">
+                  {t('pages:violations.detail.acknowledged')}
+                </Text>
+                <Text className="text-sm font-medium">
+                  {safeFormatDate(violation.acknowledgedAt, FULL_DATE_TIME, unknown)}
+                </Text>
+                <Text className="text-muted-foreground text-xs">
+                  {safeFormatDistanceToNow(violation.acknowledgedAt, unknown)}
+                </Text>
               </View>
             )}
           </View>
         </Card>
-
-        {/* Actions */}
-        <View style={{ flexDirection: isTablet ? 'row' : 'column', gap: spacing.sm }}>
-          {isPending && (
-            <Pressable
-              className="bg-primary flex-1 flex-row items-center justify-center gap-2 rounded-lg py-3.5"
-              onPress={handleAcknowledge}
-              disabled={acknowledgeMutation.isPending}
-            >
-              {acknowledgeMutation.isPending ? (
-                <ActivityIndicator size="small" color="white" />
-              ) : (
-                <>
-                  <Check size={18} color="white" />
-                  <Text className="font-semibold text-white">
-                    {t('common:actions.acknowledge')}
-                  </Text>
-                </>
-              )}
-            </Pressable>
-          )}
-          <Pressable
-            className="bg-destructive flex-1 flex-row items-center justify-center gap-2 rounded-lg py-3.5"
-            onPress={handleDismiss}
-            disabled={dismissMutation.isPending}
-          >
-            {dismissMutation.isPending ? (
-              <ActivityIndicator size="small" color="white" />
-            ) : (
-              <>
-                <X size={18} color="white" />
-                <Text className="font-semibold text-white">{t('common:actions.dismiss')}</Text>
-              </>
-            )}
-          </Pressable>
-        </View>
       </ScrollView>
     </SafeAreaView>
   );

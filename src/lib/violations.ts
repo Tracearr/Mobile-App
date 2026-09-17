@@ -8,6 +8,8 @@ import {
   AlertTriangle,
   type LucideIcon,
 } from 'lucide-react-native';
+import { getViolationDescription } from '@tracearr/shared';
+import type { UnitSystem, ViolationWithDetails } from '@tracearr/shared';
 
 // Legacy rule types still arrive from 2.1 servers; 2.2 rows carry rule.type null and
 // take the fallback, which is what the web does (pages/Violations.tsx:417-424).
@@ -24,6 +26,13 @@ export function ruleIcon(type: string | null | undefined): LucideIcon {
   return (type && ruleIcons[type]) || AlertTriangle;
 }
 
-export function ruleTypeLabel(type: string | null | undefined): string {
-  return type ? type.replace(/_/g, ' ') : 'Custom Rule';
+// Evidence on a user_id condition carries the raw account id; the web swaps in the
+// display name the same way (pages/ViolationDetail.tsx).
+export function violationDescription(
+  violation: ViolationWithDetails,
+  unitSystem: UnitSystem
+): string {
+  const description = getViolationDescription(violation, unitSystem);
+  const user = violation.user;
+  return description.split(user.id).join(user.identityName ?? user.username);
 }
