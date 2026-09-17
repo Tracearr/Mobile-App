@@ -10,6 +10,7 @@ import { useTranslation } from '@tracearr/translations/mobile';
 import type { ActiveSession } from '@tracearr/shared';
 import type { UnhealthyServer } from '@/lib/api';
 import { useAuthStateStore } from '@/lib/authStateStore';
+import { registerWidgetRefreshTask, unregisterWidgetRefreshTask } from '@/lib/backgroundTasks';
 import { queryKeys } from '@/lib/queryKeys';
 import { widgetsSupported } from '@/lib/nowPlayingPublisher';
 import {
@@ -37,8 +38,10 @@ export function useNowPlayingWidget() {
     if (!widgetsSupported || auth === 'loading') return;
     if (auth === 'out') {
       publishSignedOut();
+      void unregisterWidgetRefreshTask();
       return;
     }
+    void registerWidgetRefreshTask();
 
     const sessions = new QueryObserver<ActiveSession[]>(queryClient, {
       queryKey: queryKeys.sessions.active(WIDGET_SCOPE),

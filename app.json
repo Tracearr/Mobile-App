@@ -121,7 +121,31 @@
           "fonts": ["./assets/fonts/Inter_500Medium.ttf"]
         }
       ],
-      "posthog-react-native/expo"
+      "posthog-react-native/expo",
+      "expo-background-task",
+      [
+        "expo-widgets",
+        {
+          "bundleIdentifier": "com.tracearr.app.widgets",
+          "groupIdentifier": "group.com.tracearr.app",
+          "widgets": [
+            {
+              "name": "NowPlaying",
+              "displayName": "Now Playing",
+              "description": "Active streams and transcodes on your media servers.",
+              "ios": {
+                "supportedFamilies": [
+                  "systemSmall",
+                  "systemMedium",
+                  "accessoryCircular",
+                  "accessoryInline"
+                ],
+                "initialLayout": "./widgets/NowPlayingWidget.tsx"
+              }
+            }
+          ]
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

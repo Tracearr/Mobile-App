@@ -23,6 +23,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { useAuthStateStore } from '@/lib/authStateStore';
 import { useConnectionValidator } from '@/hooks/useConnectionValidator';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
+import { useNowPlayingWidget } from '@/hooks/useNowPlayingWidget';
 import { colors } from '@/lib/theme';
 import { i18nReady } from '@/lib/i18n';
 import { useTranslation } from '@tracearr/translations/mobile';
@@ -72,6 +73,7 @@ function RootLayoutNav() {
   const prevConnectionState = useRef(connectionState);
 
   usePushNotifications();
+  useNowPlayingWidget();
 
   // Route pattern, not pathname: ids stay out of PostHog as filteredParams keeps them out of Observe.
   const posthog = usePostHog();

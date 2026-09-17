@@ -9,6 +9,7 @@ import * as BackgroundTask from 'expo-background-task';
 import { AppState } from 'react-native';
 import type { EncryptedPushPayload } from '@tracearr/shared';
 import { decryptPushPayload } from './crypto';
+import { widgetsSupported } from './nowPlayingPublisher';
 import { refreshNowPlayingWidget } from './nowPlayingSnapshot';
 
 export const BACKGROUND_NOTIFICATION_TASK = 'BACKGROUND_NOTIFICATION_TASK';
@@ -26,13 +27,17 @@ const WIDGET_PUSH_TYPES = new Set([
 ]);
 
 export function isEncrypted(data: unknown): data is EncryptedPushPayload {
-  if (!data || typeof data !== 'object') return false;
-  const payload = data as Record<string, unknown>;
   return (
-    payload.v === 1 &&
-    typeof payload.iv === 'string' &&
-    typeof payload.ct === 'string' &&
-    typeof payload.tag === 'string'
+    typeof data === 'object' &&
+    data !== null &&
+    'v' in data &&
+    data.v === 1 &&
+    'iv' in data &&
+    typeof data.iv === 'string' &&
+    'ct' in data &&
+    typeof data.ct === 'string' &&
+    'tag' in data &&
+    typeof data.tag === 'string'
   );
 }
 
@@ -43,13 +48,18 @@ async function pushTypeOf(payload: Notifications.NotificationTaskPayload): Promi
   if (typeof raw !== 'string') return undefined;
   const data: unknown = JSON.parse(raw);
   const decoded = isEncrypted(data) ? await decryptPushPayload(data) : data;
-  return (decoded as { type?: unknown } | null)?.type;
+  return typeof decoded === 'object' && decoded !== null && 'type' in decoded
+    ? decoded.type
+    : undefined;
 }
 
 TaskManager.defineTask<Notifications.NotificationTaskPayload>(
   BACKGROUND_NOTIFICATION_TASK,
   async ({ data, error }) => {
-    if (error || !data) return Notifications.BackgroundNotificationTaskResult.NoData;
+    // The widget is the only consumer of a background push.
+    if (!widgetsSupported || error || !data) {
+      return Notifications.BackgroundNotificationTaskResult.NoData;
+    }
     try {
       const type = await pushTypeOf(data);
       // In the foreground the active-sessions query already feeds the widget.
@@ -95,11 +105,9 @@ export async function unregisterBackgroundNotificationTask(): Promise<void> {
   }
 }
 
-// Restricted covers the iOS simulator, which has no BGTaskScheduler.
+// registerTaskAsync is a no-op when already registered and on the iOS simulator.
 export async function registerWidgetRefreshTask(): Promise<void> {
   try {
-    const status = await BackgroundTask.getStatusAsync();
-    if (status !== BackgroundTask.BackgroundTaskStatus.Available) return;
     await BackgroundTask.registerTaskAsync(WIDGET_REFRESH_TASK, {
       minimumInterval: WIDGET_REFRESH_MINUTES,
     });

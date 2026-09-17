@@ -12,8 +12,8 @@ import { Platform, AppState } from 'react-native';
 import { useRouter, type Href } from 'expo-router';
 import { useTranslation } from '@tracearr/translations/mobile';
 import { useSocket } from '../providers/SocketProvider';
-import type { ViolationWithDetails, EncryptedPushPayload } from '@tracearr/shared';
-import { registerBackgroundNotificationTask } from '../lib/backgroundTasks';
+import type { ViolationWithDetails } from '@tracearr/shared';
+import { isEncrypted, registerBackgroundNotificationTask } from '../lib/backgroundTasks';
 import { decryptPushPayload, isEncryptionAvailable, getDeviceSecret } from '../lib/crypto';
 import { api } from '../lib/api';
 import { useAuthStateStore } from '../lib/authStateStore';
@@ -31,18 +31,6 @@ Notifications.setNotificationHandler({
     shouldShowList: true,
   }),
 });
-
-// Check if notification payload is encrypted
-function isEncrypted(data: unknown): data is EncryptedPushPayload {
-  if (!data || typeof data !== 'object') return false;
-  const payload = data as Record<string, unknown>;
-  return (
-    payload.v === 1 &&
-    typeof payload.iv === 'string' &&
-    typeof payload.ct === 'string' &&
-    typeof payload.tag === 'string'
-  );
-}
 
 // Routing table lives in lib/pushRoute.ts (tested); unknown types land on the dashboard.
 function pushHref(dest: PushDestination): Href {
