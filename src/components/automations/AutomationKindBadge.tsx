@@ -8,7 +8,14 @@ const KIND_VARIANT = {
 } as const satisfies Record<AutomationKind, unknown>;
 
 export function AutomationKindBadge({ kind }: { kind: AutomationKind }) {
-  const { t } = useTranslation(['pages']);
+  const { t } = useTranslation(['mobile']);
 
-  return <Badge variant={KIND_VARIANT[kind]}>{t(`pages:automations.kind.${kind}`)}</Badge>;
+  // Web labels these Violation and Alert. Here Alerts is also a screen, so the
+  // schema's own kind names are used instead.
+  const label =
+    kind === 'policy'
+      ? t('mobile:automations.kind.policy', { defaultValue: 'Policy' })
+      : t('mobile:automations.kind.notification', { defaultValue: 'Notification' });
+
+  return <Badge variant={KIND_VARIANT[kind]}>{label}</Badge>;
 }
