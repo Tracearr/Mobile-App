@@ -11,25 +11,41 @@
 import { View, Animated } from 'react-native';
 import { CircleAlert, Cpu, Gauge, Server, type LucideIcon } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
+import type { ServerType } from '@tracearr/shared';
 import { Text } from '@/components/ui/text';
 import { useResponsive } from '@/hooks/useResponsive';
 import { ACCENT_COLOR, colors, spacing } from '@/lib/theme';
 
 // Bar colors matching web app
 const BAR_COLORS = {
-  process: ACCENT_COLOR, // Plex-style cyan for "Plex Media Server"
+  process: ACCENT_COLOR, // Plex-style cyan for the media server process
   system: '#cc7b9f', // Pink/purple for "System"
+};
+
+const PROCESS_LABELS: Record<ServerType, string> = {
+  plex: 'Plex Media Server',
+  jellyfin: 'Jellyfin',
+  emby: 'Emby',
 };
 
 interface ResourceBarProps {
   label: string;
+  processLabel: string;
   processValue: number;
-  systemValue: number;
+  // Null when the source cannot see the host (non-Linux plugin hosts)
+  systemValue: number | null;
   icon: LucideIcon;
   isTablet?: boolean;
 }
 
-function ResourceBar({ label, processValue, systemValue, icon: Icon, isTablet }: ResourceBarProps) {
+function ResourceBar({
+  label,
+  processLabel,
+  processValue,
+  systemValue,
+  icon: Icon,
+  isTablet,
+}: ResourceBarProps) {
   const [processWidth] = useState(() => new Animated.Value(0));
   const [systemWidth] = useState(() => new Animated.Value(0));
 
@@ -41,7 +57,7 @@ function ResourceBar({ label, processValue, systemValue, icon: Icon, isTablet }:
         useNativeDriver: false,
       }),
       Animated.timing(systemWidth, {
-        toValue: systemValue,
+        toValue: systemValue ?? 0,
         duration: 300,
         useNativeDriver: false,
       }),
@@ -77,7 +93,7 @@ function ResourceBar({ label, processValue, systemValue, icon: Icon, isTablet }:
         </Text>
       </View>
 
-      {/* Process bar (Plex Media Server) */}
+      {/* Process bar */}
       <View style={{ marginBottom: isTablet ? 8 : 6 }}>
         <View
           style={{
@@ -88,7 +104,7 @@ function ResourceBar({ label, processValue, systemValue, icon: Icon, isTablet }:
           }}
         >
           <Text style={{ fontSize: barLabelFontSize, color: colors.text.muted.dark }}>
-            Plex Media Server
+            {processLabel}
           </Text>
           <Text
             style={{
@@ -123,63 +139,78 @@ function ResourceBar({ label, processValue, systemValue, icon: Icon, isTablet }:
       </View>
 
       {/* System bar */}
-      <View>
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            marginBottom: 4,
-          }}
-        >
-          <Text style={{ fontSize: barLabelFontSize, color: colors.text.muted.dark }}>System</Text>
-          <Text
+      {systemValue !== null && (
+        <View>
+          <View
             style={{
-              fontSize: barLabelFontSize,
-              fontWeight: '600',
-              color: colors.text.primary.dark,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: 4,
             }}
           >
-            {systemValue}%
-          </Text>
-        </View>
-        <View
-          style={{
-            height: barHeight,
-            backgroundColor: colors.surface.dark,
-            borderRadius: 4,
-            overflow: 'hidden',
-          }}
-        >
-          <Animated.View
+            <Text style={{ fontSize: barLabelFontSize, color: colors.text.muted.dark }}>
+              System
+            </Text>
+            <Text
+              style={{
+                fontSize: barLabelFontSize,
+                fontWeight: '600',
+                color: colors.text.primary.dark,
+              }}
+            >
+              {systemValue}%
+            </Text>
+          </View>
+          <View
             style={{
-              height: '100%',
+              height: barHeight,
+              backgroundColor: colors.surface.dark,
               borderRadius: 4,
-              backgroundColor: BAR_COLORS.system,
-              width: systemWidth.interpolate({
-                inputRange: [0, 100],
-                outputRange: ['0%', '100%'],
-              }),
+              overflow: 'hidden',
             }}
-          />
+          >
+            <Animated.View
+              style={{
+                height: '100%',
+                borderRadius: 4,
+                backgroundColor: BAR_COLORS.system,
+                width: systemWidth.interpolate({
+                  inputRange: [0, 100],
+                  outputRange: ['0%', '100%'],
+                }),
+              }}
+            />
+          </View>
         </View>
-      </View>
+      )}
     </View>
   );
 }
 
 interface ServerResourceCardProps {
+  serverType: ServerType;
   latest: {
-    hostCpu: number;
+    hostCpu: number | null;
     processCpu: number;
-    hostMemory: number;
+    hostMemory: number | null;
     processMemory: number;
   } | null;
   isLoading?: boolean;
   error?: Error | null;
+  // Set in multi-server views, where each card names its server
+  serverName?: string;
+  serverColor?: string | null;
 }
 
-export function ServerResourceCard({ latest, isLoading, error }: ServerResourceCardProps) {
+export function ServerResourceCard({
+  serverType,
+  latest,
+  isLoading,
+  error,
+  serverName,
+  serverColor,
+}: ServerResourceCardProps) {
   const { isTablet } = useResponsive();
   const containerPadding = isTablet ? spacing.md : spacing.sm;
 
@@ -189,9 +220,36 @@ export function ServerResourceCard({ latest, isLoading, error }: ServerResourceC
     padding: containerPadding,
   };
 
+  const header = serverName ? (
+    <View
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        marginBottom: isTablet ? 12 : 10,
+      }}
+    >
+      {serverColor && (
+        <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: serverColor }} />
+      )}
+      <Text
+        numberOfLines={1}
+        style={{
+          fontSize: isTablet ? 13 : 12,
+          fontWeight: '600',
+          color: colors.text.secondary.dark,
+          flexShrink: 1,
+        }}
+      >
+        {serverName}
+      </Text>
+    </View>
+  ) : null;
+
   if (isLoading) {
     return (
       <View style={cardStyle}>
+        {header}
         <View style={{ height: 80, alignItems: 'center', justifyContent: 'center' }}>
           <Text style={{ fontSize: 12, color: colors.text.muted.dark }}>Loading...</Text>
         </View>
@@ -202,6 +260,7 @@ export function ServerResourceCard({ latest, isLoading, error }: ServerResourceC
   if (error) {
     return (
       <View style={cardStyle}>
+        {header}
         <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 24 }}>
           <View
             style={{
@@ -227,6 +286,7 @@ export function ServerResourceCard({ latest, isLoading, error }: ServerResourceC
   if (!latest) {
     return (
       <View style={cardStyle}>
+        {header}
         <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 24 }}>
           <View
             style={{
@@ -249,11 +309,15 @@ export function ServerResourceCard({ latest, isLoading, error }: ServerResourceC
     );
   }
 
+  const processLabel = PROCESS_LABELS[serverType];
+
   return (
     <View style={cardStyle}>
+      {header}
       <ResourceBar
         label="CPU"
         icon={Gauge}
+        processLabel={processLabel}
         processValue={latest.processCpu}
         systemValue={latest.hostCpu}
         isTablet={isTablet}
@@ -262,6 +326,7 @@ export function ServerResourceCard({ latest, isLoading, error }: ServerResourceC
       <ResourceBar
         label="RAM"
         icon={Cpu}
+        processLabel={processLabel}
         processValue={latest.processMemory}
         systemValue={latest.hostMemory}
         isTablet={isTablet}

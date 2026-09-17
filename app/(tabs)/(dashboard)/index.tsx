@@ -25,7 +25,7 @@ import { api } from '@/lib/api';
 import { queryKeys } from '@/lib/queryKeys';
 import { ROUTES } from '@/lib/routes';
 import { useMediaServer } from '@/providers/MediaServerProvider';
-import { useServerStatistics } from '@/hooks/useServerStatistics';
+import { useServerLiveStats } from '@/hooks/useServerLiveStats';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useResponsive } from '@/hooks/useResponsive';
 import { TabToolbar, androidHeaderOptions } from '@/components/navigation/TabHeaderButtons';
@@ -76,7 +76,7 @@ function StatPill({
 export default function DashboardScreen() {
   const { t } = useTranslation(['mobile', 'pages', 'common', 'nav']);
   const router = useRouter();
-  const { servers, selectedServerId, selectedServer, isMultiServer, scope } = useMediaServer();
+  const { servers, selectedServers, isMultiServer, scope } = useMediaServer();
   const { isTablet, columns, select } = useResponsive();
 
   const serverColorMap = useMemo(
@@ -116,14 +116,21 @@ export default function DashboardScreen() {
     });
   }, [activeSessions, serverOrderMap]);
 
-  // Only show server resources for single Plex server
-  const isPlexServer = !isMultiServer && selectedServer?.type === 'plex';
-
-  const {
-    latest: serverResources,
-    isLoadingData: resourcesLoading,
-    error: resourcesError,
-  } = useServerStatistics(selectedServerId ?? undefined, isPlexServer);
+  // Plex always has a stats source, so its card shows from the start;
+  // Jellyfin/Emby cards appear once the SSE plugin's samples arrive.
+  const resourceServers = useMemo(
+    () =>
+      [...selectedServers].sort(
+        (a, b) => (serverOrderMap.get(a.id) ?? 0) - (serverOrderMap.get(b.id) ?? 0)
+      ),
+    [selectedServers, serverOrderMap]
+  );
+  const liveStats = useServerLiveStats(resourceServers.map((s) => s.id));
+  const resourceCards = resourceServers.flatMap((server, index) => {
+    const stats = liveStats[index];
+    if (!stats) return [];
+    return server.type === 'plex' || stats.statistics.length > 0 ? [{ server, stats }] : [];
+  });
 
   const { refreshing, onRefresh, controlKey } = usePullToRefresh(() =>
     Promise.all([refetch(), refetchSessions()])
@@ -293,20 +300,26 @@ export default function DashboardScreen() {
           </View>
         )}
 
-        {/* Server Resources - only show for single Plex server */}
-        {isPlexServer && (
-          <View style={{ paddingHorizontal: horizontalPadding }}>
-            <View className="mb-3 flex-row items-center gap-2">
+        {/* Server Resources - one card per server with a stats source */}
+        {resourceCards.length > 0 && (
+          <View style={{ paddingHorizontal: horizontalPadding, gap: spacing.sm }}>
+            <View className="mb-1 flex-row items-center gap-2">
               <Server size={18} color={ACCENT_COLOR} />
               <Text className="text-muted-foreground text-sm font-semibold tracking-wide uppercase">
                 {t('pages:dashboard.serverResources')}
               </Text>
             </View>
-            <ServerResourceCard
-              latest={serverResources}
-              isLoading={resourcesLoading}
-              error={resourcesError}
-            />
+            {resourceCards.map(({ server, stats }) => (
+              <ServerResourceCard
+                key={server.id}
+                serverType={server.type}
+                latest={stats.latest}
+                isLoading={stats.isLoading}
+                error={stats.error}
+                serverName={isMultiServer ? server.name : undefined}
+                serverColor={isMultiServer ? serverColorMap.get(server.id) : undefined}
+              />
+            ))}
           </View>
         )}
       </ScrollView>

@@ -81,7 +81,7 @@ export const queryKeys = {
   },
 
   servers: {
-    statistics: (serverId: ServerId) => ['servers', 'statistics', serverId] as const,
+    liveStats: (serverId: ServerId) => ['servers', 'live-stats', serverId] as const,
   },
 
   notifications: {

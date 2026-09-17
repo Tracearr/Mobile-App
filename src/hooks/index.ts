@@ -5,5 +5,5 @@ export { useImageUrl } from './useImageUrl';
 export { usePullToRefresh } from './usePullToRefresh';
 export { usePushNotifications } from './usePushNotifications';
 export { useResponsive } from './useResponsive';
-export { useServerStatistics } from './useServerStatistics';
+export { useServerLiveStats } from './useServerLiveStats';
 export { useUnacknowledgedAlertsCount } from './useUnacknowledgedAlertsCount';

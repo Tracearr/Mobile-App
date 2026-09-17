@@ -26,7 +26,7 @@ import type {
   PaginatedResponse,
   NotificationPreferences,
   NotificationPreferencesWithStatus,
-  ServerResourceStats,
+  ServerLiveStats,
   TerminationLogWithDetails,
   HistorySessionResponse,
   HistoryAggregates,
@@ -778,8 +778,8 @@ export const api = {
       const { data } = await apiGet<{ data: Server[] }>('/servers', { signal });
       return data;
     },
-    statistics: async (id: string, signal?: AbortSignal): Promise<ServerResourceStats> => {
-      return apiGet<ServerResourceStats>(`/servers/${id}/statistics`, { signal });
+    liveStats: async (id: string, signal?: AbortSignal): Promise<ServerLiveStats> => {
+      return apiGet<ServerLiveStats>(`/servers/${id}/live-stats`, { signal });
     },
   },
 
