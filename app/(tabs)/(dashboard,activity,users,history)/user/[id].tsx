@@ -1,902 +1,327 @@
 /**
  * User Detail Screen
- * Shows comprehensive user information with web feature parity
- * User detail/sessions/locations/devices/terminations query keys still key on
- * selectedServerId; the violations card ignores it and aggregates all servers.
+ * One /users/:id/full request per view. With no server picked the view covers the
+ * whole person (scope=identity); picking a server narrows it to that one account,
+ * the way web's ?scope= picker does. The global server selection does not apply here.
  *
  * Responsive layout:
  * - Phone: Single column, 64px avatar, 2x2 stats grid
  * - Tablet (md+): Responsive padding, 80px avatar, 1x4 stats row, 2-column Locations/Devices
  */
-import {
-  View,
-  ScrollView,
-  RefreshControl,
-  Pressable,
-  ActivityIndicator,
-  Image,
-} from 'react-native';
+import { useState } from 'react';
+import { View, ScrollView, RefreshControl, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
-import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { useQueryClient } from '@tanstack/react-query';
+import { isAxiosError } from 'axios';
 import { ObserveInteractiveMarker } from 'expo-observe';
-import { formatDistanceToNow, format } from 'date-fns';
-import {
-  Crown,
-  Play,
-  Clock,
-  AlertTriangle,
-  Globe,
-  MapPin,
-  Smartphone,
-  Tv,
-  ChevronRight,
-  Check,
-  Film,
-  Music,
-  XCircle,
-  User,
-  Bot,
-  type LucideIcon,
-} from 'lucide-react-native';
-import { useEffect } from 'react';
-import { api, getServerUrl } from '@/lib/api';
-import { nextPageOf, pageMetaOf } from '@/lib/listPage';
+import { Play, Clock, AlertTriangle, Activity, User } from 'lucide-react-native';
+import type { Session } from '@tracearr/shared';
+import { useTranslation } from '@tracearr/translations/mobile';
+import type { UserFullDetail } from '@/lib/api';
 import { queryKeys } from '@/lib/queryKeys';
 import { ROUTES } from '@/lib/routes';
-import { useMediaServer } from '@/providers/MediaServerProvider';
+import { useAuthStateStore } from '@/lib/authStateStore';
+import { useUserFull, useRequestsStatus } from '@/hooks';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useResponsive } from '@/hooks/useResponsive';
 import { Text } from '@/components/ui/text';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { UserAvatar } from '@/components/ui/user-avatar';
-import { cn } from '@/lib/utils';
+import { EmptyState } from '@/components/ui/empty-state';
+import { ErrorState } from '@/components/ui/error-state';
+import { SegmentedControl } from '@/components/ui/segmented-control';
+import { UserHeaderCard } from '@/components/users/UserHeaderCard';
+import { UserStatsGrid } from '@/components/users/UserStatsGrid';
+import { LinkedAccountsCard } from '@/components/users/LinkedAccountsCard';
+import { UserRequestsCard } from '@/components/users/UserRequestsCard';
+import { UserLocationsCard, UserDevicesCard } from '@/components/users/UserPlacesCards';
+import { UserSessionsCard } from '@/components/users/UserSessionsCard';
+import { UserViolationsCard } from '@/components/users/UserViolationsCard';
+import { UserTerminationsCard } from '@/components/users/UserTerminationsCard';
+import type { TrustEditTarget } from '@/components/users/TrustScoreEditor';
+import { pageableSections } from '@/components/users/identity';
+import { formatWatchTime, safeFormatDate } from '@/lib/formatters';
+import { haptics } from '@/lib/haptics';
 import { colors, spacing, ACCENT_COLOR } from '@/lib/theme';
-import { SeverityBadge } from '@/components/violations/SeverityBadge';
-import type {
-  Session,
-  ViolationWithDetails,
-  UserLocation,
-  UserDevice,
-  TerminationLogWithDetails,
-} from '@tracearr/shared';
-import { ALL_SERVERS } from '@tracearr/shared';
-import { useTranslation } from '@tracearr/translations/mobile';
 
-const PAGE_SIZE = 10;
+const ALL_ACCOUNTS = 'all';
+const SEGMENTS_THAT_FIT = 3;
 
-// Safe date parsing helper - handles string dates from API
-function safeParseDate(date: Date | string | null | undefined): Date | null {
-  if (!date) return null;
-  const parsed = new Date(date);
-  return isNaN(parsed.getTime()) ? null : parsed;
-}
-
-// Safe format distance helper
-function safeFormatDistanceToNow(date: Date | string | null | undefined): string {
-  const parsed = safeParseDate(date);
-  if (!parsed) return 'Unknown';
-  return formatDistanceToNow(parsed, { addSuffix: true });
-}
-
-// Safe format date helper
-function safeFormatDate(date: Date | string | null | undefined, formatStr: string): string {
-  const parsed = safeParseDate(date);
-  if (!parsed) return 'Unknown';
-  return format(parsed, formatStr);
-}
-
-import { ruleIcon } from '@/lib/violations';
-
-function TrustScoreBadge({ score, showLabel = false }: { score: number; showLabel?: boolean }) {
-  const variant = score < 50 ? 'destructive' : score < 75 ? 'warning' : 'success';
-  const label = score < 50 ? 'Low' : score < 75 ? 'Medium' : 'High';
-
-  return (
-    <View className="flex-row items-center gap-2">
-      <View
-        className={cn(
-          'min-w-[45px] items-center rounded-md px-2.5 py-1',
-          variant === 'destructive' && 'bg-destructive/20',
-          variant === 'warning' && 'bg-warning/20',
-          variant === 'success' && 'bg-success/20'
-        )}
-      >
-        <Text
-          className={cn(
-            'text-base font-bold',
-            variant === 'destructive' && 'text-destructive',
-            variant === 'warning' && 'text-warning',
-            variant === 'success' && 'text-success'
-          )}
-        >
-          {score}
-        </Text>
-      </View>
-      {showLabel && <Text className="text-muted-foreground text-sm">{label} Trust</Text>}
-    </View>
-  );
-}
-
-function StatCard({
-  icon: Icon,
-  label,
+function ScopePicker({
+  accounts,
   value,
-  subValue,
+  onChange,
 }: {
-  icon: LucideIcon;
-  label: string;
-  value: string | number;
-  subValue?: string;
+  accounts: UserFullDetail['identity']['serverUsers'];
+  value: string;
+  onChange: (value: string) => void;
 }) {
-  return (
-    <View className="bg-surface border-border flex-1 rounded-lg border p-3">
-      <View className="mb-1 flex-row items-center gap-2">
-        <Icon size={14} color={colors.text.muted.dark} />
-        <Text className="text-muted-foreground text-xs">{label}</Text>
-      </View>
-      <Text className="text-xl font-bold">{value}</Text>
-      {subValue && <Text className="text-muted-foreground mt-0.5 text-xs">{subValue}</Text>}
-    </View>
+  const { t } = useTranslation(['pages']);
+  const options = [
+    { value: ALL_ACCOUNTS, label: t('pages:userDetail.allServers') },
+    ...accounts.map((account) => ({ value: account.id, label: account.serverName })),
+  ];
+  const fits = options.length <= SEGMENTS_THAT_FIT;
+
+  const control = (
+    <SegmentedControl
+      accessibilityLabel={t('pages:userDetail.serverScope')}
+      options={options}
+      value={value}
+      fullWidth={fits}
+      onChange={(next) => {
+        if (next === value) return;
+        haptics.selection();
+        onChange(next);
+      }}
+    />
   );
-}
-
-function formatDuration(ms: number | null): string {
-  if (!ms) return '-';
-  const totalSeconds = Math.floor(ms / 1000);
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
-
-  if (hours > 0) return `${hours}h ${minutes}m`;
-  if (minutes > 0) return `${minutes}m ${seconds}s`;
-  return `${seconds}s`;
-}
-
-function LocationCard({ location }: { location: UserLocation }) {
-  const locationText =
-    [location.city, location.region, location.country].filter(Boolean).join(', ') ||
-    'Unknown Location';
 
   return (
-    <View className="border-border flex-row items-center gap-3 border-b py-3">
-      <View className="bg-primary/10 h-8 w-8 items-center justify-center rounded-full">
-        <MapPin size={16} color={ACCENT_COLOR} />
-      </View>
-      <View className="flex-1">
-        <Text className="text-sm font-medium">{locationText}</Text>
-        <Text className="text-muted-foreground text-xs">
-          {location.sessionCount} {location.sessionCount === 1 ? 'session' : 'sessions'}
-          {' • '}
-          {safeFormatDistanceToNow(location.lastSeenAt)}
-        </Text>
-      </View>
-    </View>
-  );
-}
-
-function DeviceCard({ device }: { device: UserDevice }) {
-  const deviceName = device.playerName || device.device || device.product || 'Unknown Device';
-  const platform = device.platform || 'Unknown Platform';
-
-  return (
-    <View className="border-border flex-row items-center gap-3 border-b py-3">
-      <View className="bg-primary/10 h-8 w-8 items-center justify-center rounded-full">
-        <Smartphone size={16} color={ACCENT_COLOR} />
-      </View>
-      <View className="flex-1">
-        <Text className="text-sm font-medium">{deviceName}</Text>
-        <Text className="text-muted-foreground text-xs">
-          {platform} • {device.sessionCount} {device.sessionCount === 1 ? 'session' : 'sessions'}
-        </Text>
-        <Text className="text-muted-foreground text-xs">
-          Last seen {safeFormatDistanceToNow(device.lastSeenAt)}
-        </Text>
-      </View>
-    </View>
-  );
-}
-
-function getMediaIcon(mediaType: string): typeof Film {
-  switch (mediaType) {
-    case 'movie':
-      return Film;
-    case 'episode':
-      return Tv;
-    case 'track':
-      return Music;
-    default:
-      return Film;
-  }
-}
-
-function SessionCard({
-  session,
-  onPress,
-  serverUrl,
-}: {
-  session: Session;
-  onPress?: () => void;
-  serverUrl: string | null;
-}) {
-  const locationText = [session.geoCity, session.geoCountry].filter(Boolean).join(', ');
-  const MediaIcon = getMediaIcon(session.mediaType);
-
-  // Build poster URL - need serverId and thumbPath
-  const hasPoster = serverUrl && session.thumbPath && session.serverId;
-  const posterUrl = hasPoster
-    ? `${serverUrl}/api/v1/images/proxy?server=${session.serverId}&url=${encodeURIComponent(session.thumbPath!)}&width=80&height=120`
-    : null;
-
-  // Determine display state - show "Watched" for completed sessions that reached 80%+
-  const getDisplayState = () => {
-    if (session.watched) return { label: 'Watched', variant: 'success' as const };
-    if (session.state === 'playing') return { label: 'Playing', variant: 'success' as const };
-    if (session.state === 'paused') return { label: 'Paused', variant: 'warning' as const };
-    if (session.state === 'stopped') return { label: 'Stopped', variant: 'secondary' as const };
-    return { label: session.state || 'Unknown', variant: 'secondary' as const };
-  };
-  const displayState = getDisplayState();
-
-  return (
-    <Pressable onPress={onPress} className="border-border border-b py-3 active:opacity-70">
-      <View className="flex-row">
-        {/* Poster */}
-        <View className="bg-surface mr-3 h-14 w-10 overflow-hidden rounded-md">
-          {posterUrl ? (
-            <Image
-              source={{ uri: posterUrl }}
-              style={{ width: '100%', height: '100%' }}
-              resizeMode="cover"
-            />
-          ) : (
-            <View className="h-full w-full items-center justify-center">
-              <MediaIcon size={18} color={colors.text.muted.dark} />
-            </View>
-          )}
-        </View>
-
-        {/* Content */}
-        <View className="flex-1">
-          <View className="mb-1 flex-row items-start justify-between">
-            <View className="mr-2 flex-1">
-              <Text className="text-sm font-medium" numberOfLines={1}>
-                {session.mediaTitle}
-              </Text>
-              <Text className="text-muted-foreground text-xs capitalize">{session.mediaType}</Text>
-            </View>
-            <Badge variant={displayState.variant}>{displayState.label}</Badge>
-          </View>
-          <View className="mt-1 flex-row items-center gap-4">
-            <View className="flex-row items-center gap-1">
-              <Clock size={12} color={colors.text.muted.dark} />
-              <Text className="text-muted-foreground text-xs">
-                {formatDuration(session.durationMs)}
-              </Text>
-            </View>
-            <View className="flex-row items-center gap-1">
-              <Tv size={12} color={colors.text.muted.dark} />
-              <Text className="text-muted-foreground text-xs">{session.platform || 'Unknown'}</Text>
-            </View>
-            {locationText && (
-              <View className="flex-row items-center gap-1">
-                <Globe size={12} color={colors.text.muted.dark} />
-                <Text className="text-muted-foreground text-xs">{locationText}</Text>
-              </View>
-            )}
-          </View>
-        </View>
-      </View>
-    </Pressable>
-  );
-}
-
-function ViolationCard({
-  violation,
-  onAcknowledge,
-}: {
-  violation: ViolationWithDetails;
-  onAcknowledge: () => void;
-}) {
-  const ruleName = violation.rule?.name || 'Unknown Rule';
-  const IconComponent = ruleIcon(violation.rule?.type);
-  const timeAgo = safeFormatDistanceToNow(violation.createdAt);
-
-  return (
-    <View className="border-border border-b py-3">
-      <View className="mb-2 flex-row items-start justify-between">
-        <View className="flex-1 flex-row items-center gap-2">
-          <View className="bg-surface h-7 w-7 items-center justify-center rounded-md">
-            <IconComponent size={14} color={ACCENT_COLOR} />
-          </View>
-          <View className="flex-1">
-            <Text className="text-sm font-medium">{ruleName}</Text>
-            <Text className="text-muted-foreground text-xs">{timeAgo}</Text>
-          </View>
-        </View>
-        <SeverityBadge severity={violation.severity} />
-      </View>
-      {!violation.acknowledgedAt ? (
-        <Pressable
-          className="bg-primary/15 mt-2 flex-row items-center justify-center gap-1.5 rounded-md py-2 active:opacity-70"
-          onPress={onAcknowledge}
-        >
-          <Check size={14} color={ACCENT_COLOR} />
-          <Text className="text-primary text-xs font-semibold">Acknowledge</Text>
-        </Pressable>
+    <View className="mb-4">
+      {fits ? (
+        control
       ) : (
-        <View className="mt-2 flex-row items-center gap-1.5">
-          <Check size={14} color={colors.success} />
-          <Text className="text-success text-xs">Acknowledged</Text>
-        </View>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          {control}
+        </ScrollView>
       )}
     </View>
   );
 }
 
-function TerminationCard({ termination }: { termination: TerminationLogWithDetails }) {
-  const timeAgo = safeFormatDistanceToNow(termination.createdAt);
-  const isManual = termination.trigger === 'manual';
-
-  return (
-    <View className="border-border border-b py-3">
-      <View className="mb-2 flex-row items-start justify-between">
-        <View className="flex-1 flex-row items-center gap-2">
-          <View className="bg-surface h-7 w-7 items-center justify-center rounded-md">
-            {isManual ? (
-              <User size={14} color={ACCENT_COLOR} />
-            ) : (
-              <Bot size={14} color={ACCENT_COLOR} />
-            )}
-          </View>
-          <View className="flex-1">
-            <Text className="text-sm font-medium" numberOfLines={1}>
-              {termination.mediaTitle ?? 'Unknown Media'}
-            </Text>
-            <Text className="text-muted-foreground text-xs capitalize">
-              {termination.mediaType ?? 'unknown'} • {timeAgo}
-            </Text>
-          </View>
-        </View>
-        <Badge variant={isManual ? 'default' : 'secondary'}>{isManual ? 'Manual' : 'Rule'}</Badge>
-      </View>
-      <View className="ml-9">
-        <Text className="text-muted-foreground text-xs">
-          {isManual
-            ? `By @${termination.triggeredByUsername ?? 'Unknown'}`
-            : (termination.ruleName ?? 'Unknown rule')}
-        </Text>
-        {termination.reason && (
-          <Text className="text-muted-foreground mt-1 text-xs" numberOfLines={2}>
-            Reason: {termination.reason}
-          </Text>
-        )}
-        <View className="mt-1 flex-row items-center gap-1">
-          {termination.success ? (
-            <>
-              <Check size={12} color={colors.success} />
-              <Text className="text-success text-xs">Success</Text>
-            </>
-          ) : (
-            <>
-              <XCircle size={12} color={colors.error} />
-              <Text className="text-destructive text-xs">Failed</Text>
-            </>
-          )}
-        </View>
-      </View>
-    </View>
-  );
-}
-
 export default function UserDetailScreen() {
-  const { t } = useTranslation(['mobile', 'common', 'pages', 'nav']);
+  const { t } = useTranslation(['mobile', 'common', 'pages']);
   const { id } = useLocalSearchParams<{ id: string }>();
-  const navigation = useNavigation();
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { selectedServerId } = useMediaServer();
   const { isTablet, select } = useResponsive();
-  const serverUrl = getServerUrl();
+  const isOwner = useAuthStateStore((state) => state.user?.role === 'owner');
+  const { configured: requestsConfigured } = useRequestsStatus();
 
-  // Responsive values
+  const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
+  const [editTarget, setEditTarget] = useState<TrustEditTarget | null>(null);
+  const [refreshGeneration, setRefreshGeneration] = useState(0);
+
   const horizontalPadding = select({ base: spacing.md, md: spacing.lg, lg: spacing.xl });
   const avatarSize = isTablet ? 80 : 64;
 
-  // Fetch user detail - query keys include selectedServerId for cache isolation
-  const {
-    data: user,
-    isLoading: userLoading,
-    refetch: refetchUser,
-  } = useQuery({
-    queryKey: queryKeys.users.detail(id, selectedServerId),
-    queryFn: ({ signal }) => api.users.get(id, signal),
-    enabled: !!id,
-  });
+  // The person query stays mounted while an account is picked: it feeds the picker
+  // and the linked accounts, so switching scope never blanks the whole screen.
+  const person = useUserFull(id, 'identity');
+  const account = useUserFull(selectedAccountId ?? '', 'account');
 
-  // Update header title with display name (identity name or username).
-  // Derived outside the effect so the deps are the name itself, not the whole
-  // user object, which gets a new identity on every refetch.
-  const displayName = user ? (user.identityName ?? user.username) : null;
-  useEffect(() => {
-    if (displayName) {
-      navigation.setOptions({ title: displayName });
+  const isAllScope = selectedAccountId === null;
+  const view = isAllScope ? person : account;
+  const effectiveId = selectedAccountId ?? id;
+  const scope = isAllScope ? 'identity' : 'account';
+
+  const identity = person.data?.identity;
+  const identityUserId = identity?.userId;
+
+  const handleRefresh = async () => {
+    await Promise.all([
+      person.refetch(),
+      isAllScope ? undefined : account.refetch(),
+      queryClient.invalidateQueries({ queryKey: queryKeys.requests.user(effectiveId, scope) }),
+    ]);
+    queryClient.removeQueries({ queryKey: queryKeys.users.sessions(effectiveId, null) });
+    queryClient.removeQueries({ queryKey: queryKeys.users.terminations(effectiveId, null) });
+    if (identityUserId) {
+      queryClient.removeQueries({ queryKey: queryKeys.violations.byUser(identityUserId) });
     }
-  }, [displayName, navigation]);
-
-  // Fetch user sessions
-  const {
-    data: sessionsData,
-    isLoading: sessionsLoading,
-    fetchNextPage: fetchMoreSessions,
-    hasNextPage: hasMoreSessions,
-    isFetchingNextPage: fetchingMoreSessions,
-  } = useInfiniteQuery({
-    queryKey: queryKeys.users.sessions(id, selectedServerId),
-    queryFn: ({ pageParam, signal }) =>
-      api.users.sessions(id, { page: pageParam, pageSize: PAGE_SIZE }, signal),
-    initialPageParam: 1,
-    getNextPageParam: (lastPage: { page: number; totalPages: number }) => {
-      if (lastPage.page < lastPage.totalPages) {
-        return lastPage.page + 1;
-      }
-      return undefined;
-    },
-    enabled: !!id,
-  });
-
-  // Fetch user violations
-  const {
-    data: violationsData,
-    isLoading: violationsLoading,
-    fetchNextPage: fetchMoreViolations,
-    hasNextPage: hasMoreViolations,
-    isFetchingNextPage: fetchingMoreViolations,
-  } = useInfiniteQuery({
-    queryKey: queryKeys.violations.byUser(id),
-    queryFn: ({ pageParam, signal }) =>
-      api.violations.list(
-        { userId: id, page: pageParam, pageSize: PAGE_SIZE, scope: ALL_SERVERS },
-        signal
-      ),
-    initialPageParam: 1,
-    getNextPageParam: (lastPage) => nextPageOf(lastPage),
-    enabled: !!id,
-  });
-
-  // Fetch user locations
-  const { data: locations, isLoading: locationsLoading } = useQuery({
-    queryKey: queryKeys.users.locations(id, selectedServerId),
-    queryFn: ({ signal }) => api.users.locations(id, signal),
-    enabled: !!id,
-  });
-
-  // Fetch user devices
-  const { data: devices, isLoading: devicesLoading } = useQuery({
-    queryKey: queryKeys.users.devices(id, selectedServerId),
-    queryFn: ({ signal }) => api.users.devices(id, signal),
-    enabled: !!id,
-  });
-
-  // Fetch user terminations
-  const {
-    data: terminationsData,
-    isLoading: terminationsLoading,
-    fetchNextPage: fetchMoreTerminations,
-    hasNextPage: hasMoreTerminations,
-    isFetchingNextPage: fetchingMoreTerminations,
-  } = useInfiniteQuery({
-    queryKey: queryKeys.users.terminations(id, selectedServerId),
-    queryFn: ({ pageParam, signal }) =>
-      api.users.terminations(id, { page: pageParam, pageSize: PAGE_SIZE }, signal),
-    initialPageParam: 1,
-    getNextPageParam: (lastPage: { page: number; totalPages: number }) => {
-      if (lastPage.page < lastPage.totalPages) {
-        return lastPage.page + 1;
-      }
-      return undefined;
-    },
-    enabled: !!id,
-  });
-
-  // Acknowledge mutation
-  const acknowledgeMutation = useMutation({
-    mutationFn: api.violations.acknowledge,
-    onSuccess: () => {
-      void queryClient.invalidateQueries({
-        queryKey: queryKeys.violations.byUser(id),
-      });
-    },
-  });
-
-  const sessions = sessionsData?.pages.flatMap((page) => page.data) || [];
-  const violations = violationsData?.pages.flatMap((page) => page.data) || [];
-  const terminations = terminationsData?.pages.flatMap((page) => page.data) || [];
-  const totalSessions = sessionsData?.pages[0]?.total || 0;
-  const totalViolations = violationsData?.pages[0] ? pageMetaOf(violationsData.pages[0]).total : 0;
-  const totalTerminations = terminationsData?.pages[0]?.total || 0;
-
-  const handleRefresh = () => {
-    // The lists below refresh in the background. Gating the spinner on them
-    // would tie it to every page the user has already scrolled through.
-    const refreshed = refetchUser();
-    void queryClient.invalidateQueries({
-      queryKey: queryKeys.users.sessions(id, selectedServerId),
-    });
-    void queryClient.invalidateQueries({
-      queryKey: queryKeys.violations.byUser(id),
-    });
-    void queryClient.invalidateQueries({
-      queryKey: queryKeys.users.locations(id, selectedServerId),
-    });
-    void queryClient.invalidateQueries({ queryKey: queryKeys.users.devices(id, selectedServerId) });
-    void queryClient.invalidateQueries({
-      queryKey: queryKeys.users.terminations(id, selectedServerId),
-    });
-    return refreshed;
+    setRefreshGeneration((generation) => generation + 1);
   };
 
-  const { refreshing, onRefresh, controlKey } = usePullToRefresh(handleRefresh, selectedServerId);
+  const { controlKey, refreshControlProps } = usePullToRefresh(handleRefresh);
+
+  const handleScopeChange = (value: string) => {
+    setEditTarget(null);
+    setSelectedAccountId(value === ALL_ACCOUNTS ? null : value);
+  };
 
   const handleSessionPress = (session: Session) => {
     router.push(ROUTES.SESSION(session.id));
   };
 
-  if (userLoading) {
+  if (!person.data || !identity) {
+    const isNotFound =
+      !person.error || (isAxiosError(person.error) && person.error.response?.status === 404);
     return (
       <SafeAreaView
         style={{ flex: 1, backgroundColor: colors.background.dark }}
         edges={['left', 'right', 'bottom']}
       >
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color={ACCENT_COLOR} />
-        </View>
+        {person.isLoading ? (
+          <View className="flex-1 items-center justify-center">
+            <ActivityIndicator size="large" color={ACCENT_COLOR} />
+          </View>
+        ) : isNotFound ? (
+          <EmptyState
+            className="flex-1 justify-center"
+            icon={User}
+            title={t('pages:userDetail.userNotFound')}
+            description={t('mobile:userDetail.userMayBeRemoved')}
+            action={{ label: t('common:actions.back'), onPress: () => router.back() }}
+          />
+        ) : (
+          <ErrorState
+            className="flex-1 justify-center"
+            message={person.error.message}
+            onRetry={() => void person.refetch()}
+          />
+        )}
       </SafeAreaView>
     );
   }
 
-  if (!user) {
-    return (
-      <SafeAreaView
-        style={{ flex: 1, backgroundColor: colors.background.dark }}
-        edges={['left', 'right', 'bottom']}
-      >
-        <View className="flex-1 items-center justify-center px-8">
-          <View className="bg-card border-border mb-4 h-20 w-20 items-center justify-center rounded-full border">
-            <User size={32} color={colors.text.muted.dark} />
-          </View>
-          <Text className="mb-1 text-center text-lg font-semibold">
-            {t('pages:userDetail.userNotFound')}
-          </Text>
-          <Text className="text-muted-foreground text-center text-sm">
-            {t('mobile:userDetail.userMayBeRemoved')}
-          </Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
+  const isMergedIdentity = identity.serverUsers.length > 1;
+  const showServer = isAllScope && isMergedIdentity;
+  const canPage = pageableSections(isMergedIdentity, isAllScope);
+  const detail = view.data;
+  const sectionKey = `${effectiveId}-${scope}-${refreshGeneration}`;
 
   return (
     <SafeAreaView
       style={{ flex: 1, backgroundColor: colors.background.dark }}
       edges={['left', 'right', 'bottom']}
     >
+      <Stack.Screen
+        options={{ title: person.data.user.identityName ?? person.data.user.username }}
+      />
       <ObserveInteractiveMarker />
       <ScrollView
         className="flex-1"
+        keyboardShouldPersistTaps="handled"
         contentContainerStyle={{
           paddingHorizontal: horizontalPadding,
           paddingTop: spacing.sm,
           paddingBottom: spacing.xl,
         }}
-        refreshControl={
-          <RefreshControl
-            key={controlKey}
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={ACCENT_COLOR}
-          />
-        }
+        refreshControl={<RefreshControl key={controlKey} {...refreshControlProps} />}
       >
-        {/* User Info Card */}
-        <Card className="mb-4">
-          <View className="flex-row items-start gap-4">
-            <UserAvatar
-              thumbUrl={user.thumbUrl}
-              serverId={user.serverId}
-              username={user.username}
-              size={avatarSize}
-            />
-            <View className="flex-1">
-              <View className="mb-1 flex-row items-center gap-2">
-                <Text className="text-xl font-bold">{user.identityName ?? user.username}</Text>
-                {user.role === 'owner' && <Crown size={18} color={colors.warning} />}
-              </View>
-              {/* Show @username if identity name is displayed */}
-              {user.identityName && user.identityName !== user.username && (
-                <Text className="text-muted-foreground text-sm">@{user.username}</Text>
-              )}
-              {user.email && (
-                <Text className="text-muted-foreground mb-2 text-sm">{user.email}</Text>
-              )}
-              <TrustScoreBadge score={user.trustScore} showLabel />
-            </View>
-          </View>
-        </Card>
-
-        {/* Stats Grid - single row on tablet, 2 rows on phone */}
-        {isTablet ? (
-          <View className="mb-4 flex-row gap-3">
-            <StatCard icon={Play} label={t('pages:userDetail.sessions')} value={totalSessions} />
-            <StatCard
-              icon={AlertTriangle}
-              label={t('pages:userDetail.violations')}
-              value={totalViolations}
-            />
-            <StatCard
-              icon={Clock}
-              label="Joined"
-              value={safeFormatDate(user.createdAt, 'MMM d, yyyy')}
-            />
-            <StatCard
-              icon={Globe}
-              label={t('pages:userDetail.locations', { defaultValue: 'Locations' })}
-              value={locations?.length || 0}
-            />
-          </View>
-        ) : (
-          <>
-            <View className="mb-4 flex-row gap-3">
-              <StatCard icon={Play} label={t('pages:userDetail.sessions')} value={totalSessions} />
-              <StatCard
-                icon={AlertTriangle}
-                label={t('pages:userDetail.violations')}
-                value={totalViolations}
-              />
-            </View>
-            <View className="mb-4 flex-row gap-3">
-              <StatCard
-                icon={Clock}
-                label="Joined"
-                value={safeFormatDate(user.createdAt, 'MMM d, yyyy')}
-              />
-              <StatCard
-                icon={Globe}
-                label={t('pages:userDetail.locations', { defaultValue: 'Locations' })}
-                value={locations?.length || 0}
-              />
-            </View>
-          </>
+        {isMergedIdentity && (
+          <ScopePicker
+            accounts={identity.serverUsers}
+            value={selectedAccountId ?? ALL_ACCOUNTS}
+            onChange={handleScopeChange}
+          />
         )}
 
-        {/* Locations & Devices - side by side on tablet */}
-        <View
-          style={{
-            flexDirection: isTablet ? 'row' : 'column',
-            gap: isTablet ? spacing.md : 0,
-            marginBottom: spacing.md,
-          }}
-        >
-          {/* Locations */}
-          <Card style={{ flex: isTablet ? 1 : undefined, marginBottom: isTablet ? 0 : spacing.md }}>
-            <CardHeader>
-              <View className="flex-row items-center justify-between">
-                <CardTitle>
-                  {t('pages:userDetail.locations', { defaultValue: 'Locations' })}
-                </CardTitle>
-                <Text className="text-muted-foreground text-xs">
-                  {locations?.length || 0} {locations?.length === 1 ? 'location' : 'locations'}
-                </Text>
-              </View>
-            </CardHeader>
-            <CardContent>
-              {locationsLoading ? (
-                <ActivityIndicator size="small" color={ACCENT_COLOR} />
-              ) : locations && locations.length > 0 ? (
-                locations
-                  .slice(0, 5)
-                  .map((location, index) => (
-                    <LocationCard
-                      key={`${location.city}-${location.country}-${index}`}
-                      location={location}
-                    />
-                  ))
-              ) : (
-                <Text className="text-muted-foreground py-4 text-center text-sm">
-                  {t('mobile:userDetail.noLocationsRecorded')}
-                </Text>
-              )}
-              {locations && locations.length > 5 && (
-                <View className="items-center pt-3">
-                  <Text className="text-muted-foreground text-xs">
-                    +{locations.length - 5} more locations
-                  </Text>
-                </View>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Devices */}
-          <Card style={{ flex: isTablet ? 1 : undefined }}>
-            <CardHeader>
-              <View className="flex-row items-center justify-between">
-                <CardTitle>{t('nav:devices')}</CardTitle>
-                <Text className="text-muted-foreground text-xs">
-                  {devices?.length || 0} {devices?.length === 1 ? 'device' : 'devices'}
-                </Text>
-              </View>
-            </CardHeader>
-            <CardContent>
-              {devicesLoading ? (
-                <ActivityIndicator size="small" color={ACCENT_COLOR} />
-              ) : devices && devices.length > 0 ? (
-                devices
-                  .slice(0, 5)
-                  .map((device, index) => (
-                    <DeviceCard key={device.deviceId || index} device={device} />
-                  ))
-              ) : (
-                <Text className="text-muted-foreground py-4 text-center text-sm">
-                  {t('mobile:userDetail.noDevicesRecorded')}
-                </Text>
-              )}
-              {devices && devices.length > 5 && (
-                <View className="items-center pt-3">
-                  <Text className="text-muted-foreground text-xs">
-                    +{devices.length - 5} more devices
-                  </Text>
-                </View>
-              )}
-            </CardContent>
-          </Card>
-        </View>
-
-        {/* Recent Sessions */}
-        <Card className="mb-4">
-          <CardHeader>
-            <View className="flex-row items-center justify-between">
-              <CardTitle>{t('common:labels.recentSessions')}</CardTitle>
-              <Text className="text-muted-foreground text-xs">{totalSessions} total</Text>
+        {!detail ? (
+          view.isError ? (
+            <ErrorState message={view.error.message} onRetry={() => void view.refetch()} />
+          ) : (
+            <View className="items-center py-12">
+              <ActivityIndicator size="large" color={ACCENT_COLOR} />
             </View>
-          </CardHeader>
-          <CardContent>
-            {sessionsLoading ? (
-              <ActivityIndicator size="small" color={ACCENT_COLOR} />
-            ) : sessions.length > 0 ? (
-              <>
-                {sessions.map((session) => (
-                  <SessionCard
-                    key={session.id}
-                    session={session}
-                    serverUrl={serverUrl}
-                    onPress={() => handleSessionPress(session)}
-                  />
-                ))}
-                {hasMoreSessions && (
-                  <Pressable
-                    className="items-center py-3 active:opacity-70"
-                    onPress={() => void fetchMoreSessions()}
-                    disabled={fetchingMoreSessions}
-                  >
-                    {fetchingMoreSessions ? (
-                      <ActivityIndicator size="small" color={ACCENT_COLOR} />
-                    ) : (
-                      <View className="flex-row items-center gap-1">
-                        <Text className="text-primary text-sm font-medium">
-                          {t('common:labels.loadMore')}
-                        </Text>
-                        <ChevronRight size={16} color={ACCENT_COLOR} />
-                      </View>
-                    )}
-                  </Pressable>
-                )}
-              </>
-            ) : (
-              <Text className="text-muted-foreground py-4 text-center text-sm">
-                {t('common:empty.noSessionsFound')}
+          )
+        ) : (
+          <>
+            <UserHeaderCard
+              user={detail.user}
+              identity={identity}
+              isAllScope={isAllScope}
+              avatarSize={avatarSize}
+              canEditTrust={isOwner}
+              editTarget={editTarget}
+              onEditTrust={setEditTarget}
+            />
+
+            <UserStatsGrid
+              isTablet={isTablet}
+              stats={[
+                {
+                  icon: Play,
+                  label: t('pages:userDetail.sessions'),
+                  value: detail.user.stats.totalSessions,
+                },
+                {
+                  icon: AlertTriangle,
+                  label: t('pages:userDetail.violations'),
+                  value: detail.violations.total,
+                },
+                {
+                  icon: Clock,
+                  label: t('common:labels.joined'),
+                  value: safeFormatDate(
+                    detail.user.joinedAt ?? detail.user.createdAt,
+                    'MMM d, yyyy',
+                    t('common:labels.unknown')
+                  ),
+                },
+                {
+                  icon: Activity,
+                  label: t('common:labels.lastActivity'),
+                  value: safeFormatDate(
+                    detail.user.lastActivityAt,
+                    'MMM d, yyyy',
+                    t('common:labels.never')
+                  ),
+                },
+              ]}
+            />
+            {!isAllScope && isMergedIdentity && (
+              <Text className="text-muted-foreground -mt-2 mb-4 text-xs">
+                {t('pages:userDetail.acrossAllServers')}{' '}
+                {t('common:count.session', { count: identity.stats.totalSessions })} ·{' '}
+                {formatWatchTime(identity.stats.totalWatchTime)}
               </Text>
             )}
-          </CardContent>
-        </Card>
 
-        {/* Violations */}
-        <Card className="mb-8">
-          <CardHeader>
-            <View className="flex-row items-center justify-between">
-              <CardTitle>{t('pages:userDetail.violations')}</CardTitle>
-              <Text className="text-muted-foreground text-xs">{totalViolations} total</Text>
-            </View>
-          </CardHeader>
-          <CardContent>
-            {violationsLoading ? (
-              <ActivityIndicator size="small" color={ACCENT_COLOR} />
-            ) : violations.length > 0 ? (
-              <>
-                {violations.map((violation) => (
-                  <ViolationCard
-                    key={violation.id}
-                    violation={violation}
-                    onAcknowledge={() => acknowledgeMutation.mutate(violation.id)}
-                  />
-                ))}
-                {hasMoreViolations && (
-                  <Pressable
-                    className="items-center py-3 active:opacity-70"
-                    onPress={() => void fetchMoreViolations()}
-                    disabled={fetchingMoreViolations}
-                  >
-                    {fetchingMoreViolations ? (
-                      <ActivityIndicator size="small" color={ACCENT_COLOR} />
-                    ) : (
-                      <View className="flex-row items-center gap-1">
-                        <Text className="text-primary text-sm font-medium">
-                          {t('common:labels.loadMore')}
-                        </Text>
-                        <ChevronRight size={16} color={ACCENT_COLOR} />
-                      </View>
-                    )}
-                  </Pressable>
-                )}
-              </>
-            ) : (
-              <View className="items-center py-4">
-                <View className="bg-success/10 mb-2 h-12 w-12 items-center justify-center rounded-full">
-                  <Check size={24} color={colors.success} />
-                </View>
-                <Text className="text-muted-foreground text-sm">
-                  {t('mobile:userDetail.noViolations')}
-                </Text>
-              </View>
+            {isMergedIdentity && (
+              <LinkedAccountsCard
+                accounts={identity.serverUsers}
+                canEditTrust={isOwner}
+                editTarget={editTarget}
+                onEditTrust={setEditTarget}
+              />
             )}
-          </CardContent>
-        </Card>
 
-        {/* Termination History */}
-        <Card className="mb-8">
-          <CardHeader>
-            <View className="flex-row items-center justify-between">
-              <View className="flex-row items-center gap-2">
-                <XCircle size={18} color={colors.text.primary.dark} />
-                <CardTitle>{t('pages:userDetail.terminationHistory')}</CardTitle>
-              </View>
-              <Text className="text-muted-foreground text-xs">{totalTerminations} total</Text>
+            {requestsConfigured && <UserRequestsCard userId={effectiveId} scope={scope} />}
+
+            <View
+              style={{
+                flexDirection: isTablet ? 'row' : 'column',
+                gap: spacing.md,
+                marginBottom: spacing.md,
+              }}
+            >
+              <UserLocationsCard
+                locations={detail.locations}
+                style={{ flex: isTablet ? 1 : undefined }}
+              />
+              <UserDevicesCard
+                devices={detail.devices}
+                style={{ flex: isTablet ? 1 : undefined }}
+              />
             </View>
-          </CardHeader>
-          <CardContent>
-            {terminationsLoading ? (
-              <ActivityIndicator size="small" color={ACCENT_COLOR} />
-            ) : terminations.length > 0 ? (
-              <>
-                {terminations.map((termination) => (
-                  <TerminationCard key={termination.id} termination={termination} />
-                ))}
-                {hasMoreTerminations && (
-                  <Pressable
-                    className="items-center py-3 active:opacity-70"
-                    onPress={() => void fetchMoreTerminations()}
-                    disabled={fetchingMoreTerminations}
-                  >
-                    {fetchingMoreTerminations ? (
-                      <ActivityIndicator size="small" color={ACCENT_COLOR} />
-                    ) : (
-                      <View className="flex-row items-center gap-1">
-                        <Text className="text-primary text-sm font-medium">
-                          {t('common:labels.loadMore')}
-                        </Text>
-                        <ChevronRight size={16} color={ACCENT_COLOR} />
-                      </View>
-                    )}
-                  </Pressable>
-                )}
-              </>
-            ) : (
-              <Text className="text-muted-foreground py-4 text-center text-sm">
-                {t('mobile:userDetail.noTerminations')}
-              </Text>
-            )}
-          </CardContent>
-        </Card>
+
+            <UserSessionsCard
+              key={`sessions-${sectionKey}`}
+              userId={effectiveId}
+              first={detail.sessions}
+              canPage={canPage.sessionsAndTerminations}
+              showServer={showServer}
+              onSessionPress={handleSessionPress}
+            />
+
+            <UserViolationsCard
+              key={`violations-${sectionKey}`}
+              identityUserId={identity.userId}
+              first={detail.violations}
+              canPage={canPage.violations}
+              showServer={showServer}
+            />
+
+            <UserTerminationsCard
+              key={`terminations-${sectionKey}`}
+              userId={effectiveId}
+              first={detail.terminations}
+              canPage={canPage.sessionsAndTerminations}
+              showServer={showServer}
+            />
+          </>
+        )}
       </ScrollView>
     </SafeAreaView>
   );

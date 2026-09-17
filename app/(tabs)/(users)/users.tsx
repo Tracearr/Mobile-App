@@ -1,190 +1,78 @@
 /**
- * Users tab - user list with infinite scroll
+ * Users tab - one row per person, with server-side search and sort and infinite scroll
  * Query keys are scoped by the global ServerScope selection for cache isolation
  *
  * Responsive layout:
  * - Phone: Single column, compact cards
- * - Tablet (md+): 2-column grid, larger avatars, more info (crown, joined date), search bar
+ * - Tablet (md+): 2-column grid, larger avatars, joined date
  */
-import { useState, useMemo } from 'react';
-import {
-  View,
-  FlatList,
-  RefreshControl,
-  Pressable,
-  ActivityIndicator,
-  TextInput,
-} from 'react-native';
-import { useInfiniteQuery } from '@tanstack/react-query';
+import { useState } from 'react';
+import { View, RefreshControl, ActivityIndicator } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
+import { keepPreviousData, useInfiniteQuery } from '@tanstack/react-query';
 import { useRouter, Stack } from 'expo-router';
-import {
-  Search,
-  ShieldCheck,
-  Clock,
-  CircleX,
-  Users as UsersIcon,
-  ShieldAlert,
-  Shield,
-} from 'lucide-react-native';
-import { formatDistanceToNow } from 'date-fns';
+import { Users as UsersIcon, SearchX } from 'lucide-react-native';
 import { api } from '@/lib/api';
 import { nextPageOf, pageMetaOf } from '@/lib/listPage';
 import { queryKeys } from '@/lib/queryKeys';
 import { ROUTES } from '@/lib/routes';
 import { useMediaServer } from '@/providers/MediaServerProvider';
+import { useDebounce } from '@/hooks/useDebounce';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useResponsive } from '@/hooks/useResponsive';
 import { TabToolbar, androidHeaderOptions } from '@/components/navigation/TabHeaderButtons';
 import { Text } from '@/components/ui/text';
-import { Card } from '@/components/ui/card';
-import { UserAvatar } from '@/components/ui/user-avatar';
-import { cn } from '@/lib/utils';
-import { colors, spacing, borderRadius, ACCENT_COLOR } from '@/lib/theme';
-import type { ServerUserWithIdentity } from '@tracearr/shared';
+import { EmptyState } from '@/components/ui/empty-state';
+import { ErrorState } from '@/components/ui/error-state';
+import { UserListItem } from '@/components/users/UserListItem';
+import { UserListControls } from '@/components/users/UserListControls';
+import { DEFAULT_SORT_DIR } from '@/components/users/identity';
+import { spacing, ACCENT_COLOR } from '@/lib/theme';
+import type { ServerUserWithIdentity, UserSortField } from '@tracearr/shared';
 import { useTranslation } from '@tracearr/translations/mobile';
 
 const PAGE_SIZE = 50;
-
-function TrustScoreBadge({ score }: { score: number }) {
-  const { t } = useTranslation(['mobile']);
-  const variant = score < 50 ? 'destructive' : score < 75 ? 'warning' : 'success';
-  const TierIcon =
-    variant === 'destructive' ? ShieldAlert : variant === 'warning' ? Shield : ShieldCheck;
-  const tierColor =
-    variant === 'destructive'
-      ? colors.error
-      : variant === 'warning'
-        ? colors.warning
-        : colors.success;
-
-  return (
-    <View
-      accessibilityLabel={t('mobile:a11y.trustScore', { score })}
-      className={cn(
-        'min-w-[40px] items-center rounded-sm px-2 py-1',
-        variant === 'destructive' && 'bg-destructive/20',
-        variant === 'warning' && 'bg-warning/20',
-        variant === 'success' && 'bg-success/20'
-      )}
-    >
-      <View className="flex-row items-center gap-1">
-        <TierIcon size={12} color={tierColor} />
-        <Text
-          className={cn(
-            'text-sm font-semibold',
-            variant === 'destructive' && 'text-destructive',
-            variant === 'warning' && 'text-warning',
-            variant === 'success' && 'text-success'
-          )}
-        >
-          {score}
-        </Text>
-      </View>
-    </View>
-  );
-}
-
-function UserCard({
-  user,
-  onPress,
-  isTablet,
-}: {
-  user: ServerUserWithIdentity;
-  onPress: () => void;
-  isTablet?: boolean;
-}) {
-  const avatarSize = isTablet ? 56 : 48;
-  const { t } = useTranslation(['mobile', 'common']);
-  const displayName = user.identityName ?? user.username;
-  const isOwner = user.role === 'owner';
-
-  return (
-    <Pressable onPress={onPress}>
-      <Card className="mb-2 flex-row items-center justify-between p-3">
-        <View className="flex-1 flex-row items-center gap-3">
-          <UserAvatar
-            thumbUrl={user.thumbUrl}
-            serverId={user.serverId}
-            username={user.username}
-            size={avatarSize}
-          />
-          <View className="flex-1">
-            <View className="flex-row items-center gap-1.5">
-              <Text className="text-base font-semibold" numberOfLines={1}>
-                {displayName}
-              </Text>
-              {isOwner && <ShieldCheck size={14} color={colors.warning} />}
-            </View>
-            {/* Show username if different from display name */}
-            {user.identityName && user.identityName !== user.username && (
-              <Text className="text-muted-foreground text-xs">@{user.username}</Text>
-            )}
-            {/* Tablet: show joined date */}
-            {isTablet && user.createdAt && (
-              <View className="mt-0.5 flex-row items-center gap-1">
-                <Clock size={10} color={colors.text.muted.dark} />
-                <Text className="text-muted-foreground text-xs">
-                  Joined {formatDistanceToNow(new Date(user.createdAt), { addSuffix: true })}
-                </Text>
-              </View>
-            )}
-            {/* Phone: show role text */}
-            {!isTablet && !user.identityName && (
-              <Text className="text-muted-foreground mt-0.5 text-sm">
-                {isOwner ? t('mobile:users.owner') : t('common:labels.user')}
-              </Text>
-            )}
-          </View>
-        </View>
-        <TrustScoreBadge score={user.trustScore} />
-      </Card>
-    </Pressable>
-  );
-}
+const SEARCH_DEBOUNCE_MS = 300;
 
 export default function UsersScreen() {
   const { t } = useTranslation(['mobile', 'common', 'nav']);
   const router = useRouter();
-  const { scope } = useMediaServer();
+  const { scope, servers } = useMediaServer();
   const { isTablet, select } = useResponsive();
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchText, setSearchText] = useState('');
+  const [orderBy, setOrderBy] = useState<UserSortField>('username');
+  const [orderDir, setOrderDir] = useState<'asc' | 'desc'>(DEFAULT_SORT_DIR.username);
 
-  // Responsive values
+  const search = useDebounce(searchText, SEARCH_DEBOUNCE_MS).trim();
+
   const horizontalPadding = select({ base: spacing.md, md: spacing.lg, lg: spacing.xl });
   const numColumns = isTablet ? 2 : 1;
+  const showServers = servers.length > 1;
 
-  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, refetch, isLoading } =
-    useInfiniteQuery({
-      queryKey: queryKeys.users.list(scope),
-      queryFn: ({ pageParam, signal }) =>
-        api.users.list(
-          {
-            page: pageParam,
-            pageSize: PAGE_SIZE,
-            scope,
-          },
-          signal
-        ),
-      initialPageParam: 1,
-      getNextPageParam: (lastPage) => nextPageOf(lastPage),
-      staleTime: 1000 * 60, // 60 seconds - user list doesn't change frequently
-    });
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    refetch,
+    isLoading,
+    isError,
+    error,
+  } = useInfiniteQuery({
+    queryKey: queryKeys.users.list(scope, { search, orderBy, orderDir }),
+    queryFn: ({ pageParam, signal }) =>
+      api.users.list(
+        { page: pageParam, pageSize: PAGE_SIZE, scope, search, orderBy, orderDir },
+        signal
+      ),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => nextPageOf(lastPage),
+    staleTime: 1000 * 60,
+    placeholderData: keepPreviousData,
+  });
 
-  // Flatten all pages into single array. Memoized on data.pages so the search
-  // filter below it can actually cache; a fresh array each render defeated it.
-  const allUsers = useMemo(() => data?.pages.flatMap((page) => page.data) ?? [], [data?.pages]);
-  const total = data?.pages[0] ? pageMetaOf(data.pages[0]).total : 0;
-
-  // Filter users based on search query (client-side for now)
-  const users = useMemo(() => {
-    if (!searchQuery.trim()) return allUsers;
-    const query = searchQuery.toLowerCase();
-    return allUsers.filter(
-      (user) =>
-        user.username.toLowerCase().includes(query) ||
-        user.identityName?.toLowerCase().includes(query)
-    );
-  }, [allUsers, searchQuery]);
+  const users = data?.pages.flatMap((page) => page.data) ?? [];
+  const total = data?.pages[0] ? pageMetaOf(data.pages[0]).total : null;
 
   const handleEndReached = () => {
     if (hasNextPage && !isFetchingNextPage) {
@@ -192,29 +80,65 @@ export default function UsersScreen() {
     }
   };
 
-  const { refreshing, onRefresh, controlKey } = usePullToRefresh(() => refetch());
+  const handleOrderByChange = (next: UserSortField) => {
+    setOrderBy(next);
+    setOrderDir(DEFAULT_SORT_DIR[next]);
+  };
+
+  const { controlKey, refreshControlProps } = usePullToRefresh(() => refetch());
+
+  const renderEmpty = () => {
+    if (isLoading) {
+      return (
+        <View className="items-center py-12">
+          <ActivityIndicator size="large" color={ACCENT_COLOR} />
+        </View>
+      );
+    }
+    if (isError && !data) {
+      return <ErrorState message={error.message} onRetry={() => void refetch()} />;
+    }
+    if (search) {
+      return (
+        <EmptyState
+          icon={SearchX}
+          title={t('common:empty.noResults')}
+          description={t('mobile:users.noUsersMatch', { query: search })}
+        />
+      );
+    }
+    return (
+      <EmptyState
+        icon={UsersIcon}
+        title={t('mobile:users.noUsers')}
+        description={t('mobile:users.usersWillAppear')}
+      />
+    );
+  };
 
   return (
     <>
-      <FlatList
+      <FlashList<ServerUserWithIdentity>
         data={users}
         keyExtractor={(item) => item.id}
         numColumns={numColumns}
-        key={numColumns} // Force re-render when columns change
+        key={numColumns}
+        extraData={showServers}
         contentInsetAdjustmentBehavior="automatic"
         keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
         renderItem={({ item, index }) => (
           <View
             style={{
-              flex: 1,
               paddingLeft: isTablet && index % 2 === 1 ? spacing.sm / 2 : 0,
               paddingRight: isTablet && index % 2 === 0 ? spacing.sm / 2 : 0,
             }}
           >
-            <UserCard
+            <UserListItem
               user={item}
               onPress={() => router.push(ROUTES.USER(item.id))}
               isTablet={isTablet}
+              showServers={showServers}
             />
           </View>
         )}
@@ -225,58 +149,21 @@ export default function UsersScreen() {
         }}
         onEndReached={handleEndReached}
         onEndReachedThreshold={0.5}
-        refreshControl={
-          <RefreshControl
-            key={controlKey}
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={ACCENT_COLOR}
-          />
-        }
+        refreshControl={<RefreshControl key={controlKey} {...refreshControlProps} />}
         ListHeaderComponent={
-          <View style={{ marginBottom: spacing.md }}>
-            {/* Title row */}
-            <View className="mb-3 flex-row items-center justify-between">
-              <Text className="text-muted-foreground text-sm">
-                {searchQuery ? `${users.length} of ` : ''}
+          <View>
+            <UserListControls
+              search={searchText}
+              onSearchChange={setSearchText}
+              orderBy={orderBy}
+              orderDir={orderDir}
+              onOrderByChange={handleOrderByChange}
+              onToggleOrderDir={() => setOrderDir((dir) => (dir === 'asc' ? 'desc' : 'asc'))}
+            />
+            {total !== null && (
+              <Text className="text-muted-foreground mb-3 text-sm">
                 {t('common:count.user', { count: total })}
               </Text>
-            </View>
-            {/* Search bar - tablet only */}
-            {isTablet && (
-              <View
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  backgroundColor: colors.card.dark,
-                  borderRadius: borderRadius.lg,
-                  paddingHorizontal: spacing.md,
-                  paddingVertical: spacing.sm,
-                  borderWidth: 1,
-                  borderColor: colors.border.dark,
-                }}
-              >
-                <Search size={18} color={colors.text.muted.dark} />
-                <TextInput
-                  value={searchQuery}
-                  onChangeText={setSearchQuery}
-                  placeholder={t('common:search.searchUsers')}
-                  placeholderTextColor={colors.text.muted.dark}
-                  style={{
-                    flex: 1,
-                    marginLeft: spacing.sm,
-                    color: colors.text.primary.dark,
-                    fontSize: 14,
-                  }}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                />
-                {searchQuery.length > 0 && (
-                  <Pressable onPress={() => setSearchQuery('')}>
-                    <CircleX size={18} color={colors.text.muted.dark} />
-                  </Pressable>
-                )}
-              </View>
             )}
           </View>
         }
@@ -287,27 +174,7 @@ export default function UsersScreen() {
             </View>
           ) : undefined
         }
-        ListEmptyComponent={
-          isLoading ? (
-            <View className="items-center py-12">
-              <ActivityIndicator size="large" color={ACCENT_COLOR} />
-            </View>
-          ) : (
-            <View className="items-center py-12">
-              <View className="bg-card border-border mb-4 h-16 w-16 items-center justify-center rounded-full border">
-                <UsersIcon size={32} color={colors.text.muted.dark} />
-              </View>
-              <Text className="mb-1 text-lg font-semibold">
-                {searchQuery ? t('common:empty.noResults') : t('mobile:users.noUsers')}
-              </Text>
-              <Text className="text-muted-foreground px-4 text-center text-sm">
-                {searchQuery
-                  ? t('mobile:users.noUsersMatch', { query: searchQuery })
-                  : t('mobile:users.usersWillAppear')}
-              </Text>
-            </View>
-          )
-        }
+        ListEmptyComponent={renderEmpty()}
       />
 
       <Stack.Screen options={{ title: t('nav:users'), ...androidHeaderOptions }} />
