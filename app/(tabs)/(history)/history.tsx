@@ -3,7 +3,8 @@
  * Matches web UI quality with proper filtering and aggregates
  */
 import { useState, useMemo, useCallback, useRef } from 'react';
-import { View, FlatList, RefreshControl, ActivityIndicator } from 'react-native';
+import { View, RefreshControl, ActivityIndicator } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { useRouter, Stack } from 'expo-router';
 import { Play } from 'lucide-react-native';
@@ -13,8 +14,10 @@ import { ROUTES } from '@/lib/routes';
 import { useMediaServer } from '@/providers/MediaServerProvider';
 import { TabToolbar, androidHeaderOptions } from '@/components/navigation/TabHeaderButtons';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
-import { ACCENT_COLOR, colors } from '@/lib/theme';
-import { Text } from '@/components/ui/text';
+import { ACCENT_COLOR } from '@/lib/theme';
+import { Card } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
+import { ErrorState } from '@/components/ui/error-state';
 import {
   HistoryFilters,
   HistoryRow,
@@ -29,35 +32,29 @@ import type { SessionWithDetails } from '@tracearr/shared';
 import { useTranslation } from '@tracearr/translations/mobile';
 
 const PAGE_SIZE = 50;
+const DAY_MS = 24 * 60 * 60 * 1000;
 
-// Convert TimePeriod to date range
-function getDateRange(period: TimePeriod): { startDate: Date; endDate: Date } {
-  const now = new Date();
-  const endDate = now;
+const PERIOD_DAYS: Record<Exclude<TimePeriod, 'all'>, number> = {
+  week: 7,
+  month: 30,
+  year: 365,
+};
 
-  switch (period) {
-    case '7d':
-      return { startDate: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000), endDate };
-    case '30d':
-      return { startDate: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000), endDate };
-    case '90d':
-      return { startDate: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000), endDate };
-    case '1y':
-      return { startDate: new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000), endDate };
-    case 'all':
-      // Use a very old date for "all time"
-      return { startDate: new Date('2000-01-01'), endDate };
-  }
+// No endDate: the server reads it as the end of that day, so one fixed at mount would
+// hide every session started after midnight from later refetches.
+function getStartDate(period: TimePeriod): Date | undefined {
+  return period === 'all' ? undefined : new Date(Date.now() - PERIOD_DAYS[period] * DAY_MS);
 }
 
+const nonEmpty = <T,>(values: T[]): T[] | undefined => (values.length > 0 ? values : undefined);
+
 export default function HistoryScreen() {
-  const { t } = useTranslation(['mobile', 'nav']);
+  const { t } = useTranslation(['mobile', 'common', 'nav']);
   const router = useRouter();
   const { scope } = useMediaServer();
   const filterSheetRef = useRef<FilterBottomSheetRef>(null);
 
-  // Filter state
-  const [period, setPeriod] = useState<TimePeriod>('30d');
+  const [period, setPeriod] = useState<TimePeriod>('month');
   const [search, setSearch] = useState('');
   const [advancedFilters, setAdvancedFilters] = useState<FilterState>({
     serverUserIds: [],
@@ -67,86 +64,69 @@ export default function HistoryScreen() {
     transcodeDecisions: [],
   });
 
-  // Count active advanced filters
-  const activeFilterCount = useMemo((): number => {
-    return (
-      advancedFilters.serverUserIds.length +
-      advancedFilters.platforms.length +
-      advancedFilters.geoCountries.length +
-      advancedFilters.mediaTypes.length +
-      advancedFilters.transcodeDecisions.length
-    );
-  }, [advancedFilters]);
+  const activeFilterCount =
+    advancedFilters.serverUserIds.length +
+    advancedFilters.platforms.length +
+    advancedFilters.geoCountries.length +
+    advancedFilters.mediaTypes.length +
+    advancedFilters.transcodeDecisions.length;
 
-  // Fetch filter options for the bottom sheet
   const { data: filterOptions } = useQuery({
     queryKey: queryKeys.sessions.filterOptions(scope),
     queryFn: ({ signal }) => api.sessions.filterOptions(scope, signal),
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 1000 * 60 * 5,
   });
 
-  // Build filters object
-  const filters = useMemo(() => {
-    const { startDate, endDate } = getDateRange(period);
-    return {
-      startDate,
-      endDate,
+  // One object feeds the list and the aggregates, so the totals cannot describe other rows.
+  const filters = useMemo(
+    () => ({
+      startDate: getStartDate(period),
       search: search.trim() || undefined,
-      serverUserIds:
-        advancedFilters.serverUserIds.length > 0 ? advancedFilters.serverUserIds : undefined,
-      platforms: advancedFilters.platforms.length > 0 ? advancedFilters.platforms : undefined,
-      geoCountries:
-        advancedFilters.geoCountries.length > 0 ? advancedFilters.geoCountries : undefined,
-      mediaTypes: advancedFilters.mediaTypes.length > 0 ? advancedFilters.mediaTypes : undefined,
-      transcodeDecisions:
-        advancedFilters.transcodeDecisions.length > 0
-          ? advancedFilters.transcodeDecisions
-          : undefined,
-      orderBy: 'startedAt' as const,
-      orderDir: 'desc' as const,
-    };
-  }, [period, search, advancedFilters]);
+      serverUserIds: nonEmpty(advancedFilters.serverUserIds),
+      platforms: nonEmpty(advancedFilters.platforms),
+      geoCountries: nonEmpty(advancedFilters.geoCountries),
+      mediaTypes: nonEmpty(advancedFilters.mediaTypes),
+      transcodeDecisions: nonEmpty(advancedFilters.transcodeDecisions),
+    }),
+    [period, search, advancedFilters]
+  );
 
-  // Fetch history with infinite scroll
-  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, refetch, isLoading } =
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, refetch, isLoading, error } =
     useInfiniteQuery({
       queryKey: queryKeys.sessions.history(scope, filters),
-      queryFn: async ({ pageParam, signal }) => {
-        return api.sessions.history(
+      queryFn: ({ pageParam, signal }) =>
+        api.sessions.history(
           {
             ...filters,
             scope,
             cursor: pageParam,
             pageSize: PAGE_SIZE,
+            orderBy: 'startedAt',
+            orderDir: 'desc',
           },
           signal
-        );
-      },
+        ),
       initialPageParam: undefined as string | undefined,
       getNextPageParam: (lastPage) => lastPage.nextCursor,
     });
 
-  // Fetch aggregates for summary stats
-  const { data: aggregates, isLoading: isLoadingAggregates } = useQuery({
-    queryKey: queryKeys.sessions.historyAggregates(scope, period),
-    queryFn: ({ signal }) => {
-      const { startDate, endDate } = getDateRange(period);
-      return api.sessions.historyAggregates(
-        {
-          scope,
-          startDate,
-          endDate,
-        },
-        signal
-      );
-    },
-    staleTime: 1000 * 60,
+  const { startDate, ...aggregateFilters } = filters;
+  const {
+    data: aggregates,
+    isLoading: isLoadingAggregates,
+    isFetching: isFetchingAggregates,
+    error: aggregatesError,
+    refetch: refetchAggregates,
+  } = useQuery({
+    queryKey: queryKeys.sessions.historyAggregates(scope, period, aggregateFilters),
+    queryFn: ({ signal }) =>
+      api.sessions.historyAggregates({ ...aggregateFilters, scope, startDate }, signal),
+    // The list key carries startDate, so every filter change fetches the list fresh.
+    // This key is reused per period, so it must refetch too rather than serve a cached total.
+    staleTime: 0,
   });
 
-  // Flatten all pages into single array
-  const sessions = useMemo(() => {
-    return data?.pages.flatMap((page) => page.data) || [];
-  }, [data]);
+  const sessions = useMemo(() => data?.pages.flatMap((page) => page.data) ?? [], [data]);
 
   const handleEndReached = useCallback(() => {
     if (hasNextPage && !isFetchingNextPage) {
@@ -154,62 +134,52 @@ export default function HistoryScreen() {
     }
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  const handleSessionPress = useCallback(
-    (session: SessionWithDetails) => {
-      router.push(ROUTES.SESSION(session.id));
-    },
-    [router]
-  );
-
-  const handleFilterPress = useCallback(() => {
-    filterSheetRef.current?.open();
-  }, []);
-
   const renderItem = useCallback(
     ({ item }: { item: SessionWithDetails }) => (
-      <HistoryRow session={item} onPress={() => handleSessionPress(item)} />
+      <HistoryRow session={item} onPress={() => router.push(ROUTES.SESSION(item.id))} />
     ),
-    [handleSessionPress]
+    [router]
   );
 
   const keyExtractor = useCallback((item: SessionWithDetails) => item.id, []);
 
-  const { refreshing, onRefresh, controlKey } = usePullToRefresh(() => refetch());
+  const { controlKey, refreshControlProps } = usePullToRefresh(() =>
+    Promise.all([refetch(), refetchAggregates()])
+  );
+
+  const hasFilters = search.trim().length > 0 || activeFilterCount > 0;
 
   return (
     <>
-      <View style={{ flex: 1, backgroundColor: colors.background.dark }}>
-        <FlatList
+      <View className="bg-background flex-1">
+        <FlashList
           data={sessions}
           keyExtractor={keyExtractor}
           renderItem={renderItem}
           ItemSeparatorComponent={HistoryRowSeparator}
           contentContainerStyle={{ paddingBottom: 24 }}
           contentInsetAdjustmentBehavior="automatic"
+          keyboardShouldPersistTaps="handled"
           onEndReached={handleEndReached}
           onEndReachedThreshold={0.5}
-          refreshControl={
-            <RefreshControl
-              key={controlKey}
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor={ACCENT_COLOR}
-            />
-          }
+          refreshControl={<RefreshControl key={controlKey} {...refreshControlProps} />}
           ListHeaderComponent={
             <View className="px-4 pt-2">
-              {/* Filters */}
               <HistoryFilters
                 period={period}
                 onPeriodChange={setPeriod}
                 search={search}
                 onSearchChange={setSearch}
                 activeFilterCount={activeFilterCount}
-                onFilterPress={handleFilterPress}
+                onFilterPress={() => filterSheetRef.current?.open()}
               />
-
-              {/* Aggregates */}
-              <HistoryAggregates aggregates={aggregates} isLoading={isLoadingAggregates} />
+              <HistoryAggregates
+                aggregates={aggregates}
+                isLoading={isLoadingAggregates}
+                isFetching={isFetchingAggregates}
+                error={aggregatesError}
+                onRetry={() => void refetchAggregates()}
+              />
             </View>
           }
           ListFooterComponent={
@@ -225,27 +195,27 @@ export default function HistoryScreen() {
                 <ActivityIndicator size="large" color={ACCENT_COLOR} />
               </View>
             ) : (
-              <View className="items-center px-4 py-12">
-                <View
-                  className="mb-4 h-16 w-16 items-center justify-center rounded-full"
-                  style={{ backgroundColor: colors.surface.dark }}
-                >
-                  <Play size={28} color={colors.icon.default} />
-                </View>
-                <Text className="mb-2 text-lg font-semibold">
-                  {t('mobile:history.noHistoryFound')}
-                </Text>
-                <Text className="text-muted-foreground max-w-[280px] text-center text-sm">
-                  {search || activeFilterCount > 0
-                    ? t('mobile:history.adjustFilters')
-                    : t('mobile:history.historyWillAppear')}
-                </Text>
+              <View className="px-4">
+                <Card padding="none">
+                  {error && !data ? (
+                    <ErrorState message={error.message} onRetry={() => void refetch()} />
+                  ) : (
+                    <EmptyState
+                      icon={Play}
+                      title={t('common:empty.noSessionsFound')}
+                      description={
+                        hasFilters
+                          ? t('mobile:history.adjustFilters')
+                          : t('mobile:history.historyWillAppear')
+                      }
+                    />
+                  )}
+                </Card>
               </View>
             )
           }
         />
 
-        {/* Filter Bottom Sheet */}
         <FilterBottomSheet
           ref={filterSheetRef}
           filterOptions={filterOptions}

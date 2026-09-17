@@ -5,19 +5,12 @@
 import React from 'react';
 import { View, Pressable } from 'react-native';
 import { Image } from 'expo-image';
-import {
-  Film,
-  Tv,
-  Music,
-  Radio,
-  Play,
-  MonitorPlay,
-  Repeat2,
-  ChevronRight,
-} from 'lucide-react-native';
+import { Film, Tv, Music, Radio, ChevronRight } from 'lucide-react-native';
+import { useTranslation } from '@tracearr/translations/mobile';
 import { Text } from '@/components/ui/text';
+import { QualityBadge } from '@/components/sessions/QualityBadge';
 import { useImageUrl } from '@/hooks/useImageUrl';
-import { ACCENT_COLOR, colors } from '@/lib/theme';
+import { borderRadius, colors } from '@/lib/theme';
 import { formatDuration, formatListTimestamp } from '@/lib/formatters';
 import { formatEpisodeLabel, type SessionWithDetails, type MediaType } from '@tracearr/shared';
 
@@ -70,73 +63,13 @@ function MediaTypeIcon({ type }: { type: MediaType }) {
   return <Icon size={14} color={colors.icon.default} />;
 }
 
-// Quality badge showing transcode status
-function QualityBadge({ session }: { session: SessionWithDetails }) {
-  const isTranscode = session.isTranscode ?? false;
-  const isCopy = session.videoDecision === 'copy' || session.audioDecision === 'copy';
-
-  const badgeStyle = {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 12,
-  };
-
-  if (isTranscode) {
-    return (
-      <View style={{ ...badgeStyle, backgroundColor: `${colors.warning}20` }}>
-        <Repeat2 size={12} color={colors.warning} />
-        <Text style={{ fontSize: 11, fontWeight: '600', color: colors.warning }}>Transcode</Text>
-      </View>
-    );
-  }
-
-  if (isCopy) {
-    return (
-      <View style={{ ...badgeStyle, backgroundColor: `${ACCENT_COLOR}15` }}>
-        <MonitorPlay size={12} color={ACCENT_COLOR} />
-        <Text style={{ fontSize: 11, fontWeight: '600', color: ACCENT_COLOR }}>Direct Stream</Text>
-      </View>
-    );
-  }
-
-  return (
-    <View style={{ ...badgeStyle, backgroundColor: `${colors.success}15` }}>
-      <Play size={12} color={colors.success} fill={colors.success} />
-      <Text style={{ fontSize: 11, fontWeight: '600', color: colors.success }}>Direct Play</Text>
-    </View>
-  );
-}
-
-// Progress bar component
 function ProgressBar({ progress }: { progress: number }) {
   return (
-    <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-      <View
-        style={{
-          flex: 1,
-          height: 4,
-          backgroundColor: colors.surface.dark,
-          borderRadius: 2,
-          overflow: 'hidden',
-        }}
-      >
-        <View
-          style={{
-            height: '100%',
-            width: `${progress}%`,
-            backgroundColor: ACCENT_COLOR,
-            borderRadius: 2,
-          }}
-        />
+    <View className="flex-1 flex-row items-center gap-1.5">
+      <View className="bg-surface h-1 flex-1 overflow-hidden rounded-full">
+        <View className="bg-primary h-full rounded-full" style={{ width: `${progress}%` }} />
       </View>
-      <Text
-        style={{ fontSize: 10, color: colors.text.muted.dark, minWidth: 28, textAlign: 'right' }}
-      >
-        {progress}%
-      </Text>
+      <Text className="text-muted-foreground min-w-7 text-right text-[10px]">{progress}%</Text>
     </View>
   );
 }
@@ -146,19 +79,16 @@ const POSTER_WIDTH = 40;
 const POSTER_HEIGHT = 60;
 
 export function HistoryRow({ session, onPress }: HistoryRowProps) {
+  const { t } = useTranslation(['common']);
   const getImageUrl = useImageUrl();
-  const displayName = session.user?.identityName ?? session.user?.username ?? 'Unknown';
+  const displayName =
+    session.user?.identityName ?? session.user?.username ?? t('common:labels.unknown');
   const title = getContentTitle(session);
   const progress = getProgress(session);
-
-  // Format date - show "Today 2:30 PM", "Yesterday 9:15 AM", or "Jan 12, 2:30 PM"
   const dateTimeStr = formatListTimestamp(session.startedAt);
   const duration = formatDuration(session.durationMs);
-
-  // Platform info
   const platform = session.platform || session.product;
 
-  // Build poster URL using image proxy
   const posterUrl = getImageUrl({
     serverId: session.serverId,
     path: session.thumbPath,
@@ -169,94 +99,62 @@ export function HistoryRow({ session, onPress }: HistoryRowProps) {
   return (
     <Pressable
       onPress={onPress}
-      style={{
-        backgroundColor: colors.card.dark,
-        paddingHorizontal: 16,
-        paddingVertical: 10,
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 10,
-      }}
+      accessibilityRole="button"
+      accessibilityLabel={[title.primary, title.secondary, displayName, dateTimeStr]
+        .filter(Boolean)
+        .join(', ')}
+      className="bg-card flex-row items-center gap-2.5 px-4 py-2.5"
     >
-      {/* Poster */}
       {posterUrl ? (
         <Image
           source={{ uri: posterUrl }}
+          recyclingKey={session.id}
           style={{
             width: POSTER_WIDTH,
             height: POSTER_HEIGHT,
-            borderRadius: 4,
+            borderRadius: borderRadius.sm,
             backgroundColor: colors.surface.dark,
           }}
           contentFit="cover"
         />
       ) : (
         <View
-          style={{
-            width: POSTER_WIDTH,
-            height: POSTER_HEIGHT,
-            borderRadius: 4,
-            backgroundColor: colors.surface.dark,
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
+          className="bg-surface items-center justify-center rounded-sm"
+          style={{ width: POSTER_WIDTH, height: POSTER_HEIGHT }}
         >
           <Film size={18} color={colors.icon.default} />
         </View>
       )}
 
-      {/* Content area - all text and badges */}
-      <View style={{ flex: 1, justifyContent: 'space-between' }}>
-        {/* Top section: Title + Duration */}
-        <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
-          <View style={{ flex: 1, gap: 2 }}>
-            {/* Title with media type icon */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+      <View className="flex-1 justify-between">
+        <View className="flex-row items-start">
+          <View className="flex-1 gap-0.5">
+            <View className="flex-row items-center gap-1.5">
               <MediaTypeIcon type={session.mediaType || 'movie'} />
-              <Text
-                numberOfLines={1}
-                style={{
-                  flex: 1,
-                  fontSize: 14,
-                  fontWeight: '600',
-                  color: colors.text.primary.dark,
-                }}
-              >
+              <Text numberOfLines={1} className="flex-1 text-sm font-semibold">
                 {title.primary}
               </Text>
             </View>
 
-            {/* Secondary info (episode name, year, etc) */}
             {title.secondary && (
-              <Text
-                numberOfLines={1}
-                style={{ fontSize: 12, color: colors.text.muted.dark, marginLeft: 20 }}
-              >
+              <Text numberOfLines={1} className="text-muted-foreground ml-5 text-xs">
                 {title.secondary}
               </Text>
             )}
 
-            {/* User and platform */}
-            <Text
-              numberOfLines={1}
-              style={{ fontSize: 11, color: colors.text.muted.dark, marginLeft: 20 }}
-            >
+            <Text numberOfLines={1} className="text-muted-foreground ml-5 text-[11px]">
               {displayName}
               {platform ? ` · ${platform}` : ''}
             </Text>
           </View>
 
-          {/* Right side: Duration + Time */}
-          <View style={{ alignItems: 'flex-end', gap: 2 }}>
-            <Text style={{ fontSize: 13, fontWeight: '600', color: colors.text.primary.dark }}>
-              {duration}
-            </Text>
-            <Text style={{ fontSize: 11, color: colors.text.muted.dark }}>{dateTimeStr}</Text>
+          <View className="items-end gap-0.5">
+            <Text className="text-[13px] font-semibold">{duration}</Text>
+            <Text className="text-muted-foreground text-[11px]">{dateTimeStr}</Text>
           </View>
         </View>
 
-        {/* Bottom section: Quality badge + Progress bar */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 6 }}>
+        <View className="mt-1.5 flex-row items-center gap-2">
           <QualityBadge session={session} />
           <ProgressBar progress={progress} />
           <ChevronRight size={14} color={colors.icon.default} />
@@ -266,7 +164,6 @@ export function HistoryRow({ session, onPress }: HistoryRowProps) {
   );
 }
 
-// For list separators
 export function HistoryRowSeparator() {
   return <View className="bg-border h-px" />;
 }

@@ -9,17 +9,19 @@
 import { useState } from 'react';
 import { View, ScrollView, RefreshControl } from 'react-native';
 import { Stack } from 'expo-router';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, type QueryKey } from '@tanstack/react-query';
+import { serverScopeKey, type ServerScope } from '@tracearr/shared';
 import { api } from '@/lib/api';
 import { queryKeys } from '@/lib/queryKeys';
 import { useMediaServer } from '@/providers/MediaServerProvider';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useResponsive } from '@/hooks/useResponsive';
 import { TabToolbar, androidHeaderOptions } from '@/components/navigation/TabHeaderButtons';
-import { spacing, ACCENT_COLOR } from '@/lib/theme';
-import { Text } from '@/components/ui/text';
+import { spacing } from '@/lib/theme';
 import { Card } from '@/components/ui/card';
-import { PeriodSelector, type StatsPeriod } from '@/components/ui/period-selector';
+import { ErrorState } from '@/components/ui/error-state';
+import { SectionHeader } from '@/components/ui/section-header';
+import { TimeRangePicker, type TimePeriod } from '@/components/history';
 import {
   PlaysChart,
   ConcurrentChart,
@@ -31,78 +33,94 @@ import {
 import { useTranslation } from '@tracearr/translations/mobile';
 import { ObserveInteractiveMarker } from 'expo-observe';
 
-function ChartSection({ title, children }: { title: string; children: React.ReactNode }) {
+// A period switch keeps the last period's chart on screen, dimmed, until the new one
+// arrives. A scope switch never does: another server's chart must not pass for this one.
+// Relies on every queryKeys.stats key ending in serverScopeKey(scope).
+function useStat<T>(
+  queryKey: QueryKey,
+  scope: ServerScope,
+  queryFn: (signal: AbortSignal) => Promise<T>
+) {
+  const scopeKey = serverScopeKey(scope);
+  return useQuery({
+    queryKey,
+    queryFn: ({ signal }) => queryFn(signal),
+    placeholderData: (previousData, previousQuery) =>
+      previousQuery?.queryKey[previousQuery.queryKey.length - 1] === scopeKey
+        ? previousData
+        : undefined,
+  });
+}
+
+interface ChartSectionProps {
+  title: string;
+  query: { error: Error | null; isPlaceholderData: boolean; refetch: () => unknown };
+  hasData: boolean;
+  height: number;
+  children: React.ReactNode;
+}
+
+function ChartSection({ title, query, hasData, height, children }: ChartSectionProps) {
   return (
-    <View style={{ flex: 1 }}>
-      <Text className="text-muted-foreground mb-2 text-sm font-semibold tracking-wide uppercase">
-        {title}
-      </Text>
-      {children}
+    <View style={{ flex: 1, opacity: query.isPlaceholderData ? 0.5 : 1 }}>
+      <SectionHeader title={title} className="mb-2" />
+      {query.error && !hasData ? (
+        <Card padding="none" className="justify-center" style={{ minHeight: height }}>
+          <ErrorState compact message={query.error.message} onRetry={() => void query.refetch()} />
+        </Card>
+      ) : (
+        children
+      )}
     </View>
   );
 }
 
 export default function ActivityScreen() {
   const { t } = useTranslation(['mobile', 'common', 'nav']);
-  const [period, setPeriod] = useState<StatsPeriod>('month');
+  const [period, setPeriod] = useState<TimePeriod>('month');
   const { scope } = useMediaServer();
   const { isTablet, select } = useResponsive();
 
-  // Responsive values
   const horizontalPadding = select({ base: spacing.md, md: spacing.lg, lg: spacing.xl });
   const chartHeightLarge = select({ base: 180, md: 250 });
   const chartHeightSmall = select({ base: 160, md: 220 });
   const qualityHeight = select({ base: 120, md: 160 });
 
-  // Fetch all stats data with selected period - query keys include scope for cache isolation
-  const { data: playsData, refetch: refetchPlays } = useQuery({
-    queryKey: queryKeys.stats.plays(period, scope),
-    queryFn: ({ signal }) => api.stats.plays({ period, scope }, signal),
-  });
+  const plays = useStat(queryKeys.stats.plays(period, scope), scope, (signal) =>
+    api.stats.plays({ period, scope }, signal)
+  );
+  const dayOfWeek = useStat(queryKeys.stats.dayOfWeek(period, scope), scope, (signal) =>
+    api.stats.playsByDayOfWeek({ period, scope }, signal)
+  );
+  const hourOfDay = useStat(queryKeys.stats.hourOfDay(period, scope), scope, (signal) =>
+    api.stats.playsByHourOfDay({ period, scope }, signal)
+  );
+  const platforms = useStat(queryKeys.stats.platforms(period, scope), scope, (signal) =>
+    api.stats.platforms({ period, scope }, signal)
+  );
+  const quality = useStat(queryKeys.stats.quality(period, scope), scope, (signal) =>
+    api.stats.quality({ period, scope }, signal)
+  );
+  const concurrent = useStat(queryKeys.stats.concurrent(period, scope), scope, (signal) =>
+    api.stats.concurrent({ period, scope }, signal)
+  );
 
-  const { data: dayOfWeekData, refetch: refetchDayOfWeek } = useQuery({
-    queryKey: queryKeys.stats.dayOfWeek(period, scope),
-    queryFn: ({ signal }) => api.stats.playsByDayOfWeek({ period, scope }, signal),
-  });
-
-  const { data: hourOfDayData, refetch: refetchHourOfDay } = useQuery({
-    queryKey: queryKeys.stats.hourOfDay(period, scope),
-    queryFn: ({ signal }) => api.stats.playsByHourOfDay({ period, scope }, signal),
-  });
-
-  const { data: platformsData, refetch: refetchPlatforms } = useQuery({
-    queryKey: queryKeys.stats.platforms(period, scope),
-    queryFn: ({ signal }) => api.stats.platforms({ period, scope }, signal),
-  });
-
-  const { data: qualityData, refetch: refetchQuality } = useQuery({
-    queryKey: queryKeys.stats.quality(period, scope),
-    queryFn: ({ signal }) => api.stats.quality({ period, scope }, signal),
-  });
-
-  const { data: concurrentData, refetch: refetchConcurrent } = useQuery({
-    queryKey: queryKeys.stats.concurrent(period, scope),
-    queryFn: ({ signal }) => api.stats.concurrent({ period, scope }, signal),
-  });
-
-  const handleRefresh = () =>
+  const { controlKey, refreshControlProps } = usePullToRefresh(() =>
     Promise.all([
-      refetchPlays(),
-      refetchConcurrent(),
-      refetchDayOfWeek(),
-      refetchHourOfDay(),
-      refetchPlatforms(),
-      refetchQuality(),
-    ]);
+      plays.refetch(),
+      concurrent.refetch(),
+      dayOfWeek.refetch(),
+      hourOfDay.refetch(),
+      platforms.refetch(),
+      quality.refetch(),
+    ])
+  );
 
-  const { refreshing, onRefresh, controlKey } = usePullToRefresh(handleRefresh);
-
-  // Period labels for display
-  const periodLabels: Record<StatsPeriod, string> = {
-    week: t('common:periods.last7Days'),
-    month: t('common:periods.last30Days'),
-    year: t('common:periods.lastYear'),
-  };
+  const rowStyle = {
+    flexDirection: isTablet ? 'row' : 'column',
+    gap: isTablet ? spacing.md : spacing.sm,
+  } as const;
+  const rowGap = isTablet ? spacing.md : spacing.sm;
 
   return (
     <>
@@ -115,84 +133,98 @@ export default function ActivityScreen() {
           paddingBottom: spacing.xl,
         }}
         contentInsetAdjustmentBehavior="automatic"
-        refreshControl={
-          <RefreshControl
-            key={controlKey}
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={ACCENT_COLOR}
-          />
-        }
+        refreshControl={<RefreshControl key={controlKey} {...refreshControlProps} />}
       >
-        {/* Header with Period Selector */}
-        <View className="mb-4 flex-row items-center justify-between">
-          <View>
-            <Text className="text-muted-foreground text-sm">{periodLabels[period]}</Text>
-          </View>
-          <PeriodSelector value={period} onChange={setPeriod} />
+        <View className="mb-4">
+          <TimeRangePicker value={period} onChange={setPeriod} />
         </View>
 
-        {/* Plays & Concurrent - side by side on tablets */}
-        <View
-          style={{
-            flexDirection: isTablet ? 'row' : 'column',
-            gap: isTablet ? spacing.md : spacing.sm,
-            marginBottom: isTablet ? spacing.md : spacing.sm,
-          }}
-        >
-          <ChartSection title={t('mobile:activity.playsOverTime')}>
-            <PlaysChart data={playsData?.data || []} height={chartHeightLarge} />
+        <View style={[rowStyle, { marginBottom: rowGap }]}>
+          <ChartSection
+            title={t('mobile:activity.playsOverTime')}
+            query={plays}
+            hasData={!!plays.data}
+            height={chartHeightLarge}
+          >
+            <PlaysChart
+              data={plays.data?.data ?? []}
+              isLoading={plays.isLoading}
+              height={chartHeightLarge}
+            />
           </ChartSection>
 
-          <ChartSection title={t('mobile:activity.concurrentStreams')}>
-            <ConcurrentChart data={concurrentData?.data || []} height={chartHeightLarge} />
-          </ChartSection>
-        </View>
-
-        {/* Day of Week & Hour of Day - side by side on tablets */}
-        <View
-          style={{
-            flexDirection: isTablet ? 'row' : 'column',
-            gap: isTablet ? spacing.md : spacing.sm,
-            marginBottom: isTablet ? spacing.md : spacing.sm,
-          }}
-        >
-          <ChartSection title={t('common:periods.byDay')}>
-            <DayOfWeekChart data={dayOfWeekData?.data || []} height={chartHeightSmall} />
-          </ChartSection>
-
-          <ChartSection title={t('common:periods.byHour')}>
-            <HourOfDayChart data={hourOfDayData?.data || []} height={chartHeightSmall} />
+          <ChartSection
+            title={t('mobile:activity.concurrentStreams')}
+            query={concurrent}
+            hasData={!!concurrent.data}
+            height={chartHeightLarge}
+          >
+            <ConcurrentChart
+              data={concurrent.data?.data ?? []}
+              isLoading={concurrent.isLoading}
+              height={chartHeightLarge}
+            />
           </ChartSection>
         </View>
 
-        {/* Platform & Quality - side by side on tablets */}
-        <View
-          style={{
-            flexDirection: isTablet ? 'row' : 'column',
-            gap: isTablet ? spacing.md : spacing.sm,
-          }}
-        >
-          <ChartSection title={t('mobile:activity.platforms')}>
-            <PlatformChart data={platformsData?.data || []} height={chartHeightSmall} />
+        <View style={[rowStyle, { marginBottom: rowGap }]}>
+          <ChartSection
+            title={t('common:periods.byDay')}
+            query={dayOfWeek}
+            hasData={!!dayOfWeek.data}
+            height={chartHeightSmall}
+          >
+            <DayOfWeekChart
+              data={dayOfWeek.data?.data ?? []}
+              isLoading={dayOfWeek.isLoading}
+              height={chartHeightSmall}
+            />
           </ChartSection>
 
-          <ChartSection title={t('mobile:activity.playbackQuality')}>
-            {qualityData ? (
-              <QualityChart
-                directPlay={qualityData.directPlay}
-                directStream={qualityData.directStream ?? 0}
-                transcode={qualityData.transcode}
-                directPlayPercent={qualityData.directPlayPercent}
-                directStreamPercent={qualityData.directStreamPercent ?? 0}
-                transcodePercent={qualityData.transcodePercent}
-                height={qualityHeight}
-              />
-            ) : (
-              <Card style={{ height: qualityHeight }} className="items-center justify-center">
-                <Text className="text-muted-foreground">{t('common:states.loading')}</Text>
-              </Card>
-            )}
+          <ChartSection
+            title={t('common:periods.byHour')}
+            query={hourOfDay}
+            hasData={!!hourOfDay.data}
+            height={chartHeightSmall}
+          >
+            <HourOfDayChart
+              data={hourOfDay.data?.data ?? []}
+              isLoading={hourOfDay.isLoading}
+              height={chartHeightSmall}
+            />
+          </ChartSection>
+        </View>
+
+        <View style={rowStyle}>
+          <ChartSection
+            title={t('mobile:activity.platforms')}
+            query={platforms}
+            hasData={!!platforms.data}
+            height={chartHeightSmall}
+          >
+            <PlatformChart
+              data={platforms.data?.data ?? []}
+              isLoading={platforms.isLoading}
+              height={chartHeightSmall}
+            />
+          </ChartSection>
+
+          <ChartSection
+            title={t('mobile:activity.playbackQuality')}
+            query={quality}
+            hasData={!!quality.data}
+            height={qualityHeight}
+          >
+            <QualityChart
+              directPlay={quality.data?.directPlay}
+              directStream={quality.data?.directStream}
+              transcode={quality.data?.transcode}
+              directPlayPercent={quality.data?.directPlayPercent}
+              directStreamPercent={quality.data?.directStreamPercent}
+              transcodePercent={quality.data?.transcodePercent}
+              isLoading={quality.isLoading}
+              height={qualityHeight}
+            />
           </ChartSection>
         </View>
       </ScrollView>

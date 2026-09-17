@@ -4,83 +4,116 @@
  */
 import React from 'react';
 import { View } from 'react-native';
-import { Play, Clock, Users, Film } from 'lucide-react-native';
+import { Play, Clock, Users, Film, type LucideIcon } from 'lucide-react-native';
+import { formatNumber, useTranslation } from '@tracearr/translations/mobile';
 import { Text } from '@/components/ui/text';
+import { Card } from '@/components/ui/card';
+import { ErrorState } from '@/components/ui/error-state';
+import { cn } from '@/lib/utils';
 import { ACCENT_COLOR } from '@/lib/theme';
+import { formatDuration, formatWatchTime } from '@/lib/formatters';
 import type { HistoryAggregates as AggregatesType } from '@tracearr/shared';
+
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 interface HistoryAggregatesProps {
   aggregates: AggregatesType | undefined;
   isLoading?: boolean;
+  isFetching?: boolean;
+  error?: Error | null;
+  onRetry: () => void;
 }
 
-// Format duration from milliseconds to human-readable string
-function formatWatchTime(ms: number | null): string {
-  if (!ms) return '0h';
-  const totalHours = Math.floor(ms / (1000 * 60 * 60));
-  const days = Math.floor(totalHours / 24);
-  const hours = totalHours % 24;
-
-  if (days > 0) return `${days}d ${hours}h`;
-  return `${totalHours}h`;
+// formatWatchTime drops minutes, so a filtered total under a day would read "0h".
+function formatTotalWatchTime(ms: number): string {
+  return ms > 0 && ms < DAY_MS ? formatDuration(ms) : formatWatchTime(ms);
 }
 
 interface StatItemProps {
-  icon: React.ElementType;
+  icon: LucideIcon;
   label: string;
-  value: string | number;
+  value: string;
   isLoading?: boolean;
 }
 
 function StatItem({ icon: Icon, label, value, isLoading }: StatItemProps) {
   return (
-    <View className="flex-1 flex-row items-center justify-center gap-1.5">
-      <View
-        className="h-5 w-5 items-center justify-center rounded-full"
-        style={{ backgroundColor: `${ACCENT_COLOR}15` }}
-      >
+    <View
+      accessible
+      accessibilityLabel={isLoading ? label : `${label}: ${value}`}
+      className="flex-1 items-center px-1"
+    >
+      <View className="flex-row items-center gap-1">
         <Icon size={12} color={ACCENT_COLOR} />
-      </View>
-      <View className="items-start">
-        <Text className="text-[13px] font-semibold">
-          {isLoading ? '-' : typeof value === 'number' ? value.toLocaleString() : value}
+        <Text numberOfLines={1} className="text-sm font-semibold">
+          {isLoading ? '-' : value}
         </Text>
-        <Text className="text-muted-foreground text-[10px]">{label}</Text>
       </View>
+      <Text
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.8}
+        className="text-muted-foreground text-[10px]"
+      >
+        {label}
+      </Text>
     </View>
   );
 }
 
-export function HistoryAggregates({ aggregates, isLoading }: HistoryAggregatesProps) {
+function Divider() {
+  return <View className="bg-border h-[80%] w-px self-center" />;
+}
+
+export function HistoryAggregates({
+  aggregates,
+  isLoading,
+  isFetching,
+  error,
+  onRetry,
+}: HistoryAggregatesProps) {
+  const { t } = useTranslation(['pages', 'common']);
+
+  if (error && !aggregates) {
+    return (
+      <Card padding="none" className="mb-4">
+        <ErrorState compact message={error.message} onRetry={onRetry} />
+      </Card>
+    );
+  }
+
   return (
-    <View className="bg-card mb-4 flex-row rounded-xl px-1 py-2">
+    <Card
+      padding="none"
+      className={cn('mb-4 flex-row px-1 py-2', isFetching && !isLoading && 'opacity-60')}
+    >
       <StatItem
         icon={Play}
-        label="Plays"
-        value={aggregates?.playCount ?? 0}
+        label={t('pages:history.totalPlays', { defaultValue: 'Total Plays' })}
+        value={formatNumber(aggregates?.playCount ?? 0)}
         isLoading={isLoading}
       />
-      <View className="bg-border h-[80%] w-px self-center" />
+      <Divider />
       <StatItem
         icon={Clock}
-        label="Watch Time"
-        value={formatWatchTime(aggregates?.totalWatchTimeMs ?? 0)}
+        label={t('common:labels.watchTime')}
+        value={formatTotalWatchTime(aggregates?.totalWatchTimeMs ?? 0)}
         isLoading={isLoading}
       />
-      <View className="bg-border h-[80%] w-px self-center" />
+      <Divider />
       <StatItem
         icon={Users}
-        label="Users"
-        value={aggregates?.uniqueUsers ?? 0}
+        label={t('pages:history.uniqueUsers', { defaultValue: 'Unique Users' })}
+        value={formatNumber(aggregates?.uniqueUsers ?? 0)}
         isLoading={isLoading}
       />
-      <View className="bg-border h-[80%] w-px self-center" />
+      <Divider />
       <StatItem
         icon={Film}
-        label="Titles"
-        value={aggregates?.uniqueContent ?? 0}
+        label={t('pages:history.uniqueTitles', { defaultValue: 'Unique Titles' })}
+        value={formatNumber(aggregates?.uniqueContent ?? 0)}
         isLoading={isLoading}
       />
-    </View>
+    </Card>
   );
 }

@@ -20,17 +20,24 @@ import {
   Tv,
   Music,
   Radio,
-  Play,
+  MonitorPlay,
   Zap,
+  ChevronLeft,
   ChevronRight,
+  type LucideIcon,
 } from 'lucide-react-native';
+import { useTranslation } from '@tracearr/translations/mobile';
 import { Text } from '@/components/ui/text';
+import { Button } from '@/components/ui/button';
 import { UserAvatar } from '@/components/ui/user-avatar';
+import { cn } from '@/lib/utils';
 import { ACCENT_COLOR, colors } from '@/lib/theme';
-import type { HistoryFilterOptions, UserFilterOption, FilterOptionItem } from '@tracearr/shared';
+import { haptics } from '@/lib/haptics';
+import { PLAYBACK_DECISION_LABEL_KEYS, type PlaybackDecision } from '@/lib/playbackDecision';
+import type { HistoryFilterOptions } from '@tracearr/shared';
 
 export type MediaType = 'movie' | 'episode' | 'track' | 'live';
-export type TranscodeDecision = 'directplay' | 'copy' | 'transcode';
+export type TranscodeDecision = PlaybackDecision;
 
 export interface FilterState {
   serverUserIds: string[];
@@ -51,23 +58,138 @@ export interface FilterBottomSheetRef {
   close: () => void;
 }
 
-type FilterSection = 'main' | 'users' | 'platforms' | 'countries';
+type ListSection = 'users' | 'platforms' | 'countries';
+type FilterSection = 'main' | ListSection;
 
-const MEDIA_TYPES: { value: MediaType; label: string; icon: React.ElementType }[] = [
-  { value: 'movie', label: 'Movies', icon: Film },
-  { value: 'episode', label: 'TV Shows', icon: Tv },
-  { value: 'track', label: 'Music', icon: Music },
-  { value: 'live', label: 'Live TV', icon: Radio },
-];
+const SECTION_FILTER_KEY = {
+  users: 'serverUserIds',
+  platforms: 'platforms',
+  countries: 'geoCountries',
+} as const satisfies Record<ListSection, keyof FilterState>;
 
-const TRANSCODE_OPTIONS: { value: TranscodeDecision; label: string; icon: React.ElementType }[] = [
-  { value: 'directplay', label: 'Direct Play', icon: Play },
-  { value: 'copy', label: 'Direct Stream', icon: Play },
-  { value: 'transcode', label: 'Transcode', icon: Zap },
-];
+const EMPTY_FILTERS: FilterState = {
+  serverUserIds: [],
+  platforms: [],
+  geoCountries: [],
+  mediaTypes: [],
+  transcodeDecisions: [],
+};
+
+const MEDIA_TYPES = [
+  { value: 'movie', labelKey: 'common:media.movie_plural', icon: Film },
+  { value: 'episode', labelKey: 'common:media.tvShows', icon: Tv },
+  { value: 'track', labelKey: 'common:media.music', icon: Music },
+  { value: 'live', labelKey: 'common:media.liveTV', icon: Radio },
+] as const satisfies readonly { value: MediaType; labelKey: string; icon: LucideIcon }[];
+
+const TRANSCODE_OPTIONS = [
+  { value: 'directplay', icon: MonitorPlay },
+  { value: 'copy', icon: MonitorPlay },
+  { value: 'transcode', icon: Zap },
+] as const satisfies readonly { value: TranscodeDecision; icon: LucideIcon }[];
+
+// Selecting any of `values` selects all of them, and deselecting removes all of them.
+function toggleValues<T>(current: readonly T[], values: readonly T[]): T[] {
+  return values.some((value) => current.includes(value))
+    ? current.filter((value) => !values.includes(value))
+    : [...new Set([...current, ...values])];
+}
+
+function GroupLabel({ children }: { children: string }) {
+  return (
+    <Text
+      accessibilityRole="header"
+      className="text-muted-foreground mb-2 text-[11px] font-semibold tracking-wide uppercase"
+    >
+      {children}
+    </Text>
+  );
+}
+
+function OptionRow({
+  label,
+  isSelected,
+  onPress,
+  leading,
+  count,
+}: {
+  label: string;
+  isSelected: boolean;
+  onPress: () => void;
+  leading?: React.ReactNode;
+  count?: number;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="checkbox"
+      accessibilityLabel={label}
+      accessibilityState={{ checked: isSelected }}
+      className={cn(
+        'border-border min-h-11 flex-row items-center gap-3 border-b px-4 py-3.5',
+        isSelected && 'bg-primary/10'
+      )}
+    >
+      {leading}
+      <Text
+        numberOfLines={1}
+        className={cn('flex-1 text-[15px]', isSelected && 'text-primary font-medium')}
+      >
+        {label}
+      </Text>
+      {count !== undefined && (
+        <View className="bg-surface rounded-full px-2 py-0.5">
+          <Text className="text-muted-foreground text-xs font-medium">{count}</Text>
+        </View>
+      )}
+      {isSelected && <Check size={20} color={ACCENT_COLOR} />}
+    </Pressable>
+  );
+}
+
+function ChipOption({
+  label,
+  icon: Icon,
+  isSelected,
+  onPress,
+  stacked,
+}: {
+  label: string;
+  icon: LucideIcon;
+  isSelected: boolean;
+  onPress: () => void;
+  stacked?: boolean;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="checkbox"
+      accessibilityLabel={label}
+      accessibilityState={{ checked: isSelected }}
+      className={cn(
+        'min-h-11 items-center rounded-lg border',
+        stacked ? 'flex-1 gap-1.5 px-2 py-3' : 'min-w-[47%] flex-row gap-2 px-3.5 py-2.5',
+        isSelected ? 'border-primary bg-primary/15' : 'border-border bg-surface'
+      )}
+    >
+      <Icon size={stacked ? 20 : 18} color={isSelected ? ACCENT_COLOR : colors.text.muted.dark} />
+      <Text
+        numberOfLines={1}
+        className={cn(
+          'font-medium',
+          stacked ? 'text-center text-xs' : 'text-sm',
+          isSelected && 'text-primary'
+        )}
+      >
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
 
 export const FilterBottomSheet = forwardRef<FilterBottomSheetRef, FilterBottomSheetProps>(
   ({ filterOptions, filters, onFiltersChange }, ref) => {
+    const { t } = useTranslation(['common', 'mobile', 'nav']);
     const insets = useSafeAreaInsets();
     const bottomSheetRef = useRef<BottomSheet>(null);
     const [activeSection, setActiveSection] = React.useState<FilterSection>('main');
@@ -95,308 +217,75 @@ export const FilterBottomSheet = forwardRef<FilterBottomSheetRef, FilterBottomSh
       }
     }, []);
 
-    // Toggle functions
-    const toggleUser = useCallback(
-      (userId: string) => {
-        const current = filters.serverUserIds;
-        const updated = current.includes(userId)
-          ? current.filter((id) => id !== userId)
-          : [...current, userId];
-        onFiltersChange({ ...filters, serverUserIds: updated });
-      },
-      [filters, onFiltersChange]
-    );
-
-    const toggleMediaType = useCallback(
-      (type: MediaType) => {
-        const current = filters.mediaTypes;
-        const updated = current.includes(type)
-          ? current.filter((t) => t !== type)
-          : [...current, type];
-        onFiltersChange({ ...filters, mediaTypes: updated });
-      },
-      [filters, onFiltersChange]
-    );
-
-    const toggleTranscode = useCallback(
-      (decision: TranscodeDecision) => {
-        const current = filters.transcodeDecisions;
-        const updated = current.includes(decision)
-          ? current.filter((d) => d !== decision)
-          : [...current, decision];
-        onFiltersChange({ ...filters, transcodeDecisions: updated });
-      },
-      [filters, onFiltersChange]
-    );
-
-    const togglePlatform = useCallback(
-      (platform: string) => {
-        const current = filters.platforms;
-        const updated = current.includes(platform)
-          ? current.filter((p) => p !== platform)
-          : [...current, platform];
-        onFiltersChange({ ...filters, platforms: updated });
-      },
-      [filters, onFiltersChange]
-    );
-
-    const toggleCountry = useCallback(
-      (country: string) => {
-        const current = filters.geoCountries;
-        const updated = current.includes(country)
-          ? current.filter((c) => c !== country)
-          : [...current, country];
-        onFiltersChange({ ...filters, geoCountries: updated });
-      },
-      [filters, onFiltersChange]
-    );
-
-    const clearAllFilters = useCallback(() => {
-      onFiltersChange({
-        serverUserIds: [],
-        platforms: [],
-        geoCountries: [],
-        mediaTypes: [],
-        transcodeDecisions: [],
-      });
-    }, [onFiltersChange]);
-
-    const clearSection = useCallback(
-      (section: 'users' | 'platforms' | 'countries') => {
-        switch (section) {
-          case 'users':
-            onFiltersChange({ ...filters, serverUserIds: [] });
-            break;
-          case 'platforms':
-            onFiltersChange({ ...filters, platforms: [] });
-            break;
-          case 'countries':
-            onFiltersChange({ ...filters, geoCountries: [] });
-            break;
-        }
-      },
-      [filters, onFiltersChange]
-    );
-
-    const activeFilterCount = useMemo(() => {
-      return (
-        filters.serverUserIds.length +
-        filters.platforms.length +
-        filters.geoCountries.length +
-        filters.mediaTypes.length +
-        filters.transcodeDecisions.length
-      );
-    }, [filters]);
-
-    // Sorted users alphabetically
-    const sortedUsers = useMemo(() => {
-      if (!filterOptions?.users) return [];
-      return [...filterOptions.users].sort((a, b) => {
-        const nameA = (a.identityName || a.username || '').toLowerCase();
-        const nameB = (b.identityName || b.username || '').toLowerCase();
-        return nameA.localeCompare(nameB);
-      });
-    }, [filterOptions?.users]);
-
-    // Section list header with back button
-    const renderSectionHeader = (title: string, section: 'users' | 'platforms' | 'countries') => {
-      let count = 0;
-      switch (section) {
-        case 'users':
-          count = filters.serverUserIds.length;
-          break;
-        case 'platforms':
-          count = filters.platforms.length;
-          break;
-        case 'countries':
-          count = filters.geoCountries.length;
-          break;
-      }
-
-      return (
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            paddingHorizontal: 16,
-            paddingVertical: 16,
-            borderBottomWidth: 1,
-            borderBottomColor: colors.border.dark,
-            backgroundColor: colors.card.dark,
-          }}
-        >
-          <Pressable
-            onPress={() => setActiveSection('main')}
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              paddingVertical: 4,
-              paddingRight: 8,
-            }}
-          >
-            <ChevronRight
-              size={20}
-              color={ACCENT_COLOR}
-              style={{ transform: [{ rotate: '180deg' }] }}
-            />
-            <Text style={{ color: ACCENT_COLOR, fontSize: 15, marginLeft: 4 }}>Back</Text>
-          </Pressable>
-          <Text
-            style={{
-              flex: 1,
-              fontSize: 18,
-              fontWeight: '600',
-              color: colors.text.primary.dark,
-              textAlign: 'center',
-              marginRight: 60,
-            }}
-          >
-            {title}
-          </Text>
-          {count > 0 && (
-            <Pressable
-              onPress={() => clearSection(section)}
-              style={{ paddingHorizontal: 8, paddingVertical: 4 }}
-            >
-              <Text style={{ color: ACCENT_COLOR, fontSize: 13 }}>Clear ({count})</Text>
-            </Pressable>
-          )}
-        </View>
-      );
-    };
-
-    // User list item
-    const renderUserItem = (user: UserFilterOption) => {
-      const isSelected = filters.serverUserIds.includes(user.id);
-      const displayName = user.identityName || user.username || 'Unknown';
-
-      return (
-        <Pressable
-          key={user.id}
-          onPress={() => toggleUser(user.id)}
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            paddingVertical: 14,
-            paddingHorizontal: 16,
-            backgroundColor: isSelected ? `${ACCENT_COLOR}10` : 'transparent',
-            borderBottomWidth: 1,
-            borderBottomColor: colors.border.dark,
-          }}
-        >
-          <View style={{ marginRight: 12 }}>
-            <UserAvatar
-              thumbUrl={user.thumbUrl}
-              serverId={user.serverId}
-              username={displayName}
-              size={36}
-            />
-          </View>
-          <Text
-            numberOfLines={1}
-            style={{
-              flex: 1,
-              fontSize: 15,
-              color: isSelected ? ACCENT_COLOR : colors.text.primary.dark,
-              fontWeight: isSelected ? '500' : '400',
-            }}
-          >
-            {displayName}
-          </Text>
-          {isSelected && <Check size={20} color={ACCENT_COLOR} />}
-        </Pressable>
-      );
-    };
-
-    // Filter option item (platforms, countries)
-    const renderFilterItem = (
-      item: FilterOptionItem,
-      isSelected: boolean,
-      onToggle: () => void
-    ) => (
-      <Pressable
-        key={item.value}
-        onPress={onToggle}
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          paddingVertical: 14,
-          paddingHorizontal: 16,
-          backgroundColor: isSelected ? `${ACCENT_COLOR}10` : 'transparent',
-          borderBottomWidth: 1,
-          borderBottomColor: colors.border.dark,
-        }}
-      >
-        <Text
-          numberOfLines={1}
-          style={{
-            flex: 1,
-            fontSize: 15,
-            color: isSelected ? ACCENT_COLOR : colors.text.primary.dark,
-            fontWeight: isSelected ? '500' : '400',
-          }}
-        >
-          {item.value}
-        </Text>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-          <View
-            style={{
-              backgroundColor: colors.surface.dark,
-              paddingHorizontal: 8,
-              paddingVertical: 3,
-              borderRadius: 10,
-            }}
-          >
-            <Text style={{ color: colors.text.muted.dark, fontSize: 12, fontWeight: '500' }}>
-              {item.count}
-            </Text>
-          </View>
-          {isSelected && <Check size={20} color={ACCENT_COLOR} />}
-        </View>
-      </Pressable>
-    );
-
-    // Close the bottom sheet
     const handleDone = useCallback(() => {
       bottomSheetRef.current?.close();
     }, []);
 
-    // Navigation row component
-    const renderNavRow = (
-      icon: React.ElementType,
-      label: string,
-      count: number,
-      onPress: () => void
-    ) => {
-      const Icon = icon;
+    const toggle = <K extends keyof FilterState>(key: K, values: FilterState[K]) => {
+      haptics.selection();
+      onFiltersChange({ ...filters, [key]: toggleValues<string>(filters[key], values) });
+    };
+
+    const clear = (next: FilterState) => {
+      haptics.selection();
+      onFiltersChange(next);
+    };
+
+    const activeFilterCount = Object.values(filters).reduce(
+      (total, values: string[]) => total + values.length,
+      0
+    );
+
+    const users = filterOptions?.users;
+    const sortedUsers = useMemo(() => {
+      if (!users) return [];
+      return [...users].sort((a, b) => {
+        const nameA = (a.identityName || a.username || '').toLowerCase();
+        const nameB = (b.identityName || b.username || '').toLowerCase();
+        return nameA.localeCompare(nameB);
+      });
+    }, [users]);
+
+    const sectionTitles: Record<ListSection, string> = {
+      users: t('nav:users'),
+      platforms: t('mobile:activity.platforms'),
+      countries: t('mobile:history.filters.countries', { defaultValue: 'Countries' }),
+    };
+
+    const doneFooter = (
+      <View
+        className="border-border bg-card border-t px-4 pt-3"
+        style={{ paddingBottom: Math.max(insets.bottom, 12) + 12 }}
+      >
+        <Button size="lg" className="min-h-12 rounded-xl" onPress={handleDone}>
+          {t('common:filters.done')}
+        </Button>
+      </View>
+    );
+
+    const renderNavRow = (section: ListSection, Icon: LucideIcon) => {
+      const count = filters[SECTION_FILTER_KEY[section]].length;
       return (
         <Pressable
-          onPress={onPress}
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            paddingVertical: 14,
-            borderBottomWidth: 1,
-            borderBottomColor: colors.border.dark,
-          }}
+          onPress={() => setActiveSection(section)}
+          accessibilityRole="button"
+          accessibilityLabel={
+            count > 0
+              ? t('mobile:history.filters.sectionSelected', {
+                  section: sectionTitles[section],
+                  count,
+                  defaultValue: '{{section}}, {{count}} selected',
+                })
+              : sectionTitles[section]
+          }
+          className="border-border min-h-11 flex-row items-center border-b py-3.5"
         >
           <Icon size={20} color={colors.icon.default} />
-          <Text style={{ flex: 1, fontSize: 15, color: colors.text.primary.dark, marginLeft: 12 }}>
-            {label}
-          </Text>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <Text className="ml-3 flex-1 text-[15px]">{sectionTitles[section]}</Text>
+          <View className="flex-row items-center gap-2">
             {count > 0 && (
-              <View
-                style={{
-                  minWidth: 22,
-                  paddingHorizontal: 8,
-                  paddingVertical: 3,
-                  borderRadius: 11,
-                  backgroundColor: ACCENT_COLOR,
-                  alignItems: 'center',
-                }}
-              >
-                <Text style={{ color: '#fff', fontSize: 12, fontWeight: '600' }}>{count}</Text>
+              <View className="bg-primary min-w-[22px] items-center rounded-full px-2 py-0.5">
+                <Text className="text-primary-foreground text-xs font-semibold">{count}</Text>
               </View>
             )}
             <ChevronRight size={18} color={colors.icon.default} />
@@ -405,298 +294,176 @@ export const FilterBottomSheet = forwardRef<FilterBottomSheetRef, FilterBottomSh
       );
     };
 
-    // Main filter menu
     const renderMainMenu = () => (
-      <View style={{ flex: 1 }}>
+      <View className="flex-1">
         <BottomSheetScrollView contentContainerStyle={scrollContent}>
-          {/* Header */}
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              paddingHorizontal: 16,
-              paddingTop: 8,
-              paddingBottom: 16,
-              borderBottomWidth: 1,
-              borderBottomColor: colors.border.dark,
-            }}
-          >
-            <Text style={{ fontSize: 18, fontWeight: '600', color: colors.text.primary.dark }}>
-              Filters
+          <View className="border-border flex-row items-center justify-between border-b px-4 pt-2 pb-4">
+            <Text accessibilityRole="header" className="text-lg font-semibold">
+              {t('common:labels.filters')}
             </Text>
             {activeFilterCount > 0 && (
               <Pressable
-                onPress={clearAllFilters}
-                style={{ flexDirection: 'row', alignItems: 'center', gap: 4, padding: 4 }}
+                onPress={() => clear(EMPTY_FILTERS)}
+                accessibilityRole="button"
+                hitSlop={12}
+                className="flex-row items-center gap-1 p-1"
               >
                 <X size={14} color={colors.text.muted.dark} />
-                <Text style={{ color: colors.text.muted.dark, fontSize: 13 }}>Clear all</Text>
+                <Text className="text-muted-foreground text-[13px]">
+                  {t('common:filters.clearAll')}
+                </Text>
               </Pressable>
             )}
           </View>
 
-          {/* Sub-menu navigation items */}
-          <View style={{ paddingHorizontal: 16, paddingTop: 16 }}>
-            <Text
-              style={{
-                color: colors.text.muted.dark,
-                fontSize: 11,
-                fontWeight: '600',
-                letterSpacing: 0.5,
-                textTransform: 'uppercase',
-                marginBottom: 8,
-              }}
-            >
-              Filter by
-            </Text>
-
-            {renderNavRow(User, 'Users', filters.serverUserIds.length, () =>
-              setActiveSection('users')
-            )}
-            {renderNavRow(Monitor, 'Platforms', filters.platforms.length, () =>
-              setActiveSection('platforms')
-            )}
-            {renderNavRow(Globe, 'Countries', filters.geoCountries.length, () =>
-              setActiveSection('countries')
-            )}
+          <View className="px-4 pt-4">
+            <GroupLabel>
+              {t('mobile:history.filters.filterBy', { defaultValue: 'Filter by' })}
+            </GroupLabel>
+            {renderNavRow('users', User)}
+            {renderNavRow('platforms', Monitor)}
+            {renderNavRow('countries', Globe)}
           </View>
 
-          {/* Media Types - 2x2 grid */}
-          <View style={{ paddingHorizontal: 16, paddingTop: 20 }}>
-            <Text
-              style={{
-                color: colors.text.muted.dark,
-                fontSize: 11,
-                fontWeight: '600',
-                letterSpacing: 0.5,
-                textTransform: 'uppercase',
-                marginBottom: 10,
-              }}
-            >
-              Media Type
-            </Text>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-              {MEDIA_TYPES.map(({ value, label, icon: Icon }) => {
-                const isSelected = filters.mediaTypes.includes(value);
-                return (
-                  <Pressable
-                    key={value}
-                    onPress={() => toggleMediaType(value)}
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      gap: 8,
-                      paddingVertical: 10,
-                      paddingHorizontal: 14,
-                      borderRadius: 8,
-                      borderWidth: 1,
-                      borderColor: isSelected ? ACCENT_COLOR : colors.border.dark,
-                      backgroundColor: isSelected ? `${ACCENT_COLOR}15` : colors.surface.dark,
-                      minWidth: '47%',
-                    }}
-                  >
-                    <Icon size={18} color={isSelected ? ACCENT_COLOR : colors.text.muted.dark} />
-                    <Text
-                      style={{
-                        fontSize: 14,
-                        fontWeight: '500',
-                        color: isSelected ? ACCENT_COLOR : colors.text.primary.dark,
-                      }}
-                    >
-                      {label}
-                    </Text>
-                  </Pressable>
-                );
-              })}
+          <View className="px-4 pt-5">
+            <GroupLabel>
+              {t('mobile:history.filters.mediaType', { defaultValue: 'Media Type' })}
+            </GroupLabel>
+            <View className="flex-row flex-wrap gap-2">
+              {MEDIA_TYPES.map(({ value, labelKey, icon }) => (
+                <ChipOption
+                  key={value}
+                  label={t(labelKey)}
+                  icon={icon}
+                  isSelected={filters.mediaTypes.includes(value)}
+                  onPress={() => toggle('mediaTypes', [value])}
+                />
+              ))}
             </View>
           </View>
 
-          {/* Quality/Transcode - row of 3 */}
-          <View style={{ paddingHorizontal: 16, paddingTop: 20 }}>
-            <Text
-              style={{
-                color: colors.text.muted.dark,
-                fontSize: 11,
-                fontWeight: '600',
-                letterSpacing: 0.5,
-                textTransform: 'uppercase',
-                marginBottom: 10,
-              }}
-            >
-              Playback Quality
-            </Text>
-            <View style={{ flexDirection: 'row', gap: 8 }}>
-              {TRANSCODE_OPTIONS.map(({ value, label, icon: Icon }) => {
-                const isSelected = filters.transcodeDecisions.includes(value);
-                return (
-                  <Pressable
-                    key={value}
-                    onPress={() => toggleTranscode(value)}
-                    style={{
-                      flex: 1,
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      gap: 6,
-                      paddingVertical: 12,
-                      paddingHorizontal: 8,
-                      borderRadius: 8,
-                      borderWidth: 1,
-                      borderColor: isSelected ? ACCENT_COLOR : colors.border.dark,
-                      backgroundColor: isSelected ? `${ACCENT_COLOR}15` : colors.surface.dark,
-                    }}
-                  >
-                    <Icon size={20} color={isSelected ? ACCENT_COLOR : colors.text.muted.dark} />
-                    <Text
-                      style={{
-                        fontSize: 12,
-                        fontWeight: '500',
-                        color: isSelected ? ACCENT_COLOR : colors.text.primary.dark,
-                        textAlign: 'center',
-                      }}
-                      numberOfLines={1}
-                    >
-                      {label}
-                    </Text>
-                  </Pressable>
-                );
-              })}
+          <View className="px-4 pt-5">
+            <GroupLabel>{t('mobile:activity.playbackQuality')}</GroupLabel>
+            <View className="flex-row gap-2">
+              {TRANSCODE_OPTIONS.map(({ value, icon }) => (
+                <ChipOption
+                  key={value}
+                  stacked
+                  label={t(PLAYBACK_DECISION_LABEL_KEYS[value])}
+                  icon={icon}
+                  isSelected={filters.transcodeDecisions.includes(value)}
+                  onPress={() => toggle('transcodeDecisions', [value])}
+                />
+              ))}
             </View>
           </View>
         </BottomSheetScrollView>
 
-        {/* Done button - sticky footer */}
-        <View
-          style={{
-            paddingHorizontal: 16,
-            paddingVertical: 12,
-            paddingBottom: Math.max(insets.bottom, 12) + 12,
-            borderTopWidth: 1,
-            borderTopColor: colors.border.dark,
-            backgroundColor: colors.card.dark,
-          }}
-        >
-          <Pressable
-            onPress={handleDone}
-            style={{
-              backgroundColor: ACCENT_COLOR,
-              paddingVertical: 14,
-              borderRadius: 10,
-              alignItems: 'center',
-            }}
-          >
-            <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600' }}>
-              {activeFilterCount > 0 ? `Apply ${activeFilterCount} Filters` : 'Done'}
+        {doneFooter}
+      </View>
+    );
+
+    const renderSectionRows = (section: ListSection) => {
+      if (section === 'users') {
+        return sortedUsers.map((user) => {
+          const displayName = user.identityName || user.username || t('common:labels.unknown');
+          return (
+            <OptionRow
+              key={user.id}
+              label={displayName}
+              isSelected={user.serverUserIds.some((id) => filters.serverUserIds.includes(id))}
+              onPress={() => toggle('serverUserIds', user.serverUserIds)}
+              leading={
+                <UserAvatar
+                  thumbUrl={user.thumbUrl}
+                  serverId={user.serverId}
+                  username={displayName}
+                  size={36}
+                />
+              }
+            />
+          );
+        });
+      }
+
+      const key = SECTION_FILTER_KEY[section];
+      return filterOptions?.[section]?.map((item) => (
+        <OptionRow
+          key={item.value}
+          label={item.value}
+          count={item.count}
+          isSelected={filters[key].includes(item.value)}
+          onPress={() => toggle(key, [item.value])}
+        />
+      ));
+    };
+
+    const emptyLabels: Record<ListSection, string> = {
+      users: t('mobile:history.filters.noUsers', { defaultValue: 'No users available' }),
+      platforms: t('mobile:history.filters.noPlatforms', {
+        defaultValue: 'No platforms available',
+      }),
+      countries: t('mobile:history.filters.noCountries', {
+        defaultValue: 'No countries available',
+      }),
+    };
+
+    const renderListSection = (section: ListSection) => {
+      const key = SECTION_FILTER_KEY[section];
+      const count = filters[key].length;
+      const isEmpty =
+        section === 'users' ? sortedUsers.length === 0 : !filterOptions?.[section]?.length;
+
+      return (
+        <View className="flex-1">
+          <View className="border-border bg-card flex-row items-center border-b px-2 py-2">
+            <View className="min-w-24 items-start">
+              <Pressable
+                onPress={() => setActiveSection('main')}
+                accessibilityRole="button"
+                accessibilityLabel={t('common:actions.back')}
+                className="min-h-11 flex-row items-center pr-2"
+              >
+                <ChevronLeft size={20} color={ACCENT_COLOR} />
+                <Text className="text-primary ml-1 text-[15px]">{t('common:actions.back')}</Text>
+              </Pressable>
+            </View>
+            <Text
+              accessibilityRole="header"
+              numberOfLines={1}
+              className="flex-1 text-center text-lg font-semibold"
+            >
+              {sectionTitles[section]}
             </Text>
-          </Pressable>
+            <View className="min-w-24 items-end">
+              {count > 0 && (
+                <Pressable
+                  onPress={() => clear({ ...filters, [key]: [] })}
+                  accessibilityRole="button"
+                  className="min-h-11 justify-center px-2"
+                >
+                  <Text className="text-primary text-[13px]">
+                    {t('mobile:history.filters.clearCount', {
+                      count,
+                      defaultValue: 'Clear ({{count}})',
+                    })}
+                  </Text>
+                </Pressable>
+              )}
+            </View>
+          </View>
+          <BottomSheetScrollView contentContainerStyle={scrollContent} style={{ flex: 1 }}>
+            {renderSectionRows(section)}
+            {isEmpty && (
+              <Text className="text-muted-foreground py-8 text-center text-sm">
+                {emptyLabels[section]}
+              </Text>
+            )}
+          </BottomSheetScrollView>
+          {doneFooter}
         </View>
-      </View>
-    );
-
-    // Done button for sub-sections
-    const renderDoneButton = () => (
-      <View
-        style={{
-          paddingHorizontal: 16,
-          paddingVertical: 12,
-          paddingBottom: Math.max(insets.bottom, 12) + 12,
-          borderTopWidth: 1,
-          borderTopColor: colors.border.dark,
-          backgroundColor: colors.card.dark,
-        }}
-      >
-        <Pressable
-          onPress={handleDone}
-          style={{
-            backgroundColor: ACCENT_COLOR,
-            paddingVertical: 14,
-            borderRadius: 10,
-            alignItems: 'center',
-          }}
-        >
-          <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600' }}>
-            {activeFilterCount > 0 ? `Apply ${activeFilterCount} Filters` : 'Done'}
-          </Text>
-        </Pressable>
-      </View>
-    );
-
-    // Users sub-menu
-    const renderUsersSection = () => (
-      <View style={{ flex: 1 }}>
-        {renderSectionHeader('Users', 'users')}
-        <BottomSheetScrollView contentContainerStyle={listContent} style={{ flex: 1 }}>
-          {sortedUsers.map(renderUserItem)}
-          {sortedUsers.length === 0 && (
-            <Text
-              style={{
-                color: colors.text.muted.dark,
-                textAlign: 'center',
-                paddingVertical: 32,
-                fontSize: 14,
-              }}
-            >
-              No users available
-            </Text>
-          )}
-        </BottomSheetScrollView>
-        {renderDoneButton()}
-      </View>
-    );
-
-    // Platforms sub-menu
-    const renderPlatformsSection = () => (
-      <View style={{ flex: 1 }}>
-        {renderSectionHeader('Platforms', 'platforms')}
-        <BottomSheetScrollView contentContainerStyle={listContent} style={{ flex: 1 }}>
-          {filterOptions?.platforms?.map((item) =>
-            renderFilterItem(item, filters.platforms.includes(item.value), () =>
-              togglePlatform(item.value)
-            )
-          )}
-          {(!filterOptions?.platforms || filterOptions.platforms.length === 0) && (
-            <Text
-              style={{
-                color: colors.text.muted.dark,
-                textAlign: 'center',
-                paddingVertical: 32,
-                fontSize: 14,
-              }}
-            >
-              No platforms available
-            </Text>
-          )}
-        </BottomSheetScrollView>
-        {renderDoneButton()}
-      </View>
-    );
-
-    // Countries sub-menu
-    const renderCountriesSection = () => (
-      <View style={{ flex: 1 }}>
-        {renderSectionHeader('Countries', 'countries')}
-        <BottomSheetScrollView contentContainerStyle={listContent} style={{ flex: 1 }}>
-          {filterOptions?.countries?.map((item) =>
-            renderFilterItem(item, filters.geoCountries.includes(item.value), () =>
-              toggleCountry(item.value)
-            )
-          )}
-          {(!filterOptions?.countries || filterOptions.countries.length === 0) && (
-            <Text
-              style={{
-                color: colors.text.muted.dark,
-                textAlign: 'center',
-                paddingVertical: 32,
-                fontSize: 14,
-              }}
-            >
-              No countries available
-            </Text>
-          )}
-        </BottomSheetScrollView>
-        {renderDoneButton()}
-      </View>
-    );
+      );
+    };
 
     return (
       <BottomSheet
@@ -709,10 +476,7 @@ export const FilterBottomSheet = forwardRef<FilterBottomSheetRef, FilterBottomSh
         backgroundStyle={bottomSheetBackground}
         handleIndicatorStyle={handleIndicator}
       >
-        {activeSection === 'main' && renderMainMenu()}
-        {activeSection === 'users' && renderUsersSection()}
-        {activeSection === 'platforms' && renderPlatformsSection()}
-        {activeSection === 'countries' && renderCountriesSection()}
+        {activeSection === 'main' ? renderMainMenu() : renderListSection(activeSection)}
       </BottomSheet>
     );
   }
@@ -720,7 +484,6 @@ export const FilterBottomSheet = forwardRef<FilterBottomSheetRef, FilterBottomSh
 
 FilterBottomSheet.displayName = 'FilterBottomSheet';
 
-// Style constants for BottomSheet component props
 const bottomSheetBackground: ViewStyle = {
   backgroundColor: colors.card.dark,
   borderTopLeftRadius: 16,
@@ -737,10 +500,5 @@ const handleIndicator: ViewStyle = {
 };
 
 const scrollContent = {
-  paddingBottom: 48,
-} satisfies ViewStyle;
-
-const listContent = {
-  paddingHorizontal: 16,
   paddingBottom: 48,
 } satisfies ViewStyle;
