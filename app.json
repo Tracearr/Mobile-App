@@ -121,6 +121,7 @@
           "fonts": ["./assets/fonts/Inter_500Medium.ttf"]
         }
       ],
+      "posthog-react-native/expo",
       "expo-background-task",
       [
         "expo-widgets",
