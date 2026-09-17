@@ -89,8 +89,7 @@ export interface BulkAcknowledgeFilters {
 }
 
 export type BulkAcknowledgeInput =
-  | { ids: string[] }
-  | { selectAll: true; filters: BulkAcknowledgeFilters };
+  { ids: string[] } | { selectAll: true; filters: BulkAcknowledgeFilters };
 
 function appendScope(params: URLSearchParams, scope: ServerScope): void {
   for (const [k, v] of serverScopeParamEntries(scope)) params.append(k, v);
@@ -800,7 +799,10 @@ export const api = {
       params: { scope: ServerScope; severity?: ViolationSeverity },
       signal?: AbortSignal
     ): Promise<number> => {
-      const page = await api.violations.list({ ...params, acknowledged: false, pageSize: 1 }, signal);
+      const page = await api.violations.list(
+        { ...params, acknowledged: false, pageSize: 1 },
+        signal
+      );
       return pageMetaOf(page).total;
     },
     get: async (id: string, signal?: AbortSignal): Promise<ViolationWithDetails> => {

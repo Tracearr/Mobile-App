@@ -63,8 +63,11 @@ export const queryKeys = {
     history: (scope: ServerScope, filters: HistoryQueryFilters) =>
       ['sessions', 'history', serverScopeKey(scope), filters] as const,
     historyPrefix: () => ['sessions', 'history'] as const,
-    historyAggregates: (scope: ServerScope, period: string, filters: HistoryAggregateFilters = {}) =>
-      ['sessions', 'history', 'aggregates', serverScopeKey(scope), period, filters] as const,
+    historyAggregates: (
+      scope: ServerScope,
+      period: string,
+      filters: HistoryAggregateFilters = {}
+    ) => ['sessions', 'history', 'aggregates', serverScopeKey(scope), period, filters] as const,
     filterOptionsPrefix: () => ['sessions', 'filter-options'] as const,
     filterOptions: (scope: ServerScope) =>
       ['sessions', 'filter-options', serverScopeKey(scope)] as const,
