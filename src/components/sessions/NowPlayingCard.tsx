@@ -1,39 +1,46 @@
 /**
  * Compact card showing an active streaming session
- * Displays poster, title, user, progress bar, and play/pause status
+ * Displays poster, title, user, playback badge, progress bar and play/pause
+ * status, plus a terminate button when the session allows it.
  *
  * Responsive enhancements for tablets:
- * - Larger poster (80x120 vs 50x75)
- * - Quality badge (Direct Play/Direct Stream/Transcode)
+ * - Larger poster (65x95 vs 50x70)
  * - Device icon
  * - Location footer
  */
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Pressable, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
 import {
-  ArrowRight,
   ChevronRight,
   Cpu,
   Film,
   MapPin,
   Monitor,
   Pause,
-  Play,
   Smartphone,
   Tablet,
   Tv,
-  Zap,
+  X,
   type LucideIcon,
 } from 'lucide-react-native';
+import { useTranslation } from '@tracearr/translations/mobile';
+import { Card } from '@/components/ui/card';
 import { Text } from '@/components/ui/text';
 import { UserAvatar } from '@/components/ui/user-avatar';
+import { ServerTag } from '@/components/server/ServerTag';
 import { useImageUrl } from '@/hooks/useImageUrl';
 import { useEstimatedProgress } from '@/hooks/useEstimatedProgress';
 import { useResponsive } from '@/hooks/useResponsive';
-import { ACCENT_COLOR, colors, spacing } from '@/lib/theme';
+import { useAuthStateStore } from '@/lib/authStateStore';
+import { haptics } from '@/lib/haptics';
+import { ACCENT_COLOR, colors, spacing, withAlpha } from '@/lib/theme';
 import { formatDuration } from '@/lib/formatters';
 import { formatEpisodeLabel, type ActiveSession } from '@tracearr/shared';
+import { QualityBadge } from './QualityBadge';
+import { TerminateSessionDialog } from './TerminateSessionDialog';
+
+const TERMINATE_BUTTON_SIZE = 24;
 
 interface NowPlayingCardProps {
   session: ActiveSession;
@@ -59,72 +66,6 @@ function getMediaDisplay(session: ActiveSession): { title: string; subtitle: str
   return {
     title: session.mediaTitle,
     subtitle: session.year ? `${session.year}` : null,
-  };
-}
-
-/**
- * Get quality decision label, color, and icon
- */
-function getQualityInfo(session: ActiveSession): {
-  label: string;
-  color: string;
-  bgColor: string;
-  icon: LucideIcon;
-  isHwTranscode: boolean;
-} {
-  const videoDecision = session.videoDecision?.toLowerCase();
-  const audioDecision = session.audioDecision?.toLowerCase();
-  const isHwTranscode = !!(session.transcodeInfo?.hwEncoding || session.transcodeInfo?.hwDecoding);
-
-  // If either is transcoding, show as transcode
-  if (videoDecision === 'transcode' || audioDecision === 'transcode') {
-    return {
-      label: 'Transcode',
-      color: colors.warning,
-      bgColor: 'rgba(245, 158, 11, 0.15)',
-      icon: isHwTranscode ? Cpu : Zap,
-      isHwTranscode,
-    };
-  }
-  // If video is direct play and audio is direct play or copy
-  if (
-    videoDecision === 'directplay' &&
-    (audioDecision === 'directplay' || audioDecision === 'copy')
-  ) {
-    return {
-      label: 'Direct Play',
-      color: colors.success,
-      bgColor: 'rgba(34, 197, 94, 0.15)',
-      icon: Play,
-      isHwTranscode: false,
-    };
-  }
-  // Direct stream (video copy or direct stream)
-  if (videoDecision === 'copy' || videoDecision === 'directstream') {
-    return {
-      label: 'Direct Stream',
-      color: colors.info,
-      bgColor: 'rgba(59, 130, 246, 0.15)',
-      icon: ArrowRight,
-      isHwTranscode: false,
-    };
-  }
-  // Fallback based on isTranscode flag
-  if (session.isTranscode) {
-    return {
-      label: 'Transcode',
-      color: colors.warning,
-      bgColor: 'rgba(245, 158, 11, 0.15)',
-      icon: isHwTranscode ? Cpu : Zap,
-      isHwTranscode,
-    };
-  }
-  return {
-    label: 'Direct Play',
-    color: colors.success,
-    bgColor: 'rgba(34, 197, 94, 0.15)',
-    icon: Play,
-    isHwTranscode: false,
   };
 }
 
@@ -202,9 +143,12 @@ export function NowPlayingCard({
   isMultiServer,
   serverColor,
 }: NowPlayingCardProps) {
+  const { t } = useTranslation(['common', 'pages']);
   const getImageUrl = useImageUrl();
   const { isTablet, select } = useResponsive();
   const { title, subtitle } = getMediaDisplay(session);
+  const [terminateOpen, setTerminateOpen] = useState(false);
+  const isOffline = useAuthStateStore((s) => s.connectionState !== 'connected');
 
   // Use estimated progress for smooth updates between SSE/poll events
   const { estimatedProgressMs, progressPercent } = useEstimatedProgress(session);
@@ -223,24 +167,15 @@ export function NowPlayingCard({
   });
 
   const isPaused = session.state === 'paused';
-  const username = session.user?.username ?? 'Unknown';
+  const username = session.user?.username ?? t('common:labels.unknown');
   const displayName = session.user?.identityName ?? username;
   const userThumbUrl = session.user?.thumbUrl || null;
 
-  // Tablet-only info
-  const qualityInfo = getQualityInfo(session);
-  const QualityIcon = qualityInfo.icon;
   const DeviceIcon = getDeviceIcon(session);
   const location = getLocationString(session);
 
   return (
-    <Pressable
-      className="bg-card mb-2 overflow-hidden rounded-xl"
-      style={({ pressed }) => ({
-        ...(pressed && { opacity: 0.7 }),
-      })}
-      onPress={() => onPress?.(session)}
-    >
+    <Card padding="none" className="mb-2 overflow-hidden">
       {/* Background with poster blur - matches web's blur-xl */}
       {posterUrl && (
         <Image
@@ -251,149 +186,174 @@ export function NowPlayingCard({
         />
       )}
 
-      {/* Main content row */}
-      <View className="flex-row px-2 py-1" style={{ gap: isTablet ? spacing.md : spacing.sm }}>
-        {/* Poster */}
-        <View className="relative">
-          {posterUrl ? (
-            <Image
-              source={{ uri: posterUrl }}
-              className="bg-card rounded-lg"
-              style={{ width: posterWidth, height: posterHeight }}
-              contentFit="cover"
-            />
-          ) : (
-            <View
-              className="bg-card items-center justify-center rounded-lg"
-              style={{ width: posterWidth, height: posterHeight }}
-            >
-              <Film size={isTablet ? 28 : 24} color={colors.icon.default} />
-            </View>
-          )}
-          {/* Play/Pause overlay on poster - like web */}
-          {isPaused && (
-            <View
-              style={StyleSheet.absoluteFill}
-              className="items-center justify-center rounded-lg bg-black/60"
-            >
-              <Pause size={isTablet ? 24 : 20} color={colors.text.primary.dark} />
-            </View>
-          )}
-        </View>
-
-        {/* Info section — groups spaced apart, tight within */}
-        <View className="flex-1" style={{ gap: isTablet ? 10 : 6 }}>
-          {/* Title block */}
-          <View>
-            <View className="flex-row items-center">
-              <Text
-                className={`flex-1 font-semibold ${isTablet ? 'text-base leading-5' : 'text-sm leading-4'}`}
-                numberOfLines={1}
-              >
-                {title}
-              </Text>
-              <QualityIcon
-                size={isTablet ? 13 : 11}
-                color={qualityInfo.color}
-                style={{ marginLeft: 4 }}
+      <Pressable
+        accessibilityRole="button"
+        style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+        onPress={() => onPress?.(session)}
+      >
+        {/* Main content row */}
+        <View className="flex-row p-2.5" style={{ gap: isTablet ? spacing.md : spacing.sm }}>
+          {/* Poster */}
+          <View className="relative">
+            {posterUrl ? (
+              <Image
+                source={{ uri: posterUrl }}
+                className="bg-card rounded-lg"
+                style={{ width: posterWidth, height: posterHeight }}
+                contentFit="cover"
               />
-              {isTablet && (
-                <DeviceIcon size={14} color={colors.text.muted.dark} style={{ marginLeft: 4 }} />
-              )}
-            </View>
-            {subtitle && (
-              <Text
-                className={`text-muted-foreground mt-px ${isTablet ? 'text-sm' : 'text-xs'}`}
-                numberOfLines={1}
+            ) : (
+              <View
+                className="bg-surface items-center justify-center rounded-lg"
+                style={{ width: posterWidth, height: posterHeight }}
               >
-                {subtitle}
-              </Text>
+                <Film size={isTablet ? 28 : 24} color={colors.icon.default} />
+              </View>
+            )}
+            {/* Play/Pause overlay on poster - like web */}
+            {isPaused && (
+              <View
+                style={StyleSheet.absoluteFill}
+                className="items-center justify-center rounded-lg bg-black/60"
+              >
+                <Pause size={isTablet ? 24 : 20} color={colors.text.primary.dark} />
+              </View>
             )}
           </View>
 
-          {/* User row */}
-          <View className="flex-row items-center gap-1">
-            <UserAvatar
-              thumbUrl={userThumbUrl}
-              serverId={session.serverId}
-              username={username}
-              size={avatarSize}
-            />
-            <Text className="text-secondary-foreground flex-1 text-xs" numberOfLines={1}>
-              {displayName}
-            </Text>
-            {/* Chevron */}
-            <ChevronRight
-              size={isTablet ? 16 : 14}
-              color={colors.icon.default}
-              style={{ opacity: 0.4 }}
-            />
-          </View>
-
-          {/* Footer - server name (multi-server) and/or location */}
-          {(isMultiServer || (isTablet && location)) && (
-            <View className="flex-row items-center gap-1">
-              {isMultiServer && (
-                <>
-                  {serverColor && (
-                    <View
-                      style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: serverColor }}
-                    />
-                  )}
-                  <Text
-                    className="text-muted-foreground text-[10px]"
-                    numberOfLines={1}
-                    style={{ flexShrink: 1 }}
-                  >
-                    {session.server.name}
-                  </Text>
-                </>
-              )}
-              {isMultiServer && location && (
-                <Text className="text-muted-foreground text-[10px]">·</Text>
-              )}
-              {location && (
-                <View className="flex-row items-center gap-0.5" style={{ flexShrink: 1 }}>
-                  <MapPin size={9} color={colors.text.muted.dark} />
-                  <Text className="text-muted-foreground text-[10px]" numberOfLines={1}>
-                    {location}
-                  </Text>
-                </View>
+          {/* Info section: groups spaced apart, tight within */}
+          <View className="flex-1" style={{ gap: isTablet ? 10 : 6 }}>
+            {/* Title block */}
+            <View>
+              <View
+                className="flex-row items-center gap-1.5"
+                style={{
+                  paddingRight: session.canTerminate ? TERMINATE_BUTTON_SIZE + 6 : 0,
+                }}
+              >
+                <Text
+                  className={`flex-1 font-semibold ${isTablet ? 'text-base leading-5' : 'text-sm leading-4'}`}
+                  numberOfLines={1}
+                >
+                  {title}
+                </Text>
+                <QualityBadge session={session} iconOnly />
+                {isTablet && (
+                  <View className="bg-muted h-6 w-6 items-center justify-center rounded-md">
+                    <DeviceIcon size={14} color={colors.text.muted.dark} />
+                  </View>
+                )}
+              </View>
+              {subtitle && (
+                <Text
+                  className={`text-muted-foreground mt-px ${isTablet ? 'text-sm' : 'text-xs'}`}
+                  numberOfLines={1}
+                >
+                  {subtitle}
+                </Text>
               )}
             </View>
-          )}
-        </View>
-      </View>
 
-      {/* Progress bar with time labels - like web */}
-      <View className="px-2 pb-1">
-        <View className="rounded-full" style={{ height: 4, backgroundColor: colors.surface.dark }}>
-          <View
-            className="rounded-full"
-            style={{
-              height: '100%',
-              width: `${progressPercent}%`,
-              backgroundColor: isMultiServer && serverColor ? serverColor : ACCENT_COLOR,
-            }}
-          />
+            {/* User row */}
+            <View className="flex-row items-center gap-1">
+              <UserAvatar
+                thumbUrl={userThumbUrl}
+                serverId={session.serverId}
+                username={username}
+                size={avatarSize}
+              />
+              <Text className="text-secondary-foreground flex-1 text-xs" numberOfLines={1}>
+                {displayName}
+              </Text>
+              <ChevronRight
+                size={isTablet ? 16 : 14}
+                color={colors.icon.default}
+                style={{ opacity: 0.4 }}
+              />
+            </View>
+
+            {/* Footer - server name (multi-server) and/or location */}
+            {(isMultiServer || (isTablet && location)) && (
+              <View className="flex-row items-center gap-1">
+                {isMultiServer && <ServerTag name={session.server.name} color={serverColor} />}
+                {isMultiServer && location && (
+                  <Text className="text-muted-foreground text-[10px]">·</Text>
+                )}
+                {location && (
+                  <View className="flex-row items-center gap-0.5" style={{ flexShrink: 1 }}>
+                    <MapPin size={9} color={colors.text.muted.dark} />
+                    <Text className="text-muted-foreground text-[10px]" numberOfLines={1}>
+                      {location}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            )}
+          </View>
         </View>
-        <View className="mt-0.5 flex-row justify-between">
-          <Text className="text-muted-foreground text-[10px]">
-            {formatDuration(estimatedProgressMs, { style: 'clock' })}
-          </Text>
-          {isPaused ? (
-            <Text className="text-[10px] font-medium" style={{ color: colors.warning }}>
-              Paused
-            </Text>
-          ) : (
+
+        {/* Progress bar with time labels - like web */}
+        <View className="px-2.5 pb-2">
+          <View className="bg-surface h-1 rounded-full">
+            <View
+              className="rounded-full"
+              style={{
+                height: '100%',
+                width: `${progressPercent}%`,
+                backgroundColor: isMultiServer && serverColor ? serverColor : ACCENT_COLOR,
+              }}
+            />
+          </View>
+          <View className="mt-0.5 flex-row justify-between">
             <Text className="text-muted-foreground text-[10px]">
-              {session.totalDurationMs && estimatedProgressMs
-                ? `-${formatDuration(session.totalDurationMs - estimatedProgressMs, { style: 'clock' })}`
-                : formatDuration(session.totalDurationMs, { style: 'clock' })}
+              {formatDuration(estimatedProgressMs, { style: 'clock' })}
             </Text>
-          )}
+            {isPaused ? (
+              <Text className="text-warning text-[10px] font-medium">
+                {t('common:playback.paused')}
+              </Text>
+            ) : (
+              <Text className="text-muted-foreground text-[10px]">
+                {session.totalDurationMs && estimatedProgressMs
+                  ? `-${formatDuration(session.totalDurationMs - estimatedProgressMs, { style: 'clock' })}`
+                  : formatDuration(session.totalDurationMs, { style: 'clock' })}
+              </Text>
+            )}
+          </View>
         </View>
-      </View>
-    </Pressable>
+      </Pressable>
+
+      {/* A sibling of the card's Pressable: VoiceOver cannot reach a button nested in another. */}
+      {session.canTerminate && (
+        <>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t('pages:terminateStream.title')}
+            accessibilityState={{ disabled: isOffline }}
+            disabled={isOffline}
+            hitSlop={10}
+            onPress={() => {
+              haptics.warning();
+              setTerminateOpen(true);
+            }}
+            className={`absolute top-2.5 right-2.5 items-center justify-center rounded-full ${isOffline ? 'opacity-50' : ''}`}
+            style={{
+              width: TERMINATE_BUTTON_SIZE,
+              height: TERMINATE_BUTTON_SIZE,
+              backgroundColor: withAlpha(colors.error, '15'),
+            }}
+          >
+            <X size={14} color={colors.error} />
+          </Pressable>
+          <TerminateSessionDialog
+            visible={terminateOpen}
+            onClose={() => setTerminateOpen(false)}
+            sessionId={session.id}
+            mediaTitle={title}
+            username={username}
+          />
+        </>
+      )}
+    </Card>
   );
 }

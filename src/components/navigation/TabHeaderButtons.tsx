@@ -13,6 +13,16 @@ import { colors, spacing } from '@/lib/theme';
 import { ROUTES } from '@/lib/routes';
 import { useTranslation } from '@tracearr/translations/mobile';
 
+function useAlertsButton() {
+  const { t } = useTranslation(['mobile']);
+  const { count, hasAlerts, displayCount } = useUnacknowledgedAlertsCount();
+  return {
+    hasAlerts,
+    displayCount,
+    label: hasAlerts ? t('mobile:a11y.alertsCount', { count }) : t('mobile:a11y.alerts'),
+  };
+}
+
 export function HeaderLeft() {
   const { t } = useTranslation(['mobile']);
   const router = useRouter();
@@ -32,18 +42,14 @@ export function HeaderLeft() {
 export function HeaderRight() {
   const { t } = useTranslation(['mobile']);
   const router = useRouter();
-  const { hasAlerts, displayCount } = useUnacknowledgedAlertsCount();
+  const { hasAlerts, displayCount, label } = useAlertsButton();
 
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center' }}>
       <Pressable
         onPress={() => router.push(ROUTES.ALERTS)}
         accessibilityRole="button"
-        accessibilityLabel={
-          hasAlerts
-            ? t('mobile:a11y.alertsCount', { count: Number(displayCount) || 0 })
-            : t('mobile:a11y.alerts')
-        }
+        accessibilityLabel={label}
         style={{ padding: spacing.xs }}
         hitSlop={{ top: 10, bottom: 10, left: 4, right: 4 }}
       >
@@ -63,7 +69,9 @@ export function HeaderRight() {
                 paddingHorizontal: 4,
               }}
             >
-              <Text style={{ fontSize: 10, fontWeight: '700', color: '#fff' }}>{displayCount}</Text>
+              <Text style={{ fontSize: 10, fontWeight: '700', color: colors.text.primary.dark }}>
+                {displayCount}
+              </Text>
             </View>
           )}
         </View>
@@ -95,8 +103,9 @@ export const androidHeaderOptions =
     : {};
 
 export function TabToolbar() {
+  const { t } = useTranslation(['mobile']);
   const router = useRouter();
-  const { hasAlerts, displayCount } = useUnacknowledgedAlertsCount();
+  const { hasAlerts, displayCount, label } = useAlertsButton();
 
   if (Platform.OS !== 'ios') {
     return null;
@@ -107,14 +116,23 @@ export function TabToolbar() {
       <Stack.Toolbar placement="left">
         <Stack.Toolbar.Button
           icon="server.rack"
+          accessibilityLabel={t('mobile:a11y.selectServer')}
           onPress={() => router.push(ROUTES.SERVER_SELECT)}
         />
       </Stack.Toolbar>
       <Stack.Toolbar placement="right">
-        <Stack.Toolbar.Button icon="bell" onPress={() => router.push(ROUTES.ALERTS)}>
+        <Stack.Toolbar.Button
+          icon="bell"
+          accessibilityLabel={label}
+          onPress={() => router.push(ROUTES.ALERTS)}
+        >
           {hasAlerts && <Stack.Toolbar.Badge>{displayCount}</Stack.Toolbar.Badge>}
         </Stack.Toolbar.Button>
-        <Stack.Toolbar.Button icon="gearshape" onPress={() => router.push(ROUTES.SETTINGS)} />
+        <Stack.Toolbar.Button
+          icon="gearshape"
+          accessibilityLabel={t('mobile:a11y.settings')}
+          onPress={() => router.push(ROUTES.SETTINGS)}
+        />
       </Stack.Toolbar>
     </>
   );

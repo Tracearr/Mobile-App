@@ -16,6 +16,7 @@ import { SocketProvider } from '@/providers/SocketProvider';
 import { MediaServerProvider } from '@/providers/MediaServerProvider';
 import { ErrorBoundary, ScreenErrorFallback } from '@/components/ErrorBoundary';
 import { OfflineBanner } from '@/components/OfflineBanner';
+import { ServerHealthBanner } from '@/components/server/ServerHealthBanner';
 import { UnauthenticatedScreen } from '@/components/UnauthenticatedScreen';
 import { Toast } from '@/components/Toast';
 import { useShallow } from 'zustand/react/shallow';
@@ -130,6 +131,7 @@ function RootLayoutNav() {
     <>
       <StatusBar style="light" />
       <OfflineBanner onRetry={validate} />
+      <ServerHealthBanner />
       <Toast
         message={t('mobile:reconnected')}
         visible={showReconnectedToast}
