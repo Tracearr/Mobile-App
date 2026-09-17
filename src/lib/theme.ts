@@ -56,8 +56,8 @@ export const colors = {
   // Status colors
   success: '#22C55E',
   warning: '#F59E0B',
-  error: '#B91C1C',
-  danger: '#B91C1C',
+  error: '#DC2626',
+  danger: '#DC2626',
   info: '#3B82F6',
 
   // Switch/toggle colors
@@ -99,8 +99,8 @@ export const colors = {
     light: '#E4E4E7', // hsl(240 6% 90%)
   },
 
-  // Chart colors (matches web --chart-1 through --chart-5)
-  chart: ['#18D1E7', '#22D3EE', '#6B7280', '#F59E0B', '#B91C1C', '#22C55E'],
+  // --color-chart-1 through --color-chart-5
+  chart: ['#18D1E7', '#22D3EE', '#6B7280', '#FBBF24', '#EF4444'],
 } as const;
 
 /**
@@ -123,9 +123,9 @@ export const spacing = {
 
 export const borderRadius = {
   sm: 4,
-  md: 8,
-  lg: 12,
-  xl: 16,
+  md: 6,
+  lg: 8,
+  xl: 12,
   full: 9999,
 } as const;
 

@@ -46,8 +46,8 @@ export function safeFormatDistanceToNow(
  * Supports multiple output formats
  */
 export function formatDuration(
-  ms: number | null,
-  options: { style?: 'compact' | 'full' | 'clock' } = {}
+  ms: number | null | undefined,
+  options: { style?: 'compact' | 'precise' | 'full' | 'clock' } = {}
 ): string {
   const { style = 'compact' } = options;
 
@@ -75,6 +75,12 @@ export function formatDuration(
       return parts.join(' ');
     }
 
+    case 'precise':
+      // "2h 30m", "45m 12s", "12s": keeps seconds for short sessions
+      if (hours > 0) return `${hours}h ${minutes}m`;
+      if (minutes > 0) return `${minutes}m ${seconds}s`;
+      return `${seconds}s`;
+
     case 'compact':
     default:
       // "2h 30m" format
@@ -82,6 +88,19 @@ export function formatDuration(
       if (minutes > 0) return `${minutes}m`;
       return '<1m';
   }
+}
+
+/**
+ * Format a total watch time in milliseconds as "3d 4h" or "17h"
+ */
+export function formatWatchTime(ms: number | null | undefined): string {
+  if (!ms) return '0h';
+  const totalHours = Math.floor(ms / (1000 * 60 * 60));
+  const days = Math.floor(totalHours / 24);
+  const hours = totalHours % 24;
+
+  if (days > 0) return `${days}d ${hours}h`;
+  return `${totalHours}h`;
 }
 
 /**

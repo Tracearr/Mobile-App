@@ -1,15 +1,28 @@
 import * as React from 'react';
 import { View, type ViewProps, type Text as RNText, type TextProps } from 'react-native';
+import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
 import { Text } from './text';
 
-const Card = React.forwardRef<React.ComponentRef<typeof View>, ViewProps>(
-  ({ className, ...props }, ref) => (
-    <View
-      ref={ref}
-      className={cn('border-border bg-card rounded-lg border p-4', className)}
-      {...props}
-    />
+const cardVariants = cva('border-border bg-card rounded-xl border', {
+  variants: {
+    padding: {
+      default: 'p-4',
+      compact: 'p-3',
+      chart: 'p-2',
+      none: 'p-0',
+    },
+  },
+  defaultVariants: {
+    padding: 'default',
+  },
+});
+
+interface CardProps extends ViewProps, VariantProps<typeof cardVariants> {}
+
+const Card = React.forwardRef<React.ComponentRef<typeof View>, CardProps>(
+  ({ className, padding, ...props }, ref) => (
+    <View ref={ref} className={cn(cardVariants({ padding }), className)} {...props} />
   )
 );
 Card.displayName = 'Card';
@@ -45,4 +58,4 @@ const CardFooter = React.forwardRef<React.ComponentRef<typeof View>, ViewProps>(
 );
 CardFooter.displayName = 'CardFooter';
 
-export { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter };
+export { Card, cardVariants, CardHeader, CardTitle, CardDescription, CardContent, CardFooter };

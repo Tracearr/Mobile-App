@@ -3,78 +3,83 @@
  */
 import React from 'react';
 import { View } from 'react-native';
+import { useTranslation } from '@tracearr/translations/mobile';
 import { Text } from '@/components/ui/text';
 import { colors } from '../../lib/theme';
+import { ChartCard } from './ChartCard';
+import { PLAYBACK_COLORS } from './chartColors';
 
 interface QualityChartProps {
-  directPlay: number;
+  directPlay?: number;
   directStream?: number;
-  transcode: number;
-  directPlayPercent: number;
+  transcode?: number;
+  directPlayPercent?: number;
   directStreamPercent?: number;
-  transcodePercent: number;
+  transcodePercent?: number;
   height?: number;
+  isLoading?: boolean;
 }
 
-const DIRECT_STREAM_COLOR = '#3B82F6'; // Blue
-
 export function QualityChart({
-  directPlay,
+  directPlay = 0,
   directStream = 0,
-  transcode,
-  directPlayPercent,
+  transcode = 0,
+  directPlayPercent = 0,
   directStreamPercent = 0,
-  transcodePercent,
+  transcodePercent = 0,
   height = 140,
+  isLoading,
 }: QualityChartProps) {
+  const { t } = useTranslation(['common']);
   const total = directPlay + directStream + transcode;
-
-  if (total === 0) {
-    return (
-      <View className="bg-card items-center justify-center rounded-xl p-3" style={{ height }}>
-        <Text className="text-muted-foreground text-sm">No playback data available</Text>
-      </View>
-    );
-  }
+  const rows = [
+    {
+      label: t('common:playback.directPlay'),
+      color: colors.success,
+      count: directPlay,
+      percent: directPlayPercent,
+    },
+    {
+      label: t('common:playback.directStream'),
+      color: PLAYBACK_COLORS.directStream,
+      count: directStream,
+      percent: directStreamPercent,
+    },
+    {
+      label: t('common:playback.transcode'),
+      color: PLAYBACK_COLORS.transcode,
+      count: transcode,
+      percent: transcodePercent,
+    },
+  ];
 
   return (
-    <View className="bg-card justify-center rounded-xl p-3" style={{ height }}>
-      {/* Progress bar */}
+    <ChartCard
+      height={height}
+      isLoading={isLoading}
+      isEmpty={total === 0}
+      className="justify-center p-3"
+    >
       <View className="mb-3 h-6 flex-row overflow-hidden rounded-lg">
-        <View style={{ flex: directPlayPercent || 1, backgroundColor: colors.success }} />
-        {directStreamPercent > 0 && (
-          <View style={{ flex: directStreamPercent, backgroundColor: DIRECT_STREAM_COLOR }} />
+        {rows.map(
+          (row) =>
+            row.count > 0 && (
+              <View key={row.label} style={{ flex: row.count, backgroundColor: row.color }} />
+            )
         )}
-        <View style={{ flex: transcodePercent || 1, backgroundColor: colors.warning }} />
       </View>
 
-      {/* Legend */}
       <View className="gap-2">
-        <View className="flex-row items-center gap-2">
-          <View className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: colors.success }} />
-          <Text className="text-foreground flex-1 text-sm">Direct Play</Text>
-          <Text className="text-muted-foreground text-sm">
-            {directPlay} ({directPlayPercent}%)
-          </Text>
-        </View>
-        <View className="flex-row items-center gap-2">
-          <View
-            className="h-2.5 w-2.5 rounded-full"
-            style={{ backgroundColor: DIRECT_STREAM_COLOR }}
-          />
-          <Text className="text-foreground flex-1 text-sm">Direct Stream</Text>
-          <Text className="text-muted-foreground text-sm">
-            {directStream} ({directStreamPercent}%)
-          </Text>
-        </View>
-        <View className="flex-row items-center gap-2">
-          <View className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: colors.warning }} />
-          <Text className="text-foreground flex-1 text-sm">Transcode</Text>
-          <Text className="text-muted-foreground text-sm">
-            {transcode} ({transcodePercent}%)
-          </Text>
-        </View>
+        {rows.map((row) => (
+          <View key={row.label} className="flex-row items-center gap-2">
+            <View className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: row.color }} />
+            <Text className="text-foreground flex-1 text-sm">{row.label}</Text>
+            <Text className="text-muted-foreground text-sm">
+              {row.count} ({row.percent}%)
+            </Text>
+          </View>
+        ))}
       </View>
-    </View>
+    </ChartCard>
   );
 }

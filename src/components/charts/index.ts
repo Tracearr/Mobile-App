@@ -5,3 +5,4 @@ export { DayOfWeekChart } from './DayOfWeekChart';
 export { HourOfDayChart } from './HourOfDayChart';
 export { QualityChart } from './QualityChart';
 export { useChartFont } from './useChartFont';
+export { ChartCard } from './ChartCard';

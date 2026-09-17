@@ -1,10 +1,6 @@
-/**
- * Segmented control for selecting time periods (7d, 30d, 1y)
- */
 import React from 'react';
-import { View, Pressable } from 'react-native';
-import { Text } from './text';
-import { cn } from '@/lib/utils';
+import { useTranslation } from '@tracearr/translations/mobile';
+import { SegmentedControl } from './segmented-control';
 
 export type StatsPeriod = 'week' | 'month' | 'year';
 
@@ -13,37 +9,31 @@ interface PeriodSelectorProps {
   onChange: (value: StatsPeriod) => void;
 }
 
-const PERIODS: { value: StatsPeriod; label: string }[] = [
-  { value: 'week', label: '7d' },
-  { value: 'month', label: '30d' },
-  { value: 'year', label: '1y' },
-];
-
 export function PeriodSelector({ value, onChange }: PeriodSelectorProps) {
+  const { t } = useTranslation(['common']);
+
   return (
-    <View accessibilityRole="radiogroup" className="bg-surface flex-row rounded-lg p-1">
-      {PERIODS.map((period) => {
-        const isSelected = value === period.value;
-        return (
-          <Pressable
-            key={period.value}
-            onPress={() => onChange(period.value)}
-            accessibilityRole="radio"
-            accessibilityLabel={period.label}
-            accessibilityState={{ selected: isSelected }}
-            className={cn('min-h-8 justify-center rounded-md px-4 py-1.5', isSelected && 'bg-card')}
-          >
-            <Text
-              className={cn(
-                'text-[13px] font-medium',
-                isSelected ? 'text-foreground' : 'text-muted-foreground'
-              )}
-            >
-              {period.label}
-            </Text>
-          </Pressable>
-        );
-      })}
-    </View>
+    <SegmentedControl
+      fullWidth={false}
+      value={value}
+      onChange={onChange}
+      options={[
+        {
+          value: 'week',
+          label: t('common:periods.short7Days', { defaultValue: '7d' }),
+          accessibilityLabel: t('common:periods.last7Days'),
+        },
+        {
+          value: 'month',
+          label: t('common:periods.short30Days', { defaultValue: '30d' }),
+          accessibilityLabel: t('common:periods.last30Days'),
+        },
+        {
+          value: 'year',
+          label: t('common:periods.shortYear', { defaultValue: '1y' }),
+          accessibilityLabel: t('common:periods.lastYear'),
+        },
+      ]}
+    />
   );
 }

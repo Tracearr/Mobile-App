@@ -10,10 +10,16 @@
  * backgrounded and RefreshControl never restarts it, so a fresh control is the
  * only repair. Android renders the control as the ScrollView's wrapper, where
  * a new key would tear the list down instead.
+ *
+ * Spread `refreshControlProps` onto the RefreshControl and pass
+ * `key={controlKey}` beside it. `tintColor` is iOS
+ * only; Android takes its spinner colors from `colors` and
+ * `progressBackgroundColor`.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, Platform, type AppStateStatus } from 'react-native';
 import { useIsFocused } from 'expo-router';
+import { ACCENT_COLOR, colors } from '@/lib/theme';
 
 const CAN_REMOUNT = Platform.OS === 'ios';
 
@@ -90,5 +96,14 @@ export function usePullToRefresh(onRefresh: () => Promise<unknown>, resetKey?: u
     }
   }, [resetKey, stop]);
 
-  return { refreshing, onRefresh: start, controlKey };
+  // `key` stays out of this object: React warns when a key arrives through a spread.
+  const refreshControlProps = {
+    refreshing,
+    onRefresh: start,
+    tintColor: ACCENT_COLOR,
+    colors: [ACCENT_COLOR],
+    progressBackgroundColor: colors.surface.dark,
+  };
+
+  return { refreshing, onRefresh: start, controlKey, refreshControlProps };
 }

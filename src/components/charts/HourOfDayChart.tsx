@@ -3,31 +3,34 @@
  * Bar chart showing plays by hour of day with touch interaction
  */
 import React, { useState, useCallback } from 'react';
-import { View } from 'react-native';
+import { useTranslation } from '@tracearr/translations/mobile';
 import { CartesianChart, Bar, useChartPressState } from 'victory-native';
 import { Circle } from '@shopify/react-native-skia';
 import { useAnimatedReaction, runOnJS } from 'react-native-reanimated';
 import type { SharedValue } from 'react-native-reanimated';
-import { Text } from '@/components/ui/text';
 import { colors } from '../../lib/theme';
 import { useChartFont } from './useChartFont';
+import { ChartCard, PlaysReadout } from './ChartCard';
+import { COUNT_TICKS, countDomain, hasCounts } from './countAxis';
 
 interface HourOfDayChartProps {
   data: { hour: number; count: number }[];
   height?: number;
+  isLoading?: boolean;
 }
+
+const BAR_COLOR = colors.chart[1];
 
 function ToolTip({ x, y }: { x: SharedValue<number>; y: SharedValue<number> }) {
-  return <Circle cx={x} cy={y} r={5} color={colors.purple} />;
+  return <Circle cx={x} cy={y} r={5} color={BAR_COLOR} />;
 }
 
-function formatHour(hour: number): string {
-  if (hour === 0) return '12am';
-  if (hour === 12) return '12pm';
-  return hour < 12 ? `${hour}am` : `${hour - 12}pm`;
+function formatHour(hour: number, locale: string): string {
+  return new Date(2023, 0, 1, hour).toLocaleTimeString(locale, { hour: 'numeric' });
 }
 
-export function HourOfDayChart({ data, height = 180 }: HourOfDayChartProps) {
+export function HourOfDayChart({ data, height = 180, isLoading }: HourOfDayChartProps) {
+  const { i18n } = useTranslation(['common']);
   const font = useChartFont(9);
   const { state, isActive } = useChartPressState({ x: 0, y: { count: 0 } });
 
@@ -63,52 +66,37 @@ export function HourOfDayChart({ data, height = 180 }: HourOfDayChartProps) {
     [isActive]
   );
 
-  // Transform data for victory-native
-  const chartData = data.map((d) => ({
-    x: d.hour,
-    count: d.count,
-  }));
-
-  if (chartData.length === 0) {
-    return (
-      <View className="bg-card items-center justify-center rounded-xl p-2" style={{ height }}>
-        <Text className="text-muted-foreground text-sm">No data available</Text>
-      </View>
-    );
-  }
+  const chartData = data.map((d) => ({ x: d.hour, count: d.count }));
+  const counts = chartData.map((d) => d.count);
 
   return (
-    <View className="bg-card rounded-xl p-2" style={{ height }}>
-      {/* Active value display */}
-      <View className="mb-1 min-h-[18px] flex-row items-center justify-between px-1">
-        {displayValue ? (
-          <>
-            <Text className="text-sm font-semibold" style={{ color: colors.purple }}>
-              {displayValue.count} plays
-            </Text>
-            <Text className="text-muted-foreground text-xs">{formatHour(displayValue.hour)}</Text>
-          </>
-        ) : null}
-      </View>
+    <ChartCard height={height} isLoading={isLoading} isEmpty={!hasCounts(counts)}>
+      <PlaysReadout
+        color={BAR_COLOR}
+        active={
+          displayValue && {
+            count: displayValue.count,
+            label: formatHour(displayValue.hour, i18n.language),
+          }
+        }
+      />
 
       <CartesianChart
         data={chartData}
         xKey="x"
         yKeys={['count']}
+        domain={{ y: countDomain(counts) }}
         domainPadding={{ left: 10, right: 10, top: 20 }}
         chartPressState={state}
         axisOptions={{
           font,
-          tickCount: { x: 6, y: 4 },
+          // 12 makes d3 step by 2 hours. At 6 it steps by 5, which only ever hits hour 0.
+          tickCount: { x: 12, y: COUNT_TICKS },
           lineColor: colors.border.dark,
           labelColor: colors.text.muted.dark,
           formatXLabel: (value) => {
             const hour = Math.round(value);
-            // Only show labels for 0, 6, 12, 18 to avoid crowding
-            if (hour % 6 === 0) {
-              return formatHour(hour);
-            }
-            return '';
+            return hour % 6 === 0 && hour < 24 ? formatHour(hour, i18n.language) : '';
           },
           formatYLabel: (value) => String(Math.round(value)),
         }}
@@ -118,7 +106,7 @@ export function HourOfDayChart({ data, height = 180 }: HourOfDayChartProps) {
             <Bar
               points={points.count}
               chartBounds={chartBounds}
-              color={colors.purple}
+              color={BAR_COLOR}
               roundedCorners={{ topLeft: 2, topRight: 2 }}
               animate={{ type: 'timing', duration: 500 }}
             />
@@ -126,6 +114,6 @@ export function HourOfDayChart({ data, height = 180 }: HourOfDayChartProps) {
           </>
         )}
       </CartesianChart>
-    </View>
+    </ChartCard>
   );
 }

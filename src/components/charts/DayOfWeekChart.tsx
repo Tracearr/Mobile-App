@@ -3,21 +3,26 @@
  * Bar chart showing plays by day of week with touch interaction
  */
 import React, { useState, useCallback } from 'react';
-import { View } from 'react-native';
+import { useTranslation } from '@tracearr/translations/mobile';
 import { CartesianChart, Bar, useChartPressState } from 'victory-native';
 import { Circle } from '@shopify/react-native-skia';
 import { useAnimatedReaction, runOnJS } from 'react-native-reanimated';
 import type { SharedValue } from 'react-native-reanimated';
-import { Text } from '@/components/ui/text';
 import { colors, ACCENT_COLOR } from '../../lib/theme';
 import { useChartFont } from './useChartFont';
+import { ChartCard, PlaysReadout } from './ChartCard';
+import { COUNT_TICKS, countDomain, hasCounts } from './countAxis';
 
 interface DayOfWeekChartProps {
   data: { day: number; name: string; count: number }[];
   height?: number;
+  isLoading?: boolean;
 }
 
-const DAY_ABBREV = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+// 2023-01-01 is a Sunday, matching the API's day 0.
+function dayName(day: number, locale: string, weekday: 'short' | 'long'): string {
+  return new Date(2023, 0, 1 + day).toLocaleDateString(locale, { weekday });
+}
 
 function ToolTip({
   x,
@@ -31,7 +36,8 @@ function ToolTip({
   return <Circle cx={x} cy={y} r={5} color={color} />;
 }
 
-export function DayOfWeekChart({ data, height = 180 }: DayOfWeekChartProps) {
+export function DayOfWeekChart({ data, height = 180, isLoading }: DayOfWeekChartProps) {
+  const { i18n } = useTranslation(['common']);
   const font = useChartFont(10);
   const { state, isActive } = useChartPressState({ x: 0, y: { count: 0 } });
 
@@ -67,50 +73,34 @@ export function DayOfWeekChart({ data, height = 180 }: DayOfWeekChartProps) {
     [isActive]
   );
 
-  // Transform data for victory-native
-  const chartData = data.map((d) => ({
-    x: d.day,
-    count: d.count,
-    name: d.name,
-  }));
-
-  if (chartData.length === 0) {
-    return (
-      <View className="bg-card items-center justify-center rounded-xl p-2" style={{ height }}>
-        <Text className="text-muted-foreground text-sm">No data available</Text>
-      </View>
-    );
-  }
-
-  // Find the selected day name from React state
-  const selectedDay = displayValue ? chartData.find((d) => d.x === displayValue.day) : null;
+  const chartData = data.map((d) => ({ x: d.day, count: d.count }));
+  const counts = chartData.map((d) => d.count);
 
   return (
-    <View className="bg-card rounded-xl p-2" style={{ height }}>
-      {/* Active value display */}
-      <View className="mb-1 min-h-[18px] flex-row items-center justify-between px-1">
-        {displayValue && selectedDay ? (
-          <>
-            <Text className="text-sm font-semibold" style={{ color: ACCENT_COLOR }}>
-              {displayValue.count} plays
-            </Text>
-            <Text className="text-muted-foreground text-xs">{selectedDay.name}</Text>
-          </>
-        ) : null}
-      </View>
+    <ChartCard height={height} isLoading={isLoading} isEmpty={!hasCounts(counts)}>
+      <PlaysReadout
+        color={ACCENT_COLOR}
+        active={
+          displayValue && {
+            count: displayValue.count,
+            label: dayName(displayValue.day, i18n.language, 'long'),
+          }
+        }
+      />
 
       <CartesianChart
         data={chartData}
         xKey="x"
         yKeys={['count']}
+        domain={{ y: countDomain(counts) }}
         domainPadding={{ left: 25, right: 25, top: 20 }}
         chartPressState={state}
         axisOptions={{
           font,
-          tickCount: { x: 7, y: 4 },
+          tickCount: { x: 7, y: COUNT_TICKS },
           lineColor: colors.border.dark,
           labelColor: colors.text.muted.dark,
-          formatXLabel: (value) => DAY_ABBREV[Math.round(value)] || '',
+          formatXLabel: (value) => dayName(Math.round(value), i18n.language, 'short'),
           formatYLabel: (value) => String(Math.round(value)),
         }}
       >
@@ -129,6 +119,6 @@ export function DayOfWeekChart({ data, height = 180 }: DayOfWeekChartProps) {
           </>
         )}
       </CartesianChart>
-    </View>
+    </ChartCard>
   );
 }

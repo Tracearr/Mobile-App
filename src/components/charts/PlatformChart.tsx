@@ -7,23 +7,24 @@ import { View } from 'react-native';
 import { Pie, PolarChart } from 'victory-native';
 import { Text } from '@/components/ui/text';
 import { colors, ACCENT_COLOR } from '../../lib/theme';
+import { ChartCard } from './ChartCard';
 
 interface PlatformChartProps {
   data: { platform: string; count: number }[];
   height?: number;
+  isLoading?: boolean;
 }
 
-export function PlatformChart({ data, height }: PlatformChartProps) {
-  // Colors for pie slices - all visible against dark card background
-  // Using dynamic accent color as the primary color
-  const chartColors = [
-    ACCENT_COLOR, // Primary accent color
-    colors.info, // #3B82F6 - Bright Blue
-    colors.success, // #22C55E - Green
-    colors.warning, // #F59E0B - Orange/Yellow
-    colors.purple, // #8B5CF6 - Purple
-    colors.error, // #EF4444 - Red
-  ];
+const SLICE_COLORS = [
+  ACCENT_COLOR,
+  colors.info,
+  colors.success,
+  colors.warning,
+  colors.purple,
+  colors.danger,
+];
+
+export function PlatformChart({ data, height, isLoading }: PlatformChartProps) {
   // Sort by count and take top 5
   const sortedData = [...data]
     .sort((a, b) => b.count - a.count)
@@ -31,21 +32,13 @@ export function PlatformChart({ data, height }: PlatformChartProps) {
     .map((d, index) => ({
       label: d.platform.replace('Plex for ', '').replace('Jellyfin ', ''),
       value: d.count,
-      color: chartColors[index % chartColors.length],
+      color: SLICE_COLORS[index % SLICE_COLORS.length],
     }));
-
-  if (sortedData.length === 0) {
-    return (
-      <View className="bg-card min-h-[150px] items-center justify-center rounded-xl p-2">
-        <Text className="text-muted-foreground text-sm">No platform data available</Text>
-      </View>
-    );
-  }
 
   const total = sortedData.reduce((sum, item) => sum + item.value, 0);
 
   return (
-    <View className="bg-card rounded-xl p-2">
+    <ChartCard isLoading={isLoading} isEmpty={total === 0}>
       {/* Pie Chart */}
       <View style={{ height: height ? height - 60 : 160 }}>
         <PolarChart data={sortedData} labelKey="label" valueKey="value" colorKey="color">
@@ -67,6 +60,6 @@ export function PlatformChart({ data, height }: PlatformChartProps) {
           </View>
         ))}
       </View>
-    </View>
+    </ChartCard>
   );
 }

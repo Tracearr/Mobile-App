@@ -4,6 +4,7 @@
  */
 import React, { useState, useCallback } from 'react';
 import { View } from 'react-native';
+import { useTranslation } from '@tracearr/translations/mobile';
 import { CartesianChart, StackedArea, useChartPressState } from 'victory-native';
 import { Circle, LinearGradient, vec } from '@shopify/react-native-skia';
 import { useAnimatedReaction, runOnJS } from 'react-native-reanimated';
@@ -11,17 +12,20 @@ import type { SharedValue } from 'react-native-reanimated';
 import { Text } from '@/components/ui/text';
 import { colors } from '../../lib/theme';
 import { useChartFont } from './useChartFont';
+import { ChartCard } from './ChartCard';
+import { PLAYBACK_COLORS } from './chartColors';
+import { COUNT_TICKS, countDomain, hasCounts } from './countAxis';
 
 interface ConcurrentChartProps {
   data: { hour: string; total: number; direct: number; directStream?: number; transcode: number }[];
   height?: number;
+  isLoading?: boolean;
 }
 
-// Colors matching web chart
+// Web's ConcurrentChart series: --chart-2, a fixed blue, --chart-4.
 const CHART_COLORS = {
-  direct: '#22c55e', // green - direct play
-  directStream: '#3B82F6', // blue - direct stream
-  transcode: '#f97316', // orange - transcode
+  direct: colors.chart[1],
+  ...PLAYBACK_COLORS,
 };
 
 function ToolTip({ x, y }: { x: SharedValue<number>; y: SharedValue<number> }) {
@@ -39,7 +43,8 @@ function parseTimestamp(timestamp: string): Date | null {
   return isNaN(date.getTime()) ? null : date;
 }
 
-export function ConcurrentChart({ data, height = 200 }: ConcurrentChartProps) {
+export function ConcurrentChart({ data, height = 200, isLoading }: ConcurrentChartProps) {
+  const { t, i18n } = useTranslation(['common']);
   const hasDirectStream = data.some((d) => (d.directStream ?? 0) > 0);
   const font = useChartFont(10);
   const { state, isActive } = useChartPressState({
@@ -63,6 +68,8 @@ export function ConcurrentChart({ data, height = 200 }: ConcurrentChartProps) {
     transcode: d.transcode,
     label: d.hour,
   }));
+  // The areas stack, so the axis has to fit the sum, not the largest single series.
+  const stackTotals = chartData.map((d) => d.direct + d.directStream + d.transcode);
 
   // Sync SharedValue changes to React state
   const updateDisplayValue = useCallback(
@@ -105,34 +112,22 @@ export function ConcurrentChart({ data, height = 200 }: ConcurrentChartProps) {
     [isActive]
   );
 
-  if (chartData.length === 0) {
-    return (
-      <View className="bg-card items-center justify-center rounded-xl p-2" style={{ height }}>
-        <Text className="text-muted-foreground text-sm">No concurrent stream data available</Text>
-      </View>
-    );
-  }
-
-  // Get date/time label from React state
   const currentItem = displayValue ? chartData[displayValue.index] : null;
-  const dateLabel = currentItem
-    ? (() => {
-        const date = parseTimestamp(currentItem.label);
-        return date ? date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
-      })()
-    : '';
+  const activeDate = currentItem ? parseTimestamp(currentItem.label) : null;
+  const dateLabel =
+    activeDate?.toLocaleDateString(i18n.language, { month: 'short', day: 'numeric' }) ?? '';
 
   const total = displayValue
     ? displayValue.direct + displayValue.directStream + displayValue.transcode
     : 0;
 
   return (
-    <View className="bg-card rounded-xl p-2" style={{ height }}>
+    <ChartCard height={height} isLoading={isLoading} isEmpty={!hasCounts(stackTotals)}>
       {/* Legend */}
       <View className="mb-1 flex-row justify-end gap-4 px-1">
         <View className="flex-row items-center gap-1">
           <View className="h-2 w-2 rounded-full" style={{ backgroundColor: CHART_COLORS.direct }} />
-          <Text className="text-muted-foreground text-xs">Direct</Text>
+          <Text className="text-muted-foreground text-xs">{t('common:playback.directPlay')}</Text>
         </View>
         {hasDirectStream && (
           <View className="flex-row items-center gap-1">
@@ -140,7 +135,9 @@ export function ConcurrentChart({ data, height = 200 }: ConcurrentChartProps) {
               className="h-2 w-2 rounded-full"
               style={{ backgroundColor: CHART_COLORS.directStream }}
             />
-            <Text className="text-muted-foreground text-xs">Direct Stream</Text>
+            <Text className="text-muted-foreground text-xs">
+              {t('common:playback.directStream')}
+            </Text>
           </View>
         )}
         <View className="flex-row items-center gap-1">
@@ -148,7 +145,7 @@ export function ConcurrentChart({ data, height = 200 }: ConcurrentChartProps) {
             className="h-2 w-2 rounded-full"
             style={{ backgroundColor: CHART_COLORS.transcode }}
           />
-          <Text className="text-muted-foreground text-xs">Transcode</Text>
+          <Text className="text-muted-foreground text-xs">{t('common:playback.transcode')}</Text>
         </View>
       </View>
 
@@ -158,21 +155,23 @@ export function ConcurrentChart({ data, height = 200 }: ConcurrentChartProps) {
           <>
             <View className="flex-col">
               <Text className="text-sm font-semibold">
-                {total} stream{total !== 1 ? 's' : ''}
+                {t('common:count.stream', { count: total })}
               </Text>
               <Text className="text-xs">
-                <Text style={{ color: CHART_COLORS.direct }}>{displayValue.direct} direct</Text>
+                <Text className="text-xs" style={{ color: CHART_COLORS.direct }}>
+                  {displayValue.direct} {t('common:playback.directPlay')}
+                </Text>
                 {hasDirectStream && (
                   <>
                     {' · '}
-                    <Text style={{ color: CHART_COLORS.directStream }}>
-                      {displayValue.directStream} stream
+                    <Text className="text-xs" style={{ color: CHART_COLORS.directStream }}>
+                      {displayValue.directStream} {t('common:playback.directStream')}
                     </Text>
                   </>
                 )}
                 {' · '}
-                <Text style={{ color: CHART_COLORS.transcode }}>
-                  {displayValue.transcode} transcode
+                <Text className="text-xs" style={{ color: CHART_COLORS.transcode }}>
+                  {displayValue.transcode} {t('common:playback.transcode')}
                 </Text>
               </Text>
             </View>
@@ -185,11 +184,12 @@ export function ConcurrentChart({ data, height = 200 }: ConcurrentChartProps) {
         data={chartData}
         xKey="x"
         yKeys={['direct', 'directStream', 'transcode']}
+        domain={{ y: countDomain(stackTotals) }}
         domainPadding={{ top: 20, bottom: 10, left: 5, right: 5 }}
         chartPressState={state}
         axisOptions={{
           font,
-          tickCount: { x: 5, y: 4 },
+          tickCount: { x: 5, y: COUNT_TICKS },
           lineColor: colors.border.dark,
           labelColor: colors.text.muted.dark,
           formatXLabel: (value) => {
@@ -229,6 +229,6 @@ export function ConcurrentChart({ data, height = 200 }: ConcurrentChartProps) {
           </>
         )}
       </CartesianChart>
-    </View>
+    </ChartCard>
   );
 }

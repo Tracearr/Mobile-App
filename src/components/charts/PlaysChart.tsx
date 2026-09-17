@@ -3,18 +3,20 @@
  * Area chart showing plays over time with touch-to-reveal tooltip
  */
 import React, { useState, useCallback } from 'react';
-import { View } from 'react-native';
+import { useTranslation } from '@tracearr/translations/mobile';
 import { CartesianChart, Area, useChartPressState } from 'victory-native';
 import { Circle } from '@shopify/react-native-skia';
 import { useAnimatedReaction, runOnJS } from 'react-native-reanimated';
 import type { SharedValue } from 'react-native-reanimated';
-import { Text } from '@/components/ui/text';
 import { colors, ACCENT_COLOR } from '../../lib/theme';
 import { useChartFont } from './useChartFont';
+import { ChartCard, PlaysReadout } from './ChartCard';
+import { COUNT_TICKS, countDomain, hasCounts } from './countAxis';
 
 interface PlaysChartProps {
   data: { date: string; count: number }[];
   height?: number;
+  isLoading?: boolean;
 }
 
 function ToolTip({
@@ -29,7 +31,8 @@ function ToolTip({
   return <Circle cx={x} cy={y} r={6} color={color} />;
 }
 
-export function PlaysChart({ data, height = 200 }: PlaysChartProps) {
+export function PlaysChart({ data, height = 200, isLoading }: PlaysChartProps) {
+  const { i18n } = useTranslation(['common']);
   const font = useChartFont(10);
   const { state, isActive } = useChartPressState({ x: 0, y: { count: 0 } });
 
@@ -45,6 +48,7 @@ export function PlaysChart({ data, height = 200 }: PlaysChartProps) {
     count: d.count,
     label: d.date,
   }));
+  const counts = chartData.map((d) => d.count);
 
   // Sync SharedValue changes to React state
   const updateDisplayValue = useCallback((index: number, count: number) => {
@@ -72,46 +76,35 @@ export function PlaysChart({ data, height = 200 }: PlaysChartProps) {
     [isActive]
   );
 
-  if (chartData.length === 0) {
-    return (
-      <View className="bg-card items-center justify-center rounded-xl p-2" style={{ height }}>
-        <Text className="text-muted-foreground text-sm">No play data available</Text>
-      </View>
-    );
-  }
-
-  // Get date label from React state
-  const dateLabel =
-    displayValue && chartData[displayValue.index]?.label
-      ? new Date(chartData[displayValue.index].label).toLocaleDateString('en-US', {
-          month: 'short',
-          day: 'numeric',
-        })
-      : '';
+  const activeItem = displayValue ? chartData[displayValue.index] : undefined;
 
   return (
-    <View className="bg-card rounded-xl p-2" style={{ height }}>
-      {/* Active value display */}
-      <View className="mb-1 min-h-[20px] flex-row items-center justify-between px-1">
-        {displayValue ? (
-          <>
-            <Text className="text-sm font-semibold" style={{ color: ACCENT_COLOR }}>
-              {displayValue.count} plays
-            </Text>
-            <Text className="text-muted-foreground text-xs">{dateLabel}</Text>
-          </>
-        ) : null}
-      </View>
+    <ChartCard height={height} isLoading={isLoading} isEmpty={!hasCounts(counts)}>
+      <PlaysReadout
+        color={ACCENT_COLOR}
+        active={
+          displayValue && activeItem
+            ? {
+                count: displayValue.count,
+                label: new Date(activeItem.label).toLocaleDateString(i18n.language, {
+                  month: 'short',
+                  day: 'numeric',
+                }),
+              }
+            : null
+        }
+      />
 
       <CartesianChart
         data={chartData}
         xKey="x"
         yKeys={['count']}
+        domain={{ y: countDomain(counts) }}
         domainPadding={{ top: 20, bottom: 10, left: 5, right: 5 }}
         chartPressState={state}
         axisOptions={{
           font,
-          tickCount: { x: 5, y: 4 },
+          tickCount: { x: 5, y: COUNT_TICKS },
           lineColor: colors.border.dark,
           labelColor: colors.text.muted.dark,
           formatXLabel: (value) => {
@@ -138,6 +131,6 @@ export function PlaysChart({ data, height = 200 }: PlaysChartProps) {
           </>
         )}
       </CartesianChart>
-    </View>
+    </ChartCard>
   );
 }
