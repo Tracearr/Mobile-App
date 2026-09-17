@@ -14,7 +14,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { QueryProvider } from '@/providers/QueryProvider';
 import { SocketProvider } from '@/providers/SocketProvider';
 import { MediaServerProvider } from '@/providers/MediaServerProvider';
-import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { ErrorBoundary, ScreenErrorFallback } from '@/components/ErrorBoundary';
 import { OfflineBanner } from '@/components/OfflineBanner';
 import { UnauthenticatedScreen } from '@/components/UnauthenticatedScreen';
 import { Toast } from '@/components/Toast';
@@ -40,8 +40,14 @@ Observe.configure({
 });
 startReviewTracking();
 
-// Held until the first real screen can render; hidden in RootLayoutNav.
+// Held until the first real screen can render; hidden in RootLayoutNav, or by
+// the ErrorBoundary fallback if that render throws.
 void SplashScreen.preventAutoHideAsync();
+
+// Every route below gets this boundary, so a screen that throws keeps its tab bar and back button.
+export const unstable_settings = {
+  screenErrorBoundary: ScreenErrorFallback,
+};
 
 function RootLayoutNav() {
   const { t } = useTranslation(['mobile']);
@@ -70,8 +76,9 @@ function RootLayoutNav() {
   const posthog = usePostHog();
   const screen = '/' + segments.filter((s) => !(s.startsWith('(') && s.endsWith(')'))).join('/');
   useEffect(() => {
+    if (isInitializing) return;
     void posthog.screen(screen);
-  }, [posthog, screen]);
+  }, [posthog, screen, isInitializing]);
 
   // Track connection state changes for reconnection toast
   useEffect(() => {
@@ -101,7 +108,7 @@ function RootLayoutNav() {
 
   useEffect(() => {
     if (!isInitializing) {
-      void SplashScreen.hideAsync();
+      SplashScreen.hide();
     }
   }, [isInitializing]);
 
@@ -170,7 +177,11 @@ function RootLayout() {
   const pairedServerId = useAuthStateStore((s) => s.server?.id ?? null);
 
   useEffect(() => {
-    void i18nReady.then(() => setI18nLoaded(true));
+    // i18nReady only rejects when i18next fails to initialise twice. Rendering
+    // untranslated beats a splash that never clears.
+    void i18nReady
+      .catch((error: unknown) => console.error('[i18n] Rendering without translations:', error))
+      .then(() => setI18nLoaded(true));
   }, []);
 
   if (!i18nLoaded) {
@@ -187,7 +198,7 @@ function RootLayout() {
                 {/* Keyed on the pairing: unpair/re-pair remounts the provider so no
                     server selection survives it. */}
                 <MediaServerProvider key={pairedServerId ?? 'unpaired'}>
-                  {/* Must be expo-router's ThemeProvider — it vendors react-navigation
+                  {/* Must be expo-router's ThemeProvider: it vendors react-navigation
                       theming, so the @react-navigation/native one sets a context its
                       header code never reads. theme.dark drives the nav bar's
                       userInterfaceStyle; without it, iOS 26 paints one white

@@ -55,17 +55,22 @@ function loadFallbackState(): Promise<void> {
   if (!_fallbackLoadPromise) {
     _fallbackLoadPromise = (async () => {
       try {
-        const flag = await AsyncStorage.getItem(FALLBACK_FLAG_KEY);
+        const flag = await withTimeout(
+          AsyncStorage.getItem(FALLBACK_FLAG_KEY),
+          OPERATION_TIMEOUT_MS
+        );
         if (flag === '1') {
-          // SecureStore was broken last session — check if it recovered
+          // SecureStore was broken last session; a read that settles means it recovered
           try {
-            await SecureStore.getItemAsync('__health_check__', SECURE_STORE_OPTIONS);
-            // SecureStore is working again — clear fallback flag
-            await AsyncStorage.removeItem(FALLBACK_FLAG_KEY);
+            await withTimeout(
+              SecureStore.getItemAsync('__health_check__', SECURE_STORE_OPTIONS),
+              OPERATION_TIMEOUT_MS
+            );
             consecutiveFailures = 0;
-            // Stay on SecureStore (usingAsyncStorageFallback remains false)
+            AsyncStorage.removeItem(FALLBACK_FLAG_KEY).catch((error) => {
+              console.warn('[Storage] Failed to clear fallback flag:', error);
+            });
           } catch {
-            // SecureStore still broken — stay on AsyncStorage fallback
             usingAsyncStorageFallback = true;
           }
         }
@@ -243,7 +248,7 @@ export function isStorageUnavailable(): boolean {
 
 export function resetFailureCount(): void {
   consecutiveFailures = 0;
-  // Don't reset fallback mode — once enabled, stay on AsyncStorage for session consistency
+  // Don't reset fallback mode: once enabled, stay on AsyncStorage for session consistency
 }
 
 /**

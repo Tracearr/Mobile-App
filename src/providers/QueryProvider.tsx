@@ -1,11 +1,39 @@
 /**
  * React Query provider for data fetching
  */
-import { QueryClient, QueryClientProvider, focusManager } from '@tanstack/react-query';
+import {
+  QueryClient,
+  QueryClientProvider,
+  focusManager,
+  onlineManager,
+} from '@tanstack/react-query';
 import { AxiosError } from 'axios';
+import * as Network from 'expo-network';
 import React, { useEffect, useRef } from 'react';
 import type { AppStateStatus } from 'react-native';
 import { AppState, Platform } from 'react-native';
+
+// Offline queries pause and resume on reconnect instead of burning their retries.
+// isConnected, not isInternetReachable: a Tracearr server on the LAN is reachable
+// without internet. The field is optional, and only an explicit false means offline.
+onlineManager.setEventListener((setOnline) => {
+  let initialised = false;
+
+  const subscription = Network.addNetworkStateListener((state) => {
+    initialised = true;
+    setOnline(state.isConnected !== false);
+  });
+
+  Network.getNetworkStateAsync()
+    .then((state) => {
+      if (!initialised) setOnline(state.isConnected !== false);
+    })
+    .catch(() => {
+      // Stays online, the manager's default
+    });
+
+  return () => subscription.remove();
+});
 
 /**
  * Check if an error is an authentication error (401 or session expired)

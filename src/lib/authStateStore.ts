@@ -75,6 +75,9 @@ const STORAGE_KEYS = {
   REFRESH_TOKEN: 'tracearr_refresh_token',
 } as const;
 
+// v2 key: changing it logs out every existing install
+const PERSIST_KEY = 'tracearr-auth-v2';
+
 // Helper: Normalize URL (ensure trailing slash removed, add https if missing)
 function normalizeUrl(url: string): string {
   let normalized = url.trim();
@@ -111,7 +114,7 @@ async function getOrCreateDeviceId(): Promise<string> {
     return platformId;
   }
 
-  // Platform ID unavailable (iOS returns null briefly after reboot) — use cached value
+  // Platform ID unavailable (iOS returns null briefly after reboot): use cached value
   const stored = await ResilientStorage.getItemAsync(DEVICE_ID_STORAGE_KEY);
   if (stored) {
     _cachedDeviceId = stored;
@@ -303,7 +306,7 @@ export const useAuthStateStore = create<AuthState>()(
       },
     }),
     {
-      name: 'tracearr-auth-v2', // New key to force logout existing users
+      name: PERSIST_KEY,
       storage: createJSONStorage(() => zustandStorage),
       partialize: (state) => ({
         server: state.server,
@@ -311,11 +314,14 @@ export const useAuthStateStore = create<AuthState>()(
         _cachedServerUrl: state._cachedServerUrl,
         _cachedServerName: state._cachedServerName,
       }),
-      onRehydrateStorage: () => (state) => {
-        // Called after hydration completes - mark initialization as done
-        if (state) {
-          state.setInitializing(false);
+      // zustand reports a failed hydration as (undefined, error), so the actions
+      // come from the pre-hydration state, which exists on every outcome.
+      onRehydrateStorage: (initial) => (_hydrated, error) => {
+        if (error) {
+          console.warn('[AuthState] Persisted auth state unreadable, discarding it:', error);
+          void zustandStorage.removeItem(PERSIST_KEY);
         }
+        initial.setInitializing(false);
       },
     }
   )

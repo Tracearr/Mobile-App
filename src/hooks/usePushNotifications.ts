@@ -1,31 +1,30 @@
 /**
  * Push notifications hook for violation alerts
  *
- * Handles push notification registration, foreground notifications,
- * background task registration, and payload decryption.
+ * Handles push notification registration, notification taps (including the one
+ * that launched the app), background task registration, and payload decryption.
  */
 import { useEffect, useRef, useState, useCallback } from 'react';
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import Constants from 'expo-constants';
 import { Platform, AppState } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, type Href } from 'expo-router';
+import { useTranslation } from '@tracearr/translations/mobile';
 import { useSocket } from '../providers/SocketProvider';
 import type { ViolationWithDetails, EncryptedPushPayload } from '@tracearr/shared';
-import {
-  registerBackgroundNotificationTask,
-  unregisterBackgroundNotificationTask,
-} from '../lib/backgroundTasks';
+import { registerBackgroundNotificationTask } from '../lib/backgroundTasks';
 import { decryptPushPayload, isEncryptionAvailable, getDeviceSecret } from '../lib/crypto';
 import { api } from '../lib/api';
 import { useAuthStateStore } from '../lib/authStateStore';
 import { ROUTES } from '../lib/routes';
-import { pushDestination } from '../lib/pushRoute';
+import { pushDestination, type PushDestination } from '../lib/pushRoute';
 
-// Configure notification behavior
+// A remote push is shown while the app is open. The socket-driven local
+// notification below only exists for devices with no registered push token, so
+// the two never fire for the same violation.
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
     shouldPlaySound: true,
     shouldSetBadge: true,
     shouldShowBanner: true,
@@ -43,6 +42,24 @@ function isEncrypted(data: unknown): data is EncryptedPushPayload {
     typeof payload.ct === 'string' &&
     typeof payload.tag === 'string'
   );
+}
+
+// Routing table lives in lib/pushRoute.ts (tested); unknown types land on the dashboard.
+function pushHref(dest: PushDestination): Href {
+  switch (dest.screen) {
+    case 'alerts':
+      return ROUTES.ALERTS;
+    case 'violation':
+      return ROUTES.VIOLATION(dest.id);
+    case 'session':
+      return ROUTES.SESSION(dest.id);
+    case 'activity':
+      return ROUTES.ACTIVITY;
+    case 'user':
+      return ROUTES.USER(dest.id);
+    default:
+      return ROUTES.DASHBOARD;
+  }
 }
 
 // Android notification channels - must be created before requesting push token on Android 13+
@@ -73,16 +90,25 @@ async function ensureAndroidChannels(): Promise<void> {
 }
 
 export function usePushNotifications() {
+  const { t } = useTranslation(['mobile', 'common', 'pages']);
   const [expoPushToken, setExpoPushToken] = useState<string | null>(null);
-  const [notification, setNotification] = useState<Notifications.Notification | null>(null);
-  const notificationListener = useRef<Notifications.EventSubscription | null>(null);
-  const responseListener = useRef<Notifications.EventSubscription | null>(null);
+  // True once the server holds this device's token, which is when it starts pushing.
+  const pushRegistered = useRef(false);
+  const handledResponseId = useRef<string | null>(null);
   const router = useRouter();
   const { socket } = useSocket();
 
   // Auth state - needed to know when we can register tokens
   const server = useAuthStateStore((s) => s.server);
   const isInitializing = useAuthStateStore((s) => s.isInitializing);
+  // The root layout only mounts the navigator in this state, so a tap is routed no earlier.
+  const canNavigate = useAuthStateStore(
+    (s) =>
+      !s.isInitializing &&
+      s.server !== null &&
+      s.tokenStatus !== 'revoked' &&
+      s.connectionState !== 'unauthenticated'
+  );
 
   // Track app state for permission re-check
   const appState = useRef(AppState.currentState);
@@ -133,47 +159,31 @@ export function usePushNotifications() {
     }
   }, []);
 
-  // Show local notification for violations
-  const showViolationNotification = useCallback(async (violation: ViolationWithDetails) => {
-    const severityLabels: Record<string, string> = {
-      low: 'Low',
-      warning: 'Warning',
-      high: 'High',
-    };
+  const showViolationNotification = useCallback(
+    async (violation: ViolationWithDetails) => {
+      // 2.2 rows carry rule.type null; the automation's name is what identifies them.
+      const title = t('mobile:push.violationTitle', {
+        defaultValue: '{{severity}} Violation',
+        severity: t(`common:severity.${violation.severity}`),
+      });
+      const username = violation.user?.username || t('common:labels.unknown');
+      const ruleName = violation.rule?.name || t('pages:userDetail.unknownRule');
 
-    // 2.2 rows carry rule.type null; the automation's name is what identifies them.
-    const title = `${severityLabels[violation.severity] || 'Warning'} Violation`;
-    const body = `${violation.user?.username || 'Unknown user'}: ${violation.rule?.name || 'Violation'}`;
-
-    await Notifications.scheduleNotificationAsync({
-      content: {
-        title,
-        body,
-        data: {
-          type: 'violation_detected',
-          violationId: violation.id,
-          serverUserId: violation.serverUserId,
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title,
+          body: `${username}: ${ruleName}`,
+          data: {
+            type: 'violation_detected',
+            violationId: violation.id,
+            serverUserId: violation.serverUserId,
+          },
+          sound: true,
         },
-        sound: true,
-      },
-      trigger: null, // Show immediately
-    });
-  }, []);
-
-  // Process notification data (handle encryption if needed)
-  const processNotificationData = useCallback(
-    async (data: Record<string, unknown>): Promise<Record<string, unknown>> => {
-      if (isEncrypted(data) && isEncryptionAvailable()) {
-        try {
-          return await decryptPushPayload(data);
-        } catch (error) {
-          console.error('Failed to decrypt notification:', error);
-          return data; // Fall back to encrypted data
-        }
-      }
-      return data;
+        trigger: Platform.OS === 'android' ? { channelId: 'violations' } : null,
+      });
     },
-    []
+    [t]
   );
 
   // Register token with server (reusable for initial registration and re-registration)
@@ -186,8 +196,10 @@ export function usePushNotifications() {
       try {
         const deviceSecret = isEncryptionAvailable() ? await getDeviceSecret() : undefined;
         await api.registerPushToken(token, deviceSecret);
+        pushRegistered.current = true;
         console.log('Push token registered with server');
       } catch (error) {
+        pushRegistered.current = false;
         console.error('Failed to register push token with server:', error);
       }
     },
@@ -204,6 +216,7 @@ export function usePushNotifications() {
 
     // Don't run if not authenticated
     if (!server) {
+      pushRegistered.current = false;
       console.log('Push notifications: not authenticated, skipping registration');
       return;
     }
@@ -218,44 +231,32 @@ export function usePushNotifications() {
 
     void initializePushNotifications();
 
-    // Register background notification task
+    // Not unregistered on cleanup: it has to outlive the component to handle background pushes.
     void registerBackgroundNotificationTask();
+  }, [isInitializing, server, registerForPushNotifications, registerTokenWithServer]);
 
-    // Listen for notifications received while app is foregrounded
-    notificationListener.current = Notifications.addNotificationReceivedListener(
-      (receivedNotification) => {
-        // Process/decrypt the notification data if needed
-        const rawData = receivedNotification.request.content.data;
-        if (rawData && typeof rawData === 'object') {
-          void (async () => {
-            const processedData = await processNotificationData(rawData);
-            // Update the notification with processed data
-            const processedNotification = {
-              ...receivedNotification,
-              request: {
-                ...receivedNotification.request,
-                content: {
-                  ...receivedNotification.request.content,
-                  data: processedData,
-                },
-              },
-            };
-            setNotification(processedNotification);
-          })();
-        } else {
-          setNotification(receivedNotification);
-        }
-      }
-    );
+  // Notification taps. The response that cold-started the app arrives before
+  // auth has hydrated, so it is read from getLastNotificationResponse once the
+  // navigator is mounted; later taps come through the listener. Both paths clear
+  // the stored response, and the id guard covers a launch tap delivered to both.
+  useEffect(() => {
+    if (!canNavigate) {
+      // A tap on an unpaired device has nowhere to go and must not replay after pairing.
+      if (!isInitializing && !server) Notifications.clearLastNotificationResponse();
+      return;
+    }
 
-    // Listen for notification taps
-    responseListener.current = Notifications.addNotificationResponseReceivedListener((response) => {
+    const handleResponse = (response: Notifications.NotificationResponse) => {
+      const responseId = response.notification.request.identifier;
+      if (handledResponseId.current === responseId) return;
+      handledResponseId.current = responseId;
+      Notifications.clearLastNotificationResponse();
+
       const rawData = response.notification.request.content.data;
 
       void (async () => {
         let data = rawData;
 
-        // Decrypt if needed
         if (rawData && isEncrypted(rawData) && isEncryptionAvailable()) {
           try {
             data = await decryptPushPayload(rawData);
@@ -266,55 +267,23 @@ export function usePushNotifications() {
 
         // Notification taps never mutate the server selection; detail screens
         // are id-based and don't need it.
-
-        // Routing table lives in lib/pushRoute.ts (tested); unknown types land on the dashboard.
-        const dest = pushDestination(data);
-        switch (dest.screen) {
-          case 'alerts':
-            router.push(ROUTES.ALERTS);
-            break;
-          case 'violation':
-            router.push(ROUTES.VIOLATION(dest.id));
-            break;
-          case 'session':
-            router.push(ROUTES.SESSION(dest.id));
-            break;
-          case 'activity':
-            router.push(ROUTES.ACTIVITY);
-            break;
-          case 'user':
-            router.push(ROUTES.USER(dest.id));
-            break;
-          default:
-            router.push(ROUTES.DASHBOARD);
-        }
+        router.push(pushHref(pushDestination(data)));
       })();
-    });
-
-    return () => {
-      if (notificationListener.current) {
-        notificationListener.current.remove();
-      }
-      if (responseListener.current) {
-        responseListener.current.remove();
-      }
-      // Note: We don't unregister background task on unmount
-      // as it needs to persist for background notifications
     };
-  }, [
-    isInitializing,
-    server,
-    registerForPushNotifications,
-    registerTokenWithServer,
-    router,
-    processNotificationData,
-  ]);
+
+    const launchResponse = Notifications.getLastNotificationResponse();
+    if (launchResponse) handleResponse(launchResponse);
+
+    const subscription = Notifications.addNotificationResponseReceivedListener(handleResponse);
+    return () => subscription.remove();
+  }, [canNavigate, isInitializing, server, router]);
 
   // Listen for violation events from socket
   useEffect(() => {
     if (!socket) return;
 
     const handleViolation = (violation: ViolationWithDetails) => {
+      if (pushRegistered.current) return;
       void showViolationNotification(violation);
     };
 
@@ -369,17 +338,4 @@ export function usePushNotifications() {
 
     return () => subscription.remove();
   }, [server, registerTokenWithServer]);
-
-  // Cleanup function for logout
-  const cleanup = useCallback(async () => {
-    await unregisterBackgroundNotificationTask();
-  }, []);
-
-  return {
-    expoPushToken,
-    notification,
-    showViolationNotification,
-    cleanup,
-    isEncryptionAvailable: isEncryptionAvailable(),
-  };
 }

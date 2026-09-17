@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mergeWindow, serverNowSeconds } from './liveStatsWindow.ts';
+import { latestLivePoint, mergeWindow, serverNowSeconds } from './liveStatsWindow.ts';
 
 const point = (at, cpu = 10) => ({
   at,
@@ -46,4 +46,11 @@ test('drains to empty when the server keeps returning a stalled buffer', () => {
 
 test('reads the server clock from fetchedAt in whole seconds', () => {
   assert.equal(serverNowSeconds('2026-09-17T00:00:01.900Z'), 1_789_603_201);
+});
+
+test('stops reporting a latest point once the newest sample is older than the gap', () => {
+  const stats = [point(NOW - 6), point(NOW)];
+  assert.equal(latestLivePoint(stats, NOW + 15)?.at, NOW);
+  assert.equal(latestLivePoint(stats, NOW + 16), null);
+  assert.equal(latestLivePoint([], NOW), null);
 });

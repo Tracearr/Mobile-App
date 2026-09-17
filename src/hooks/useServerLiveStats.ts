@@ -9,7 +9,12 @@ import { useQueries } from '@tanstack/react-query';
 import { SERVER_STATS_CONFIG, type ServerResourceDataPoint } from '@tracearr/shared';
 import { api } from '@/lib/api';
 import { queryKeys } from '@/lib/queryKeys';
-import { mergeWindow, serverNowSeconds, type LiveStatsWindow } from '@/lib/liveStatsWindow';
+import {
+  latestLivePoint,
+  mergeWindow,
+  serverNowSeconds,
+  type LiveStatsWindow,
+} from '@/lib/liveStatsWindow';
 
 // Servers with no live-stats source back off to this instead of chart speed;
 // data appearing restores the chart cadence.
@@ -18,6 +23,7 @@ const POLL_MS = SERVER_STATS_CONFIG.POLL_INTERVAL_SECONDS * 1000;
 
 interface LiveStatsData {
   statistics: ServerResourceDataPoint[];
+  serverNow: number;
 }
 
 function liveStatsInterval(query: { state: { data?: LiveStatsData } }) {
@@ -25,6 +31,8 @@ function liveStatsInterval(query: { state: { data?: LiveStatsData } }) {
   return empty ? EMPTY_STATS_BACKOFF_MS : POLL_MS;
 }
 
+// Unrounded percentages (0-100). An idle media server sits well under 1%, so
+// the display decides the precision.
 export interface ServerLiveStatsLatest {
   hostCpu: number | null;
   processCpu: number;
@@ -35,13 +43,11 @@ export interface ServerLiveStatsLatest {
 export interface ServerLiveStatsResult {
   serverId: string;
   statistics: ServerResourceDataPoint[];
+  // Null with statistics present means the source went quiet: the newest sample
+  // is older than SERVER_STATS_CONFIG.GAP_BREAK_SECONDS on the server's clock.
   latest: ServerLiveStatsLatest | null;
   isLoading: boolean;
   error: Error | null;
-}
-
-function roundOrNull(value: number | null): number | null {
-  return value == null ? null : Math.round(value);
 }
 
 export function useServerLiveStats(serverIds: string[]): ServerLiveStatsResult[] {
@@ -63,13 +69,8 @@ export function useServerLiveStats(serverIds: string[]): ServerLiveStatsResult[]
           window = new Map();
           windows.set(serverId, window);
         }
-        return {
-          statistics: mergeWindow(
-            window,
-            response.statistics,
-            serverNowSeconds(response.fetchedAt)
-          ),
-        };
+        const serverNow = serverNowSeconds(response.fetchedAt);
+        return { statistics: mergeWindow(window, response.statistics, serverNow), serverNow };
       },
       refetchInterval: liveStatsInterval,
       refetchIntervalInBackground: false,
@@ -80,16 +81,16 @@ export function useServerLiveStats(serverIds: string[]): ServerLiveStatsResult[]
   return serverIds.map((serverId, index) => {
     const query = results[index];
     const statistics = query?.data?.statistics ?? [];
-    const last = statistics[statistics.length - 1];
+    const last = latestLivePoint(statistics, query?.data?.serverNow ?? 0);
     return {
       serverId,
       statistics,
       latest: last
         ? {
-            hostCpu: roundOrNull(last.hostCpuUtilization),
-            processCpu: Math.round(last.processCpuUtilization),
-            hostMemory: roundOrNull(last.hostMemoryUtilization),
-            processMemory: Math.round(last.processMemoryUtilization),
+            hostCpu: last.hostCpuUtilization,
+            processCpu: last.processCpuUtilization,
+            hostMemory: last.hostMemoryUtilization,
+            processMemory: last.processMemoryUtilization,
           }
         : null,
       isLoading: query?.isLoading ?? false,

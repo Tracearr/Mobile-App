@@ -39,3 +39,14 @@ export function mergeWindow(
 
   return kept.reverse();
 }
+
+// A source that has gone quiet keeps its last points for the whole retention
+// window. Past the gap web breaks its line at, the newest point is history.
+export function latestLivePoint(
+  statistics: ServerResourceDataPoint[],
+  nowSeconds: number
+): ServerResourceDataPoint | null {
+  const last = statistics[statistics.length - 1];
+  if (!last || nowSeconds - last.at > SERVER_STATS_CONFIG.GAP_BREAK_SECONDS) return null;
+  return last;
+}

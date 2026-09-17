@@ -4,7 +4,15 @@
 import { useEffect, type ReactNode } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { AlertTriangle, RefreshCw } from 'lucide-react-native';
-import { ObserveErrorBoundary, type ObserveErrorBoundaryFallbackProps } from 'expo-observe';
+import {
+  Observe,
+  ObserveErrorBoundary,
+  type ObserveErrorBoundaryFallbackProps,
+} from 'expo-observe';
+import type { ErrorBoundaryProps } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
+import { useTranslation } from '@tracearr/translations/mobile';
+import { ErrorState } from '@/components/ui/error-state';
 import { recordTrouble } from '@/lib/reviewPrompt';
 import { colors } from '@/lib/theme';
 
@@ -16,8 +24,33 @@ export function ErrorBoundary({ children }: { children: ReactNode }) {
   );
 }
 
-function ErrorFallback({ error, resetError }: ObserveErrorBoundaryFallbackProps) {
+// Wired as unstable_settings.screenErrorBoundary in the root layout: one broken
+// screen shows this inside its own tab or stack entry and the rest of the app
+// keeps working. expo-router's boundary reports nowhere, so this does.
+export function ScreenErrorFallback({ error, retry }: ErrorBoundaryProps) {
+  const { t } = useTranslation(['common']);
+
   useEffect(() => {
+    recordTrouble();
+    Observe.reportError(error);
+  }, [error]);
+
+  return (
+    <View style={styles.container}>
+      <ErrorState
+        message={__DEV__ ? error.message : t('common:errors.unexpectedError')}
+        onRetry={() => void retry()}
+      />
+    </View>
+  );
+}
+
+function ErrorFallback({ error, resetError }: ObserveErrorBoundaryFallbackProps) {
+  const { t } = useTranslation(['common', 'mobile']);
+
+  // A throw during the first render means the root layout's own hide never runs.
+  useEffect(() => {
+    SplashScreen.hide();
     recordTrouble();
   }, []);
 
@@ -25,12 +58,12 @@ function ErrorFallback({ error, resetError }: ObserveErrorBoundaryFallbackProps)
     <View style={styles.container}>
       <View style={styles.content}>
         <AlertTriangle size={48} color={colors.error} strokeWidth={2} />
-        <Text style={styles.title}>Something went wrong</Text>
-        <Text style={styles.message}>An unexpected error occurred. Please try again.</Text>
+        <Text style={styles.title}>{t('common:errors.somethingWentWrong')}</Text>
+        <Text style={styles.message}>{t('common:errors.unexpectedError')}</Text>
 
         {__DEV__ && (
           <ScrollView style={styles.errorContainer}>
-            <Text style={styles.errorTitle}>Error Details:</Text>
+            <Text style={styles.errorTitle}>{t('mobile:errors.errorDetails')}</Text>
             <Text style={styles.errorText}>
               {error instanceof Error ? error.message : String(error)}
             </Text>
@@ -39,7 +72,7 @@ function ErrorFallback({ error, resetError }: ObserveErrorBoundaryFallbackProps)
 
         <TouchableOpacity style={styles.button} onPress={resetError}>
           <RefreshCw size={20} color={colors.text.primary.dark} />
-          <Text style={styles.buttonText}>Try Again</Text>
+          <Text style={styles.buttonText}>{t('common:actions.tryAgain')}</Text>
         </TouchableOpacity>
       </View>
     </View>
