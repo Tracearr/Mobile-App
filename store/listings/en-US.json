@@ -22,6 +22,7 @@
   },
   "play": {
     "language": "en-US",
-    "shortDescription": "Monitor Plex, Jellyfin, and Emby streams, users, and account sharing"
+    "shortDescription": "Monitor Plex, Jellyfin, and Emby streams, users, and account sharing",
+    "releaseNotes": "Server resources for Jellyfin and Emby.\n\nAutomations on your phone: pause or resume one and see what ran and why (server 2.2 or newer).\n\nA banner when a media server goes down. End a stream from the dashboard.\n\nUser pages cover a person across all their servers, with search, sort and trust score editing.\n\nAcknowledge all alerts at once. History totals follow your filters.\n\nFixes for empty charts, notification taps that did nothing, duplicate alerts and a stuck launch screen."
   }
 }

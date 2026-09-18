@@ -21,6 +21,7 @@
   },
   "play": {
     "language": "fr-FR",
-    "shortDescription": "Suivez lectures, utilisateurs et partage de compte sur Plex, Jellyfin et Emby"
+    "shortDescription": "Suivez lectures, utilisateurs et partage de compte sur Plex, Jellyfin et Emby",
+    "releaseNotes": "Ressources serveur pour Jellyfin et Emby.\n\nAutomatisations sur le téléphone : pause, reprise, et ce qui a tourné et pourquoi (serveur 2.2+).\n\nBandeau quand un serveur tombe. Arrêt d'une lecture depuis l'accueil.\n\nFiches utilisateur par personne sur tous ses serveurs, avec recherche, tri et score modifiable.\n\nReconnaissez toutes les alertes d'un coup. Les totaux de l'historique suivent les filtres.\n\nCorrections : graphiques vides, notifications sans effet, alertes en double, démarrage bloqué."
   }
 }

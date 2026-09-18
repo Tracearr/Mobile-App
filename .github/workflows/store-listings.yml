@@ -83,4 +83,5 @@ jobs:
         if: inputs.store != 'apple'
         env:
           GOOGLE_SERVICE_ACCOUNT_KEY: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_KEY }}
+          APP_VERSION: ${{ inputs.version }}
         run: node scripts/release/sync-play-listing.mjs

@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 
 const PACKAGE = 'com.tracearr.mobile';
 const LIMITS = { title: 30, shortDescription: 80, fullDescription: 4000 };
+const RELEASE_NOTES_LIMIT = 500;
 
 export function playListings(dir) {
   return readdirSync(dir)
@@ -26,6 +27,22 @@ export function playListings(dir) {
         }
       }
       return body;
+    });
+}
+
+export function playReleaseNotes(dir) {
+  return readdirSync(dir)
+    .filter((file) => file.endsWith('.json'))
+    .map((file) => {
+      const listing = JSON.parse(readFileSync(path.join(dir, file), 'utf8'));
+      const text = listing.play.releaseNotes;
+      const length = [...text].length;
+      if (length > RELEASE_NOTES_LIMIT) {
+        throw new Error(
+          `${file}: play.releaseNotes is ${length} characters, Play allows ${RELEASE_NOTES_LIMIT}`
+        );
+      }
+      return { language: listing.play.language, text };
     });
 }
 
@@ -61,7 +78,21 @@ async function accessToken(key) {
   return token;
 }
 
-async function sync(listings, key) {
+// The release named after the version only exists once EAS has submitted the
+// build, so a push that runs before that leaves the notes for the next run.
+async function setReleaseNotes(api, editId, version, releaseNotes) {
+  const track = await api('GET', `/${editId}/tracks/production`);
+  const release = track.releases?.find((r) => r.name === version);
+  if (!release) {
+    console.log(`No production release named ${version} yet, release notes not set`);
+    return;
+  }
+  release.releaseNotes = releaseNotes;
+  await api('PUT', `/${editId}/tracks/production`, track);
+  console.log(`Set release notes on ${version} (${release.status})`);
+}
+
+async function sync(listings, key, version, releaseNotes) {
   const token = await accessToken(key);
   const base = `https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${PACKAGE}/edits`;
   const api = async (method, route = '', body) => {
@@ -84,6 +115,7 @@ async function sync(listings, key) {
       await api('PUT', `/${edit.id}/listings/${listing.language}`, listing);
       console.log(`Updated ${listing.language}`);
     }
+    if (version) await setReleaseNotes(api, edit.id, version, releaseNotes);
     await api('POST', `/${edit.id}:commit`);
     committed = true;
     console.log('Committed the Play listing edit');
@@ -100,7 +132,12 @@ if (process.argv[1] && import.meta.url === `file://${process.argv[1]}`) {
   }
   const dir = fileURLToPath(new URL('../../store/listings', import.meta.url));
   try {
-    await sync(playListings(dir), readServiceAccount(raw));
+    await sync(
+      playListings(dir),
+      readServiceAccount(raw),
+      process.env.APP_VERSION,
+      playReleaseNotes(dir)
+    );
   } catch (error) {
     console.error(error.message);
     process.exit(1);

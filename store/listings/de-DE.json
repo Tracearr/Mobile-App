@@ -20,6 +20,7 @@
   },
   "play": {
     "language": "de-DE",
-    "shortDescription": "Streams, Benutzer und Account-Sharing auf Plex, Jellyfin und Emby überwachen"
+    "shortDescription": "Streams, Benutzer und Account-Sharing auf Plex, Jellyfin und Emby überwachen",
+    "releaseNotes": "Serverauslastung auch für Jellyfin und Emby.\n\nAutomatisierungen auf dem Handy: pausieren, fortsetzen und sehen, was warum lief (Server 2.2 oder neuer).\n\nBanner bei Serverausfall. Streams direkt im Dashboard beenden.\n\nBenutzerseiten zeigen eine Person über alle Server, mit Suche, Sortierung und Vertrauenswert.\n\nAlle Warnungen auf einmal bestätigen. Verlaufssummen folgen den Filtern.\n\nBehoben: leere Diagramme, wirkungslose Benachrichtigungen, doppelte Warnungen, hängender Start."
   }
 }

@@ -16,6 +16,7 @@ test('every listing fits the App Store and Play limits', () => {
     assert.ok(l.apple.subtitle.length <= 30, `${file} apple.subtitle`);
     assert.ok(l.apple.keywords.join(',').length <= 100, `${file} apple.keywords`);
     assert.ok(l.play.shortDescription.length <= 80, `${file} play.shortDescription`);
+    assert.ok([...l.play.releaseNotes].length <= 500, `${file} play.releaseNotes`);
   }
 });
 

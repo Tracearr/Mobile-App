@@ -20,6 +20,7 @@
   },
   "play": {
     "language": "es-ES",
-    "shortDescription": "Monitoriza Plex, Jellyfin y Emby: reproducciones, usuarios y cuentas compartidas"
+    "shortDescription": "Monitoriza Plex, Jellyfin y Emby: reproducciones, usuarios y cuentas compartidas",
+    "releaseNotes": "Recursos del servidor para Jellyfin y Emby.\n\nAutomatizaciones en el móvil: pausa o reanuda una y mira qué se ejecutó y por qué (servidor 2.2+).\n\nAviso cuando un servidor se cae. Termina reproducciones desde el panel.\n\nPáginas de usuario por persona en todos sus servidores, con búsqueda, orden y edición de confianza.\n\nReconoce todas las alertas a la vez. Los totales del historial siguen los filtros.\n\nCorrecciones: gráficos vacíos, notificaciones sin efecto, alertas duplicadas e inicio bloqueado."
   }
 }
