@@ -1,0 +1,86 @@
+name: Store Listings
+
+# Pushes the listing text in store/listings to App Store Connect and Google Play
+# without a build. The release workflow does the same only when it starts a new
+# production build, so this is the way to fix text on a version already uploaded.
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Branch or tag holding the listing text'
+        required: true
+        type: string
+        default: main
+      version:
+        description: 'App Store version to edit (e.g. 2.4.0)'
+        required: true
+        type: string
+      store:
+        description: 'Store'
+        required: true
+        type: choice
+        options: [both, apple, play]
+        default: both
+
+concurrency:
+  group: mobile-release
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  push:
+    name: Push listings
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          ref: ${{ inputs.ref }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version-file: .tool-versions
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check the listings
+        run: node --test scripts/release/store-listings.test.mjs
+
+      - name: Setup Expo
+        if: inputs.store != 'play'
+        uses: expo/expo-github-action@eab7a230208c952974db8c3245cfd78402c7b385 # v9
+        with:
+          eas-version: 22.4.0
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Push App Store listing
+        if: inputs.store != 'play'
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          # The ASC key stored on EAS has no team attached, so non-interactive runs need it here.
+          EXPO_APPLE_TEAM_ID: 6DA3FJF5G5
+          APP_VERSION: ${{ inputs.version }}
+          APPLE_REVIEW_NOTES: ${{ secrets.APPLE_REVIEW_NOTES }}
+        # eas-cli exits 0 after "Metadata store config errors found" and pushes
+        # nothing, so the success line is the only proof the listing went out.
+        run: |
+          set -o pipefail
+          eas metadata:push --profile production --non-interactive 2>&1 | tee metadata-push.log
+          grep -q "Store configuration is synced" metadata-push.log
+
+      - name: Push Play listing
+        if: inputs.store != 'apple'
+        env:
+          GOOGLE_SERVICE_ACCOUNT_KEY: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_KEY }}
+        run: node scripts/release/sync-play-listing.mjs

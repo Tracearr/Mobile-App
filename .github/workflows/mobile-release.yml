@@ -122,7 +122,12 @@ jobs:
           EXPO_APPLE_TEAM_ID: 6DA3FJF5G5
           APP_VERSION: ${{ steps.resolve.outputs.version }}
           APPLE_REVIEW_NOTES: ${{ secrets.APPLE_REVIEW_NOTES }}
-        run: eas metadata:push --profile production --non-interactive
+        # eas-cli exits 0 after "Metadata store config errors found" and pushes
+        # nothing, so the success line is the only proof the listing went out.
+        run: |
+          set -o pipefail
+          eas metadata:push --profile production --non-interactive 2>&1 | tee metadata-push.log
+          grep -q "Store configuration is synced" metadata-push.log
 
       - name: Push Play listing
         if: steps.resolve.outputs.profile == 'production' && steps.deploy.outputs.android-did-start-new-build == 'true'
