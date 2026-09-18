@@ -4,9 +4,14 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Tracearr tag to release (must be mirrored here first)'
-        required: true
+        description: 'Tracearr tag to build and submit (mirrored here first). Leave empty to publish an OTA update from ref instead.'
+        required: false
         type: string
+      ref:
+        description: 'Branch, tag or commit to publish as an OTA update when tag is empty'
+        required: false
+        type: string
+        default: main
       platform:
         description: 'Platform'
         required: true
@@ -30,6 +35,7 @@ permissions:
 jobs:
   release:
     name: Release
+    if: inputs.tag != ''
     runs-on: ubuntu-latest
     timeout-minutes: 60
 
@@ -154,4 +160,108 @@ jobs:
             echo "- Android fingerprint: \`$ANDROID_FINGERPRINT\`"
             echo "- New iOS build: $IOS_NEW_BUILD"
             echo "- New Android build: $ANDROID_NEW_BUILD"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # JS-only hotfixes: the builds already in the stores pick this up on next
+  # launch, as long as the runtime fingerprint still matches one of them.
+  update:
+    name: OTA update
+    if: inputs.tag == ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      POSTHOG_CLI_API_KEY: ${{ secrets.POSTHOG_CLI_API_KEY }}
+      POSTHOG_CLI_HOST: ${{ secrets.POSTHOG_CLI_HOST }}
+      POSTHOG_CLI_PROJECT_ID: ${{ secrets.POSTHOG_CLI_PROJECT_ID }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          ref: ${{ inputs.ref }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version-file: .tool-versions
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck, lint and test
+        run: |
+          pnpm typecheck
+          pnpm lint
+          pnpm test
+
+      - name: Resolve channel
+        id: channel
+        env:
+          REQUESTED_PROFILE: ${{ inputs.profile }}
+        run: |
+          CHANNEL="$REQUESTED_PROFILE"
+          if [ "$CHANNEL" = "auto" ]; then CHANNEL=production; fi
+          echo "channel=$CHANNEL" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Expo
+        uses: expo/expo-github-action@eab7a230208c952974db8c3245cfd78402c7b385 # v9
+        with:
+          eas-version: 22.4.0
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Publish update
+        id: publish
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          CHANNEL: ${{ steps.channel.outputs.channel }}
+          PLATFORM: ${{ inputs.platform }}
+        run: |
+          MESSAGE="$(git log -1 --pretty=%s)"
+          eas update --channel "$CHANNEL" --platform "$PLATFORM" --environment production \
+            --message "$MESSAGE" --non-interactive --json > update.json
+          node -e '
+            const updates = JSON.parse(require("fs").readFileSync("update.json", "utf8"));
+            const runtimes = [...new Set(updates.map((u) => u.runtimeVersion))];
+            for (const u of updates) console.log(`${u.platform}: group ${u.group} runtime ${u.runtimeVersion}`);
+            require("fs").appendFileSync(process.env.GITHUB_OUTPUT, `runtimes=${runtimes.join(" ")}\n`);
+          '
+
+      - name: Upload source maps to PostHog
+        if: env.POSTHOG_CLI_API_KEY != ''
+        run: pnpm exec posthog-cli hermes upload --directory dist
+
+      # eas update publishes to a runtime whether or not any build runs it, so
+      # a native change would otherwise ship to nobody without a word.
+      - name: Confirm a build on this channel runs the update
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          CHANNEL: ${{ steps.channel.outputs.channel }}
+          RUNTIMES: ${{ steps.publish.outputs.runtimes }}
+        run: |
+          for RUNTIME in $RUNTIMES; do
+            COUNT=$(eas build:list --channel "$CHANNEL" --status finished --runtime-version "$RUNTIME" \
+              --limit 1 --json --non-interactive | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>console.log(JSON.parse(s).length))')
+            if [ "$COUNT" = "0" ]; then
+              echo "::error::No finished $CHANNEL build has runtime $RUNTIME. Native code changed; this needs a release, not an update."
+              exit 1
+            fi
+            echo "runtime $RUNTIME has a finished $CHANNEL build"
+          done
+
+      - name: Summary
+        env:
+          REF: ${{ inputs.ref }}
+          CHANNEL: ${{ steps.channel.outputs.channel }}
+          RUNTIMES: ${{ steps.publish.outputs.runtimes }}
+        run: |
+          {
+            echo "## OTA update"
+            echo ""
+            echo "- Ref: \`$REF\`"
+            echo "- Channel: \`$CHANNEL\`"
+            echo "- Runtime: \`$RUNTIMES\`"
           } >> "$GITHUB_STEP_SUMMARY"
