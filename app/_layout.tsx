@@ -24,6 +24,7 @@ import { useAuthStateStore } from '@/lib/authStateStore';
 import { useConnectionValidator } from '@/hooks/useConnectionValidator';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { useNowPlayingWidget } from '@/hooks/useNowPlayingWidget';
+import { useServerVersion } from '@/hooks/useServerVersion';
 import { colors } from '@/lib/theme';
 import { i18nReady } from '@/lib/i18n';
 import { useTranslation } from '@tracearr/translations/mobile';
@@ -82,6 +83,14 @@ function RootLayoutNav() {
     if (isInitializing) return;
     void posthog.screen(screen);
   }, [posthog, screen, isInitializing]);
+
+  // Which server release the app is talking to, so an error report can be
+  // matched to a server-side change. Listed in the privacy policy.
+  const { version: serverVersion } = useServerVersion();
+  useEffect(() => {
+    if (serverVersion) void posthog.register({ server_version: serverVersion });
+    else void posthog.unregister('server_version');
+  }, [posthog, serverVersion]);
 
   // Track connection state changes for reconnection toast
   useEffect(() => {

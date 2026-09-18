@@ -9,6 +9,7 @@ import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import Constants from 'expo-constants';
 import { Platform, AppState } from 'react-native';
+import axios from 'axios';
 import { useRouter, type Href } from 'expo-router';
 import { useTranslation } from '@tracearr/translations/mobile';
 import { useSocket } from '../providers/SocketProvider';
@@ -16,6 +17,7 @@ import type { ViolationWithDetails } from '@tracearr/shared';
 import { isEncrypted, registerBackgroundNotificationTask } from '../lib/backgroundTasks';
 import { decryptPushPayload, isEncryptionAvailable, getDeviceSecret } from '../lib/crypto';
 import { api } from '../lib/api';
+import { describeApiError } from '../lib/apiError';
 import { useAuthStateStore } from '../lib/authStateStore';
 import { ROUTES } from '../lib/routes';
 import { pushDestination, type PushDestination } from '../lib/pushRoute';
@@ -174,22 +176,40 @@ export function usePushNotifications() {
     [t]
   );
 
+  // The mount effect and the token listener both fire at launch, so one request
+  // serves both. A 400 means the server will keep refusing this token (an old
+  // server drops deviceId from refreshed tokens), so it is reported once.
+  const registration = useRef<{ token: string; promise: Promise<void> } | null>(null);
+  const rejectedToken = useRef<string | null>(null);
+
   // Register token with server (reusable for initial registration and re-registration)
   const registerTokenWithServer = useCallback(
-    async (token: string) => {
+    (token: string): Promise<void> => {
       if (!server) {
         console.log('Cannot register push token: not authenticated');
-        return;
+        return Promise.resolve();
       }
-      try {
-        const deviceSecret = isEncryptionAvailable() ? await getDeviceSecret() : undefined;
-        await api.registerPushToken(token, deviceSecret);
-        pushRegistered.current = true;
-        console.log('Push token registered with server');
-      } catch (error) {
-        pushRegistered.current = false;
-        console.error('Failed to register push token with server:', error);
-      }
+      if (rejectedToken.current === token) return Promise.resolve();
+      if (registration.current?.token === token) return registration.current.promise;
+
+      const promise = (async () => {
+        try {
+          const deviceSecret = isEncryptionAvailable() ? await getDeviceSecret() : undefined;
+          await api.registerPushToken(token, deviceSecret);
+          pushRegistered.current = true;
+          console.log('Push token registered with server');
+        } catch (error) {
+          pushRegistered.current = false;
+          if (axios.isAxiosError(error) && error.response?.status === 400) {
+            rejectedToken.current = token;
+          }
+          console.error(describeApiError('Push token registration failed', error));
+        } finally {
+          registration.current = null;
+        }
+      })();
+      registration.current = { token, promise };
+      return promise;
     },
     [server]
   );
@@ -205,6 +225,7 @@ export function usePushNotifications() {
     // Don't run if not authenticated
     if (!server) {
       pushRegistered.current = false;
+      rejectedToken.current = null;
       console.log('Push notifications: not authenticated, skipping registration');
       return;
     }
