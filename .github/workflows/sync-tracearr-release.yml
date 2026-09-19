@@ -9,11 +9,6 @@ on:
         description: 'Tracearr tag to sync (e.g. v2.2.0-beta.3)'
         required: true
         type: string
-      mobile_only:
-        description: 'Tag main as this stable mobile-only patch without changing pins (e.g. v2.4.1 on server 2.4.0)'
-        required: false
-        type: boolean
-        default: false
 
 concurrency:
   group: sync-tracearr-release
@@ -61,14 +56,9 @@ jobs:
         id: versions
         env:
           TAG: ${{ steps.tag.outputs.tag }}
-          MOBILE_ONLY: ${{ inputs.mobile_only }}
         run: |
           JSON=$(node scripts/release/tag-version.mjs "$TAG")
           echo "$JSON"
-          if [ "$MOBILE_ONLY" = "true" ] && [ "$(echo "$JSON" | jq -r .isPrerelease)" = "true" ]; then
-            echo "::error::A mobile-only tag must be a stable major.minor.patch"
-            exit 1
-          fi
           {
             echo "tag=$(echo "$JSON" | jq -r .tag)"
             echo "package-version=$(echo "$JSON" | jq -r .packageVersion)"
@@ -84,7 +74,6 @@ jobs:
           fi
 
       - name: Wait for packages to be published
-        if: ${{ !inputs.mobile_only }}
         env:
           VERSION: ${{ steps.versions.outputs.package-version }}
         run: |
@@ -104,18 +93,12 @@ jobs:
           done
 
       - name: Pin packages
-        if: ${{ !inputs.mobile_only }}
         env:
           TAG: ${{ steps.versions.outputs.tag }}
         run: node scripts/release/pin-packages.mjs "$TAG"
 
       - name: Refresh lockfile
-        if: ${{ !inputs.mobile_only }}
         run: pnpm install --no-frozen-lockfile
-
-      - name: Install dependencies
-        if: ${{ inputs.mobile_only }}
-        run: pnpm install --frozen-lockfile
 
       - name: Verify pins took
         env:
@@ -139,7 +122,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           if git diff --quiet package.json pnpm-lock.yaml; then
-            echo "Pins unchanged, tagging existing commit"
+            echo "Pins already at $VERSION, tagging existing commit"
           else
             git add package.json pnpm-lock.yaml
             git commit -m "pin tracearr packages to $VERSION"
@@ -151,12 +134,12 @@ jobs:
       - name: Summary
         env:
           TAG: ${{ steps.versions.outputs.tag }}
+          VERSION: ${{ steps.versions.outputs.package-version }}
         run: |
-          PINNED=$(jq -r '.dependencies["@tracearr/shared"]' package.json)
           {
             echo "## Synced $TAG"
             echo ""
-            echo "- Packages pinned to \`$PINNED\`"
+            echo "- Packages pinned to \`$VERSION\`"
             echo "- Mirrored tag pushed"
             echo ""
             echo "Trigger a build with the Mobile Build or Mobile Release workflow."
