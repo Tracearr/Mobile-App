@@ -242,6 +242,10 @@ jobs:
           CHANNEL: ${{ steps.channel.outputs.channel }}
           RUNTIMES: ${{ steps.publish.outputs.runtimes }}
         run: |
+          if [ -z "$RUNTIMES" ]; then
+            echo "::error::eas update published nothing, so there is no runtime to check."
+            exit 1
+          fi
           for RUNTIME in $RUNTIMES; do
             COUNT=$(eas build:list --channel "$CHANNEL" --status finished --runtime-version "$RUNTIME" \
               --limit 1 --json --non-interactive | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>console.log(JSON.parse(s).length))')
