@@ -59,6 +59,9 @@ export const colors = {
   error: '#DC2626',
   danger: '#DC2626',
   info: '#3B82F6',
+  // success and warning fail contrast on white; these are their light mode text colors
+  successOnLight: '#15803D',
+  warningOnLight: '#B45309',
 
   // Switch/toggle colors
   switch: {

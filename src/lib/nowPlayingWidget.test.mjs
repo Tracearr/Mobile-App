@@ -14,12 +14,21 @@ const NOW = 1_800_000_000_000;
 const text = {
   heading: 'Now Playing',
   noStreams: 'No active streams',
+  noStreamsHint: 'Streams appear here',
   signedOut: 'Open Tracearr to pair a server.',
   paused: 'Paused',
-  transcode: 'Transcode',
+  decision: (d) =>
+    ({ transcode: 'Transcode', copy: 'Direct Stream', directplay: 'Direct Play' })[d],
   bitrate: (kbps) => `${kbps} kbps`,
+  mbps: (kbps) => String(kbps / 1000),
   streams: (n) => `${n} streams`,
+  streamUnit: (n) => (n === 1 ? 'stream' : 'streams'),
   transcodes: (n) => `${n} transcodes`,
+  statStreams: 'Streams',
+  statTranscodes: 'Transcodes',
+  statDirect: 'Direct',
+  more: (n) => `+${n} more`,
+  serversOk: 'All servers reachable',
   serversDown: (names) => `${names.join(', ')} unreachable`,
   serversDownCount: (n) => `${n} down`,
   time: (ms) => `T${ms - NOW}`,
@@ -30,6 +39,9 @@ const session = (id, over = {}) => ({
   id,
   state: 'playing',
   isTranscode: false,
+  videoDecision: 'directplay',
+  audioDecision: 'directplay',
+  transcodeInfo: null,
   mediaType: 'movie',
   mediaTitle: `Movie ${id}`,
   grandparentTitle: null,
@@ -59,6 +71,40 @@ test('counts streams and transcodes and labels them', () => {
   assert.equal(props.transcodesLabel, '1 transcodes');
 });
 
+test('direct streams and the total bitrate are counted for the stat strip and chips', () => {
+  const props = buildNowPlayingProps(
+    [session('a', { bitrate: 8000 }), session('b', { isTranscode: true, bitrate: 500 })],
+    [],
+    NOW,
+    text
+  );
+  assert.equal(props.directCount, 1);
+  assert.equal(props.streamUnitLabel, 'streams');
+  assert.equal(props.bitrateValue, '8.5');
+  assert.equal(props.bitrateLabel, '8.5 Mbps');
+  assert.deepEqual(props.statLabels, {
+    streams: 'Streams',
+    transcodes: 'Transcodes',
+    direct: 'Direct',
+    bitrate: 'Mbps',
+  });
+  const unknown = buildNowPlayingProps([session('a')], [], NOW, text);
+  assert.equal(unknown.bitrateValue, '0');
+  assert.equal(unknown.bitrateLabel, '');
+});
+
+test('the more label for each row count names the streams left out', () => {
+  const props = buildNowPlayingProps(
+    ['a', 'b', 'c', 'd', 'e', 'f', 'g'].map((id) => session(id)),
+    [],
+    NOW,
+    text
+  );
+  assert.deepEqual(props.moreLabels, ['+7 more', '+6 more', '+5 more', '+4 more', '+3 more']);
+  const two = buildNowPlayingProps([session('a'), session('b')], [], NOW, text);
+  assert.deepEqual(two.moreLabels, ['+2 more', '+1 more', '', '', '']);
+});
+
 test('no transcodes leaves the transcode label empty', () => {
   assert.equal(buildNowPlayingProps([session('a')], [], NOW, text).transcodesLabel, '');
 });
@@ -75,7 +121,7 @@ test('rows put playing streams first and stop at the large size limit', () => {
   );
   assert.deepEqual(
     props.rows.map((r) => r.id),
-    ['b', 'c', 'd', 'e', 'f', 'g']
+    ['b', 'c', 'd', 'e']
   );
   assert.equal(props.streamCount, 8);
   assert.equal(props.rowLimits.systemMedium, 3);
@@ -83,7 +129,7 @@ test('rows put playing streams first and stop at the large size limit', () => {
 });
 
 test('a row shows the series title, the person and the state', () => {
-  const [row] = buildNowPlayingProps(
+  const props = buildNowPlayingProps(
     [
       session('a', {
         state: 'paused',
@@ -97,10 +143,12 @@ test('a row shows the series title, the person and the state', () => {
     [],
     NOW,
     text
-  ).rows;
+  );
+  const [row] = props.rows;
   assert.equal(row.title, 'Lost');
   assert.equal(row.user, 'Bob K');
   assert.equal(row.status, 'Paused · Transcode');
+  assert.equal(props.pausedLabel, 'Paused');
   assert.equal(row.paused, true);
 });
 
@@ -139,6 +187,47 @@ test('a row carries the episode, quality, player and progress for the widget opt
   assert.equal(movie.durationMs, 0);
 });
 
+test('a row carries the playback decision the app badges it with', () => {
+  const [hardware, copy, direct] = buildNowPlayingProps(
+    [
+      session('a', { isTranscode: true, transcodeInfo: { hwEncoding: 'vaapi' } }),
+      session('b', { audioDecision: 'copy' }),
+      session('c'),
+    ],
+    [],
+    NOW,
+    text
+  ).rows;
+  assert.equal(hardware.decision, 'transcode');
+  assert.equal(hardware.decisionLabel, 'Transcode');
+  assert.equal(hardware.hardwareTranscode, true);
+  assert.equal(copy.decision, 'copy');
+  assert.equal(copy.decisionLabel, 'Direct Stream');
+  assert.equal(copy.hardwareTranscode, false);
+  assert.equal(direct.decisionLabel, 'Direct Play');
+  assert.equal(direct.status, '');
+});
+
+test('a row links to its session and carries clock labels for its progress', () => {
+  const [short, long, unknown] = buildNowPlayingProps(
+    [
+      session('a', { progressMs: 1_534_000, totalDurationMs: 2_780_000 }),
+      session('b', { progressMs: 65_000, totalDurationMs: 7_384_000 }),
+      session('c'),
+    ],
+    [],
+    NOW,
+    text
+  ).rows;
+  assert.equal(short.url, 'tracearr://session/a');
+  assert.equal(short.progressLabel, '25:34');
+  assert.equal(short.durationLabel, '46:20');
+  assert.equal(long.progressLabel, '1:05');
+  assert.equal(long.durationLabel, '2:03:04');
+  assert.equal(unknown.progressLabel, '');
+  assert.equal(unknown.durationLabel, '');
+});
+
 test('a down server is named on the home screen and only counted for the lock screen', () => {
   const props = buildNowPlayingProps(
     [],
@@ -148,7 +237,10 @@ test('a down server is named on the home screen and only counted for the lock sc
   );
   assert.equal(props.serversDownLabel, 'Emby, Plex unreachable');
   assert.equal(props.serversDownCountLabel, '2 down');
-  assert.equal(buildNowPlayingProps([], [], NOW, text).serversDownLabel, '');
+  assert.equal(props.serversOkLabel, '');
+  const healthy = buildNowPlayingProps([], [], NOW, text);
+  assert.equal(healthy.serversDownLabel, '');
+  assert.equal(healthy.serversOkLabel, 'All servers reachable');
 });
 
 test('exactly one stream links to that session, anything else to the app', () => {

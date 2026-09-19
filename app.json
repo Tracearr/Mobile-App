@@ -62,6 +62,7 @@
           }
         }
       ],
+      "./plugins/withWidgetDrawables",
       [
         "./plugins/withGradleProperties",
         {
@@ -140,6 +141,7 @@
                   "systemMedium",
                   "systemLarge",
                   "accessoryCircular",
+                  "accessoryRectangular",
                   "accessoryInline"
                 ],
                 "initialLayout": "./widgets/NowPlayingWidget.tsx",
