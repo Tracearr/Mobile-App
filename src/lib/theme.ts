@@ -177,21 +177,15 @@ export const shadows = {
 } as const;
 
 /**
- * Responsive breakpoints - matches global.css and optimized for mobile devices
- *
- * Device coverage:
- * - Base (0px):   Phone portrait - iPhone SE to iPhone 16 Pro Max (375-440px)
- * - sm (480px):   Phone landscape, large phones
- * - md (768px):   Tablet portrait - iPad Mini (744px), iPad (820px)
- * - lg (1024px):  Tablet landscape, iPad Pro, large tablets
- * - xl (1280px):  Extra large tablets in landscape
+ * Android window size classes, measured on the app window; below medium is compact.
+ * https://developer.android.com/develop/ui/compose/layouts/adaptive/window-size-classes
  */
 export const breakpoints = {
-  sm: 480,
-  md: 768,
-  lg: 1024,
-  xl: 1280,
+  medium: 600,
+  expanded: 840,
+  extraLarge: 1200,
 } as const;
 
-export type Breakpoint = keyof typeof breakpoints;
-export type DeviceSize = 'phone' | 'phoneLandscape' | 'tablet' | 'tabletLandscape' | 'desktop';
+export const heightBreakpoints = {
+  medium: 480,
+} as const;

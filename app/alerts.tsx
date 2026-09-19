@@ -158,7 +158,7 @@ export default function AlertsScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { scope, servers, selectedServers, isAllServersSelected } = useMediaServer();
-  const { isTablet, select } = useResponsive();
+  const { isTablet, horizontalPadding } = useResponsive();
   const { supports } = useServerVersion();
   const showAutomations = supports(SERVER_2_2);
 
@@ -182,7 +182,6 @@ export default function AlertsScreen() {
   const [isCountingPending, setIsCountingPending] = useState(false);
   const severity = severityFilter === 'all' ? undefined : severityFilter;
 
-  const horizontalPadding = select({ base: spacing.md, md: spacing.lg, lg: spacing.xl });
   const numColumns = isTablet ? 2 : 1;
 
   const { data: settings } = useQuery({

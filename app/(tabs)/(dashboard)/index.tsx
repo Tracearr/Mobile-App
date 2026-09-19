@@ -93,7 +93,7 @@ export default function DashboardScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { servers, selectedServers, isMultiServer, scope, serverColor } = useMediaServer();
-  const { isTablet, columns, select } = useResponsive();
+  const { isTablet, columns, select, horizontalPadding } = useResponsive();
 
   const serverOrderMap = useMemo(
     () => new Map(servers.map((s) => [s.id, s.displayOrder ?? 0])),
@@ -159,8 +159,7 @@ export default function DashboardScreen() {
     ])
   );
 
-  const horizontalPadding = select({ base: spacing.md, md: spacing.lg, lg: spacing.xl });
-  const mapHeight = select({ base: 200, md: 280, lg: 320 });
+  const mapHeight = select({ compact: 200, medium: 280, expanded: 320 });
   const nowPlayingColumns = columns.cards;
   const tileWidth = isTablet ? '25%' : '50%';
 

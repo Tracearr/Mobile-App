@@ -16,7 +16,7 @@ export default function TabLayout() {
   const { t } = useTranslation(['nav']);
 
   return (
-    <NativeTabs tintColor={ACCENT_COLOR} minimizeBehavior="onScrollDown">
+    <NativeTabs tintColor={ACCENT_COLOR} minimizeBehavior="onScrollDown" sidebarAdaptable>
       <NativeTabs.Trigger name="(dashboard)">
         <NativeTabs.Trigger.Icon
           sf={{ default: 'rectangle.3.group', selected: 'rectangle.3.group.fill' }}

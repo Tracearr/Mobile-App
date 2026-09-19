@@ -207,9 +207,7 @@ export default function ViolationDetailScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { servers } = useMediaServer();
-  const { isTablet, select } = useResponsive();
-
-  const horizontalPadding = select({ base: spacing.md, md: spacing.lg, lg: spacing.xl });
+  const { isTablet, horizontalPadding } = useResponsive();
 
   const { data: settings } = useQuery({
     queryKey: queryKeys.settings(),

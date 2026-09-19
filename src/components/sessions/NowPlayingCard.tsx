@@ -154,9 +154,9 @@ export function NowPlayingCard({
   const { estimatedProgressMs, progressPercent } = useEstimatedProgress(session);
 
   // Responsive sizing
-  const posterWidth = select({ base: 50, md: 65 });
-  const posterHeight = select({ base: 70, md: 95 });
-  const avatarSize = select({ base: 16, md: 20 });
+  const posterWidth = select({ compact: 50, medium: 65 });
+  const posterHeight = select({ compact: 70, medium: 95 });
+  const avatarSize = select({ compact: 16, medium: 20 });
 
   // Build poster URL using image proxy (request larger size for tablets)
   const posterUrl = getImageUrl({

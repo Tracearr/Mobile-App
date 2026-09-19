@@ -79,12 +79,11 @@ export default function ActivityScreen() {
   const { t } = useTranslation(['mobile', 'common', 'nav']);
   const [period, setPeriod] = useState<TimePeriod>('month');
   const { scope } = useMediaServer();
-  const { isTablet, select } = useResponsive();
+  const { isTablet, select, horizontalPadding } = useResponsive();
 
-  const horizontalPadding = select({ base: spacing.md, md: spacing.lg, lg: spacing.xl });
-  const chartHeightLarge = select({ base: 180, md: 250 });
-  const chartHeightSmall = select({ base: 160, md: 220 });
-  const qualityHeight = select({ base: 120, md: 160 });
+  const chartHeightLarge = select({ compact: 180, medium: 250 });
+  const chartHeightSmall = select({ compact: 160, medium: 220 });
+  const qualityHeight = select({ compact: 120, medium: 160 });
 
   const plays = useStat(queryKeys.stats.plays(period, scope), scope, (signal) =>
     api.stats.plays({ period, scope }, signal)

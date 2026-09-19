@@ -27,6 +27,7 @@ import {
   type LucideIcon,
 } from 'lucide-react-native';
 import { useTranslation } from '@tracearr/translations/mobile';
+import { useResponsive } from '@/hooks/useResponsive';
 import { Text } from '@/components/ui/text';
 import { Button } from '@/components/ui/button';
 import { UserAvatar } from '@/components/ui/user-avatar';
@@ -191,6 +192,7 @@ export const FilterBottomSheet = forwardRef<FilterBottomSheetRef, FilterBottomSh
   ({ filterOptions, filters, onFiltersChange }, ref) => {
     const { t } = useTranslation(['common', 'mobile', 'nav']);
     const insets = useSafeAreaInsets();
+    const { isCompactHeight } = useResponsive();
     const bottomSheetRef = useRef<BottomSheet>(null);
     const [activeSection, setActiveSection] = React.useState<FilterSection>('main');
 
@@ -357,9 +359,10 @@ export const FilterBottomSheet = forwardRef<FilterBottomSheetRef, FilterBottomSh
               ))}
             </View>
           </View>
+          {isCompactHeight && doneFooter}
         </BottomSheetScrollView>
 
-        {doneFooter}
+        {!isCompactHeight && doneFooter}
       </View>
     );
 
@@ -459,8 +462,9 @@ export const FilterBottomSheet = forwardRef<FilterBottomSheetRef, FilterBottomSh
                 {emptyLabels[section]}
               </Text>
             )}
+            {isCompactHeight && doneFooter}
           </BottomSheetScrollView>
-          {doneFooter}
+          {!isCompactHeight && doneFooter}
         </View>
       );
     };

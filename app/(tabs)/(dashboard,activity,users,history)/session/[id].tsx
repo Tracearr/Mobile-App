@@ -217,8 +217,7 @@ export default function SessionDetailScreen() {
   const connectionState = useAuthStateStore((s) => s.connectionState);
   const isOffline = connectionState !== 'connected';
   const getImageUrl = useImageUrl();
-  const { select } = useResponsive();
-  const horizontalPadding = select({ base: spacing.md, md: spacing.lg, lg: spacing.xl });
+  const { horizontalPadding } = useResponsive();
 
   const [terminateModalVisible, setTerminateModalVisible] = useState(false);
 

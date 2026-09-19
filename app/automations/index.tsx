@@ -21,11 +21,9 @@ type Segment = 'automations' | 'activity';
 export default function AutomationsScreen() {
   const { t } = useTranslation(['pages', 'mobile', 'common']);
   const router = useRouter();
-  const { select } = useResponsive();
+  const { horizontalPadding } = useResponsive();
   const { version, supports, isError, refetch } = useServerVersion();
   const [segment, setSegment] = useState<Segment>('automations');
-
-  const horizontalPadding = select({ base: spacing.md, md: spacing.lg, lg: spacing.xl });
 
   const handleSegmentChange = (next: Segment) => {
     haptics.selection();

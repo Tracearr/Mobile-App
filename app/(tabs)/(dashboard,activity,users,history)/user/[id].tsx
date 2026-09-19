@@ -94,7 +94,7 @@ export default function UserDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { isTablet, select } = useResponsive();
+  const { isTablet, horizontalPadding } = useResponsive();
   const isOwner = useAuthStateStore((state) => state.user?.role === 'owner');
   const { configured: requestsConfigured } = useRequestsStatus();
 
@@ -102,7 +102,6 @@ export default function UserDetailScreen() {
   const [editTarget, setEditTarget] = useState<TrustEditTarget | null>(null);
   const [refreshGeneration, setRefreshGeneration] = useState(0);
 
-  const horizontalPadding = select({ base: spacing.md, md: spacing.lg, lg: spacing.xl });
   const avatarSize = isTablet ? 80 : 64;
 
   // The person query stays mounted while an account is picked: it feeds the picker

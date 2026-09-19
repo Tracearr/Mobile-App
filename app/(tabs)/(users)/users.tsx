@@ -38,14 +38,13 @@ export default function UsersScreen() {
   const { t } = useTranslation(['mobile', 'common', 'nav']);
   const router = useRouter();
   const { scope, servers } = useMediaServer();
-  const { isTablet, select } = useResponsive();
+  const { isTablet, horizontalPadding } = useResponsive();
   const [searchText, setSearchText] = useState('');
   const [orderBy, setOrderBy] = useState<UserSortField>('username');
   const [orderDir, setOrderDir] = useState<'asc' | 'desc'>(DEFAULT_SORT_DIR.username);
 
   const search = useDebounce(searchText, SEARCH_DEBOUNCE_MS).trim();
 
-  const horizontalPadding = select({ base: spacing.md, md: spacing.lg, lg: spacing.xl });
   const numColumns = isTablet ? 2 : 1;
   const showServers = servers.length > 1;
 
