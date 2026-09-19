@@ -3,11 +3,14 @@
  * Supports multi-server selection with colored cards and map markers
  *
  * Responsive layout:
- * - Phone: Single column, stacked cards
- * - Tablet (md+): 2-column grid for Now Playing, larger map
- * - Large tablet (lg+): 3-column grid for Now Playing
+ * - Compact: single column, stacked cards
+ * - Medium (600+): 2-column grid for Now Playing, larger map
+ * - Expanded (840+): 3-column grid for Now Playing
+ *
+ * Now Playing columns follow the screen's own width, not the window's, so the
+ * iPad sidebar and Android split windows get the columns that actually fit.
  */
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { View, ScrollView, RefreshControl, ActivityIndicator, Pressable } from 'react-native';
 import { useRouter, Stack } from 'expo-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -28,7 +31,7 @@ import { ROUTES } from '@/lib/routes';
 import { useMediaServer } from '@/providers/MediaServerProvider';
 import { useServerLiveStats } from '@/hooks/useServerLiveStats';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
-import { useResponsive } from '@/hooks/useResponsive';
+import { cardColumns, useResponsive } from '@/hooks/useResponsive';
 import { TabToolbar, androidHeaderOptions } from '@/components/navigation/TabHeaderButtons';
 import { StreamMap } from '@/components/map/StreamMap';
 import { NowPlayingCard } from '@/components/sessions';
@@ -93,7 +96,9 @@ export default function DashboardScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { servers, selectedServers, isMultiServer, scope, serverColor } = useMediaServer();
-  const { isTablet, columns, select, horizontalPadding } = useResponsive();
+  const { isTablet, select, horizontalPadding } = useResponsive();
+  const [contentWidth, setContentWidth] = useState(0);
+  const nowPlayingColumns = cardColumns(contentWidth);
 
   const serverOrderMap = useMemo(
     () => new Map(servers.map((s) => [s.id, s.displayOrder ?? 0])),
@@ -160,7 +165,6 @@ export default function DashboardScreen() {
   );
 
   const mapHeight = select({ compact: 200, medium: 280, expanded: 320 });
-  const nowPlayingColumns = columns.cards;
   const tileWidth = isTablet ? '25%' : '50%';
 
   const loadError = (!stats && statsError) || (!activeSessions && sessionsError) || null;
@@ -171,6 +175,7 @@ export default function DashboardScreen() {
       <ObserveInteractiveMarker />
       <ScrollView
         style={{ flex: 1 }}
+        onLayout={(e) => setContentWidth(e.nativeEvent.layout.width)}
         contentContainerClassName="pb-8"
         contentContainerStyle={loadError ? { flexGrow: 1 } : undefined}
         contentInsetAdjustmentBehavior="automatic"
@@ -253,15 +258,15 @@ export default function DashboardScreen() {
                   style={{
                     flexDirection: 'row',
                     flexWrap: 'wrap',
-                    marginHorizontal: isTablet ? -spacing.sm / 2 : 0,
+                    marginHorizontal: nowPlayingColumns > 1 ? -spacing.sm / 2 : 0,
                   }}
                 >
                   {sortedSessions.map((session) => (
                     <View
                       key={session.id}
                       style={{
-                        width: isTablet ? `${100 / nowPlayingColumns}%` : '100%',
-                        paddingHorizontal: isTablet ? spacing.sm / 2 : 0,
+                        width: `${100 / nowPlayingColumns}%`,
+                        paddingHorizontal: nowPlayingColumns > 1 ? spacing.sm / 2 : 0,
                       }}
                     >
                       <NowPlayingCard
