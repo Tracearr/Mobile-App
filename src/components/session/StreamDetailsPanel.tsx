@@ -10,8 +10,8 @@ import { Text } from '@/components/ui/text';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { colors, withAlpha, ACCENT_COLOR } from '@/lib/theme';
-import { PLAYBACK_DECISION_LABEL_KEYS } from '@/lib/playbackDecision';
 import {
+  PLAYBACK_DECISION_LABEL_KEYS,
   formatMediaTech,
   formatResolutionDisplay,
   type SourceVideoDetails,
@@ -241,7 +241,7 @@ export function StreamDetailsPanel({
       case 'directplay':
       case 'copy':
       case 'transcode':
-        return t(PLAYBACK_DECISION_LABEL_KEYS[decision]);
+        return t(PLAYBACK_DECISION_LABEL_KEYS[decision], { ns: 'common' });
       case 'burn':
         return t('common:playback.burnIn', { defaultValue: 'Burn-in' });
       default:

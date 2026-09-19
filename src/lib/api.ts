@@ -70,11 +70,6 @@ export type RunFilters = Partial<
 
 export type UserDetailScope = 'account' | 'identity';
 
-// The route returns terminations; ServerUserFullDetail in shared 2.3.0 leaves them out.
-export type UserFullDetail = ServerUserFullDetail & {
-  terminations: { data: TerminationLogWithDetails[]; total: number; hasMore: boolean };
-};
-
 export interface UnhealthyServer {
   serverId: string;
   serverName: string;
@@ -720,8 +715,8 @@ export const api = {
       id: string,
       scope: UserDetailScope,
       signal?: AbortSignal
-    ): Promise<UserFullDetail> => {
-      return apiGet<UserFullDetail>(`/users/${id}/full`, {
+    ): Promise<ServerUserFullDetail> => {
+      return apiGet<ServerUserFullDetail>(`/users/${id}/full`, {
         params: scope === 'identity' ? { scope } : undefined,
         signal,
       });

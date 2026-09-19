@@ -34,8 +34,11 @@ import { UserAvatar } from '@/components/ui/user-avatar';
 import { cn } from '@/lib/utils';
 import { ACCENT_COLOR, colors } from '@/lib/theme';
 import { haptics } from '@/lib/haptics';
-import { PLAYBACK_DECISION_LABEL_KEYS, type PlaybackDecision } from '@/lib/playbackDecision';
-import type { HistoryFilterOptions } from '@tracearr/shared';
+import {
+  PLAYBACK_DECISION_LABEL_KEYS,
+  type HistoryFilterOptions,
+  type PlaybackDecision,
+} from '@tracearr/shared';
 
 export type MediaType = 'movie' | 'episode' | 'track' | 'live';
 export type TranscodeDecision = PlaybackDecision;
@@ -351,7 +354,7 @@ export const FilterBottomSheet = forwardRef<FilterBottomSheetRef, FilterBottomSh
                 <ChipOption
                   key={value}
                   stacked
-                  label={t(PLAYBACK_DECISION_LABEL_KEYS[value])}
+                  label={t(PLAYBACK_DECISION_LABEL_KEYS[value], { ns: 'common' })}
                   icon={icon}
                   isSelected={filters.transcodeDecisions.includes(value)}
                   onPress={() => toggle('transcodeDecisions', [value])}

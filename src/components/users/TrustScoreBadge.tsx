@@ -1,13 +1,14 @@
+import { TRUST_LEVEL_LABEL_KEYS, trustLevel, type TrustLevel } from '@tracearr/shared';
 import { useTranslation } from '@tracearr/translations/mobile';
 import { Badge, badgeTextVariants } from '@/components/ui/badge';
 import { Text } from '@/components/ui/text';
 import { cn } from '@/lib/utils';
 
-const TRUST_LEVELS = [
-  { min: 80, variant: 'success', labelKey: 'common:trust.trusted' },
-  { min: 50, variant: 'warning', labelKey: 'common:trust.caution' },
-  { min: -Infinity, variant: 'danger', labelKey: 'common:trust.untrusted' },
-] as const;
+const TRUST_VARIANTS = {
+  trusted: 'success',
+  caution: 'warning',
+  untrusted: 'danger',
+} as const satisfies Record<TrustLevel, string>;
 
 interface TrustScoreBadgeProps {
   score: number;
@@ -17,20 +18,19 @@ interface TrustScoreBadgeProps {
 
 export function TrustScoreBadge({ score, showLabel = false, className }: TrustScoreBadgeProps) {
   const { t } = useTranslation(['common', 'mobile']);
-  const level = TRUST_LEVELS.find((l) => score >= l.min) ?? TRUST_LEVELS[2];
-  const label = t(level.labelKey);
+  const level = trustLevel(score);
+  const variant = TRUST_VARIANTS[level];
+  const label = t(TRUST_LEVEL_LABEL_KEYS[level], { ns: 'common' });
 
   return (
     <Badge
       accessible
       accessibilityLabel={`${t('mobile:a11y.trustScore', { score })}, ${label}`}
-      variant={level.variant}
+      variant={variant}
       className={cn('gap-1', className)}
     >
-      <Text className={badgeTextVariants({ variant: level.variant })}>{score}</Text>
-      {showLabel && (
-        <Text className={badgeTextVariants({ variant: level.variant })}>· {label}</Text>
-      )}
+      <Text className={badgeTextVariants({ variant })}>{score}</Text>
+      {showLabel && <Text className={badgeTextVariants({ variant })}>· {label}</Text>}
     </Badge>
   );
 }

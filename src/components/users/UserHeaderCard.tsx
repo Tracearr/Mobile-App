@@ -1,7 +1,7 @@
 import { View } from 'react-native';
 import { Crown, Pencil } from 'lucide-react-native';
 import { useTranslation } from '@tracearr/translations/mobile';
-import type { UserFullDetail } from '@/lib/api';
+import type { ServerUserFullDetail } from '@tracearr/shared';
 import { Text } from '@/components/ui/text';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,8 +15,8 @@ import { TrustScoreEditor, type TrustEditTarget } from './TrustScoreEditor';
 import { getMergedIdentityServers, isPersonRemoved } from './identity';
 
 interface UserHeaderCardProps {
-  user: UserFullDetail['user'];
-  identity: UserFullDetail['identity'];
+  user: ServerUserFullDetail['user'];
+  identity: ServerUserFullDetail['identity'];
   /** True when the screen covers the whole person, false when narrowed to `user`'s account. */
   isAllScope: boolean;
   avatarSize: number;

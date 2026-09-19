@@ -16,9 +16,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import { isAxiosError } from 'axios';
 import { ObserveInteractiveMarker } from 'expo-observe';
 import { Play, Clock, AlertTriangle, Activity, User } from 'lucide-react-native';
-import type { Session } from '@tracearr/shared';
+import type { ServerUserFullDetail, Session } from '@tracearr/shared';
 import { useTranslation } from '@tracearr/translations/mobile';
-import type { UserFullDetail } from '@/lib/api';
 import { queryKeys } from '@/lib/queryKeys';
 import { ROUTES } from '@/lib/routes';
 import { useAuthStateStore } from '@/lib/authStateStore';
@@ -51,7 +50,7 @@ function ScopePicker({
   value,
   onChange,
 }: {
-  accounts: UserFullDetail['identity']['serverUsers'];
+  accounts: ServerUserFullDetail['identity']['serverUsers'];
   value: string;
   onChange: (value: string) => void;
 }) {

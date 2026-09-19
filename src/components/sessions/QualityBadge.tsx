@@ -8,7 +8,7 @@ import {
   PLAYBACK_DECISION_LABEL_KEYS,
   playbackDecision,
   type PlaybackDecisionInput,
-} from '@/lib/playbackDecision';
+} from '@tracearr/shared';
 
 interface QualityBadgeProps {
   session: PlaybackDecisionInput & {
@@ -28,7 +28,7 @@ export function QualityBadge({ session, iconOnly = false, className }: QualityBa
 
   const variant = isTranscode ? 'warning' : 'success';
   const Icon = isTranscode ? (isHwTranscode ? Cpu : Zap) : MonitorPlay;
-  const label = t(PLAYBACK_DECISION_LABEL_KEYS[decision]);
+  const label = t(PLAYBACK_DECISION_LABEL_KEYS[decision], { ns: 'common' });
 
   return (
     <Badge

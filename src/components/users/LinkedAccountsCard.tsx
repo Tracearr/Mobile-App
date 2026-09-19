@@ -1,7 +1,7 @@
 import { View } from 'react-native';
 import { Link2, Pencil } from 'lucide-react-native';
 import { useTranslation } from '@tracearr/translations/mobile';
-import type { UserFullDetail } from '@/lib/api';
+import type { ServerUserFullDetail } from '@tracearr/shared';
 import { Text } from '@/components/ui/text';
 import { Button } from '@/components/ui/button';
 import { ServerTag } from '@/components/server/ServerTag';
@@ -14,7 +14,7 @@ import { RemovedBadge } from './RemovedBadge';
 import { TrustScoreEditor, type TrustEditTarget } from './TrustScoreEditor';
 
 interface LinkedAccountsCardProps {
-  accounts: UserFullDetail['identity']['serverUsers'];
+  accounts: ServerUserFullDetail['identity']['serverUsers'];
   canEditTrust: boolean;
   editTarget: TrustEditTarget | null;
   onEditTrust: (target: TrustEditTarget | null) => void;

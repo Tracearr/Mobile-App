@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { playbackDecision } from './playbackDecision.ts';
+import { playbackDecision } from '@tracearr/shared';
 
 test('isTranscode wins over the stream decisions', () => {
   assert.equal(
