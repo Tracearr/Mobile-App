@@ -56,6 +56,28 @@ export const WIDGET_DATED_AFTER_MS = 12 * 60 * 60 * 1000;
 
 const APP_URL = 'tracearr://';
 
+// Shown before the app has ever run, when nothing has been translated yet.
+export const WIDGET_INITIAL_PROPS: NowPlayingWidgetProps = {
+  status: 'signedOut',
+  heading: 'Now Playing',
+  message: 'Open Tracearr to load your streams.',
+  streamCount: 0,
+  transcodeCount: 0,
+  streamsLabel: '',
+  transcodesLabel: '',
+  emptyLabel: '',
+  rows: [],
+  serversDownLabel: '',
+  serversDownCountLabel: '',
+  asOfMs: 0,
+  timeLabel: '',
+  asOfLabel: '',
+  asOfDatedLabel: '',
+  staleAtMs: 0,
+  datedAtMs: 0,
+  url: APP_URL,
+};
+
 function rowOf(session: WidgetSession, text: NowPlayingText): NowPlayingRow {
   const title =
     session.mediaType === 'episode' && session.grandparentTitle

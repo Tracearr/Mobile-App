@@ -18,11 +18,10 @@ import {
   widgetURL,
 } from '@expo/ui/swift-ui/modifiers';
 import { createWidget, type WidgetEnvironment } from 'expo-widgets';
-import type { NowPlayingWidgetProps } from '../src/lib/nowPlayingWidget';
+import { WIDGET_INITIAL_PROPS, type NowPlayingWidgetProps } from '../src/lib/nowPlayingWidget';
 
 // Everything the layout uses is declared inside it or arrives in props: only the
-// function body ships to the widget extension. It renders before the app has
-// ever run, so the initial props below are static English.
+// function body ships to the widget extension.
 const NowPlayingWidget = (props: NowPlayingWidgetProps, environment: WidgetEnvironment) => {
   'widget';
   const family = environment.widgetFamily;
@@ -162,23 +161,4 @@ const NowPlayingWidget = (props: NowPlayingWidgetProps, environment: WidgetEnvir
   );
 };
 
-export default createWidget('NowPlaying', NowPlayingWidget, {
-  status: 'signedOut',
-  heading: 'Now Playing',
-  message: 'Open Tracearr to load your streams.',
-  streamCount: 0,
-  transcodeCount: 0,
-  streamsLabel: '',
-  transcodesLabel: '',
-  emptyLabel: '',
-  rows: [],
-  serversDownLabel: '',
-  serversDownCountLabel: '',
-  asOfMs: 0,
-  timeLabel: '',
-  asOfLabel: '',
-  asOfDatedLabel: '',
-  staleAtMs: 0,
-  datedAtMs: 0,
-  url: 'tracearr://',
-});
+export default createWidget('NowPlaying', NowPlayingWidget, WIDGET_INITIAL_PROPS);

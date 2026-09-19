@@ -126,6 +126,7 @@
       [
         "expo-widgets",
         {
+          "enableAndroid": true,
           "bundleIdentifier": "com.tracearr.app.widgets",
           "groupIdentifier": "group.com.tracearr.app",
           "widgets": [
@@ -141,6 +142,13 @@
                   "accessoryInline"
                 ],
                 "initialLayout": "./widgets/NowPlayingWidget.tsx"
+              },
+              "android": {
+                "minWidth": 250,
+                "minHeight": 110,
+                "targetCellWidth": 4,
+                "targetCellHeight": 2,
+                "initialLayout": "./widgets/NowPlayingWidget.android.tsx"
               }
             }
           ]
