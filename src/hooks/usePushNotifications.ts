@@ -192,7 +192,8 @@ export function usePushNotifications() {
       if (rejectedToken.current === token) return Promise.resolve();
       if (registration.current?.token === token) return registration.current.promise;
 
-      const promise = (async () => {
+      const entry = { token, promise: Promise.resolve() };
+      entry.promise = (async () => {
         try {
           const deviceSecret = isEncryptionAvailable() ? await getDeviceSecret() : undefined;
           await api.registerPushToken(token, deviceSecret);
@@ -205,11 +206,11 @@ export function usePushNotifications() {
           }
           console.error(describeApiError('Push token registration failed', error));
         } finally {
-          registration.current = null;
+          if (registration.current === entry) registration.current = null;
         }
       })();
-      registration.current = { token, promise };
-      return promise;
+      registration.current = entry;
+      return entry.promise;
     },
     [server]
   );
