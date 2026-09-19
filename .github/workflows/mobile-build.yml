@@ -28,9 +28,10 @@ permissions:
   contents: read
 
 # Pinned so local, CI and EAS all run the same CLI. Keep in step with
-# EAS_CLI_VERSION in scripts/release/build.sh and eas-version in mobile-release.yml.
+# EAS_CLI_VERSION in scripts/release/build.sh, eas-version in mobile-release.yml and
+# store-listings.yml, cli.version in eas.json and npm:eas-cli in .tool-versions.
 env:
-  EAS_CLI_VERSION: '22.4.0'
+  EAS_CLI_VERSION: '24.7.0'
 
 jobs:
   prepare:
