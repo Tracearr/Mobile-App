@@ -5,6 +5,7 @@ import {
   nowPlayingTimeline,
   signedOutProps,
   WIDGET_DATED_AFTER_MS,
+  WIDGET_ROW_LIMITS,
   WIDGET_STALE_AFTER_MS,
 } from './nowPlayingWidget.ts';
 
@@ -16,6 +17,7 @@ const text = {
   signedOut: 'Open Tracearr to pair a server.',
   paused: 'Paused',
   transcode: 'Transcode',
+  bitrate: (kbps) => `${kbps} kbps`,
   streams: (n) => `${n} streams`,
   transcodes: (n) => `${n} transcodes`,
   serversDown: (names) => `${names.join(', ')} unreachable`,
@@ -31,6 +33,14 @@ const session = (id, over = {}) => ({
   mediaType: 'movie',
   mediaTitle: `Movie ${id}`,
   grandparentTitle: null,
+  seasonNumber: null,
+  episodeNumber: null,
+  quality: null,
+  bitrate: null,
+  device: null,
+  product: null,
+  progressMs: null,
+  totalDurationMs: null,
   user: { username: `user-${id}`, identityName: null },
   ...over,
 });
@@ -53,18 +63,23 @@ test('no transcodes leaves the transcode label empty', () => {
   assert.equal(buildNowPlayingProps([session('a')], [], NOW, text).transcodesLabel, '');
 });
 
-test('rows put playing streams first and stop at three', () => {
+test('rows put playing streams first and stop at the large size limit', () => {
   const props = buildNowPlayingProps(
-    [session('a', { state: 'paused' }), session('b'), session('c'), session('d'), session('e')],
+    [
+      session('a', { state: 'paused' }),
+      ...['b', 'c', 'd', 'e', 'f', 'g', 'h'].map((id) => session(id)),
+    ],
     [],
     NOW,
     text
   );
   assert.deepEqual(
     props.rows.map((r) => r.id),
-    ['b', 'c', 'd']
+    ['b', 'c', 'd', 'e', 'f', 'g']
   );
-  assert.equal(props.streamCount, 5);
+  assert.equal(props.streamCount, 8);
+  assert.equal(props.rowLimits.systemMedium, 3);
+  assert.equal(WIDGET_ROW_LIMITS.systemLarge, props.rows.length);
 });
 
 test('a row shows the series title, the person and the state', () => {
@@ -83,12 +98,45 @@ test('a row shows the series title, the person and the state', () => {
     NOW,
     text
   ).rows;
-  assert.deepEqual(row, {
-    id: 'a',
-    title: 'Lost',
-    detail: 'Bob K · Paused · Transcode',
-    paused: true,
-  });
+  assert.equal(row.title, 'Lost');
+  assert.equal(row.user, 'Bob K');
+  assert.equal(row.status, 'Paused · Transcode');
+  assert.equal(row.paused, true);
+});
+
+test('a row carries the episode, quality, player and progress for the widget options', () => {
+  const [episode, movie] = buildNowPlayingProps(
+    [
+      session('a', {
+        mediaType: 'episode',
+        mediaTitle: 'Pilot',
+        grandparentTitle: 'Lost',
+        seasonNumber: 1,
+        episodeNumber: 2,
+        quality: '1080p',
+        bitrate: 8000,
+        device: 'iPhone',
+        product: 'Plex for iOS',
+        progressMs: 60_000,
+        totalDurationMs: 2_400_000,
+      }),
+      session('b', { device: 'Chrome' }),
+    ],
+    [],
+    NOW,
+    text
+  ).rows;
+  assert.equal(episode.episode, 'S01E02');
+  assert.equal(episode.episodeTitle, 'Pilot');
+  assert.equal(episode.quality, '1080p · 8000 kbps');
+  assert.equal(episode.player, 'Plex for iOS');
+  assert.equal(episode.progressMs, 60_000);
+  assert.equal(episode.durationMs, 2_400_000);
+  assert.equal(movie.episode, '');
+  assert.equal(movie.episodeTitle, '');
+  assert.equal(movie.quality, '');
+  assert.equal(movie.player, 'Chrome');
+  assert.equal(movie.durationMs, 0);
 });
 
 test('a down server is named on the home screen and only counted for the lock screen', () => {

@@ -58,7 +58,7 @@
             }
           },
           "ios": {
-            "deploymentTarget": "16.4"
+            "deploymentTarget": "17.0"
           }
         }
       ],
@@ -138,10 +138,26 @@
                 "supportedFamilies": [
                   "systemSmall",
                   "systemMedium",
+                  "systemLarge",
                   "accessoryCircular",
                   "accessoryInline"
                 ],
-                "initialLayout": "./widgets/NowPlayingWidget.tsx"
+                "initialLayout": "./widgets/NowPlayingWidget.tsx",
+                "configuration": {
+                  "title": "Now Playing",
+                  "description": "Choose what each stream shows.",
+                  "parameters": {
+                    "showUser": { "title": "User", "type": "boolean", "default": true },
+                    "showEpisode": { "title": "Episode", "type": "boolean", "default": false },
+                    "showQuality": {
+                      "title": "Quality and Bitrate",
+                      "type": "boolean",
+                      "default": false
+                    },
+                    "showPlayer": { "title": "Player", "type": "boolean", "default": false },
+                    "showProgress": { "title": "Progress", "type": "boolean", "default": false }
+                  }
+                }
               },
               "android": {
                 "minWidth": 250,

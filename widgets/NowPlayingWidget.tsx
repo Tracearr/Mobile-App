@@ -2,6 +2,7 @@ import {
   AccessoryWidgetBackground,
   HStack,
   Image,
+  ProgressView,
   Spacer,
   Text,
   VStack,
@@ -18,11 +19,19 @@ import {
   widgetURL,
 } from '@expo/ui/swift-ui/modifiers';
 import { createWidget, type WidgetEnvironment } from 'expo-widgets';
-import { WIDGET_INITIAL_PROPS, type NowPlayingWidgetProps } from '../src/lib/nowPlayingWidget';
+import {
+  WIDGET_INITIAL_PROPS,
+  type NowPlayingRow,
+  type NowPlayingWidgetOptions,
+  type NowPlayingWidgetProps,
+} from '../src/lib/nowPlayingWidget';
 
 // Everything the layout uses is declared inside it or arrives in props: only the
 // function body ships to the widget extension.
-const NowPlayingWidget = (props: NowPlayingWidgetProps, environment: WidgetEnvironment) => {
+const NowPlayingWidget = (
+  props: NowPlayingWidgetProps,
+  environment: WidgetEnvironment<NowPlayingWidgetOptions>
+) => {
   'widget';
   const family = environment.widgetFamily;
   const renderedAt = environment.date ? environment.date.getTime() : props.asOfMs;
@@ -119,12 +128,113 @@ const NowPlayingWidget = (props: NowPlayingWidgetProps, environment: WidgetEnvir
     </VStack>
   );
 
-  if (family !== 'systemMedium' || signedOut) {
+  const large = family === 'systemLarge';
+  if ((family !== 'systemMedium' && !large) || signedOut) {
     return (
       <HStack modifiers={[link, frame({ maxWidth: Infinity, maxHeight: Infinity })]}>
         {summary}
         <Spacer />
       </HStack>
+    );
+  }
+
+  const options = environment.configuration;
+  const join = (parts: string[]) => parts.filter(Boolean).join(' · ');
+  const detailLines = (row: NowPlayingRow) => {
+    const who = [options.showUser ? row.user : '', row.status];
+    const how = [options.showQuality ? row.quality : '', options.showPlayer ? row.player : ''];
+    if (!large) return [join([options.showEpisode ? row.episode : '', ...who, ...how])];
+    const what = options.showEpisode ? [row.episode, row.episodeTitle] : [];
+    return [join(what), join(who), join(how)].filter(Boolean);
+  };
+  const progress = (row: NowPlayingRow) => {
+    if (!options.showProgress || row.durationMs <= 0) return null;
+    if (row.paused || stale) {
+      return <ProgressView value={Math.min(row.progressMs / row.durationMs, 1)} />;
+    }
+    const startedAt = props.asOfMs - row.progressMs;
+    return (
+      <ProgressView
+        timerInterval={{ lower: new Date(startedAt), upper: new Date(startedAt + row.durationMs) }}
+        countsDown={false}
+      />
+    );
+  };
+  // Each extra line a row grows costs the large size one row.
+  const extraLines =
+    Number(options.showEpisode) +
+    Number(options.showQuality || options.showPlayer) +
+    Number(options.showProgress);
+  const rowLimit = large ? props.rowLimits.systemLarge - extraLines : props.rowLimits.systemMedium;
+
+  const rows = (
+    <VStack
+      alignment="leading"
+      spacing={large ? 8 : 6}
+      modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' }), opacity(stale ? 0.5 : 1)]}
+    >
+      {props.rows.length === 0 ? (
+        <Text modifiers={[font({ size: 13 }), secondary]}>{props.emptyLabel}</Text>
+      ) : (
+        props.rows.slice(0, rowLimit).map((row) => (
+          <HStack key={row.id} alignment="top" spacing={6}>
+            <Image systemName={row.paused ? 'pause.fill' : 'play.fill'} size={10} />
+            <VStack alignment="leading" spacing={large ? 1 : 0}>
+              <Text modifiers={[font({ size: 13, weight: 'semibold' }), primary, lineLimit(1)]}>
+                {row.title}
+              </Text>
+              {detailLines(row).map((line, index) => (
+                <Text key={index} modifiers={[font({ size: 11 }), secondary, lineLimit(1)]}>
+                  {line}
+                </Text>
+              ))}
+              {progress(row)}
+            </VStack>
+          </HStack>
+        ))
+      )}
+      <Spacer />
+    </VStack>
+  );
+
+  if (large) {
+    return (
+      <VStack
+        alignment="leading"
+        spacing={8}
+        modifiers={[
+          link,
+          frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'topLeading' }),
+        ]}
+      >
+        <VStack alignment="leading" spacing={0}>
+          <Text modifiers={[font({ size: 12, weight: 'semibold' }), secondary, lineLimit(1)]}>
+            {props.heading}
+          </Text>
+          <HStack alignment="lastTextBaseline" spacing={8} modifiers={[opacity(stale ? 0.5 : 1)]}>
+            <Text
+              modifiers={[
+                font({ size: 34, weight: 'bold', design: 'rounded' }),
+                monospacedDigit(),
+                primary,
+                lineLimit(1),
+              ]}
+            >
+              {props.streamCount}
+            </Text>
+            <Text modifiers={[font({ size: 13, weight: 'medium' }), primary, lineLimit(1)]}>
+              {join([props.streamsLabel, props.transcodesLabel])}
+            </Text>
+          </HStack>
+        </VStack>
+        {rows}
+        {props.serversDownLabel ? (
+          <Text modifiers={[font({ size: 11, weight: 'medium' }), warning, lineLimit(2)]}>
+            {props.serversDownLabel}
+          </Text>
+        ) : null}
+        {footer}
+      </VStack>
     );
   }
 
@@ -135,28 +245,7 @@ const NowPlayingWidget = (props: NowPlayingWidgetProps, environment: WidgetEnvir
       modifiers={[link, frame({ maxWidth: Infinity, maxHeight: Infinity })]}
     >
       {summary}
-      <VStack
-        alignment="leading"
-        spacing={6}
-        modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' }), opacity(stale ? 0.5 : 1)]}
-      >
-        {props.rows.length === 0 ? (
-          <Text modifiers={[font({ size: 13 }), secondary]}>{props.emptyLabel}</Text>
-        ) : (
-          props.rows.map((row) => (
-            <HStack key={row.id} alignment="top" spacing={6}>
-              <Image systemName={row.paused ? 'pause.fill' : 'play.fill'} size={10} />
-              <VStack alignment="leading" spacing={0}>
-                <Text modifiers={[font({ size: 13, weight: 'semibold' }), primary, lineLimit(1)]}>
-                  {row.title}
-                </Text>
-                <Text modifiers={[font({ size: 11 }), secondary, lineLimit(1)]}>{row.detail}</Text>
-              </VStack>
-            </HStack>
-          ))
-        )}
-        <Spacer />
-      </VStack>
+      {rows}
     </HStack>
   );
 };

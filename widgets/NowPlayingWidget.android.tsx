@@ -77,13 +77,13 @@ const NowPlayingWidget = (props: NowPlayingWidgetProps, environment: WidgetEnvir
             {props.emptyLabel}
           </Text>
         ) : (
-          props.rows.map((row) => (
+          props.rows.slice(0, props.rowLimits.systemMedium).map((row) => (
             <Column key={row.id} modifiers={[fillMaxWidth()]}>
               <Text color={countColor} maxLines={1} style={{ fontSize: 13, fontWeight: 'bold' }}>
                 {row.title}
               </Text>
               <Text color={secondary} maxLines={1} style={{ fontSize: 11 }}>
-                {row.detail}
+                {[row.user, row.status].filter(Boolean).join(' · ')}
               </Text>
               <Spacer modifiers={[height(6)]} />
             </Column>

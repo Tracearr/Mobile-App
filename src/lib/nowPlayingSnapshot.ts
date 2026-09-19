@@ -1,4 +1,4 @@
-import { i18n, formatDateTime, formatTime } from '@tracearr/translations/mobile';
+import { i18n, formatBitrate, formatDateTime, formatTime } from '@tracearr/translations/mobile';
 import type { ServerScope } from '@tracearr/shared';
 import { api } from './api';
 import { useAuthStateStore } from './authStateStore';
@@ -35,6 +35,7 @@ function widgetText(): NowPlayingText {
     }),
     paused: i18n.t('common:playback.paused'),
     transcode: i18n.t('common:playback.transcode'),
+    bitrate: (kbps) => formatBitrate(kbps * 1000),
     streams: (count) => i18n.t('common:count.stream', { count }),
     transcodes: (count) =>
       i18n.t('mobile:widget.transcodes', {
