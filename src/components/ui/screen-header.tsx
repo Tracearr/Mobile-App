@@ -1,4 +1,3 @@
-import * as React from 'react';
 import { Platform, Pressable } from 'react-native';
 import { Stack, type NativeStackNavigationOptions } from 'expo-router';
 import { ChevronLeft } from 'lucide-react-native';
@@ -51,6 +50,9 @@ export function ScreenHeader({ title, onBack, right }: ScreenHeaderProps) {
         options={{
           ...stackHeaderOptions,
           title,
+          // These screens sit on the root stack, where the screen behind is a
+          // route group like (tabs) whose name iOS would print as the back label.
+          headerBackButtonDisplayMode: 'minimal',
           headerBackVisible: !onBack,
           headerLeft:
             onBack && !useToolbar ? () => <HeaderBackButton onPress={onBack} /> : undefined,
