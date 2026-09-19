@@ -1,16 +1,16 @@
-/* eslint-disable @typescript-eslint/no-deprecated */
 /**
  * Bar chart showing plays by day of week with touch interaction
  */
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { useTranslation } from '@tracearr/translations/mobile';
 import { CartesianChart, Bar, useChartPressState } from 'victory-native';
-import { Circle } from '@shopify/react-native-skia';
-import { useAnimatedReaction, runOnJS } from 'react-native-reanimated';
-import type { SharedValue } from 'react-native-reanimated';
-import { colors, ACCENT_COLOR } from '../../lib/theme';
+import { useAnimatedReaction } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
+import { ACCENT_COLOR } from '../../lib/theme';
 import { useChartFont } from './useChartFont';
 import { ChartCard, PlaysReadout } from './ChartCard';
+import { ChartCursor } from './ChartCursor';
+import { AXIS_COLORS } from './chartColors';
 import { COUNT_TICKS, countDomain, hasCounts } from './countAxis';
 
 interface DayOfWeekChartProps {
@@ -22,18 +22,6 @@ interface DayOfWeekChartProps {
 // 2023-01-01 is a Sunday, matching the API's day 0.
 function dayName(day: number, locale: string, weekday: 'short' | 'long'): string {
   return new Date(2023, 0, 1 + day).toLocaleDateString(locale, { weekday });
-}
-
-function ToolTip({
-  x,
-  y,
-  color,
-}: {
-  x: SharedValue<number>;
-  y: SharedValue<number>;
-  color: string;
-}) {
-  return <Circle cx={x} cy={y} r={5} color={color} />;
 }
 
 export function DayOfWeekChart({ data, height = 180, isLoading }: DayOfWeekChartProps) {
@@ -59,21 +47,21 @@ export function DayOfWeekChart({ data, height = 180, isLoading }: DayOfWeekChart
   // Watch for changes in chart press state
   useAnimatedReaction(
     () => ({
-      active: isActive,
+      active: state.isActive.value,
       x: state.x.value.value,
       y: state.y.count.value.value,
     }),
     (current, previous) => {
       if (current.active) {
-        runOnJS(updateDisplayValue)(current.x, current.y);
+        scheduleOnRN(updateDisplayValue, current.x, current.y);
       } else if (previous?.active && !current.active) {
-        runOnJS(clearDisplayValue)();
+        scheduleOnRN(clearDisplayValue);
       }
-    },
-    [isActive]
+    }
   );
 
-  const chartData = data.map((d) => ({ x: d.day, count: d.count }));
+  // CartesianChart cancels an active press whenever `data` changes identity.
+  const chartData = useMemo(() => data.map((d) => ({ x: d.day, count: d.count })), [data]);
   const counts = chartData.map((d) => d.count);
 
   return (
@@ -95,14 +83,21 @@ export function DayOfWeekChart({ data, height = 180, isLoading }: DayOfWeekChart
         domain={{ y: countDomain(counts) }}
         domainPadding={{ left: 25, right: 25, top: 20 }}
         chartPressState={state}
-        axisOptions={{
+        xAxis={{
+          ...AXIS_COLORS,
           font,
-          tickCount: { x: 7, y: COUNT_TICKS },
-          lineColor: colors.border.dark,
-          labelColor: colors.text.muted.dark,
+          tickCount: 7,
           formatXLabel: (value) => dayName(Math.round(value), i18n.language, 'short'),
-          formatYLabel: (value) => String(Math.round(value)),
         }}
+        yAxis={[
+          {
+            ...AXIS_COLORS,
+            font,
+            tickCount: COUNT_TICKS,
+            formatYLabel: (value) => String(Math.round(value)),
+          },
+        ]}
+        frame={{ lineColor: AXIS_COLORS.lineColor }}
       >
         {({ points, chartBounds }) => (
           <>
@@ -114,7 +109,14 @@ export function DayOfWeekChart({ data, height = 180, isLoading }: DayOfWeekChart
               animate={{ type: 'timing', duration: 500 }}
             />
             {isActive && (
-              <ToolTip x={state.x.position} y={state.y.count.position} color={ACCENT_COLOR} />
+              <ChartCursor
+                x={state.x.position}
+                y={state.y.count.position}
+                index={state.matchedIndex}
+                chartBounds={chartBounds}
+                color={ACCENT_COLOR}
+                radius={5}
+              />
             )}
           </>
         )}

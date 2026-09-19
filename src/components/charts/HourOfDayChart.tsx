@@ -1,16 +1,16 @@
-/* eslint-disable @typescript-eslint/no-deprecated */
 /**
  * Bar chart showing plays by hour of day with touch interaction
  */
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { useTranslation } from '@tracearr/translations/mobile';
 import { CartesianChart, Bar, useChartPressState } from 'victory-native';
-import { Circle } from '@shopify/react-native-skia';
-import { useAnimatedReaction, runOnJS } from 'react-native-reanimated';
-import type { SharedValue } from 'react-native-reanimated';
+import { useAnimatedReaction } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 import { colors } from '../../lib/theme';
 import { useChartFont } from './useChartFont';
 import { ChartCard, PlaysReadout } from './ChartCard';
+import { ChartCursor } from './ChartCursor';
+import { AXIS_COLORS } from './chartColors';
 import { COUNT_TICKS, countDomain, hasCounts } from './countAxis';
 
 interface HourOfDayChartProps {
@@ -20,10 +20,6 @@ interface HourOfDayChartProps {
 }
 
 const BAR_COLOR = colors.chart[1];
-
-function ToolTip({ x, y }: { x: SharedValue<number>; y: SharedValue<number> }) {
-  return <Circle cx={x} cy={y} r={5} color={BAR_COLOR} />;
-}
 
 function formatHour(hour: number, locale: string): string {
   return new Date(2023, 0, 1, hour).toLocaleTimeString(locale, { hour: 'numeric' });
@@ -52,21 +48,21 @@ export function HourOfDayChart({ data, height = 180, isLoading }: HourOfDayChart
   // Watch for changes in chart press state
   useAnimatedReaction(
     () => ({
-      active: isActive,
+      active: state.isActive.value,
       x: state.x.value.value,
       y: state.y.count.value.value,
     }),
     (current, previous) => {
       if (current.active) {
-        runOnJS(updateDisplayValue)(current.x, current.y);
+        scheduleOnRN(updateDisplayValue, current.x, current.y);
       } else if (previous?.active && !current.active) {
-        runOnJS(clearDisplayValue)();
+        scheduleOnRN(clearDisplayValue);
       }
-    },
-    [isActive]
+    }
   );
 
-  const chartData = data.map((d) => ({ x: d.hour, count: d.count }));
+  // CartesianChart cancels an active press whenever `data` changes identity.
+  const chartData = useMemo(() => data.map((d) => ({ x: d.hour, count: d.count })), [data]);
   const counts = chartData.map((d) => d.count);
 
   return (
@@ -88,18 +84,25 @@ export function HourOfDayChart({ data, height = 180, isLoading }: HourOfDayChart
         domain={{ y: countDomain(counts) }}
         domainPadding={{ left: 10, right: 10, top: 20 }}
         chartPressState={state}
-        axisOptions={{
+        xAxis={{
+          ...AXIS_COLORS,
           font,
           // 12 makes d3 step by 2 hours. At 6 it steps by 5, which only ever hits hour 0.
-          tickCount: { x: 12, y: COUNT_TICKS },
-          lineColor: colors.border.dark,
-          labelColor: colors.text.muted.dark,
+          tickCount: 12,
           formatXLabel: (value) => {
             const hour = Math.round(value);
             return hour % 6 === 0 && hour < 24 ? formatHour(hour, i18n.language) : '';
           },
-          formatYLabel: (value) => String(Math.round(value)),
         }}
+        yAxis={[
+          {
+            ...AXIS_COLORS,
+            font,
+            tickCount: COUNT_TICKS,
+            formatYLabel: (value) => String(Math.round(value)),
+          },
+        ]}
+        frame={{ lineColor: AXIS_COLORS.lineColor }}
       >
         {({ points, chartBounds }) => (
           <>
@@ -110,7 +113,16 @@ export function HourOfDayChart({ data, height = 180, isLoading }: HourOfDayChart
               roundedCorners={{ topLeft: 2, topRight: 2 }}
               animate={{ type: 'timing', duration: 500 }}
             />
-            {isActive && <ToolTip x={state.x.position} y={state.y.count.position} />}
+            {isActive && (
+              <ChartCursor
+                x={state.x.position}
+                y={state.y.count.position}
+                index={state.matchedIndex}
+                chartBounds={chartBounds}
+                color={BAR_COLOR}
+                radius={5}
+              />
+            )}
           </>
         )}
       </CartesianChart>

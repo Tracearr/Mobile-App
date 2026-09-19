@@ -1,19 +1,19 @@
-/* eslint-disable @typescript-eslint/no-deprecated */
 /**
  * Stacked area chart showing concurrent streams over time with direct/directStream/transcode breakdown
  */
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { View } from 'react-native';
 import { useTranslation } from '@tracearr/translations/mobile';
 import { CartesianChart, StackedArea, useChartPressState } from 'victory-native';
-import { Circle, LinearGradient, vec } from '@shopify/react-native-skia';
-import { useAnimatedReaction, runOnJS } from 'react-native-reanimated';
-import type { SharedValue } from 'react-native-reanimated';
+import { LinearGradient, vec } from '@shopify/react-native-skia';
+import { useAnimatedReaction } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 import { Text } from '@/components/ui/text';
 import { colors } from '../../lib/theme';
 import { useChartFont } from './useChartFont';
 import { ChartCard } from './ChartCard';
-import { PLAYBACK_COLORS } from './chartColors';
+import { ChartCursor } from './ChartCursor';
+import { AXIS_COLORS, PLAYBACK_COLORS } from './chartColors';
 import { COUNT_TICKS, countDomain, hasCounts } from './countAxis';
 import {
   DATE_TICKS,
@@ -35,10 +35,6 @@ const CHART_COLORS = {
   direct: colors.chart[1],
   ...PLAYBACK_COLORS,
 };
-
-function ToolTip({ x, y }: { x: SharedValue<number>; y: SharedValue<number> }) {
-  return <Circle cx={x} cy={y} r={6} color={colors.text.primary.dark} />;
-}
 
 /**
  * Parse a timestamp string safely, handling various formats from the backend
@@ -74,12 +70,17 @@ export function ConcurrentChart({
   } | null>(null);
 
   // Always include directStream in chart data (defaults to 0 for old API responses)
-  const chartData = data.map((d, index) => ({
-    x: index,
-    direct: d.direct,
-    directStream: d.directStream ?? 0,
-    transcode: d.transcode,
-  }));
+  // CartesianChart cancels an active press whenever `data` changes identity.
+  const chartData = useMemo(
+    () =>
+      data.map((d, index) => ({
+        x: index,
+        direct: d.direct,
+        directStream: d.directStream ?? 0,
+        transcode: d.transcode,
+      })),
+    [data]
+  );
   // The areas stack, so the axis has to fit the sum, not the largest single series.
   const stackTotals = chartData.map((d) => d.direct + d.directStream + d.transcode);
   const dates = data.map((d) => parseTimestamp(d.hour));
@@ -105,7 +106,7 @@ export function ConcurrentChart({
   // Watch for changes in chart press state
   useAnimatedReaction(
     () => ({
-      active: isActive,
+      active: state.isActive.value,
       x: state.x.value.value,
       direct: state.y.direct.value.value,
       directStream: state.y.directStream.value.value,
@@ -113,17 +114,17 @@ export function ConcurrentChart({
     }),
     (current, previous) => {
       if (current.active) {
-        runOnJS(updateDisplayValue)(
+        scheduleOnRN(
+          updateDisplayValue,
           current.x,
           current.direct,
           current.directStream,
           current.transcode
         );
       } else if (previous?.active && !current.active) {
-        runOnJS(clearDisplayValue)();
+        scheduleOnRN(clearDisplayValue);
       }
-    },
-    [isActive]
+    }
   );
 
   const currentItem = displayValue ? chartData[displayValue.index] : null;
@@ -204,17 +205,24 @@ export function ConcurrentChart({
         domain={{ y: countDomain(stackTotals) }}
         domainPadding={{ top: 20, bottom: 10, left: 5, right: 5 }}
         chartPressState={state}
-        axisOptions={{
+        xAxis={{
+          ...AXIS_COLORS,
           font,
-          tickCount: { x: DATE_TICKS, y: COUNT_TICKS },
-          lineColor: colors.border.dark,
-          labelColor: colors.text.muted.dark,
+          tickCount: DATE_TICKS,
           formatXLabel: (value) => {
             const date = dates[Math.round(value)];
             return date ? formatAxisDate(date, monthLabels, i18n.language) : '';
           },
-          formatYLabel: (value) => String(Math.round(value)),
         }}
+        yAxis={[
+          {
+            ...AXIS_COLORS,
+            font,
+            tickCount: COUNT_TICKS,
+            formatYLabel: (value) => String(Math.round(value)),
+          },
+        ]}
+        frame={{ lineColor: AXIS_COLORS.lineColor }}
       >
         {({ points, chartBounds }) => (
           <>
@@ -239,7 +247,16 @@ export function ConcurrentChart({
                 };
               }}
             />
-            {isActive && <ToolTip x={state.x.position} y={state.y.direct.position} />}
+            {isActive && (
+              <ChartCursor
+                x={state.x.position}
+                y={state.y.direct.position}
+                index={state.matchedIndex}
+                chartBounds={chartBounds}
+                color={colors.text.primary.dark}
+                radius={6}
+              />
+            )}
           </>
         )}
       </CartesianChart>

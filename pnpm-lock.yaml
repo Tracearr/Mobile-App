@@ -204,8 +204,8 @@ importers:
         specifier: ^3.6.0
         version: 3.6.0
       victory-native:
-        specifier: ^41.26.0
-        version: 41.26.0(09b51d05a964b6ec877bf6cc2d3be62c)
+        specifier: ^42.0.1
+        version: 42.0.1(09b51d05a964b6ec877bf6cc2d3be62c)
       zustand:
         specifier: ^5.0.15
         version: 5.0.15(@types/react@19.2.18)(react@19.2.3)(use-sync-external-store@1.6.0(react@19.2.3))
@@ -5119,14 +5119,14 @@ packages:
     resolution: {integrity: sha512-BNGbWLfd0eUPabhkXUVm0j8uuvREyTh5ovRa/dyow/BqAbZJyC+5fU+IzQOzmAKzYqYRAISoRhdQr3eIZ/PXqg==}
     engines: {node: '>= 0.8'}
 
-  victory-native@41.26.0:
-    resolution: {integrity: sha512-NCRPQKdK99cIREXvtefEnGlOf29gd3RBMb5qVQ49+weY+mG6UHbBu4Wru7TObDyZo0NgywPWZP4dno9K8bz+Cg==}
+  victory-native@42.0.1:
+    resolution: {integrity: sha512-W3dNBMeRtZ8AQGBkV1PrYYKLFSstTy6uulmlJJFch4hvPX/R1xH1VJXzZopK6GGbcq/ejcr8WwntWwhqTo0lzA==}
     peerDependencies:
-      '@shopify/react-native-skia': '>=1.2.3 <3.0.0'
+      '@shopify/react-native-skia': '>=2.6.0 <3.0.0'
       react: '*'
       react-native: '*'
       react-native-gesture-handler: '>=2.0.0'
-      react-native-reanimated: '>=3.0.0'
+      react-native-reanimated: '>=3.19.1'
 
   vlq@1.0.1:
     resolution: {integrity: sha512-gQpnTgkubC6hQgdIcRdYGDSDc+SaujOdyesZQMv6JlfQee/9Mp0Qhnys6WxDWvQnL5WZdT7o2Ul187aSt0Rq+w==}
@@ -10710,7 +10710,7 @@ snapshots:
 
   vary@1.1.2: {}
 
-  victory-native@41.26.0(09b51d05a964b6ec877bf6cc2d3be62c):
+  victory-native@42.0.1(09b51d05a964b6ec877bf6cc2d3be62c):
     dependencies:
       '@shopify/react-native-skia': 2.11.2(e466a8ffe46d275bf7b76ec0bf378dea)
       d3-scale: 4.0.2

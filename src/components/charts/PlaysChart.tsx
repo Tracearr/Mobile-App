@@ -1,16 +1,16 @@
-/* eslint-disable @typescript-eslint/no-deprecated */
 /**
  * Area chart showing plays over time with touch-to-reveal tooltip
  */
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { useTranslation } from '@tracearr/translations/mobile';
 import { CartesianChart, Area, useChartPressState } from 'victory-native';
-import { Circle } from '@shopify/react-native-skia';
-import { useAnimatedReaction, runOnJS } from 'react-native-reanimated';
-import type { SharedValue } from 'react-native-reanimated';
-import { colors, ACCENT_COLOR } from '../../lib/theme';
+import { useAnimatedReaction } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
+import { ACCENT_COLOR } from '../../lib/theme';
 import { useChartFont } from './useChartFont';
 import { ChartCard, PlaysReadout } from './ChartCard';
+import { ChartCursor } from './ChartCursor';
+import { AXIS_COLORS } from './chartColors';
 import { COUNT_TICKS, countDomain, hasCounts, sumByDate } from './countAxis';
 import {
   DATE_TICKS,
@@ -27,18 +27,6 @@ interface PlaysChartProps {
   isLoading?: boolean;
 }
 
-function ToolTip({
-  x,
-  y,
-  color,
-}: {
-  x: SharedValue<number>;
-  y: SharedValue<number>;
-  color: string;
-}) {
-  return <Circle cx={x} cy={y} r={6} color={color} />;
-}
-
 export function PlaysChart({ data, period = 'month', height = 200, isLoading }: PlaysChartProps) {
   const { t, i18n } = useTranslation(['common', 'mobile']);
   const font = useChartFont(10);
@@ -50,11 +38,12 @@ export function PlaysChart({ data, period = 'month', height = 200, isLoading }: 
     count: number;
   } | null>(null);
 
-  const byDate = sumByDate(data);
-  const chartData = byDate.map((d, index) => ({
-    x: index,
-    count: d.count,
-  }));
+  const byDate = useMemo(() => sumByDate(data), [data]);
+  // CartesianChart cancels an active press whenever `data` changes identity.
+  const chartData = useMemo(
+    () => byDate.map((d, index) => ({ x: index, count: d.count })),
+    [byDate]
+  );
   const counts = chartData.map((d) => d.count);
   const dates = byDate.map((d) => new Date(d.date));
   const monthLabels = usesMonthLabels(dates[0] ?? null, dates[dates.length - 1] ?? null);
@@ -71,18 +60,17 @@ export function PlaysChart({ data, period = 'month', height = 200, isLoading }: 
   // Watch for changes in chart press state
   useAnimatedReaction(
     () => ({
-      active: isActive,
+      active: state.isActive.value,
       x: state.x.value.value,
       y: state.y.count.value.value,
     }),
     (current, previous) => {
       if (current.active) {
-        runOnJS(updateDisplayValue)(current.x, current.y);
+        scheduleOnRN(updateDisplayValue, current.x, current.y);
       } else if (previous?.active && !current.active) {
-        runOnJS(clearDisplayValue)();
+        scheduleOnRN(clearDisplayValue);
       }
-    },
-    [isActive]
+    }
   );
 
   const activeDate = displayValue ? dates[displayValue.index] : undefined;
@@ -115,17 +103,24 @@ export function PlaysChart({ data, period = 'month', height = 200, isLoading }: 
         domain={{ y: countDomain(counts) }}
         domainPadding={{ top: 20, bottom: 10, left: 5, right: 5 }}
         chartPressState={state}
-        axisOptions={{
+        xAxis={{
+          ...AXIS_COLORS,
           font,
-          tickCount: { x: DATE_TICKS, y: COUNT_TICKS },
-          lineColor: colors.border.dark,
-          labelColor: colors.text.muted.dark,
+          tickCount: DATE_TICKS,
           formatXLabel: (value) => {
             const date = dates[Math.round(value)];
             return date ? formatAxisDate(date, monthLabels, i18n.language) : '';
           },
-          formatYLabel: (value) => String(Math.round(value)),
         }}
+        yAxis={[
+          {
+            ...AXIS_COLORS,
+            font,
+            tickCount: COUNT_TICKS,
+            formatYLabel: (value) => String(Math.round(value)),
+          },
+        ]}
+        frame={{ lineColor: AXIS_COLORS.lineColor }}
       >
         {({ points, chartBounds }) => (
           <>
@@ -137,7 +132,14 @@ export function PlaysChart({ data, period = 'month', height = 200, isLoading }: 
               animate={{ type: 'timing', duration: 500 }}
             />
             {isActive && (
-              <ToolTip x={state.x.position} y={state.y.count.position} color={ACCENT_COLOR} />
+              <ChartCursor
+                x={state.x.position}
+                y={state.y.count.position}
+                index={state.matchedIndex}
+                chartBounds={chartBounds}
+                color={ACCENT_COLOR}
+                radius={6}
+              />
             )}
           </>
         )}
