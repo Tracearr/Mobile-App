@@ -10,12 +10,16 @@ import {
 } from '@expo/ui/jetpack-compose';
 import {
   background,
+  clip,
+  createModifier,
   fillMaxSize,
   fillMaxWidth,
   height,
   padding,
   paddingAll,
+  Shapes,
   size,
+  weight,
   width,
 } from '@expo/ui/jetpack-compose/modifiers';
 import { createWidget, type WidgetEnvironment } from 'expo-widgets';
@@ -28,10 +32,12 @@ import {
 
 // Everything the layout uses is declared inside it or arrives in props: only the
 // function body ships to the widget runtime, so the palette repeats src/lib/theme.ts.
-// Glance has no timeline, no widget size, no opacity, no corner radius and no
-// tap-to-open URL here, so the layout checks the clock when it renders, a stale
-// snapshot is dimmed by colour alone, one layout serves every size, and rounded
-// tiles and the card gradient are drawables from plugins/withWidgetDrawables.js.
+// Glance has no timeline, no widget size and no opacity here, so the layout checks
+// the clock when it renders, a stale snapshot is dimmed by colour alone, one layout
+// serves every size, and the card gradient is a drawable from
+// plugins/withWidgetDrawables.js. widgetURL, rounded clip and weight reach Glance
+// through patches/expo-widgets@58.0.3.patch; rounded corners need Android 12, and
+// older versions draw the tiles square.
 const NowPlayingWidget = (props: NowPlayingWidgetProps, environment: WidgetEnvironment) => {
   'widget';
   const dark = environment.colorScheme !== 'light';
@@ -56,14 +62,8 @@ const NowPlayingWidget = (props: NowPlayingWidgetProps, environment: WidgetEnvir
   const icon = (name: string, side: number, tint: string) => (
     <Image source={{ uri: `widget_icon_${name}` }} tint={tint} modifiers={[size(side, side)]} />
   );
-  const tile = (shape: string) => (
-    <Image
-      source={{ uri: shape }}
-      tint={tileFill}
-      contentScale="fillBounds"
-      modifiers={[fillMaxSize()]}
-    />
-  );
+  const tile = (radius: number) => [background(tileFill), clip(Shapes.RoundedCorner(radius))];
+  const link = (url: string) => createModifier('widgetURL', { url });
 
   const header = (
     <Box modifiers={[fillMaxWidth()]}>
@@ -83,7 +83,7 @@ const NowPlayingWidget = (props: NowPlayingWidgetProps, environment: WidgetEnvir
   );
 
   const card = (...content: ReactNode[]) => (
-    <Box modifiers={[fillMaxSize(), background(surface)]}>
+    <Box modifiers={[fillMaxSize(), background(surface), link(props.url)]}>
       {dark ? (
         <Image
           source={{ uri: 'widget_card_dark' }}
@@ -107,11 +107,8 @@ const NowPlayingWidget = (props: NowPlayingWidgetProps, environment: WidgetEnvir
     );
   }
 
-  // Glance maps no weight modifier, so tiles cannot split the row evenly; three
-  // fixed tiles fit the narrowest width app.json allows.
   const stat = (value: string, label: string, highlight: boolean) => (
-    <Box modifiers={[size(72, 54)]}>
-      {tile('widget_tile')}
+    <Box modifiers={[weight(1), height(54), ...tile(10)]}>
       <Column modifiers={[padding(8, 7, 6, 7)]}>
         <Text
           color={empty || stale ? tertiary : highlight ? warning : primary}
@@ -136,10 +133,9 @@ const NowPlayingWidget = (props: NowPlayingWidgetProps, environment: WidgetEnvir
     return Math.min((row.progressMs + elapsed) / row.durationMs, 1);
   };
   const rowView = (row: NowPlayingRow) => (
-    <Column key={row.id} modifiers={[fillMaxWidth(), padding(0, 0, 0, 8)]}>
+    <Column key={row.id} modifiers={[fillMaxWidth(), padding(0, 0, 0, 8), link(row.url)]}>
       <Row verticalAlignment="center">
-        <Box contentAlignment="center" modifiers={[size(32, 32)]}>
-          {tile('widget_tile_small')}
+        <Box contentAlignment="center" modifiers={[size(32, 32), ...tile(7)]}>
           {icon(row.paused ? 'pause' : 'play', 14, row.paused ? tertiary : accent)}
         </Box>
         <Spacer modifiers={[width(10)]} />
@@ -214,7 +210,7 @@ const NowPlayingWidget = (props: NowPlayingWidgetProps, environment: WidgetEnvir
         </Text>
       </Row>
       <Spacer modifiers={[height(8)]} />
-      <Row>
+      <Row modifiers={[fillMaxWidth()]}>
         {stat(String(props.transcodeCount), props.statLabels.transcodes, props.transcodeCount > 0)}
         <Spacer modifiers={[width(6)]} />
         {stat(String(props.directCount), props.statLabels.direct, false)}

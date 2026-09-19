@@ -5,8 +5,8 @@ const { withDangerousMod } = require('expo/config-plugins');
 
 /**
  * Writes the Android home screen widget's drawables: the app's Lucide icons as
- * vector drawables, plus the rounded shapes and dark card gradient Glance cannot
- * draw itself. The widget tints them at render time.
+ * vector drawables, which the widget tints at render time, plus the dark card
+ * gradient Glance cannot draw itself.
  */
 
 // Drawable name suffix -> Lucide icon file, the same icons the app shows.
@@ -107,13 +107,6 @@ ${paths
 `;
 }
 
-const roundedShape = (radius) => `<?xml version="1.0" encoding="utf-8"?>
-<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
-    <solid android:color="#FFFFFFFF" />
-    <corners android:radius="${radius}dp" />
-</shape>
-`;
-
 // Tokens from src/lib/theme.ts: colors.blue.core into colors.background.dark.
 const CARD_DARK = `<?xml version="1.0" encoding="utf-8"?>
 <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
@@ -131,11 +124,7 @@ module.exports = function withWidgetDrawables(config) {
     (config) => {
       const dir = path.join(config.modRequest.platformProjectRoot, 'app/src/main/res/drawable');
       fs.mkdirSync(dir, { recursive: true });
-      const files = {
-        widget_tile: roundedShape(10),
-        widget_tile_small: roundedShape(7),
-        widget_card_dark: CARD_DARK,
-      };
+      const files = { widget_card_dark: CARD_DARK };
       for (const [name, icon] of Object.entries(ICONS)) {
         files[`widget_icon_${name}`] = iconVector(icon);
       }

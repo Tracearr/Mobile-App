@@ -1,0 +1,108 @@
+diff --git a/android/src/main/java/expo/modules/widgets/ExpoWidgetEmittableTree.kt b/android/src/main/java/expo/modules/widgets/ExpoWidgetEmittableTree.kt
+index 8f2bb1d5335373f2b27fb86d63f0f7e4bdfe33df..dcba0ecd75c79182981c1669e3c0d4f33fea7edd 100644
+--- a/android/src/main/java/expo/modules/widgets/ExpoWidgetEmittableTree.kt
++++ b/android/src/main/java/expo/modules/widgets/ExpoWidgetEmittableTree.kt
+@@ -4,7 +4,9 @@ package expo.modules.widgets
+ 
+ import android.annotation.SuppressLint
+ import android.content.Context
++import android.content.Intent
+ import android.graphics.Color as AndroidColor
++import android.net.Uri
+ import androidx.compose.ui.unit.DpSize
+ import androidx.compose.ui.unit.TextUnit
+ import androidx.compose.ui.unit.dp
+@@ -74,6 +76,8 @@ import androidx.glance.appwidget.EmittableSwitch
+ import androidx.glance.appwidget.ProgressIndicatorDefaults
+ import androidx.glance.appwidget.RadioButtonDefaults
+ import androidx.glance.appwidget.SwitchDefaults
++import androidx.glance.appwidget.action.actionStartActivity
++import androidx.glance.appwidget.cornerRadius
+ import androidx.glance.background
+ import androidx.glance.layout.Alignment
+ import androidx.glance.layout.ContentScale
+@@ -81,6 +85,8 @@ import androidx.glance.layout.EmittableBox
+ import androidx.glance.layout.EmittableColumn
+ import androidx.glance.layout.EmittableRow
+ import androidx.glance.layout.EmittableSpacer
++import androidx.glance.layout.HeightModifier
++import androidx.glance.layout.WidthModifier
+ import androidx.glance.layout.fillMaxHeight
+ import androidx.glance.layout.fillMaxSize
+ import androidx.glance.layout.fillMaxWidth
+@@ -100,6 +106,7 @@ import androidx.glance.text.TextDecoration
+ import androidx.glance.text.TextDefaults
+ import androidx.glance.text.TextStyle
+ import androidx.glance.unit.ColorProvider
++import androidx.glance.unit.Dimension
+ import androidx.glance.appwidget.lazy.EmittableLazyColumn
+ import androidx.glance.appwidget.lazy.EmittableLazyListItem
+ import androidx.glance.appwidget.lazy.ReservedItemIdRangeEnd
+@@ -174,6 +181,7 @@ private fun ReadableMap.toPeekRow(converterContext: WidgetConverterContext, sour
+     it.horizontalAlignment = props.toPeekHorizontalAlignment()
+     it.verticalAlignment = props.toPeekVerticalAlignment()
+     it.children += children().flatMap { child -> child.toPeekNodes(converterContext, source) }
++      .resolveWeight(WidthModifier(Dimension.Expand))
+   }
+ }
+ 
+@@ -184,6 +192,19 @@ private fun ReadableMap.toPeekColumn(converterContext: WidgetConverterContext, s
+     it.verticalAlignment = props.toPeekVerticalAlignment()
+     it.horizontalAlignment = props.toPeekHorizontalAlignment()
+     it.children += children().flatMap { child -> child.toPeekNodes(converterContext, source) }
++      .resolveWeight(HeightModifier(Dimension.Expand))
++  }
++}
++
++// Glance only offers defaultWeight(), an equal share that exists in Row and Column scope, so the
++// weight modifier leaves this marker and the parent swaps it for its own expand dimension.
++private object WeightMarker : GlanceModifier.Element
++
++private fun List<Emittable>.resolveWeight(expand: GlanceModifier.Element): List<Emittable> = onEach { child ->
++  if (child.modifier.any { it === WeightMarker }) {
++    child.modifier = child.modifier.foldIn<GlanceModifier>(GlanceModifier) { result, element ->
++      result.then(if (element === WeightMarker) expand else element)
++    }
+   }
+ }
+ 
+@@ -416,11 +437,25 @@ private fun ModifierType.toPeekModifier(converterContext: ConverterContext): Gla
+     "fillMaxHeight" -> asRecord<FillMaxHeightParams>(converterContext)?.let { GlanceModifier.fillMaxHeight() }
+     "background" -> asRecord<BackgroundParams>(converterContext)?.color?.toGlanceColorProvider()
+       ?.let { GlanceModifier.background(it) }
++    "weight" -> WeightMarker
++    // RemoteViews clips to one radius and only on API 31+; below that Glance logs and draws square corners.
++    "clip" -> this["shape"]?.asMap()?.takeIf { it.isUniformRoundedCorner() }
++      ?.let { GlanceModifier.cornerRadius(it.getDouble("radius").toFloat().dp) }
++    // Mirrors SwiftUI's widgetURL: the package keeps the app's own deep link handler from showing a chooser.
++    "widgetURL" -> this["url"]?.asString()?.let { url ->
++      val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).setPackage(converterContext.applicationContext.packageName)
++      GlanceModifier.clickable(actionStartActivity(intent))
++    }
+     // Unsupported Expo UI modifiers are ignored until they have exact Glance semantics.
+     else -> null
+   } ?: GlanceModifier
+ }
+ 
++private fun ReadableMap.isUniformRoundedCorner(): Boolean {
++  return hasKey("type") && getString("type") == "roundedCorner" && hasKey("radius") && !isNull("radius") &&
++    listOf("topStart", "topEnd", "bottomStart", "bottomEnd").none { hasKey(it) && !isNull(it) }
++}
++
+ private inline fun <reified T : Record> ModifierType.asRecord(converterContext: ConverterContext): T? {
+   return runCatching { recordFromMap<T>(this, converterContext) }.getOrNull()
+ }
+diff --git a/scripts/build-layout-registry.mjs b/scripts/build-layout-registry.mjs
+index d52a60e342c8e0a8a1d78f7174da5e60e6bd1c53..5ffce423b015487c5a5998781d7537b4ddd99aa3 100644
+--- a/scripts/build-layout-registry.mjs
++++ b/scripts/build-layout-registry.mjs
+@@ -154,6 +154,8 @@ function createLayoutRegistry(expectedWidgets, capturedLayouts) {
+   return registry;
+ }
+ 
+-if (process.argv[1] && path.resolve(process.argv[1]) === __filename) {
++// Expo autolinking hands Gradle the symlinked path for pnpm-patched packages, while __filename is
++// the real path, so both sides are compared after resolving symlinks.
++if (process.argv[1] && fs.realpathSync(process.argv[1]) === __filename) {
+   await main();
+ }
