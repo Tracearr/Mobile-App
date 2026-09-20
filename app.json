@@ -55,7 +55,8 @@
             "enableShrinkResourcesInReleaseBuilds": true,
             "packagingOptions": {
               "pickFirst": ["**/libcrypto.so"]
-            }
+            },
+            "extraProguardRules": "# The Android home screen widget is a Glance widget, and both rules keep it alive\n# under R8. Without them it never draws and the host shows \"Loading widget\".\n\n# WorkManager builds the input merger with Class.forName(...).getDeclaredConstructor().\n# work-runtime keeps the class but not the constructor, so R8 drops it and every job\n# fails with \"Could not create Input Merger\", including the Glance session worker.\n-keepclassmembers class * extends androidx.work.InputMerger {\n    <init>();\n}\n\n# peek-emittables accepts a node only when its class name starts with \"androidx.glance.\"\n# or it implements PeekGlanceEmittable, so renaming Glance's own emittables fails the\n# widget tree with \"Unsupported emittable ... at root\".\n-keepnames class androidx.glance.** implements androidx.glance.Emittable"
           },
           "ios": {
             "deploymentTarget": "17.0"
