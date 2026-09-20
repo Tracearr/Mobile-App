@@ -131,6 +131,19 @@ module.exports = function withWidgetDrawables(config) {
       for (const [name, xml] of Object.entries(files)) {
         fs.writeFileSync(path.join(dir, `${name}.xml`), xml);
       }
+      // The widget builds these names at render time, so the release build's
+      // resource shrinker sees no reference and drops them. The file cannot be
+      // keep.xml: React Native generates its own, and a generated resource wins
+      // over the main source set.
+      const raw = path.join(config.modRequest.platformProjectRoot, 'app/src/main/res/raw');
+      fs.mkdirSync(raw, { recursive: true });
+      const keep = Object.keys(files)
+        .map((name) => `@drawable/${name}`)
+        .join(',');
+      fs.writeFileSync(
+        path.join(raw, 'keep_widget_icons.xml'),
+        `<?xml version="1.0" encoding="utf-8"?>\n<resources xmlns:tools="http://schemas.android.com/tools" tools:keep="${keep}" />\n`
+      );
       return config;
     },
   ]);
