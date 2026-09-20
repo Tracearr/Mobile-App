@@ -340,12 +340,17 @@ export function usePushNotifications() {
   useEffect(() => {
     if (!server) return; // Only when authenticated
 
-    const subscription = Notifications.addPushTokenListener((tokenData) => {
-      console.log('Push token changed:', tokenData.data);
-      setExpoPushToken(tokenData.data);
-      void registerTokenWithServer(tokenData.data);
+    // The listener hands back the APNs or FCM token, which the server rejects;
+    // the Expo token for the rotated device token has to be fetched again.
+    const subscription = Notifications.addPushTokenListener(() => {
+      void (async () => {
+        const token = await registerForPushNotifications();
+        if (!token) return;
+        setExpoPushToken(token);
+        await registerTokenWithServer(token);
+      })();
     });
 
     return () => subscription.remove();
-  }, [server, registerTokenWithServer]);
+  }, [server, registerForPushNotifications, registerTokenWithServer]);
 }
