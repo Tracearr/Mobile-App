@@ -274,9 +274,11 @@ export function signedOutProps(now: number, text: NowPlayingText): NowPlayingWid
 // WidgetKit renders each entry with its own date, which is how the layout
 // learns the snapshot has aged without the app running.
 export function nowPlayingTimeline(props: NowPlayingWidgetProps) {
+  // The last date is when WidgetKit asks for the next timeline, so even the
+  // signed out card carries a far one instead of expiring the moment it lands.
   const dates =
     props.status === 'signedOut'
-      ? [props.asOfMs]
+      ? [props.asOfMs, props.datedAtMs]
       : [props.asOfMs, props.staleAtMs, props.datedAtMs];
   return dates.map((ms) => ({ date: new Date(ms), props }));
 }

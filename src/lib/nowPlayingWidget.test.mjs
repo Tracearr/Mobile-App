@@ -272,13 +272,16 @@ test('the timeline re-renders the same props at each threshold', () => {
   assert.ok(entries.every((e) => e.props === props));
 });
 
-test('signed out carries no stream data and a single entry', () => {
+test('signed out carries no stream data and a timeline that does not expire at once', () => {
   const props = signedOutProps(NOW, text);
   assert.equal(props.status, 'signedOut');
   assert.equal(props.message, 'Open Tracearr to pair a server.');
   assert.deepEqual(props.rows, []);
   assert.equal(props.streamCount, 0);
-  assert.equal(nowPlayingTimeline(props).length, 1);
+  assert.deepEqual(
+    nowPlayingTimeline(props).map((e) => e.date.getTime()),
+    [NOW, props.datedAtMs]
+  );
 });
 
 test('props survive JSON with no null or undefined, which the app group store rejects', () => {

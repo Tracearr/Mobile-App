@@ -13,6 +13,7 @@ import { useAuthStateStore } from '@/lib/authStateStore';
 import { registerWidgetRefreshTask, unregisterWidgetRefreshTask } from '@/lib/backgroundTasks';
 import { queryKeys } from '@/lib/queryKeys';
 import { widgetsSupported } from '@/lib/nowPlayingPublisher';
+import { WIDGET_STALE_AFTER_MS } from '@/lib/nowPlayingWidget';
 import {
   WIDGET_SCOPE,
   nowPlayingSnapshotAge,
@@ -68,6 +69,12 @@ export function useNowPlayingWidget() {
     const stopHealth = health.subscribe(publish);
     const appState = AppState.addEventListener('change', (next) => {
       if (next === 'background' && nowPlayingSnapshotAge() > LEAVING_REFRESH_AFTER_MS) {
+        void refreshNowPlayingWidget();
+      }
+      // The cache entries above only fill while the dashboard is mounted on the
+      // all-servers scope, so coming back to any other screen would otherwise
+      // leave the home screen showing whatever the last background run wrote.
+      if (next === 'active' && nowPlayingSnapshotAge() > WIDGET_STALE_AFTER_MS) {
         void refreshNowPlayingWidget();
       }
     });
