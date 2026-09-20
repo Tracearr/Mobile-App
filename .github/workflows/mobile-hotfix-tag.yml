@@ -1,0 +1,127 @@
+name: Mobile Hotfix Tag
+
+# Tags main for a store build on a server version the app already shipped on,
+# for a bug that lives only in the mobile app. The sync workflow cannot do this:
+# it owns the mirrored server tag and the pins that go with it, and a second
+# build of the same server version must move neither.
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_tag:
+        description: 'Release tag to rebuild, already mirrored here (e.g. v2.4.1)'
+        required: true
+        type: string
+      hotfix:
+        description: 'Hotfix number, counting up from 1 per base tag'
+        required: true
+        type: string
+        default: '1'
+
+concurrency:
+  group: sync-tracearr-release
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  tag:
+    name: Tag main for a mobile hotfix
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version-file: .tool-versions
+          cache: 'pnpm'
+
+      - name: Resolve tags
+        id: tags
+        env:
+          RAW_BASE: ${{ inputs.base_tag }}
+          HOTFIX: ${{ inputs.hotfix }}
+        # Parsing the hotfix tag rather than the base rejects a base that already
+        # carries a suffix, which would pin against a version npm never published.
+        run: |
+          JSON=$(node scripts/release/tag-version.mjs "${RAW_BASE}-mobile.${HOTFIX}")
+          echo "$JSON"
+          {
+            echo "base-tag=$(echo "$JSON" | jq -r .baseTag)"
+            echo "tag=$(echo "$JSON" | jq -r .tag)"
+            echo "version=$(echo "$JSON" | jq -r .packageVersion)"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Fail if the base tag does not exist here
+        env:
+          BASE_TAG: ${{ steps.tags.outputs.base-tag }}
+        run: |
+          if ! git rev-parse -q --verify "refs/tags/$BASE_TAG" >/dev/null; then
+            echo "::error::$BASE_TAG is not in this repo. Sync it before hotfixing it."
+            exit 1
+          fi
+
+      - name: Fail if the hotfix tag already exists here
+        env:
+          TAG: ${{ steps.tags.outputs.tag }}
+        run: |
+          if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
+            echo "::error::Tag $TAG already exists in this repo. Use the next hotfix number."
+            exit 1
+          fi
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify main is still pinned to the base version
+        env:
+          TAG: ${{ steps.tags.outputs.tag }}
+        run: node scripts/release/verify-pins.mjs "$TAG"
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Unit tests
+        run: pnpm test
+
+      - name: Tag
+        id: push
+        env:
+          TAG: ${{ steps.tags.outputs.tag }}
+          BASE_TAG: ${{ steps.tags.outputs.base-tag }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "$TAG" -m "Tracearr mobile hotfix for $BASE_TAG"
+          git push origin "$TAG"
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Summary
+        env:
+          TAG: ${{ steps.tags.outputs.tag }}
+          BASE_TAG: ${{ steps.tags.outputs.base-tag }}
+          VERSION: ${{ steps.tags.outputs.version }}
+          SHA: ${{ steps.push.outputs.sha }}
+        run: |
+          {
+            echo "## Tagged $TAG"
+            echo ""
+            echo "- Rebuild of \`$BASE_TAG\` from the tip of main (\`$SHA\`)"
+            echo "- Packages stay pinned to \`$VERSION\`, nothing was committed"
+            echo ""
+            echo "Build it with Mobile Release, tag \`$TAG\`, profile \`auto\`."
+          } >> "$GITHUB_STEP_SUMMARY"

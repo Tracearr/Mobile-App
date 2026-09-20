@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { findPinMismatches, TRACEARR_PACKAGES } from './verify-pins.mjs';
+import { parseTag } from './tag-version.mjs';
 
 const pkg = (shared, translations) => ({
   dependencies: {
@@ -39,4 +40,16 @@ test('a missing dependency is reported with a null actual', () => {
 
 test('a package.json with no dependencies block does not throw', () => {
   assert.equal(findPinMismatches({}, '2.1.0').length, 2);
+});
+
+test('a mobile hotfix accepts the pins its base tag shipped with', () => {
+  const { packageVersion } = parseTag('v2.4.1-mobile.1');
+  assert.deepEqual(findPinMismatches(pkg('2.4.1', '2.4.1'), packageVersion), []);
+});
+
+test('a mobile hotfix still rejects pins from another version', () => {
+  const { packageVersion } = parseTag('v2.4.1-mobile.1');
+  assert.deepEqual(findPinMismatches(pkg('2.4.0', '2.4.1'), packageVersion), [
+    { name: '@tracearr/shared', expected: '2.4.1', actual: '2.4.0' },
+  ]);
 });

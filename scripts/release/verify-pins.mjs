@@ -26,7 +26,7 @@ if (process.argv[1] && import.meta.url === `file://${process.argv[1]}`) {
     console.error('usage: verify-pins.mjs <tag> [package.json path]');
     process.exit(2);
   }
-  const { packageVersion } = parseTag(tag);
+  const { packageVersion, baseTag } = parseTag(tag);
   const pkgJson = JSON.parse(readFileSync(pkgPath, 'utf8'));
   const mismatches = findPinMismatches(pkgJson, packageVersion);
   if (mismatches.length > 0) {
@@ -34,7 +34,7 @@ if (process.argv[1] && import.meta.url === `file://${process.argv[1]}`) {
     for (const { name, actual } of mismatches) {
       console.error(`  ${name}: ${actual ?? '(missing)'}`);
     }
-    console.error('Run the sync workflow for this tag before building.');
+    console.error(`Run the sync workflow for ${baseTag} before building.`);
     process.exit(1);
   }
   console.log(`Package pins match ${tag} (${packageVersion})`);
