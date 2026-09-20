@@ -1,0 +1,108 @@
+name: Mobile Patch Tag
+
+# Cuts a store release of the app on a server version already synced here. The
+# server releases minor versions only, so the patch digit belongs to mobile and
+# a patch tag moves no pins. The sync workflow cannot do this: it owns the
+# mirrored server tag and the pins that come with it.
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Mobile patch tag to cut (e.g. v2.4.2)'
+        required: true
+        type: string
+
+concurrency:
+  group: sync-tracearr-release
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  tag:
+    name: Tag main for a mobile patch
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version-file: .tool-versions
+          cache: 'pnpm'
+
+      - name: Resolve tag
+        id: tag
+        env:
+          RAW_TAG: ${{ inputs.tag }}
+        run: |
+          JSON=$(node scripts/release/tag-version.mjs "$RAW_TAG")
+          echo "$JSON"
+          if [ "$(echo "$JSON" | jq -r .isPrerelease)" = "true" ]; then
+            echo "::error::A mobile patch tag must be a stable major.minor.patch. Betas come from the sync workflow."
+            exit 1
+          fi
+          echo "tag=$(echo "$JSON" | jq -r .tag)" >> "$GITHUB_OUTPUT"
+
+      - name: Fail if the tag already exists here
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
+            echo "::error::Tag $TAG already exists in this repo. Use the next patch number."
+            exit 1
+          fi
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify the pins on main carry this tag
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: node scripts/release/verify-pins.mjs "$TAG"
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Unit tests
+        run: pnpm test
+
+      - name: Tag
+        id: push
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "$TAG" -m "Tracearr mobile $TAG"
+          git push origin "$TAG"
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Summary
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+          SHA: ${{ steps.push.outputs.sha }}
+        run: |
+          PINNED=$(jq -r '.dependencies["@tracearr/shared"]' package.json)
+          {
+            echo "## Tagged $TAG"
+            echo ""
+            echo "- Tagged the tip of main (\`$SHA\`)"
+            echo "- Packages stay pinned to \`$PINNED\`, nothing was committed"
+            echo ""
+            echo "Build it with Mobile Release, tag \`$TAG\`, profile \`auto\`."
+          } >> "$GITHUB_STEP_SUMMARY"

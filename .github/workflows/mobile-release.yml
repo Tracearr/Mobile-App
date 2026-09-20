@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Tracearr tag to build and submit (mirrored here first). Leave empty to publish an OTA update from ref instead.'
+        description: 'Release tag to build and submit (mirrored or cut here first). Leave empty to publish an OTA update from ref instead.'
         required: false
         type: string
       ref:

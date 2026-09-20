@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Tracearr tag to build (must be mirrored here first)'
+        description: 'Release tag to build (mirrored or cut here first)'
         required: true
         type: string
       platform:
