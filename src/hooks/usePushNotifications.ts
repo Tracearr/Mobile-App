@@ -104,56 +104,50 @@ export function usePushNotifications() {
   const appState = useRef(AppState.currentState);
 
   // Register for push notifications
-  // A rotation hands the new device token to the listener below. Passing it back
-  // in is what stops getExpoPushTokenAsync from asking iOS for one again, which
-  // re-fires that listener and loops.
-  const registerForPushNotifications = useCallback(
-    async (devicePushToken?: Notifications.DevicePushToken): Promise<string | null> => {
-      if (!Device.isDevice) {
-        console.log('Push notifications require a physical device');
+  const registerForPushNotifications = useCallback(async (): Promise<string | null> => {
+    if (!Device.isDevice) {
+      console.log('Push notifications require a physical device');
+      return null;
+    }
+
+    // Android 13+ requires at least one notification channel to exist before
+    // the permission prompt will appear and before a push token can be obtained.
+    // Create channels first to ensure the permission flow works correctly.
+    if (Platform.OS === 'android') {
+      await ensureAndroidChannels();
+    }
+
+    // Check existing permissions
+    const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    let finalStatus = existingStatus;
+
+    // Request permissions if not granted
+    if (existingStatus !== Notifications.PermissionStatus.GRANTED) {
+      const { status } = await Notifications.requestPermissionsAsync();
+      finalStatus = status;
+    }
+
+    if (finalStatus !== Notifications.PermissionStatus.GRANTED) {
+      console.log('Push notification permission not granted');
+      return null;
+    }
+
+    // Get Expo push token
+    try {
+      const projectId =
+        (Constants.expoConfig?.extra as { eas?: { projectId?: string } })?.eas?.projectId ??
+        Constants.easConfig?.projectId;
+      if (!projectId) {
+        console.error('No EAS project ID found in app config');
         return null;
       }
-
-      // Android 13+ requires at least one notification channel to exist before
-      // the permission prompt will appear and before a push token can be obtained.
-      // Create channels first to ensure the permission flow works correctly.
-      if (Platform.OS === 'android') {
-        await ensureAndroidChannels();
-      }
-
-      // Check existing permissions
-      const { status: existingStatus } = await Notifications.getPermissionsAsync();
-      let finalStatus = existingStatus;
-
-      // Request permissions if not granted
-      if (existingStatus !== Notifications.PermissionStatus.GRANTED) {
-        const { status } = await Notifications.requestPermissionsAsync();
-        finalStatus = status;
-      }
-
-      if (finalStatus !== Notifications.PermissionStatus.GRANTED) {
-        console.log('Push notification permission not granted');
-        return null;
-      }
-
-      // Get Expo push token
-      try {
-        const projectId =
-          (Constants.expoConfig?.extra as { eas?: { projectId?: string } })?.eas?.projectId ??
-          Constants.easConfig?.projectId;
-        if (!projectId) {
-          console.error('No EAS project ID found in app config');
-          return null;
-        }
-        const tokenData = await Notifications.getExpoPushTokenAsync({ projectId, devicePushToken });
-        return tokenData.data;
-      } catch (error) {
-        console.error('Failed to get push token:', error);
-        return null;
-      }
-    },
-    []
-  );
+      const tokenData = await Notifications.getExpoPushTokenAsync({ projectId });
+      return tokenData.data;
+    } catch (error) {
+      console.error('Failed to get push token:', error);
+      return null;
+    }
+  }, []);
 
   const showViolationNotification = useCallback(
     async (violation: ViolationWithDetails) => {
@@ -182,9 +176,11 @@ export function usePushNotifications() {
     [t]
   );
 
-  // The mount effect and the token listener both fire at launch, and the listener
-  // fires again on every re-registration, so a token the server already holds is
-  // sent once per pairing. A 400 means the server will keep refusing this token
+  // Registration runs from the mount effect and the foreground re-check, so a
+  // token the server already holds is sent once per pairing. Nothing listens for
+  // token changes: the Expo token is stable, expo-notifications re-points it at a
+  // rotated APNs or FCM token on its own, and fetching a token inside such a
+  // listener re-fires it. A 400 means the server will keep refusing this token
   // (an old server drops deviceId from refreshed tokens), so it is reported once.
   const registration = useRef<{ token: string; promise: Promise<void> } | null>(null);
   const rejectedToken = useRef<string | null>(null);
@@ -353,23 +349,4 @@ export function usePushNotifications() {
 
     return () => subscription.remove();
   }, [server, expoPushToken, registerForPushNotifications, registerTokenWithServer]);
-
-  // Listen for Expo push token changes (rotation)
-  useEffect(() => {
-    if (!server) return; // Only when authenticated
-
-    // The listener hands back the APNs or FCM token, which the server rejects, so
-    // it is exchanged for an Expo token. The exchange has to reuse the token from
-    // the event: asking iOS for a device token registers again and re-enters here.
-    const subscription = Notifications.addPushTokenListener((devicePushToken) => {
-      void (async () => {
-        const token = await registerForPushNotifications(devicePushToken);
-        if (!token) return;
-        setExpoPushToken(token);
-        await registerTokenWithServer(token);
-      })();
-    });
-
-    return () => subscription.remove();
-  }, [server, registerForPushNotifications, registerTokenWithServer]);
 }
