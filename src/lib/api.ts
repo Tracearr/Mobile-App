@@ -288,7 +288,17 @@ async function performTokenRefresh(generation: number): Promise<string> {
     useAuthStateStore.getState().setTokenStatus('refreshing');
   }
 
-  const refreshToken = await getRefreshToken();
+  let refreshToken: string | null;
+  try {
+    refreshToken = await getRefreshToken();
+  } catch (error) {
+    // The store could not be read, which says nothing about whether the device
+    // is still paired, so the caller retries instead of being signed out.
+    if (isCurrent()) {
+      useAuthStateStore.getState().setTokenStatus('unknown');
+    }
+    throw error;
+  }
   if (!refreshToken) {
     resetApiClient();
     if (isCurrent()) {

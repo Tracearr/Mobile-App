@@ -7,7 +7,7 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 import * as Application from 'expo-application';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
-import { zustandStorage } from './storage';
+import { zustandStorage, isPersistedStateUnread } from './storage';
 import * as ResilientStorage from './resilientStorage';
 import { api, resetApiClient } from './api';
 import { isEncryptionAvailable, ensureDeviceSecret } from './crypto';
@@ -315,11 +315,15 @@ export const useAuthStateStore = create<AuthState>()(
         _cachedServerName: state._cachedServerName,
       }),
       // zustand reports a failed hydration as (undefined, error), so the actions
-      // come from the pre-hydration state, which exists on every outcome.
+      // come from the pre-hydration state, which exists on every outcome. Only
+      // state that was read and could not be used is discarded: a store that
+      // never answered still holds the pairing this launch failed to see.
       onRehydrateStorage: (initial) => (_hydrated, error) => {
-        if (error) {
-          console.warn('[AuthState] Persisted auth state unreadable, discarding it:', error);
+        if (error && !isPersistedStateUnread()) {
+          console.warn('[AuthState] Persisted auth state unusable, discarding it:', error);
           void zustandStorage.removeItem(PERSIST_KEY);
+        } else if (error) {
+          console.warn('[AuthState] Persisted auth state could not be read:', error);
         }
         initial.setInitializing(false);
       },
@@ -351,9 +355,20 @@ export async function getAccessToken(): Promise<string | null> {
   return ResilientStorage.getItemAsync(STORAGE_KEYS.ACCESS_TOKEN);
 }
 
+/**
+ * Resolves null only when the device genuinely has no refresh token. A store
+ * that could not be read rejects instead, because the caller signs the device
+ * out on null and a transient keychain failure is not a revoked session.
+ */
 export async function getRefreshToken(): Promise<string | null> {
-  const stored = await ResilientStorage.getItemAsync(STORAGE_KEYS.REFRESH_TOKEN);
-  if (stored) return stored;
+  try {
+    const stored = await ResilientStorage.readItemAsync(STORAGE_KEYS.REFRESH_TOKEN);
+    if (stored) return stored;
+  } catch (error) {
+    if (!_inMemoryRefreshToken) throw error;
+    console.warn('[Auth] Refresh token unreadable, using in-memory fallback:', error);
+    return _inMemoryRefreshToken;
+  }
   if (_inMemoryRefreshToken) {
     console.warn('[Auth] Refresh token not found in storage, using in-memory fallback');
     return _inMemoryRefreshToken;
