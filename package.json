@@ -2,7 +2,7 @@
   "name": "@tracearr/mobile",
   "version": "1.0.0",
   "license": "AGPL-3.0",
-  "main": "expo-router/entry",
+  "main": "index.js",
   "scripts": {
     "start": "expo start",
     "android": "expo run:android",
