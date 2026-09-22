@@ -244,7 +244,8 @@ const REFRESH_TIMEOUT_MS = 35000;
  * Refresh the access token using the stored refresh token.
  * Uses a mutex so concurrent callers all wait for a single refresh.
  * On auth rejection (server returns 401/403), calls handleAuthFailure().
- * On network errors, throws without killing auth state.
+ * On network errors, or when the stored refresh token cannot be read, throws
+ * without killing auth state.
  *
  * The refresh is raced against a watchdog timeout: if iOS suspends the app
  * mid-request, the axios promise can dangle forever, which would otherwise
@@ -288,17 +289,7 @@ async function performTokenRefresh(generation: number): Promise<string> {
     useAuthStateStore.getState().setTokenStatus('refreshing');
   }
 
-  let refreshToken: string | null;
-  try {
-    refreshToken = await getRefreshToken();
-  } catch (error) {
-    // The store could not be read, which says nothing about whether the device
-    // is still paired, so the caller retries instead of being signed out.
-    if (isCurrent()) {
-      useAuthStateStore.getState().setTokenStatus('unknown');
-    }
-    throw error;
-  }
+  const refreshToken = await getRefreshToken();
   if (!refreshToken) {
     resetApiClient();
     if (isCurrent()) {
