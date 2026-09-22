@@ -7,7 +7,7 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 import * as Application from 'expo-application';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
-import { zustandStorage, isPersistedStateUnread } from './storage';
+import { zustandStorage, isPersistedStateUnread, markPersistedStateKnown } from './storage';
 import * as ResilientStorage from './resilientStorage';
 import { api, resetApiClient } from './api';
 import { isEncryptionAvailable, ensureDeviceSecret } from './crypto';
@@ -230,6 +230,9 @@ export const useAuthStateStore = create<AuthState>()(
           // Reset API client cache so it picks up new server
           resetApiClient();
 
+          // A new pairing replaces whatever the store held, so it is written even
+          // when this launch could not read the old one.
+          markPersistedStateKnown(PERSIST_KEY);
           set({
             server,
             user,
@@ -263,6 +266,7 @@ export const useAuthStateStore = create<AuthState>()(
         resetApiClient();
 
         // Reset state
+        markPersistedStateKnown(PERSIST_KEY);
         set({
           server: null,
           user: null,
@@ -319,7 +323,7 @@ export const useAuthStateStore = create<AuthState>()(
       // state that was read and could not be used is discarded: a store that
       // never answered still holds the pairing this launch failed to see.
       onRehydrateStorage: (initial) => (_hydrated, error) => {
-        if (error && !isPersistedStateUnread()) {
+        if (error && !isPersistedStateUnread(PERSIST_KEY)) {
           console.warn('[AuthState] Persisted auth state unusable, discarding it:', error);
           void zustandStorage.removeItem(PERSIST_KEY);
         } else if (error) {
@@ -353,6 +357,10 @@ let _inMemoryRefreshToken: string | null = null;
 // Token access for API client
 export async function getAccessToken(): Promise<string | null> {
   return ResilientStorage.getItemAsync(STORAGE_KEYS.ACCESS_TOKEN);
+}
+
+export function isAuthStateUnread(): boolean {
+  return isPersistedStateUnread(PERSIST_KEY);
 }
 
 /**

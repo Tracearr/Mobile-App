@@ -9,7 +9,7 @@ import { QueryObserver, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from '@tracearr/translations/mobile';
 import type { ActiveSession } from '@tracearr/shared';
 import type { UnhealthyServer } from '@/lib/api';
-import { useAuthStateStore } from '@/lib/authStateStore';
+import { isAuthStateUnread, useAuthStateStore } from '@/lib/authStateStore';
 import { registerWidgetRefreshTask, unregisterWidgetRefreshTask } from '@/lib/backgroundTasks';
 import { queryKeys } from '@/lib/queryKeys';
 import { widgetsSupported } from '@/lib/nowPlayingPublisher';
@@ -31,8 +31,14 @@ export function useNowPlayingWidget() {
   const { i18n } = useTranslation();
   const language = i18n.language;
   const backendId = useAuthStateStore((s) => s.server?.id ?? null);
+  // A launch that could not read the stored pairing hydrates without a server.
+  // It is left alone like one still loading, not published as signed out.
   const auth = useAuthStateStore((s) =>
-    s.isInitializing ? 'loading' : s.server !== null && s.tokenStatus !== 'revoked' ? 'in' : 'out'
+    s.isInitializing || isAuthStateUnread()
+      ? 'loading'
+      : s.server !== null && s.tokenStatus !== 'revoked'
+        ? 'in'
+        : 'out'
   );
 
   useEffect(() => {

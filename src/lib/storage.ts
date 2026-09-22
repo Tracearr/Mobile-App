@@ -5,14 +5,18 @@
 import * as ResilientStorage from './resilientStorage';
 import type { StateStorage } from 'zustand/middleware';
 
-// A keychain or keystore that could not be read holds state this process never
+// A key the keychain or keystore could not read holds state this process never
 // saw. Treating that as an empty store signs the device out and, once the empty
-// state is written back, makes the loss permanent, so writes stop until the next
-// launch reads it successfully.
-let persistedStateUnread = false;
+// state is written back, makes the loss permanent, so writes to that key stop
+// until it reads successfully or its owner replaces it outright.
+const unreadKeys = new Set<string>();
 
-export function isPersistedStateUnread(): boolean {
-  return persistedStateUnread;
+export function isPersistedStateUnread(name: string): boolean {
+  return unreadKeys.has(name);
+}
+
+export function markPersistedStateKnown(name: string): void {
+  unreadKeys.delete(name);
 }
 
 /**
@@ -22,14 +26,16 @@ export function isPersistedStateUnread(): boolean {
 export const zustandStorage: StateStorage = {
   getItem: async (name: string): Promise<string | null> => {
     try {
-      return await ResilientStorage.readItemAsync(name);
+      const value = await ResilientStorage.readItemAsync(name);
+      unreadKeys.delete(name);
+      return value;
     } catch (error) {
-      persistedStateUnread = true;
+      unreadKeys.add(name);
       throw error;
     }
   },
   setItem: async (name: string, value: string): Promise<void> => {
-    if (persistedStateUnread) return;
+    if (unreadKeys.has(name)) return;
     await ResilientStorage.setItemAsync(name, value);
   },
   removeItem: async (name: string): Promise<void> => {
