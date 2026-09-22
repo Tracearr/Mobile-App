@@ -10,7 +10,7 @@ import { Platform } from 'react-native';
 import { zustandStorage } from './storage';
 import * as ResilientStorage from './resilientStorage';
 import { api, resetApiClient } from './api';
-import { isEncryptionAvailable, getDeviceSecret } from './crypto';
+import { isEncryptionAvailable, ensureDeviceSecret } from './crypto';
 import { unregisterBackgroundNotificationTask } from './backgroundTasks';
 
 // Types
@@ -179,7 +179,7 @@ export const useAuthStateStore = create<AuthState>()(
           let deviceSecret: string | undefined;
           if (isEncryptionAvailable()) {
             try {
-              deviceSecret = await getDeviceSecret();
+              deviceSecret = await ensureDeviceSecret();
             } catch (error) {
               console.warn('[AuthState] Failed to get device secret:', error);
             }

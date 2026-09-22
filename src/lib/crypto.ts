@@ -9,12 +9,14 @@
  * - Integrity: Tampered payloads are detected and rejected
  * - Per-device keys: Each device has a unique derived key
  */
+import { Platform } from 'react-native';
 import crypto from 'react-native-quick-crypto';
 import * as ResilientStorage from './resilientStorage';
 import type { EncryptedPushPayload, NotificationEventType } from '@tracearr/shared';
 
 // Storage key for the per-device encryption secret
 const DEVICE_SECRET_KEY = 'tracearr_device_secret';
+let accessibilityRepaired = false;
 
 // AES-256-GCM parameters
 const ALGORITHM = 'aes-256-gcm';
@@ -39,17 +41,41 @@ export interface DecryptedPayload {
  * This secret is used along with the server's key to derive the encryption key
  */
 export async function getDeviceSecret(): Promise<string> {
-  let secret = await ResilientStorage.getItemAsync(DEVICE_SECRET_KEY);
+  // A read that fails is not an absent secret, and the server holds the only
+  // other copy, so a new one is minted by ensureDeviceSecret and nowhere else.
+  const secret = await ResilientStorage.readItemAsync(DEVICE_SECRET_KEY);
+  if (!secret) {
+    throw new Error('Device secret unavailable');
+  }
+  return secret;
+}
+
+/**
+ * Read the secret, creating one when the device has none. Only the pairing and
+ * push token flows call this: both run in the foreground and send the value to
+ * the server, which is what keeps the two copies in step.
+ */
+export async function ensureDeviceSecret(): Promise<string> {
+  const secret = await ResilientStorage.readItemAsync(DEVICE_SECRET_KEY);
 
   if (!secret) {
     // Generate a new 32-byte random secret
     const randomBytes = crypto.randomBytes(32);
-    secret = Buffer.from(randomBytes).toString('base64');
-    const stored = await ResilientStorage.setItemAsync(DEVICE_SECRET_KEY, secret);
+    const created = Buffer.from(randomBytes).toString('base64');
+    const stored = await ResilientStorage.setItemAsync(DEVICE_SECRET_KEY, created);
     if (!stored) {
       throw new Error('Failed to store device secret');
     }
     console.log('[Crypto] Generated new device secret');
+    return created;
+  }
+
+  // Keychain entries keep the accessibility they were written with, and entries
+  // from before AFTER_FIRST_UNLOCK cannot be read while the device is locked,
+  // which is exactly when a push wakes the app. Rewriting repairs them once.
+  if (Platform.OS === 'ios' && !accessibilityRepaired) {
+    accessibilityRepaired = true;
+    void ResilientStorage.setItemAsync(DEVICE_SECRET_KEY, secret);
   }
 
   return secret;

@@ -6,9 +6,7 @@
 import * as TaskManager from 'expo-task-manager';
 import * as Notifications from 'expo-notifications';
 import * as BackgroundTask from 'expo-background-task';
-import { AppState } from 'react-native';
 import type { EncryptedPushPayload } from '@tracearr/shared';
-import { decryptPushPayload } from './crypto';
 import { widgetsSupported } from './nowPlayingPublisher';
 import { refreshNowPlayingWidget } from './nowPlayingSnapshot';
 
@@ -47,10 +45,10 @@ async function pushTypeOf(payload: Notifications.NotificationTaskPayload): Promi
   const raw = payload.data?.dataString;
   if (typeof raw !== 'string') return undefined;
   const data: unknown = JSON.parse(raw);
-  const decoded = isEncrypted(data) ? await decryptPushPayload(data) : data;
-  return typeof decoded === 'object' && decoded !== null && 'type' in decoded
-    ? decoded.type
-    : undefined;
+  // The keychain read a decrypt needs is unavailable on a locked device, which
+  // is where these arrive, and every encrypted push is a refresh signal anyway.
+  if (isEncrypted(data)) return 'data_sync';
+  return typeof data === 'object' && data !== null && 'type' in data ? data.type : undefined;
 }
 
 TaskManager.defineTask<Notifications.NotificationTaskPayload>(
@@ -62,11 +60,11 @@ TaskManager.defineTask<Notifications.NotificationTaskPayload>(
     }
     try {
       const type = await pushTypeOf(data);
-      // In the foreground the active-sessions query already feeds the widget.
+      // The foreground feeds the widget only from the dashboard on all servers,
+      // and the server spends the device's window on this push either way.
       if (
         typeof type === 'string' &&
         WIDGET_PUSH_TYPES.has(type) &&
-        AppState.currentState !== 'active' &&
         (await refreshNowPlayingWidget())
       ) {
         return Notifications.BackgroundNotificationTaskResult.NewData;
