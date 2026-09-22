@@ -133,7 +133,12 @@ async function deleteItemAsyncFallback(key: string): Promise<boolean> {
   }
 }
 
-export async function getItemAsync(key: string): Promise<string | null> {
+/**
+ * SecureStore resolves null for an absent key and rejects when it cannot read,
+ * so a caller that must not confuse the two (a key it would otherwise recreate)
+ * uses this and lets the rejection through.
+ */
+export async function readItemAsync(key: string): Promise<string | null> {
   await loadFallbackState();
 
   if (usingAsyncStorageFallback) {
@@ -151,21 +156,28 @@ export async function getItemAsync(key: string): Promise<string | null> {
     } catch (err) {
       if (attempt < MAX_RETRIES) {
         await sleep(RETRY_DELAY_MS);
-      } else {
-        consecutiveFailures++;
-
-        // On Android, if we've exceeded failure threshold, switch to AsyncStorage
-        if (Platform.OS === 'android' && consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
-          enableAsyncStorageFallback();
-          return getItemAsyncFallback(key);
-        }
-
-        console.warn(`[Storage] getItem failed after ${MAX_RETRIES + 1} attempts:`, err);
-        return null;
+        continue;
       }
+      consecutiveFailures++;
+
+      // On Android, if we've exceeded failure threshold, switch to AsyncStorage
+      if (Platform.OS === 'android' && consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
+        enableAsyncStorageFallback();
+        return getItemAsyncFallback(key);
+      }
+      throw err instanceof Error ? err : new Error(String(err));
     }
   }
   return null;
+}
+
+export async function getItemAsync(key: string): Promise<string | null> {
+  try {
+    return await readItemAsync(key);
+  } catch (err) {
+    console.warn(`[Storage] getItem failed after ${MAX_RETRIES + 1} attempts:`, err);
+    return null;
+  }
 }
 
 export async function setItemAsync(key: string, value: string): Promise<boolean> {

@@ -15,7 +15,7 @@ import { useTranslation } from '@tracearr/translations/mobile';
 import { useSocket } from '../providers/SocketProvider';
 import type { ViolationWithDetails } from '@tracearr/shared';
 import { isEncrypted, registerBackgroundNotificationTask } from '../lib/backgroundTasks';
-import { decryptPushPayload, isEncryptionAvailable, getDeviceSecret } from '../lib/crypto';
+import { decryptPushPayload, isEncryptionAvailable, ensureDeviceSecret } from '../lib/crypto';
 import { api } from '../lib/api';
 import { describeApiError } from '../lib/apiError';
 import { useAuthStateStore } from '../lib/authStateStore';
@@ -195,7 +195,14 @@ export function usePushNotifications() {
       const entry = { token, promise: Promise.resolve() };
       entry.promise = (async () => {
         try {
-          const deviceSecret = isEncryptionAvailable() ? await getDeviceSecret() : undefined;
+          // Keystore and keychain reads fail transiently, and the token matters
+          // more than encryption: the server sends a plain payload without one.
+          const deviceSecret = isEncryptionAvailable()
+            ? await ensureDeviceSecret().catch((error: unknown) => {
+                console.warn('[Push] Device secret unavailable, registering without it:', error);
+                return undefined;
+              })
+            : undefined;
           await api.registerPushToken(token, deviceSecret);
           pushRegistered.current = true;
           console.log('Push token registered with server');
