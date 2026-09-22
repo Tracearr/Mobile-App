@@ -8,6 +8,7 @@ import {
 import { PLAYBACK_DECISION_LABEL_KEYS, type ServerScope } from '@tracearr/shared';
 import { api } from './api';
 import { useAuthStateStore } from './authStateStore';
+import { isPersistedStateUnread } from './storage';
 import { i18nReady } from './i18n';
 import { publishNowPlaying, widgetsSupported } from './nowPlayingPublisher';
 import {
@@ -123,6 +124,13 @@ function isSignedOut(): boolean {
   return server === null || tokenStatus === 'revoked';
 }
 
+// A launch that could not read the store hydrated without a server, which looks
+// exactly like being signed out. Replacing a live card with the pairing prompt
+// on that guess is worse than leaving the last snapshot to go stale on its own.
+function authUnknown(): boolean {
+  return isPersistedStateUnread();
+}
+
 /**
  * Fetches a fresh snapshot outside React, for the background task, the push
  * task and the moment the app leaves the foreground. A failed fetch publishes
@@ -131,6 +139,7 @@ function isSignedOut(): boolean {
 export async function refreshNowPlayingWidget(): Promise<boolean> {
   if (!widgetsSupported) return false;
   await Promise.all([authReady(), i18nReady.catch(() => undefined)]);
+  if (authUnknown()) return false;
   if (isSignedOut()) {
     publishSignedOut();
     return true;
@@ -147,7 +156,7 @@ export async function refreshNowPlayingWidget(): Promise<boolean> {
     return true;
   } catch {
     // A 401 that could not be refreshed flips the store to revoked on its way out.
-    if (isSignedOut()) publishSignedOut();
+    if (!authUnknown() && isSignedOut()) publishSignedOut();
     return false;
   } finally {
     clearTimeout(timer);
