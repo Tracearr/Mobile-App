@@ -10,6 +10,7 @@ import { serverScopeParamEntries, type ServerScope } from '@tracearr/shared';
 import { useAuthStateStore, getAccessToken, getRefreshToken, setTokens } from './authStateStore';
 import { getDeviceTimezone } from './timezone';
 import { pageMetaOf } from './listPage';
+import { isVersionInfo } from './serverVersion';
 import type {
   ActiveSession,
   Automation,
@@ -942,7 +943,9 @@ export const api = {
    */
   version: {
     get: async (signal?: AbortSignal): Promise<VersionInfo> => {
-      return apiGet<VersionInfo>('/version', { signal });
+      const data = await apiGet<unknown>('/version', { signal });
+      if (!isVersionInfo(data)) throw new Error('Unexpected /version response');
+      return data;
     },
   },
 
