@@ -21,6 +21,7 @@ import {
   Workflow,
 } from 'lucide-react-native';
 import * as Application from 'expo-application';
+import * as Updates from 'expo-updates';
 import { useQuery } from '@tanstack/react-query';
 import { Text } from '@/components/ui/text';
 import { Card } from '@/components/ui/card';
@@ -144,6 +145,10 @@ export default function SettingsScreen() {
   const showAutomations = supports(SERVER_2_2);
   const appVersion = Application.nativeApplicationVersion ?? '1.0.0';
   const buildNumber = Application.nativeBuildVersion ?? 'dev';
+  // Update ids are UUIDv7, which begin with the publish time, so 8 characters
+  // tell apart OTAs published more than a minute apart. Built-in shows nothing.
+  const updateLabel =
+    !Updates.isEmbeddedLaunch && Updates.updateId ? ` · ${Updates.updateId.slice(0, 8)}` : '';
 
   const handleDisconnect = () => {
     Alert.alert(
@@ -313,6 +318,7 @@ export default function SettingsScreen() {
             <Server size={16} color={colors.icon.default} />
             <Text className="text-muted-foreground text-xs">
               {t('mobile:settings.build', { build: buildNumber })}
+              {updateLabel}
             </Text>
           </View>
         </View>
