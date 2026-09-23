@@ -255,7 +255,10 @@ export function usePushNotifications() {
       }
     };
 
-    void initializePushNotifications();
+    // A silent push or widget wake launches the whole app in the background, where iOS
+    // suspends it mid-request. The foreground check below registers on the first switch
+    // to active instead.
+    if (AppState.currentState === 'active') void initializePushNotifications();
 
     // Not unregistered on cleanup: it has to outlive the component to handle background pushes.
     void registerBackgroundNotificationTask();
@@ -332,11 +335,19 @@ export function usePushNotifications() {
   useEffect(() => {
     if (!server) return; // Only when authenticated
 
+    // The ref only follows events while this listener is attached, so an app left
+    // before auth finished would still read 'active' here and skip its registration.
+    appState.current = AppState.currentState;
+
     const subscription = AppState.addEventListener('change', (nextAppState) => {
-      // App coming back to foreground from background/inactive
-      if (appState.current?.match(/inactive|background/) && nextAppState === 'active') {
-        // Re-check and register if we don't have a token yet
-        if (!expoPushToken) {
+      // Mirrors the mount effect, which skips every state other than active.
+      if (appState.current !== 'active' && nextAppState === 'active') {
+        // A token already fetched is posted again in case the last post never landed,
+        // such as when the app was left mid-request; registerTokenWithServer skips a
+        // token the server holds or refused.
+        if (expoPushToken) {
+          void registerTokenWithServer(expoPushToken);
+        } else {
           void (async () => {
             const token = await registerForPushNotifications();
             if (token) {
