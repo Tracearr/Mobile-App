@@ -1,3 +1,5 @@
+import type { VersionInfo } from '@tracearr/shared';
+
 // Servers update lazily, so 2.2-only screens are gated on the version the server reports.
 const RE = /^v?(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?/;
 
@@ -46,6 +48,21 @@ export function compareVersions(a: string, b: string): -1 | 0 | 1 {
 export function atLeast(version: string | null | undefined, min: string): boolean {
   if (!version || !parse(version)) return false;
   return compareVersions(version, min) >= 0;
+}
+
+// Tracearr always sends current.version, but anything in front of it, such as an
+// SSO login page, can answer /version with 200 and HTML, which axios hands back
+// as a plain string.
+export function isVersionInfo(data: unknown): data is VersionInfo {
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    'current' in data &&
+    typeof data.current === 'object' &&
+    data.current !== null &&
+    'version' in data.current &&
+    typeof data.current.version === 'string'
+  );
 }
 
 /** First Tracearr tag with the automations routes and the { data, meta } list shape. */
