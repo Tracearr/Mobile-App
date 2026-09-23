@@ -110,30 +110,32 @@ export function usePushNotifications() {
       return null;
     }
 
-    // Android 13+ requires at least one notification channel to exist before
-    // the permission prompt will appear and before a push token can be obtained.
-    // Create channels first to ensure the permission flow works correctly.
-    if (Platform.OS === 'android') {
-      await ensureAndroidChannels();
-    }
-
-    // Check existing permissions
-    const { status: existingStatus } = await Notifications.getPermissionsAsync();
-    let finalStatus = existingStatus;
-
-    // Request permissions if not granted
-    if (existingStatus !== Notifications.PermissionStatus.GRANTED) {
-      const { status } = await Notifications.requestPermissionsAsync();
-      finalStatus = status;
-    }
-
-    if (finalStatus !== Notifications.PermissionStatus.GRANTED) {
-      console.log('Push notification permission not granted');
-      return null;
-    }
-
-    // Get Expo push token
+    // Every call below is native and can reject: iOS documents requestAuthorization
+    // as throwing, and both callers fire this without awaiting it.
     try {
+      // Android 13+ requires at least one notification channel to exist before
+      // the permission prompt will appear and before a push token can be obtained.
+      // Create channels first to ensure the permission flow works correctly.
+      if (Platform.OS === 'android') {
+        await ensureAndroidChannels();
+      }
+
+      // Check existing permissions
+      const { status: existingStatus } = await Notifications.getPermissionsAsync();
+      let finalStatus = existingStatus;
+
+      // Request permissions if not granted
+      if (existingStatus !== Notifications.PermissionStatus.GRANTED) {
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
+      }
+
+      if (finalStatus !== Notifications.PermissionStatus.GRANTED) {
+        console.log('Push notification permission not granted');
+        return null;
+      }
+
+      // Get Expo push token
       const projectId =
         (Constants.expoConfig?.extra as { eas?: { projectId?: string } })?.eas?.projectId ??
         Constants.easConfig?.projectId;
