@@ -9,6 +9,7 @@ import {
   Bell,
   ShieldAlert,
   Play,
+  RefreshCw,
   Square,
   Monitor,
   Smartphone,
@@ -36,6 +37,7 @@ import { queryKeys } from '@/lib/queryKeys';
 import { api } from '@/lib/api';
 import { useAuthStateStore } from '@/lib/authStateStore';
 import { useServerVersion } from '@/hooks/useServerVersion';
+import { backgroundRefreshStatus } from '@/lib/widgetBridge';
 import { SERVER_2_2 } from '@/lib/serverVersion';
 import { colors, ACCENT_COLOR } from '@/lib/theme';
 import type { NotificationPreferences } from '@tracearr/shared';
@@ -159,6 +161,7 @@ function RateLimitStatus({
 
 export default function NotificationSettingsScreen() {
   const { t } = useTranslation(['mobile', 'common', 'notifications']);
+  const backgroundRefresh = backgroundRefreshStatus();
   const queryClient = useQueryClient();
   const server = useAuthStateStore((s) => s.server);
   // 2.2 servers ignore the per-rule-type filter (rule.type is null on automation runs).
@@ -315,6 +318,24 @@ export default function NotificationSettingsScreen() {
             value={pushEnabled}
             onValueChange={(v) => handleUpdate('pushEnabled', v)}
           />
+          {backgroundRefresh === 'denied' || backgroundRefresh === 'restricted' ? (
+            <>
+              <Divider />
+              <View className="flex-row items-center px-4 py-3">
+                <RefreshCw
+                  size={18}
+                  color={colors.text.secondary.dark}
+                  style={{ marginRight: 10 }}
+                />
+                <Text className="text-muted-foreground flex-1 text-xs">
+                  {t('mobile:notifications.backgroundRefreshOff', {
+                    defaultValue:
+                      'Background App Refresh is off for Tracearr. Silent pushes cannot update the widget until it is on.',
+                  })}
+                </Text>
+              </View>
+            </>
+          ) : null}
         </SettingsSection>
 
         {/* Event Toggles */}
