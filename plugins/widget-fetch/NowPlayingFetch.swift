@@ -18,6 +18,8 @@ enum NowPlayingFetch {
   private static let liveInterval: TimeInterval = 15 * 60
   private static let idleInterval: TimeInterval = 30 * 60
   private static let requestTimeout: TimeInterval = 8
+  // Every app publish reloads each widget instance, and each reload lands here.
+  private static let freshEnough: TimeInterval = 60
 
   private struct Context: Decodable {
     let writtenAt: Double
@@ -41,6 +43,12 @@ enum NowPlayingFetch {
     if defaults.double(forKey: authFailedKey) > context.writtenAt {
       log.info("skipping fetch, token was rejected after the app last wrote its context")
       return .after(Date().addingTimeInterval(idleInterval))
+    }
+    if let stored = defaults.array(forKey: timelineKey)?.first as? [String: Any],
+       let timestamp = stored["timestamp"] as? Double,
+       Date().timeIntervalSince1970 - timestamp / 1000 < freshEnough {
+      log.info("timeline is fresh, not fetching")
+      return .after(Date().addingTimeInterval(liveInterval))
     }
     guard let token = readToken() else {
       log.info("no shared access token")

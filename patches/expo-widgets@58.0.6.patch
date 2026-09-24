@@ -78,6 +78,18 @@ index 58ad313651e42925c7a9e3c7d68d0793ed09134b..d9ff5316a98c4d2b06cf849d22c5d662
      // Unsupported Expo UI modifiers are ignored until they have exact Glance semantics.
      else -> null
    } ?: GlanceModifier
+diff --git a/bundle/react-stub.ts b/bundle/react-stub.ts
+index dc78634f06d13b7272197056d0f829ab9e0f793f..3c16bd0218213fd6b4c52ff7caea30cde731bdc4 100644
+--- a/bundle/react-stub.ts
++++ b/bundle/react-stub.ts
+@@ -28,3 +28,7 @@ export const createContext = <T>(defaultValue: T): StubContext<T> => ({
+ });
+ 
+ export const useContext = <T>(context: StubContext<T>): T => context._currentValue;
++
++// @expo/ui 58.0.6's List.ForEach wraps its recycled row in memo at module load, and the
++// runtime bundle imports every swift-ui component, so the stub has to answer it.
++export const memo = <T>(component: T): T => component;
 diff --git a/scripts/build-layout-registry.mjs b/scripts/build-layout-registry.mjs
 index d52a60e342c8e0a8a1d78f7174da5e60e6bd1c53..5ffce423b015487c5a5998781d7537b4ddd99aa3 100644
 --- a/scripts/build-layout-registry.mjs
