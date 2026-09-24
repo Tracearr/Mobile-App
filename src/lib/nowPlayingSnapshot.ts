@@ -1,10 +1,11 @@
 import { AppState, Platform } from 'react-native';
 import type { ServerScope } from '@tracearr/shared';
+import { i18n } from '@tracearr/translations/mobile';
 import { api } from './api';
 import { isAuthStateUnread, useAuthStateStore } from './authStateStore';
 import { i18nReady } from './i18n';
-import { publishNowPlaying, widgetsSupported } from './nowPlayingPublisher';
-import { widgetText } from './nowPlayingText';
+import { publishNowPlaying, publishWidgetContext, widgetsSupported } from './nowPlayingPublisher';
+import { widgetResources, widgetText, type WidgetContext } from './nowPlayingText';
 import {
   buildNowPlayingProps,
   drawsSameWidget,
@@ -25,9 +26,25 @@ const REFRESH_TIMEOUT_MS = 10_000;
 const SKIP_UNCHANGED_WITHIN_MS = 5 * 60 * 1000;
 
 let published: NowPlayingWidgetProps | null = null;
+let contextVersion = '';
 
 export function nowPlayingSnapshotAge(): number {
   return Date.now() - (published?.asOfMs ?? 0);
+}
+
+// The extension reads this before each fetch, so it is rewritten only when the
+// server, the language or the strings change. writtenAt lets the extension tell
+// a fresh pairing from one whose token it already saw rejected.
+function syncWidgetContext(): void {
+  const serverUrl = useAuthStateStore.getState().server?.url;
+  if (!serverUrl) return;
+  const lng = i18n.language;
+  const resources = widgetResources((l, ns) => i18n.getResourceBundle(l, ns), lng);
+  const version = JSON.stringify([serverUrl, lng, resources]);
+  if (version === contextVersion) return;
+  contextVersion = version;
+  const context: WidgetContext = { writtenAt: Date.now(), serverUrl, lng, resources };
+  publishWidgetContext(context);
 }
 
 export function publishSessions(
@@ -35,6 +52,7 @@ export function publishSessions(
   unhealthyServers: readonly { serverName: string }[],
   asOf: number
 ): void {
+  syncWidgetContext();
   const props = buildNowPlayingProps(sessions, unhealthyServers, asOf, widgetText());
   if (
     Platform.OS === 'ios' &&
@@ -50,6 +68,8 @@ export function publishSessions(
 }
 
 export function publishSignedOut(): void {
+  contextVersion = '';
+  publishWidgetContext(null);
   publishNowPlaying(signedOutProps(Date.now(), widgetText()));
   published = null;
 }

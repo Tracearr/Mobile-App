@@ -1,4 +1,5 @@
 import NowPlaying from '../../widgets/NowPlayingWidget';
+import type { WidgetContext } from './nowPlayingText';
 import type { NowPlayingWidgetProps } from './nowPlayingWidget';
 
 export const widgetsSupported: boolean = true;
@@ -13,3 +14,6 @@ export function publishNowPlaying(props: NowPlayingWidgetProps): void {
     console.warn('[Widget] Could not publish the Now Playing snapshot:', error);
   }
 }
+
+// The Android widget draws from the snapshot alone and never fetches.
+export function publishWidgetContext(_context: WidgetContext | null): void {}
