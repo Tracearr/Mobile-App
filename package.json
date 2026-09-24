@@ -20,7 +20,7 @@
     "submit:ios": "eas submit --platform ios",
     "submit:android": "eas submit --platform android",
     "update": "eas update && posthog-cli hermes upload --directory dist",
-    "test": "node --test \"scripts/release/*.test.mjs\" \"src/**/*.test.mjs\"",
+    "test": "node --test \"scripts/release/*.test.mjs\" \"src/**/*.test.mjs\" \"widgets/**/*.test.mjs\"",
     "test:jest": "jest",
     "build:tag": "scripts/release/build.sh",
     "release:verify": "node scripts/release/verify-pins.mjs",
