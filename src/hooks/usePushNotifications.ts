@@ -17,7 +17,7 @@ import type { ViolationWithDetails } from '@tracearr/shared';
 import { isEncrypted, registerBackgroundNotificationTask } from '../lib/backgroundTasks';
 import { decryptPushPayload, isEncryptionAvailable, ensureDeviceSecret } from '../lib/crypto';
 import { api } from '../lib/api';
-import { describeApiError } from '../lib/apiError';
+import { describeApiError, isNetworkFailure } from '../lib/apiError';
 import { useAuthStateStore } from '../lib/authStateStore';
 import { ROUTES } from '../lib/routes';
 import { pushDestination, type PushDestination } from '../lib/pushRoute';
@@ -146,7 +146,7 @@ export function usePushNotifications() {
       const tokenData = await Notifications.getExpoPushTokenAsync({ projectId });
       return tokenData.data;
     } catch (error) {
-      console.error('Failed to get push token:', error);
+      (isNetworkFailure(error) ? console.warn : console.error)('Failed to get push token:', error);
       return null;
     }
   }, []);
@@ -219,7 +219,9 @@ export function usePushNotifications() {
           if (axios.isAxiosError(error) && error.response?.status === 400) {
             rejectedToken.current = token;
           }
-          console.error(describeApiError('Push token registration failed', error));
+          (isNetworkFailure(error) ? console.warn : console.error)(
+            describeApiError('Push token registration failed', error)
+          );
         } finally {
           if (registration.current === entry) registration.current = null;
         }

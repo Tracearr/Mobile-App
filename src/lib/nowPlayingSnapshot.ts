@@ -1,3 +1,4 @@
+import { AppState, Platform } from 'react-native';
 import {
   i18n,
   formatBitrate,
@@ -12,8 +13,10 @@ import { i18nReady } from './i18n';
 import { publishNowPlaying, widgetsSupported } from './nowPlayingPublisher';
 import {
   buildNowPlayingProps,
+  drawsSameWidget,
   signedOutProps,
   type NowPlayingText,
+  type NowPlayingWidgetProps,
   type WidgetSession,
 } from './nowPlayingWidget';
 
@@ -24,10 +27,14 @@ export const WIDGET_SCOPE: ServerScope = { mode: 'all' };
 // Background launches get about 30 seconds in total and the axios default is 30.
 const REFRESH_TIMEOUT_MS = 10_000;
 
-let publishedAsOf = 0;
+// Background reloads spend WidgetKit's daily budget, but a skipped one leaves the
+// stale mark where the last publish put it, so only near repeats are held back.
+const SKIP_UNCHANGED_WITHIN_MS = 5 * 60 * 1000;
+
+let published: NowPlayingWidgetProps | null = null;
 
 export function nowPlayingSnapshotAge(): number {
-  return Date.now() - publishedAsOf;
+  return Date.now() - (published?.asOfMs ?? 0);
 }
 
 // A widget layout cannot call t(): these are resolved here, in the app's
@@ -98,13 +105,23 @@ export function publishSessions(
   unhealthyServers: readonly { serverName: string }[],
   asOf: number
 ): void {
-  publishNowPlaying(buildNowPlayingProps(sessions, unhealthyServers, asOf, widgetText()));
-  publishedAsOf = asOf;
+  const props = buildNowPlayingProps(sessions, unhealthyServers, asOf, widgetText());
+  if (
+    Platform.OS === 'ios' &&
+    AppState.currentState !== 'active' &&
+    published !== null &&
+    asOf - published.asOfMs < SKIP_UNCHANGED_WITHIN_MS &&
+    drawsSameWidget(published, props)
+  ) {
+    return;
+  }
+  publishNowPlaying(props);
+  published = props;
 }
 
 export function publishSignedOut(): void {
   publishNowPlaying(signedOutProps(Date.now(), widgetText()));
-  publishedAsOf = 0;
+  published = null;
 }
 
 function authReady(): Promise<void> {

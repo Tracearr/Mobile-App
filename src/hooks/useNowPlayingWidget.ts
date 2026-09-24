@@ -1,7 +1,7 @@
 /**
  * Keeps the home screen widget in step with what the app already knows.
- * It watches the cache entries the dashboard and the health banner fill and
- * never fetches while the app is open, so it adds no requests and no renders.
+ * It watches the cache entries the dashboard and the health banner fill, and
+ * fetches only when the app comes back or leaves with nothing feeding them.
  */
 import { useEffect } from 'react';
 import { AppState } from 'react-native';
@@ -13,7 +13,6 @@ import { isAuthStateUnread, useAuthStateStore } from '@/lib/authStateStore';
 import { registerWidgetRefreshTask, unregisterWidgetRefreshTask } from '@/lib/backgroundTasks';
 import { queryKeys } from '@/lib/queryKeys';
 import { widgetsSupported } from '@/lib/nowPlayingPublisher';
-import { WIDGET_STALE_AFTER_MS } from '@/lib/nowPlayingWidget';
 import {
   WIDGET_SCOPE,
   nowPlayingSnapshotAge,
@@ -22,9 +21,9 @@ import {
   refreshNowPlayingWidget,
 } from '@/lib/nowPlayingSnapshot';
 
-// Matches the dashboard's refetch interval: older than this when the app is
-// left means nothing in the foreground was feeding the all-servers entry.
-const LEAVING_REFRESH_AFTER_MS = 30_000;
+// Matches the dashboard's refetch interval: older than this means nothing in
+// the foreground is feeding the all-servers entry.
+const FEED_INTERVAL_MS = 30_000;
 
 export function useNowPlayingWidget() {
   const queryClient = useQueryClient();
@@ -73,16 +72,29 @@ export function useNowPlayingWidget() {
     publish();
     const stopSessions = sessions.subscribe(publish);
     const stopHealth = health.subscribe(publish);
+    // QueryProvider refetches every active query on the way back in, which feeds
+    // the observer above whenever the dashboard is mounted on all servers.
+    const fed = () =>
+      queryClient
+        .getQueryCache()
+        .find({ queryKey: queryKeys.sessions.active(WIDGET_SCOPE), exact: true })
+        ?.isActive() ?? false;
+    let previous = AppState.currentState;
     const appState = AppState.addEventListener('change', (next) => {
-      if (next === 'background' && nowPlayingSnapshotAge() > LEAVING_REFRESH_AFTER_MS) {
+      if (next === 'background' && nowPlayingSnapshotAge() > FEED_INTERVAL_MS) {
         void refreshNowPlayingWidget();
       }
-      // The cache entries above only fill while the dashboard is mounted on the
-      // all-servers scope, so coming back to any other screen would otherwise
-      // leave the home screen showing whatever the last background run wrote.
-      if (next === 'active' && nowPlayingSnapshotAge() > WIDGET_STALE_AFTER_MS) {
+      // A refresh while the app is in front is free, and leaves the refresh on
+      // the way out little to send. Control Center and banners only flip inactive.
+      if (
+        next === 'active' &&
+        previous === 'background' &&
+        !fed() &&
+        nowPlayingSnapshotAge() > FEED_INTERVAL_MS
+      ) {
         void refreshNowPlayingWidget();
       }
+      previous = next;
     });
 
     return () => {

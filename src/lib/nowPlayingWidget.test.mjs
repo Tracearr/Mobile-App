@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   buildNowPlayingProps,
+  drawsSameWidget,
   nowPlayingTimeline,
   signedOutProps,
   WIDGET_DATED_AFTER_MS,
@@ -292,4 +293,38 @@ test('props survive JSON with no null or undefined, which the app group store re
     (typeof value !== 'object' || Object.values(value).every(walk));
   assert.ok(walk(props));
   assert.deepEqual(JSON.parse(JSON.stringify(props)), props);
+});
+
+test('the same streams fetched later draw the same widget, their timers carry on', () => {
+  const MIN = 60_000;
+  const playing = (progressMs) => session('a', { progressMs, totalDurationMs: 60 * MIN });
+  const paused = (progressMs) =>
+    session('b', { state: 'paused', progressMs, totalDurationMs: 60 * MIN });
+  const before = buildNowPlayingProps([playing(10 * MIN), paused(5 * MIN)], [], NOW, text);
+  const later = (sessions, down = []) => buildNowPlayingProps(sessions, down, NOW + 2 * MIN, text);
+  assert.equal(drawsSameWidget(before, later([playing(12 * MIN), paused(5 * MIN)])), true);
+  assert.equal(drawsSameWidget(before, later([playing(12 * MIN + 20_000), paused(5 * MIN)])), true);
+  const live = buildNowPlayingProps([session('c', { progressMs: 0 })], [], NOW, text);
+  const liveLater = buildNowPlayingProps(
+    [session('c', { progressMs: 0 })],
+    [],
+    NOW + 2 * MIN,
+    text
+  );
+  assert.equal(drawsSameWidget(live, liveLater), true);
+});
+
+test('a pause, a seek, a new stream or a server going down is a change', () => {
+  const MIN = 60_000;
+  const playing = (progressMs, over = {}) =>
+    session('a', { progressMs, totalDurationMs: 60 * MIN, ...over });
+  const before = buildNowPlayingProps([playing(10 * MIN)], [], NOW, text);
+  const later = (sessions, down = []) => buildNowPlayingProps(sessions, down, NOW + 2 * MIN, text);
+  assert.equal(drawsSameWidget(before, later([playing(12 * MIN, { state: 'paused' })])), false);
+  assert.equal(drawsSameWidget(before, later([playing(20 * MIN)])), false);
+  assert.equal(drawsSameWidget(before, later([playing(12 * MIN), session('b')])), false);
+  assert.equal(
+    drawsSameWidget(before, later([playing(12 * MIN)], [{ serverName: 'Plex' }])),
+    false
+  );
 });

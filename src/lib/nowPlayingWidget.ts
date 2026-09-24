@@ -271,6 +271,40 @@ export function signedOutProps(now: number, text: NowPlayingText): NowPlayingWid
   };
 }
 
+// A playing row's bar and time run on their own from asOf minus progress, so a
+// start point within this of the last one draws the same as a reload would.
+const SAME_START_MS = 30_000;
+
+function withoutStamps({
+  asOfMs: _asOf,
+  timeLabel: _time,
+  asOfLabel: _label,
+  asOfDatedLabel: _datedLabel,
+  staleAtMs: _stale,
+  datedAtMs: _dated,
+  rows,
+  ...rest
+}: NowPlayingWidgetProps): string {
+  return JSON.stringify({
+    ...rest,
+    rows: rows.map(({ progressMs: _progress, progressLabel: _progressLabel, ...row }) => row),
+  });
+}
+
+/** Whether two snapshots draw the same widget apart from how old they say they are. */
+export function drawsSameWidget(a: NowPlayingWidgetProps, b: NowPlayingWidgetProps): boolean {
+  if (withoutStamps(a) !== withoutStamps(b)) return false;
+  return a.rows.every((row, i) => {
+    const other = b.rows[i];
+    // A paused row shows its progress as fixed text rather than a running timer.
+    if (row.paused) return row.progressLabel === other.progressLabel;
+    // Without a duration the row draws no bar or timer.
+    if (row.durationMs === 0) return true;
+    const start = a.asOfMs - row.progressMs;
+    return Math.abs(start - (b.asOfMs - other.progressMs)) <= SAME_START_MS;
+  });
+}
+
 // WidgetKit renders each entry with its own date, which is how the layout
 // learns the snapshot has aged without the app running.
 export function nowPlayingTimeline(props: NowPlayingWidgetProps) {
