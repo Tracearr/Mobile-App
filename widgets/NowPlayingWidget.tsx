@@ -445,7 +445,7 @@ const NowPlayingWidget = (
         <VStack
           alignment="leading"
           spacing={0}
-          modifiers={[frame({ width: 110, maxHeight: Infinity, alignment: 'topLeading' })]}
+          modifiers={[frame({ width: 110, alignment: 'topLeading' })]}
         >
           {header}
           {count}
@@ -458,7 +458,7 @@ const NowPlayingWidget = (
         <Rectangle
           modifiers={[
             accented ? hierarchical('quaternary') : foregroundStyle(palette.rule),
-            frame({ width: 1, maxHeight: Infinity }),
+            frame({ width: 1 }),
             padding({ horizontal: 12 }),
           ]}
         />

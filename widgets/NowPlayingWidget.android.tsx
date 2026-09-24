@@ -10,14 +10,13 @@ import {
 } from '@expo/ui/jetpack-compose';
 import {
   background,
-  clip,
+  cornerRadius,
   createModifier,
   fillMaxSize,
   fillMaxWidth,
   height,
   padding,
   paddingAll,
-  Shapes,
   size,
   weight,
   width,
@@ -35,9 +34,9 @@ import {
 // Glance has no timeline, no widget size and no opacity here, so the layout checks
 // the clock when it renders, a stale snapshot is dimmed by colour alone, one layout
 // serves every size, and the card gradient is a drawable from
-// plugins/withWidgetDrawables.js. widgetURL, rounded clip and weight reach Glance
-// through patches/expo-widgets@58.0.3.patch; rounded corners need Android 12, and
-// older versions draw the tiles square.
+// plugins/withWidgetDrawables.js. widgetURL and weight reach Glance through
+// patches/expo-widgets@58.0.6.patch; rounded corners need Android 12, and older
+// versions draw the tiles square.
 const NowPlayingWidget = (props: NowPlayingWidgetProps, environment: WidgetEnvironment) => {
   'widget';
   const dark = environment.colorScheme !== 'light';
@@ -62,7 +61,7 @@ const NowPlayingWidget = (props: NowPlayingWidgetProps, environment: WidgetEnvir
   const icon = (name: string, side: number, tint: string) => (
     <Image source={{ uri: `widget_icon_${name}` }} tint={tint} modifiers={[size(side, side)]} />
   );
-  const tile = (radius: number) => [background(tileFill), clip(Shapes.RoundedCorner(radius))];
+  const tile = (radius: number) => [background(tileFill), cornerRadius(radius)];
   const link = (url: string) => createModifier('widgetURL', { url });
 
   const header = (
