@@ -27,18 +27,20 @@ function fakeStore(initial, { failShared = false } = {}) {
 
 const SHARED = { accessGroup: 'group.com.tracearr.app' };
 
-test('readAccessToken returns the shared key when present and deletes a leftover old key', async () => {
-  const store = fakeStore({ [ACCESS_TOKEN_KEY]: 'new', [LEGACY_ACCESS_TOKEN_KEY]: 'old' });
-  assert.equal(await readAccessToken(store, SHARED), 'new');
-  assert.equal(store.data.has(LEGACY_ACCESS_TOKEN_KEY), false);
-});
-
+// Read tests run in this order: once a read has seen the legacy key absent, the
+// process-wide flag skips that read for good.
 test('readAccessToken migrates an old key into the shared group', async () => {
   const store = fakeStore({ [LEGACY_ACCESS_TOKEN_KEY]: 'old' });
   assert.equal(await readAccessToken(store, SHARED), 'old');
   assert.equal(store.data.get(ACCESS_TOKEN_KEY), 'old');
   assert.equal(store.data.has(LEGACY_ACCESS_TOKEN_KEY), false);
   assert.equal(store.writes[0].options.accessGroup, 'group.com.tracearr.app');
+});
+
+test('readAccessToken returns the shared key when present and deletes a leftover old key', async () => {
+  const store = fakeStore({ [ACCESS_TOKEN_KEY]: 'new', [LEGACY_ACCESS_TOKEN_KEY]: 'old' });
+  assert.equal(await readAccessToken(store, SHARED), 'new');
+  assert.equal(store.data.has(LEGACY_ACCESS_TOKEN_KEY), false);
 });
 
 test('readAccessToken returns null when nothing is stored', async () => {
@@ -64,4 +66,19 @@ test('accessTokenGeneration moves on every stored token and stays put on a faile
   failing.set = async () => false;
   await writeAccessToken(failing, 'tok2', SHARED);
   assert.equal(accessTokenGeneration(), before + 1);
+});
+
+// Last on purpose: the "legacy key is gone" flag is process-wide.
+test('readAccessToken stops looking for the legacy key once it has seen it absent', async () => {
+  const empty = fakeStore({});
+  assert.equal(await readAccessToken(empty, SHARED), null);
+  const later = fakeStore({ [ACCESS_TOKEN_KEY]: 'new', [LEGACY_ACCESS_TOKEN_KEY]: 'old' });
+  const reads = [];
+  const get = later.get;
+  later.get = (key) => {
+    reads.push(key);
+    return get(key);
+  };
+  assert.equal(await readAccessToken(later, SHARED), 'new');
+  assert.deepEqual(reads, [ACCESS_TOKEN_KEY]);
 });

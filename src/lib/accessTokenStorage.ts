@@ -31,6 +31,10 @@ export async function writeAccessToken(
   return stored;
 }
 
+// Every request reads the token, so the legacy key is looked for until it is
+// seen absent once and not again in this process.
+let legacyGone = false;
+
 // The v2 key lives in the shared group; an install upgraded from the private
 // key is moved on first read, and the old item goes once the new one exists.
 export async function readAccessToken(
@@ -38,11 +42,16 @@ export async function readAccessToken(
   options: TokenOptions
 ): Promise<string | null> {
   const shared = await store.get(ACCESS_TOKEN_KEY);
+  if (legacyGone) return shared;
   const legacy = await store.get(LEGACY_ACCESS_TOKEN_KEY);
-  if (legacy !== null && shared === null) {
+  if (legacy === null) {
+    legacyGone = true;
+    return shared;
+  }
+  if (shared === null) {
     if (await writeAccessToken(store, legacy, options)) await store.remove(LEGACY_ACCESS_TOKEN_KEY);
     return legacy;
   }
-  if (legacy !== null) await store.remove(LEGACY_ACCESS_TOKEN_KEY);
+  await store.remove(LEGACY_ACCESS_TOKEN_KEY);
   return shared;
 }

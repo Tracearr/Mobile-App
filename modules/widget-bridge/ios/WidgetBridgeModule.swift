@@ -25,9 +25,10 @@ public class WidgetBridgeModule: Module {
       self.defaults?.removeObject(forKey: Self.contextKey)
     }
 
-    // UIApplication is main-thread only; synchronous functions run on the JS thread.
+    // UIApplication is main-thread only; synchronous functions run on the JS
+    // thread today, and a sync hop from the main thread itself would deadlock.
     Function("backgroundRefreshStatus") { () -> String in
-      DispatchQueue.main.sync {
+      let read: () -> String = {
         switch UIApplication.shared.backgroundRefreshStatus {
         case .available: return "available"
         case .denied: return "denied"
@@ -35,6 +36,7 @@ public class WidgetBridgeModule: Module {
         @unknown default: return "unknown"
         }
       }
+      return Thread.isMainThread ? read() : DispatchQueue.main.sync(execute: read)
     }
   }
 }

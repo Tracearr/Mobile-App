@@ -2,6 +2,7 @@
  * Notification Settings Screen
  * Per-device push notification configuration
  */
+import { useState } from 'react';
 import { View, ScrollView, Switch, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -161,7 +162,7 @@ function RateLimitStatus({
 
 export default function NotificationSettingsScreen() {
   const { t } = useTranslation(['mobile', 'common', 'notifications']);
-  const backgroundRefresh = backgroundRefreshStatus();
+  const [backgroundRefresh] = useState(backgroundRefreshStatus);
   const queryClient = useQueryClient();
   const server = useAuthStateStore((s) => s.server);
   // 2.2 servers ignore the per-rule-type filter (rule.type is null on automation runs).
