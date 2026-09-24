@@ -7,12 +7,18 @@ const { getDefaultConfig } = require('expo/metro-config');
 const projectRoot = path.resolve(__dirname, '../..');
 const config = getDefaultConfig(projectRoot);
 
+// The deep paths are not in either package's exports map, so they are pinned to files.
 const stubs = {
   '@tracearr/translations/mobile': path.join(__dirname, 'translations-stub.ts'),
-  // Not in the package's exports map, so it is pinned to the file.
   '@tracearr/translations/formatting': path.join(
     projectRoot,
     'node_modules/@tracearr/translations/src/formatting.ts'
+  ),
+  '@tracearr/shared': path.join(__dirname, 'shared-stub.ts'),
+  '@tracearr/shared/media': path.join(projectRoot, 'node_modules/@tracearr/shared/dist/media.js'),
+  '@tracearr/shared/playbackDecision': path.join(
+    projectRoot,
+    'node_modules/@tracearr/shared/dist/playbackDecision.js'
   ),
 };
 

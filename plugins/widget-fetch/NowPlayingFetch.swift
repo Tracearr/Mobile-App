@@ -140,9 +140,14 @@ enum NowPlayingFetch {
   // ships is a separate context.
   private final class Builder {
     static let shared = Builder()
+    private let lock = NSLock()
     private var context: JSContext?
 
+    // WidgetKit asks every widget instance for its timeline at once, and each
+    // request runs refresh(), so the one context is used under a lock.
     func build(_ inputJson: String) -> [[String: Any]]? {
+      lock.lock()
+      defer { lock.unlock() }
       guard let context = load() else { return nil }
       context.exception = nil
       guard let function = context.objectForKeyedSubscript("__tracearrBuildTimeline"), function.isObject,

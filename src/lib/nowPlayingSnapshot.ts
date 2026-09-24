@@ -2,6 +2,7 @@ import { AppState, Platform } from 'react-native';
 import type { ServerScope } from '@tracearr/shared';
 import { i18n } from '@tracearr/translations/mobile';
 import { api } from './api';
+import { accessTokenGeneration } from './accessTokenStorage';
 import { isAuthStateUnread, useAuthStateStore } from './authStateStore';
 import { i18nReady } from './i18n';
 import { publishNowPlaying, publishWidgetContext, widgetsSupported } from './nowPlayingPublisher';
@@ -33,14 +34,14 @@ export function nowPlayingSnapshotAge(): number {
 }
 
 // The extension reads this before each fetch, so it is rewritten only when the
-// server, the language or the strings change. writtenAt lets the extension tell
-// a fresh pairing from one whose token it already saw rejected.
+// server, the language, the strings or the stored token change. writtenAt lets
+// the extension tell a fresh token from one it already saw rejected.
 function syncWidgetContext(): void {
   const serverUrl = useAuthStateStore.getState().server?.url;
   if (!serverUrl) return;
   const lng = i18n.language;
   const resources = widgetResources((l, ns) => i18n.getResourceBundle(l, ns), lng);
-  const version = JSON.stringify([serverUrl, lng, resources]);
+  const version = JSON.stringify([serverUrl, lng, resources, accessTokenGeneration()]);
   if (version === contextVersion) return;
   contextVersion = version;
   const context: WidgetContext = { writtenAt: Date.now(), serverUrl, lng, resources };

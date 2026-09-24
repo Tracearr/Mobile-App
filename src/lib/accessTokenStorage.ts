@@ -9,6 +9,14 @@ export type TokenStore = {
   remove(key: string): Promise<boolean>;
 };
 
+let generation = 0;
+
+// Counts stored tokens so the widget context can carry a newer writtenAt after
+// a refresh; the extension stops fetching once a token was rejected until then.
+export function accessTokenGeneration(): number {
+  return generation;
+}
+
 // A build signed without the App Groups entitlement cannot write the shared
 // item; a private one keeps the app signed in and the widget on the old path.
 export async function writeAccessToken(
@@ -16,9 +24,11 @@ export async function writeAccessToken(
   value: string,
   options: TokenOptions
 ): Promise<boolean> {
-  if (await store.set(ACCESS_TOKEN_KEY, value, options)) return true;
-  if (!options.accessGroup) return false;
-  return store.set(ACCESS_TOKEN_KEY, value);
+  const stored =
+    (await store.set(ACCESS_TOKEN_KEY, value, options)) ||
+    (options.accessGroup !== undefined && (await store.set(ACCESS_TOKEN_KEY, value)));
+  if (stored) generation += 1;
+  return stored;
 }
 
 // The v2 key lives in the shared group; an install upgraded from the private

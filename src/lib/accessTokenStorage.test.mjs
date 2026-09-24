@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   ACCESS_TOKEN_KEY,
   LEGACY_ACCESS_TOKEN_KEY,
+  accessTokenGeneration,
   readAccessToken,
   writeAccessToken,
 } from './accessTokenStorage.ts';
@@ -52,4 +53,15 @@ test('writeAccessToken falls back to a private item when the shared write is ref
     store.writes.map((w) => Boolean(w.options?.accessGroup)),
     [true, false]
   );
+});
+
+test('accessTokenGeneration moves on every stored token and stays put on a failed write', async () => {
+  const before = accessTokenGeneration();
+  const store = fakeStore({});
+  await writeAccessToken(store, 'tok', SHARED);
+  assert.equal(accessTokenGeneration(), before + 1);
+  const failing = fakeStore({}, { failShared: true });
+  failing.set = async () => false;
+  await writeAccessToken(failing, 'tok2', SHARED);
+  assert.equal(accessTokenGeneration(), before + 1);
 });

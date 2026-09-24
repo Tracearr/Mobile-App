@@ -6,6 +6,10 @@
       "@/*": ["./src/*"],
       "@tracearr/translations/formatting": [
         "./node_modules/@tracearr/translations/src/formatting.ts"
+      ],
+      "@tracearr/shared/media": ["./node_modules/@tracearr/shared/dist/media.d.ts"],
+      "@tracearr/shared/playbackDecision": [
+        "./node_modules/@tracearr/shared/dist/playbackDecision.d.ts"
       ]
     },
     "types": ["node", "expo/types", "jest"],
