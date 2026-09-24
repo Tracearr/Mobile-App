@@ -9,6 +9,12 @@ import * as Device from 'expo-device';
 import { Platform } from 'react-native';
 import { zustandStorage, isPersistedStateUnread, markPersistedStateKnown } from './storage';
 import * as ResilientStorage from './resilientStorage';
+import {
+  ACCESS_TOKEN_KEY,
+  LEGACY_ACCESS_TOKEN_KEY,
+  readAccessToken,
+  writeAccessToken,
+} from './accessTokenStorage';
 import { api, resetApiClient } from './api';
 import { isEncryptionAvailable, ensureDeviceSecret } from './crypto';
 import { unregisterBackgroundNotificationTask } from './backgroundTasks';
@@ -71,9 +77,19 @@ interface AuthState {
 
 // Storage keys for tokens (stored separately from Zustand state)
 const STORAGE_KEYS = {
-  ACCESS_TOKEN: 'tracearr_access_token',
   REFRESH_TOKEN: 'tracearr_refresh_token',
 } as const;
+
+// The widget extension reads the access token through the app group, which iOS
+// accepts as a keychain access group without a further entitlement (app.json,
+// expo-widgets groupIdentifier). Android has no equivalent.
+const SHARED_TOKEN_OPTIONS = Platform.OS === 'ios' ? { accessGroup: 'group.com.tracearr.app' } : {};
+
+const tokenStore = {
+  get: ResilientStorage.getItemAsync,
+  set: ResilientStorage.setItemAsync,
+  remove: ResilientStorage.deleteItemAsync,
+};
 
 // v2 key: changing it logs out every existing install
 const PERSIST_KEY = 'tracearr-auth-v2';
@@ -196,9 +212,10 @@ export const useAuthStateStore = create<AuthState>()(
           );
 
           // Store tokens using resilient storage (with retry logic and Android fallback)
-          const accessOk = await ResilientStorage.setItemAsync(
-            STORAGE_KEYS.ACCESS_TOKEN,
-            response.accessToken
+          const accessOk = await writeAccessToken(
+            tokenStore,
+            response.accessToken,
+            SHARED_TOKEN_OPTIONS
           );
           const refreshOk = await ResilientStorage.setItemAsync(
             STORAGE_KEYS.REFRESH_TOKEN,
@@ -259,7 +276,8 @@ export const useAuthStateStore = create<AuthState>()(
 
         // Clear tokens
         _inMemoryRefreshToken = null;
-        await ResilientStorage.deleteItemAsync(STORAGE_KEYS.ACCESS_TOKEN);
+        await ResilientStorage.deleteItemAsync(ACCESS_TOKEN_KEY);
+        await ResilientStorage.deleteItemAsync(LEGACY_ACCESS_TOKEN_KEY);
         await ResilientStorage.deleteItemAsync(STORAGE_KEYS.REFRESH_TOKEN);
 
         // Reset API client cache
@@ -356,7 +374,7 @@ let _inMemoryRefreshToken: string | null = null;
 
 // Token access for API client
 export async function getAccessToken(): Promise<string | null> {
-  return ResilientStorage.getItemAsync(STORAGE_KEYS.ACCESS_TOKEN);
+  return readAccessToken(tokenStore, SHARED_TOKEN_OPTIONS);
 }
 
 export function isAuthStateUnread(): boolean {
@@ -386,7 +404,7 @@ export async function getRefreshToken(): Promise<string | null> {
 
 export async function setTokens(access: string, refresh: string): Promise<boolean> {
   _inMemoryRefreshToken = refresh;
-  const accessOk = await ResilientStorage.setItemAsync(STORAGE_KEYS.ACCESS_TOKEN, access);
+  const accessOk = await writeAccessToken(tokenStore, access, SHARED_TOKEN_OPTIONS);
   const refreshOk = await ResilientStorage.setItemAsync(STORAGE_KEYS.REFRESH_TOKEN, refresh);
   return accessOk && refreshOk;
 }

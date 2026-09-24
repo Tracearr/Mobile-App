@@ -180,7 +180,11 @@ export async function getItemAsync(key: string): Promise<string | null> {
   }
 }
 
-export async function setItemAsync(key: string, value: string): Promise<boolean> {
+export async function setItemAsync(
+  key: string,
+  value: string,
+  options: Partial<SecureStore.SecureStoreOptions> = {}
+): Promise<boolean> {
   await loadFallbackState();
 
   if (usingAsyncStorageFallback) {
@@ -190,7 +194,7 @@ export async function setItemAsync(key: string, value: string): Promise<boolean>
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     try {
       await withTimeout(
-        SecureStore.setItemAsync(key, value, SECURE_STORE_OPTIONS),
+        SecureStore.setItemAsync(key, value, { ...SECURE_STORE_OPTIONS, ...options }),
         OPERATION_TIMEOUT_MS
       );
       consecutiveFailures = 0;
