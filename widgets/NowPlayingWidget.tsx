@@ -1,5 +1,6 @@
 import {
   AccessoryWidgetBackground,
+  Button,
   HStack,
   Image,
   Link,
@@ -200,6 +201,19 @@ const NowPlayingWidget = (
   );
   const asOfText = (
     <Text modifiers={[font({ size: 11 }), stale ? warning : tertiary, lineLimit(1)]}>{asOf}</Text>
+  );
+  // A button is an app intent: the reload it triggers costs no WidgetKit budget,
+  // and the empty handler leaves the props alone so the provider fetches afresh.
+  const refresh = (
+    <Button onPress={() => {}} modifiers={[tertiary]}>
+      <Image systemName="arrow.clockwise" modifiers={[font({ size: 11, weight: 'medium' })]} />
+    </Button>
+  );
+  const asOfLine = (
+    <HStack alignment="firstTextBaseline" spacing={6}>
+      {asOfText}
+      {refresh}
+    </HStack>
   );
 
   if (signedOut) {
@@ -453,7 +467,7 @@ const NowPlayingWidget = (
           {empty ? null : bitrate}
           <Spacer />
           {serversDown}
-          {asOfText}
+          {asOfLine}
         </VStack>
         <Rectangle
           modifiers={[
@@ -554,7 +568,7 @@ const NowPlayingWidget = (
       <HStack alignment="firstTextBaseline" spacing={0}>
         {header}
         <Spacer />
-        {asOfText}
+        {asOfLine}
       </HStack>
       <HStack spacing={6} modifiers={[dim]}>
         {stat(props.streamCount, props.statLabels.streams, false)}
