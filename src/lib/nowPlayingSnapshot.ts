@@ -1,21 +1,14 @@
 import { AppState, Platform } from 'react-native';
-import {
-  i18n,
-  formatBitrate,
-  formatDateTime,
-  formatNumber,
-  formatTime,
-} from '@tracearr/translations/mobile';
-import { PLAYBACK_DECISION_LABEL_KEYS, type ServerScope } from '@tracearr/shared';
+import type { ServerScope } from '@tracearr/shared';
 import { api } from './api';
 import { isAuthStateUnread, useAuthStateStore } from './authStateStore';
 import { i18nReady } from './i18n';
 import { publishNowPlaying, widgetsSupported } from './nowPlayingPublisher';
+import { widgetText } from './nowPlayingText';
 import {
   buildNowPlayingProps,
   drawsSameWidget,
   signedOutProps,
-  type NowPlayingText,
   type NowPlayingWidgetProps,
   type WidgetSession,
 } from './nowPlayingWidget';
@@ -35,69 +28,6 @@ let published: NowPlayingWidgetProps | null = null;
 
 export function nowPlayingSnapshotAge(): number {
   return Date.now() - (published?.asOfMs ?? 0);
-}
-
-// A widget layout cannot call t(): these are resolved here, in the app's
-// language at snapshot time, and travel to the widget as props.
-function widgetText(): NowPlayingText {
-  return {
-    heading: i18n.t('pages:dashboard.nowPlaying'),
-    noStreams: i18n.t('pages:dashboard.noActiveStreams'),
-    noStreamsHint: i18n.t('pages:dashboard.streamsAppearHere'),
-    signedOut: i18n.t('mobile:widget.signedOut', {
-      defaultValue: 'Open Tracearr to pair a server.',
-    }),
-    paused: i18n.t('common:playback.paused'),
-    decision: (decision) => i18n.t(`common:${PLAYBACK_DECISION_LABEL_KEYS[decision]}`),
-    bitrate: (kbps) => formatBitrate(kbps * 1000),
-    mbps: (kbps) => formatNumber(kbps / 1000, { maximumFractionDigits: 1 }),
-    streams: (count) => i18n.t('common:count.stream', { count }),
-    streamUnit: (count) =>
-      i18n.t('mobile:widget.streamUnit', {
-        count,
-        defaultValue: 'streams',
-        defaultValue_one: 'stream',
-        defaultValue_other: 'streams',
-      }),
-    transcodes: (count) =>
-      i18n.t('mobile:widget.transcodes', {
-        count,
-        defaultValue: '{{count}} transcodes',
-        defaultValue_one: '{{count}} transcode',
-        defaultValue_other: '{{count}} transcodes',
-      }),
-    statStreams: i18n.t('mobile:widget.statStreams', { defaultValue: 'Streams' }),
-    statTranscodes: i18n.t('mobile:widget.statTranscodes', { defaultValue: 'Transcodes' }),
-    statDirect: i18n.t('mobile:widget.statDirect', { defaultValue: 'Direct' }),
-    more: (count) =>
-      i18n.t('mobile:widget.more', {
-        count,
-        defaultValue: '+{{count}} more',
-        defaultValue_one: '+{{count}} more',
-        defaultValue_other: '+{{count}} more',
-      }),
-    serversOk: i18n.t('mobile:widget.serversOk', { defaultValue: 'All servers reachable' }),
-    serversDown: (names) =>
-      names.length === 1
-        ? i18n.t('settings:serverHealth.unreachable', { serverName: names[0] })
-        : i18n.t('settings:serverHealth.multipleUnreachable', {
-            count: names.length,
-            serverNames: names.join(', '),
-          }),
-    serversDownCount: (count) =>
-      i18n.t('mobile:widget.serversDown', {
-        count,
-        defaultValue: '{{count}} servers down',
-        defaultValue_one: '{{count}} server down',
-        defaultValue_other: '{{count}} servers down',
-      }),
-    time: (ms) => formatTime(ms, 'short'),
-    asOf: (ms, dated) =>
-      i18n.t('mobile:widget.asOf', {
-        defaultValue: 'as of {{time}}',
-        time: dated ? formatDateTime(ms, 'medium', 'short') : formatTime(ms, 'short'),
-      }),
-  };
 }
 
 export function publishSessions(
