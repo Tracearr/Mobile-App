@@ -45,3 +45,6 @@ credentials/
 /android
 credentials.json
 *-firebase-adminsdk-*.json
+
+# eas update --json output the source map upload reads
+update.json

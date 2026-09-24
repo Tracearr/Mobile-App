@@ -232,7 +232,10 @@ jobs:
 
       - name: Upload source maps to PostHog
         if: env.POSTHOG_CLI_API_KEY != ''
-        run: pnpm exec posthog-cli hermes upload --directory dist
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          CHANNEL: ${{ steps.channel.outputs.channel }}
+        run: node scripts/release/upload-sourcemaps.mjs update.json
 
       # eas update publishes to a runtime whether or not any build runs it, so
       # a native change would otherwise ship to nobody without a word.

@@ -19,7 +19,7 @@
     "build:prod:android": "eas build --profile production --platform android",
     "submit:ios": "eas submit --platform ios",
     "submit:android": "eas submit --platform android",
-    "update": "eas update && posthog-cli hermes upload --directory dist",
+    "update": "eas update --json > update.json && node scripts/release/upload-sourcemaps.mjs update.json",
     "test": "node --test \"scripts/release/*.test.mjs\" \"src/**/*.test.mjs\" \"widgets/**/*.test.mjs\"",
     "test:jest": "jest",
     "build:tag": "scripts/release/build.sh",
