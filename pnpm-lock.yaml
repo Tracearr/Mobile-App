@@ -39,11 +39,11 @@ importers:
         specifier: ^5.102.2
         version: 5.102.8(react@19.3.0)
       '@tracearr/shared':
-        specifier: 2.4.1
-        version: 2.4.1
+        specifier: 2.5.0
+        version: 2.5.0
       '@tracearr/translations':
-        specifier: 2.4.1
-        version: 2.4.1(react-dom@19.3.0(react@19.3.0))(react-native@0.88.0-rc.1(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.0-rc.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(react@19.3.0)(typescript@7.0.2)
+        specifier: 2.5.0
+        version: 2.5.0(react-dom@19.3.0(react@19.3.0))(react-native@0.88.0-rc.1(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.0-rc.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(react@19.3.0)(typescript@7.0.2)
       axios:
         specifier: ^1.19.0
         version: 1.20.0(debug@4.4.3(supports-color@8.1.1))(supports-color@8.1.1)
@@ -1723,11 +1723,11 @@ packages:
     resolution: {integrity: sha512-HqmEUIGRJ5fSXchkVgR5F7qn48bDBzv0kWj/Kfu5e6uci4UlEeng4331LnBkWffb++Ei3FOVLxo8JJWMFBDMeQ==}
     engines: {node: '>= 10'}
 
-  '@tracearr/shared@2.4.1':
-    resolution: {integrity: sha512-ep2u41oV8uANYG7jPim4OgHZ7MlHkmWbKDGAMciRwS/GJCJHiQW09F2g/Rz//PciQDx3sHRiFv5iVoRudGCc6g==}
+  '@tracearr/shared@2.5.0':
+    resolution: {integrity: sha512-DPYi7n0gax4sZR7O8JSYBxSpAnwEq0HutFRlDN3XijNrmFG0taueNauRoMarti3fqX4S93nda8gsu1HuoOQXYA==}
 
-  '@tracearr/translations@2.4.1':
-    resolution: {integrity: sha512-CP4/yfUpfGIYJD8GSygMP9fgjzPGY8n7241vJdypiKxvIcF5w+TlEjvA4VCqrsKyr1Ok8J0ZjrMnzswG/lYDHw==}
+  '@tracearr/translations@2.5.0':
+    resolution: {integrity: sha512-SKylWhzuIHu0vhwnpCDxKMm9gGBXBQ/08Xx60F6rCSmmXVpTvTrmjWgxczurSr7cKrweu3O14prF8cF9GHdsOA==}
     peerDependencies:
       react: '>=18.0.0'
 
@@ -7061,11 +7061,11 @@ snapshots:
 
   '@tootallnate/once@2.0.1': {}
 
-  '@tracearr/shared@2.4.1':
+  '@tracearr/shared@2.5.0':
     dependencies:
       zod: 4.4.3
 
-  '@tracearr/translations@2.4.1(react-dom@19.3.0(react@19.3.0))(react-native@0.88.0-rc.1(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.0-rc.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(react@19.3.0)(typescript@7.0.2)':
+  '@tracearr/translations@2.5.0(react-dom@19.3.0(react@19.3.0))(react-native@0.88.0-rc.1(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.0-rc.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(react@19.3.0)(typescript@7.0.2)':
     dependencies:
       i18next: 26.4.2(typescript@7.0.2)
       react: 19.3.0
