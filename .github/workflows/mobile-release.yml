@@ -135,8 +135,10 @@ jobs:
           eas metadata:push --profile production --non-interactive 2>&1 | tee metadata-push.log
           grep -q "Store configuration is synced" metadata-push.log
 
+      # Play only takes release notes once the submission has created the
+      # production release, so this also runs on a re-run that reuses the build.
       - name: Push Play listing
-        if: steps.resolve.outputs.profile == 'production' && steps.deploy.outputs.android-did-start-new-build == 'true'
+        if: steps.resolve.outputs.profile == 'production' && inputs.platform != 'ios'
         env:
           GOOGLE_SERVICE_ACCOUNT_KEY: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_KEY }}
           APP_VERSION: ${{ steps.resolve.outputs.version }}
