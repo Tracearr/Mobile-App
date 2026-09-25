@@ -6,8 +6,13 @@
 // that runtime gets an upload of the same maps (the CLI overwrites in event
 // mode), and --build stays out because a build number would name one of them.
 //
+// A release run publishes its update through the fingerprint action, which
+// prints nothing, so with APP_VERSION set the platforms come from the export's
+// dist/metadata.json and the version is the one the tag resolved to.
+//
 // usage: upload-sourcemaps.mjs [update.json] with CHANNEL in the environment,
-// where update.json is what `eas update --json` printed.
+// where update.json is what `eas update --json` printed, or
+// APP_VERSION=<store version> upload-sourcemaps.mjs after an eas update export.
 
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
@@ -33,6 +38,16 @@ export function planUploads(updates, appJson, finishedBuilds) {
     }
   }
   return uploads;
+}
+
+export function planReleaseUploads(metadata, appJson, version) {
+  return Object.keys(metadata.fileMetadata)
+    .filter((platform) => platform !== 'web')
+    .map((platform) => ({
+      directory: `dist/_expo/static/js/${platform}`,
+      name: releaseName(appJson, platform),
+      version,
+    }));
 }
 
 function easFinishedBuilds(channel) {
@@ -61,10 +76,15 @@ function easFinishedBuilds(channel) {
 }
 
 function main() {
-  const updates = JSON.parse(readFileSync(process.argv[2] ?? 'update.json', 'utf8'));
   const appJson = JSON.parse(readFileSync('app.json', 'utf8'));
-  const channel = process.env.CHANNEL ?? 'production';
-  const uploads = planUploads(updates, appJson, easFinishedBuilds(channel));
+  const version = process.env.APP_VERSION;
+  const uploads = version
+    ? planReleaseUploads(JSON.parse(readFileSync('dist/metadata.json', 'utf8')), appJson, version)
+    : planUploads(
+        JSON.parse(readFileSync(process.argv[2] ?? 'update.json', 'utf8')),
+        appJson,
+        easFinishedBuilds(process.env.CHANNEL ?? 'production')
+      );
   if (uploads.length === 0) {
     console.error('No finished build runs these updates; nothing to upload.');
     process.exit(1);

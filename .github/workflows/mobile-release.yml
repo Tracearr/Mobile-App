@@ -38,6 +38,10 @@ jobs:
     if: inputs.tag != ''
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    env:
+      POSTHOG_CLI_API_KEY: ${{ secrets.POSTHOG_CLI_API_KEY }}
+      POSTHOG_CLI_HOST: ${{ secrets.POSTHOG_CLI_HOST }}
+      POSTHOG_CLI_PROJECT_ID: ${{ secrets.POSTHOG_CLI_PROJECT_ID }}
 
     steps:
       - name: Normalise tag
@@ -117,6 +121,15 @@ jobs:
           # No app-specific password on purpose: with it set, eas-cli ignores the ASC
           # API key stored on EAS and fastlane cannot log in after the upload.
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+      # The action also publishes an update on the new runtime, which every
+      # install of this release downloads at first launch. The embedded bundle
+      # uploads its own maps from inside the EAS build; this covers the update's.
+      - name: Upload update source maps to PostHog
+        if: env.POSTHOG_CLI_API_KEY != ''
+        env:
+          APP_VERSION: ${{ steps.resolve.outputs.version }}
+        run: node scripts/release/upload-sourcemaps.mjs
 
       # Apple ties listing text to an App Store version, so the listings only go out
       # with a production build that creates one.

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { planUploads, releaseName } from './upload-sourcemaps.mjs';
+import { planReleaseUploads, planUploads, releaseName } from './upload-sourcemaps.mjs';
 
 const appJson = {
   expo: {
@@ -46,4 +46,17 @@ test('planUploads asks once per platform and runtime', () => {
   };
   planUploads([...updates, updates[0]], appJson, builds);
   assert.deepEqual(asked, ['ios:abc', 'android:def']);
+});
+
+test('planReleaseUploads uploads each exported platform under the tag version', () => {
+  const metadata = {
+    fileMetadata: {
+      ios: { bundle: '_expo/static/js/ios/index-a.hbc', assets: [] },
+      android: { bundle: '_expo/static/js/android/index-b.hbc', assets: [] },
+    },
+  };
+  assert.deepEqual(planReleaseUploads(metadata, appJson, '2.5.0'), [
+    { directory: 'dist/_expo/static/js/ios', name: 'com.tracearr.app', version: '2.5.0' },
+    { directory: 'dist/_expo/static/js/android', name: 'com.tracearr.mobile', version: '2.5.0' },
+  ]);
 });
