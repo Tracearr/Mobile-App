@@ -126,7 +126,6 @@ jobs:
       # install of this release downloads at first launch. The embedded bundle
       # uploads its own maps from inside the EAS build; this covers the update's.
       - name: Upload update source maps to PostHog
-        if: env.POSTHOG_CLI_API_KEY != ''
         env:
           APP_VERSION: ${{ steps.resolve.outputs.version }}
         run: node scripts/release/upload-sourcemaps.mjs
@@ -246,7 +245,6 @@ jobs:
           '
 
       - name: Upload source maps to PostHog
-        if: env.POSTHOG_CLI_API_KEY != ''
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
           CHANNEL: ${{ steps.channel.outputs.channel }}
