@@ -1,17 +1,23 @@
-name: Mobile Patch Tag
+name: Mobile Release Tag
 
-# Cuts a store release of the app on a server version already synced here. The
-# server releases minor versions only, so the patch digit belongs to mobile and
-# a patch tag moves no pins. The sync workflow cannot do this: it owns the
-# mirrored server tag and the pins that come with it.
+# Tags the tip of main for an app release. The app is versioned YYYY.M.N on
+# its own (docs/superpowers/specs/2026-09-26-mobile-version-space-design.md);
+# the pins on main say which Tracearr release it was built against, and the
+# sync workflow owns those. A stable tag needs a stable pin and fresh store
+# notes; a beta tag needs neither.
 
 on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Mobile patch tag to cut (e.g. v2.4.2)'
+        description: 'App release tag to cut (e.g. v2026.9.1 or v2026.9.2-beta.1)'
         required: true
         type: string
+      same_notes:
+        description: 'Tag even though store/listings/en-US.json did not change since the last stable tag'
+        required: false
+        type: boolean
+        default: false
 
 concurrency:
   group: sync-tracearr-release
@@ -22,7 +28,7 @@ permissions:
 
 jobs:
   tag:
-    name: Tag main for a mobile patch
+    name: Tag main for an app release
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -49,28 +55,45 @@ jobs:
         run: |
           JSON=$(node scripts/release/tag-version.mjs "$RAW_TAG")
           echo "$JSON"
-          if [ "$(echo "$JSON" | jq -r .isPrerelease)" = "true" ]; then
-            echo "::error::A mobile patch tag must be a stable major.minor.patch. Betas come from the sync workflow."
+          if [ "$(echo "$JSON" | jq -r .scheme)" != "app" ]; then
+            echo "::error::App tags are YYYY.M.N (for example v2026.9.1). Server-shaped tags are not created here any more."
             exit 1
           fi
-          echo "tag=$(echo "$JSON" | jq -r .tag)" >> "$GITHUB_OUTPUT"
+          {
+            echo "tag=$(echo "$JSON" | jq -r .tag)"
+            echo "prerelease=$(echo "$JSON" | jq -r .isPrerelease)"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Fail if the tag already exists here
         env:
           TAG: ${{ steps.tag.outputs.tag }}
         run: |
           if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
-            echo "::error::Tag $TAG already exists in this repo. Use the next patch number."
+            echo "::error::Tag $TAG already exists in this repo. Use the next number."
             exit 1
           fi
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Verify the pins on main carry this tag
+      - name: Verify the pins on main can back this tag
         env:
           TAG: ${{ steps.tag.outputs.tag }}
         run: node scripts/release/verify-pins.mjs "$TAG"
+
+      - name: Fail if the store notes did not change since the last stable tag
+        if: steps.tag.outputs.prerelease == 'false' && inputs.same_notes == false
+        run: |
+          LAST=$(git tag --list 'v*' | grep -v -- '-' | sort -V | tail -1)
+          if [ -z "$LAST" ]; then
+            echo "No stable tag yet, skipping the notes check"
+            exit 0
+          fi
+          if git diff --quiet "$LAST" -- store/listings/en-US.json; then
+            echo "::error::store/listings/en-US.json is unchanged since $LAST. Write the release notes for this version, or re-run with same_notes."
+            exit 1
+          fi
+          echo "Store listing changed since $LAST"
 
       - name: Lint
         run: pnpm lint
@@ -102,7 +125,7 @@ jobs:
             echo "## Tagged $TAG"
             echo ""
             echo "- Tagged the tip of main (\`$SHA\`)"
-            echo "- Packages stay pinned to \`$PINNED\`, nothing was committed"
+            echo "- Built against Tracearr \`$PINNED\`"
             echo ""
             echo "Build it with Mobile Release, tag \`$TAG\`, profile \`auto\`."
           } >> "$GITHUB_STEP_SUMMARY"

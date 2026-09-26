@@ -10,6 +10,7 @@ test('stable tag maps to production', () => {
     isPrerelease: false,
     defaultProfile: 'production',
     npmDistTag: 'latest',
+    scheme: 'legacy',
   });
 });
 
@@ -21,6 +22,7 @@ test('beta tag keeps the prerelease in the package version only', () => {
     isPrerelease: true,
     defaultProfile: 'beta',
     npmDistTag: 'next',
+    scheme: 'legacy',
   });
 });
 
@@ -47,4 +49,37 @@ test('non-numeric version is rejected', () => {
 
 test('trailing junk is rejected', () => {
   assert.throws(() => parseTag('v2.1.0 '), /Not a Tracearr release tag/);
+});
+
+test('an app tag parses with the app scheme', () => {
+  assert.deepEqual(parseTag('v2026.9.1'), {
+    tag: 'v2026.9.1',
+    marketingVersion: '2026.9.1',
+    packageVersion: '2026.9.1',
+    isPrerelease: false,
+    defaultProfile: 'production',
+    npmDistTag: 'latest',
+    scheme: 'app',
+  });
+});
+
+test('an app beta keeps the prerelease out of the marketing version', () => {
+  const parsed = parseTag('v2026.9.2-beta.1');
+  assert.equal(parsed.marketingVersion, '2026.9.2');
+  assert.equal(parsed.packageVersion, '2026.9.2-beta.1');
+  assert.equal(parsed.defaultProfile, 'beta');
+  assert.equal(parsed.scheme, 'app');
+});
+
+test('a server-shaped tag parses with the legacy scheme', () => {
+  assert.equal(parseTag('v2.5.0').scheme, 'legacy');
+  assert.equal(parseTag('v2.5.0-beta.4').scheme, 'legacy');
+});
+
+test('a leading zero in the month is rejected', () => {
+  assert.throws(() => parseTag('v2026.09.1'), /Not a Tracearr release tag/);
+});
+
+test('a two-part version is rejected', () => {
+  assert.throws(() => parseTag('v2026.9'), /Not a Tracearr release tag/);
 });

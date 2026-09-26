@@ -1,9 +1,16 @@
-// Every version value a build needs, derived from one Tracearr release tag.
+// Every version value a build needs, derived from one release tag.
 // Local builds, CI, and EAS workflows all call this so they cannot drift apart.
+//
+// Two shapes share the parser. App tags are YYYY.M.N (major 2026 or later, no
+// leading zero on the month) and are the only tags the tag workflow creates.
+// Legacy tags mirror old server versions (v2.x.y) and stay parseable so those
+// builds can be reproduced.
 
 // The leading v is optional on input and always present on output, so passing
-// either "2.2.0-beta.3" or "v2.2.0-beta.3" resolves to the same git tag.
-const TAG_RE = /^v?(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?$/;
+// either "2026.9.1" or "v2026.9.1" resolves to the same git tag.
+const TAG_RE = /^v?(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-([0-9A-Za-z.-]+))?$/;
+
+const APP_SCHEME_FROM_MAJOR = 2026;
 
 export function parseTag(tag) {
   const match = TAG_RE.exec(tag);
@@ -20,6 +27,7 @@ export function parseTag(tag) {
     isPrerelease: Boolean(prerelease),
     defaultProfile: prerelease ? 'beta' : 'production',
     npmDistTag: prerelease ? 'next' : 'latest',
+    scheme: Number(major) >= APP_SCHEME_FROM_MAJOR ? 'app' : 'legacy',
   };
 }
 

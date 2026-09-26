@@ -1,5 +1,10 @@
 name: Sync Tracearr Release
 
+# Pins @tracearr/shared and @tracearr/translations on main to a Tracearr release,
+# stable or beta, once npm has both packages. It never tags: the app has its own
+# version space (docs/superpowers/specs/2026-09-26-mobile-version-space-design.md)
+# and Mobile Release Tag is the only workflow that creates a tag here.
+
 on:
   repository_dispatch:
     types: [tracearr-release]
@@ -19,7 +24,7 @@ permissions:
 
 jobs:
   sync:
-    name: Pin packages and mirror tag
+    name: Pin packages
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -64,15 +69,6 @@ jobs:
             echo "package-version=$(echo "$JSON" | jq -r .packageVersion)"
           } >> "$GITHUB_OUTPUT"
 
-      - name: Fail if the tag already exists here
-        env:
-          TAG: ${{ steps.versions.outputs.tag }}
-        run: |
-          if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
-            echo "::error::Tag $TAG already exists in this repo. Delete it first to re-sync."
-            exit 1
-          fi
-
       - name: Wait for packages to be published
         env:
           VERSION: ${{ steps.versions.outputs.package-version }}
@@ -114,22 +110,19 @@ jobs:
       - name: Unit tests
         run: pnpm test
 
-      - name: Commit and tag
+      - name: Commit
         env:
-          TAG: ${{ steps.versions.outputs.tag }}
           VERSION: ${{ steps.versions.outputs.package-version }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           if git diff --quiet package.json pnpm-lock.yaml; then
-            echo "Pins already at $VERSION, tagging existing commit"
-          else
-            git add package.json pnpm-lock.yaml
-            git commit -m "pin tracearr packages to $VERSION"
-            git push origin main
+            echo "Pins already at $VERSION, nothing to commit"
+            exit 0
           fi
-          git tag -a "$TAG" -m "Tracearr $TAG"
-          git push origin "$TAG"
+          git add package.json pnpm-lock.yaml
+          git commit -m "pin tracearr packages to $VERSION"
+          git push origin main
 
       - name: Summary
         env:
@@ -139,8 +132,6 @@ jobs:
           {
             echo "## Synced $TAG"
             echo ""
-            echo "- Packages pinned to \`$VERSION\`"
-            echo "- Mirrored tag pushed"
-            echo ""
-            echo "Trigger a build with the Mobile Build or Mobile Release workflow."
+            echo "- Packages pinned to \`$VERSION\` on main"
+            echo "- No tag was created; app releases are tagged by Mobile Release Tag"
           } >> "$GITHUB_STEP_SUMMARY"
