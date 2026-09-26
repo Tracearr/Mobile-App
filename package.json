@@ -40,7 +40,7 @@
     "@expo/ui": "~58.0.6",
     "@gorhom/bottom-sheet": "^5.2.14",
     "@react-native-async-storage/async-storage": "2.2.0",
-    "@shopify/flash-list": "2.0.3",
+    "@shopify/flash-list": "2.3.2",
     "@shopify/react-native-skia": "2.12.0",
     "@tanstack/react-query": "^5.102.2",
     "@tracearr/shared": "2.5.0",
