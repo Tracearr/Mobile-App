@@ -8,7 +8,7 @@
  * - Device icon
  * - Location footer
  */
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { View, Pressable, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
 import {
@@ -34,7 +34,7 @@ import { useEstimatedProgress } from '@/hooks/useEstimatedProgress';
 import { useResponsive } from '@/hooks/useResponsive';
 import { useAuthStateStore } from '@/lib/authStateStore';
 import { haptics } from '@/lib/haptics';
-import { ACCENT_COLOR, colors, spacing, withAlpha } from '@/lib/theme';
+import { ACCENT_COLOR, colors, spacing } from '@/lib/theme';
 import { formatDuration } from '@/lib/formatters';
 import { formatEpisodeLabel, type ActiveSession } from '@tracearr/shared';
 import { QualityBadge } from './QualityBadge';
@@ -239,8 +239,8 @@ export function NowPlayingCard({
                 </Text>
                 <QualityBadge session={session} iconOnly />
                 {isTablet && (
-                  <View className="bg-muted h-6 w-6 items-center justify-center rounded-md">
-                    <DeviceIcon size={14} color={colors.text.muted.dark} />
+                  <View className="h-6 w-6 items-center justify-center">
+                    <DeviceIcon size={16} color={colors.text.muted.dark} />
                   </View>
                 )}
               </View>
@@ -336,14 +336,13 @@ export function NowPlayingCard({
               haptics.warning();
               setTerminateOpen(true);
             }}
-            className={`absolute top-2.5 right-2.5 items-center justify-center rounded-full ${isOffline ? 'opacity-50' : ''}`}
+            className={`absolute top-2.5 right-2.5 items-center justify-center ${isOffline ? 'opacity-50' : ''}`}
             style={{
               width: TERMINATE_BUTTON_SIZE,
               height: TERMINATE_BUTTON_SIZE,
-              backgroundColor: withAlpha(colors.error, '15'),
             }}
           >
-            <X size={14} color={colors.error} />
+            <X size={16} color={colors.error} />
           </Pressable>
           <TerminateSessionDialog
             visible={terminateOpen}
