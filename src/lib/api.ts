@@ -28,6 +28,7 @@ import type {
   PaginatedResponse,
   NotificationPreferences,
   NotificationPreferencesWithStatus,
+  PlaybackDecision,
   ServerLiveStats,
   TerminationLogWithDetails,
   HistorySessionResponse,
@@ -60,7 +61,7 @@ export interface HistoryFilterParams {
   geoCountries?: string[];
   geoCity?: string;
   geoRegion?: string;
-  transcodeDecisions?: ('directplay' | 'copy' | 'transcode')[];
+  transcodeDecisions?: PlaybackDecision[];
   watched?: boolean;
   excludeShortSessions?: boolean;
 }
