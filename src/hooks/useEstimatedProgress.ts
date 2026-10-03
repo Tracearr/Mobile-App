@@ -8,7 +8,7 @@ import type { ActiveSession } from '@tracearr/shared';
  * Keep both files in sync when making changes.
  *
  * When state is "playing", progress increments every second based on elapsed time.
- * When state is "paused" or "stopped", progress stays at last known value.
+ * When state is "paused" or "stopped", or the client is buffering, progress stays at last known value.
  *
  * Resets estimation when:
  * - Session ID changes
@@ -50,7 +50,7 @@ export function useEstimatedProgress(session: ActiveSession) {
 
   // Tick progress when playing
   useEffect(() => {
-    if (session.state !== 'playing') {
+    if (session.state !== 'playing' || session.buffering) {
       return;
     }
 
@@ -66,7 +66,7 @@ export function useEstimatedProgress(session: ActiveSession) {
     }, 1000);
 
     return () => clearInterval(intervalId);
-  }, [session.state, session.totalDurationMs]);
+  }, [session.state, session.buffering, session.totalDurationMs]);
 
   // Calculate percentage
   const progressPercent = session.totalDurationMs

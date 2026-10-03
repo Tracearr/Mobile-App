@@ -21,7 +21,11 @@ import {
   Music,
   Radio,
   MonitorPlay,
+  Package,
+  AudioLines,
   Zap,
+  Subtitles,
+  Clapperboard,
   ChevronLeft,
   ChevronRight,
   type LucideIcon,
@@ -40,7 +44,7 @@ import {
   type PlaybackDecision,
 } from '@tracearr/shared';
 
-export type MediaType = 'movie' | 'episode' | 'track' | 'live';
+export type MediaType = 'movie' | 'episode' | 'track' | 'live' | 'trailer';
 export type TranscodeDecision = PlaybackDecision;
 
 export interface FilterState {
@@ -49,6 +53,7 @@ export interface FilterState {
   geoCountries: string[];
   mediaTypes: MediaType[];
   transcodeDecisions: TranscodeDecision[];
+  subtitleBurnIn: boolean;
 }
 
 interface FilterBottomSheetProps {
@@ -62,6 +67,7 @@ export interface FilterBottomSheetRef {
   close: () => void;
 }
 
+type ListFilterKey = Exclude<keyof FilterState, 'subtitleBurnIn'>;
 type ListSection = 'users' | 'platforms' | 'countries';
 type FilterSection = 'main' | ListSection;
 
@@ -77,6 +83,7 @@ const EMPTY_FILTERS: FilterState = {
   geoCountries: [],
   mediaTypes: [],
   transcodeDecisions: [],
+  subtitleBurnIn: false,
 };
 
 const MEDIA_TYPES = [
@@ -84,11 +91,13 @@ const MEDIA_TYPES = [
   { value: 'episode', labelKey: 'common:media.tvShows', icon: Tv },
   { value: 'track', labelKey: 'common:media.music', icon: Music },
   { value: 'live', labelKey: 'common:media.liveTV', icon: Radio },
+  { value: 'trailer', labelKey: 'pages:automations.options.trailer', icon: Clapperboard },
 ] as const satisfies readonly { value: MediaType; labelKey: string; icon: LucideIcon }[];
 
 const TRANSCODE_OPTIONS = [
   { value: 'directplay', icon: MonitorPlay },
-  { value: 'copy', icon: MonitorPlay },
+  { value: 'copy', icon: Package },
+  { value: 'audio_transcode', icon: AudioLines },
   { value: 'transcode', icon: Zap },
 ] as const satisfies readonly { value: TranscodeDecision; icon: LucideIcon }[];
 
@@ -156,13 +165,11 @@ function ChipOption({
   icon: Icon,
   isSelected,
   onPress,
-  stacked,
 }: {
   label: string;
   icon: LucideIcon;
   isSelected: boolean;
   onPress: () => void;
-  stacked?: boolean;
 }) {
   return (
     <Pressable
@@ -171,20 +178,12 @@ function ChipOption({
       accessibilityLabel={label}
       accessibilityState={{ checked: isSelected }}
       className={cn(
-        'min-h-11 items-center rounded-lg border',
-        stacked ? 'flex-1 gap-1.5 px-2 py-3' : 'min-w-[47%] flex-row gap-2 px-3.5 py-2.5',
+        'min-h-11 min-w-[47%] flex-row items-center gap-2 rounded-lg border px-3.5 py-2.5',
         isSelected ? 'border-primary bg-primary/15' : 'border-border bg-surface'
       )}
     >
-      <Icon size={stacked ? 20 : 18} color={isSelected ? ACCENT_COLOR : colors.text.muted.dark} />
-      <Text
-        numberOfLines={1}
-        className={cn(
-          'font-medium',
-          stacked ? 'text-center text-xs' : 'text-sm',
-          isSelected && 'text-primary'
-        )}
-      >
+      <Icon size={18} color={isSelected ? ACCENT_COLOR : colors.text.muted.dark} />
+      <Text numberOfLines={1} className={cn('text-sm font-medium', isSelected && 'text-primary')}>
         {label}
       </Text>
     </Pressable>
@@ -193,7 +192,7 @@ function ChipOption({
 
 export const FilterBottomSheet = forwardRef<FilterBottomSheetRef, FilterBottomSheetProps>(
   ({ filterOptions, filters, onFiltersChange }, ref) => {
-    const { t } = useTranslation(['common', 'mobile', 'nav']);
+    const { t } = useTranslation(['common', 'mobile', 'nav', 'pages']);
     const insets = useSafeAreaInsets();
     const { isCompactHeight } = useResponsive();
     const bottomSheetRef = useRef<BottomSheet>(null);
@@ -226,9 +225,14 @@ export const FilterBottomSheet = forwardRef<FilterBottomSheetRef, FilterBottomSh
       bottomSheetRef.current?.close();
     }, []);
 
-    const toggle = <K extends keyof FilterState>(key: K, values: FilterState[K]) => {
+    const toggle = <K extends ListFilterKey>(key: K, values: FilterState[K]) => {
       haptics.selection();
       onFiltersChange({ ...filters, [key]: toggleValues<string>(filters[key], values) });
+    };
+
+    const toggleBurnIn = () => {
+      haptics.selection();
+      onFiltersChange({ ...filters, subtitleBurnIn: !filters.subtitleBurnIn });
     };
 
     const clear = (next: FilterState) => {
@@ -349,17 +353,22 @@ export const FilterBottomSheet = forwardRef<FilterBottomSheetRef, FilterBottomSh
 
           <View className="px-4 pt-5">
             <GroupLabel>{t('mobile:activity.playbackQuality')}</GroupLabel>
-            <View className="flex-row gap-2">
+            <View className="flex-row flex-wrap gap-2">
               {TRANSCODE_OPTIONS.map(({ value, icon }) => (
                 <ChipOption
                   key={value}
-                  stacked
                   label={t(PLAYBACK_DECISION_LABEL_KEYS[value], { ns: 'common' })}
                   icon={icon}
                   isSelected={filters.transcodeDecisions.includes(value)}
                   onPress={() => toggle('transcodeDecisions', [value])}
                 />
               ))}
+              <ChipOption
+                label={t('common:playback.burnIn')}
+                icon={Subtitles}
+                isSelected={filters.subtitleBurnIn}
+                onPress={toggleBurnIn}
+              />
             </View>
           </View>
           {isCompactHeight && doneFooter}

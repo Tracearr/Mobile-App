@@ -11,7 +11,7 @@ import { useMediaServer } from '../providers/MediaServerProvider';
 import { useTranslation } from '@tracearr/translations/mobile';
 
 export function ServerSelector() {
-  const { t } = useTranslation(['mobile']);
+  const { t } = useTranslation(['mobile', 'common']);
   const {
     servers,
     selectedServerIds,
@@ -144,7 +144,11 @@ export function ServerSelector() {
                       >
                         {server.name}
                       </Text>
-                      <Text className="text-xs text-gray-500 capitalize">{server.type}</Text>
+                      <Text className="text-xs text-gray-500 capitalize">
+                        {server.historicalAt
+                          ? `${server.type} · ${t('common:serverSelector.historical')}`
+                          : server.type}
+                      </Text>
                     </View>
                   </TouchableOpacity>
                 );

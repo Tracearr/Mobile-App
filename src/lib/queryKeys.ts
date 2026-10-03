@@ -17,6 +17,7 @@ export interface HistoryQueryFilters {
   geoCountries?: string[];
   mediaTypes?: string[];
   transcodeDecisions?: string[];
+  subtitleBurnIn?: boolean;
   orderBy?: string;
   orderDir?: 'asc' | 'desc';
 }

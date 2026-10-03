@@ -62,6 +62,7 @@ export default function HistoryScreen() {
     geoCountries: [],
     mediaTypes: [],
     transcodeDecisions: [],
+    subtitleBurnIn: false,
   });
 
   const activeFilterCount =
@@ -69,7 +70,8 @@ export default function HistoryScreen() {
     advancedFilters.platforms.length +
     advancedFilters.geoCountries.length +
     advancedFilters.mediaTypes.length +
-    advancedFilters.transcodeDecisions.length;
+    advancedFilters.transcodeDecisions.length +
+    (advancedFilters.subtitleBurnIn ? 1 : 0);
 
   const { data: filterOptions } = useQuery({
     queryKey: queryKeys.sessions.filterOptions(scope),
@@ -87,6 +89,7 @@ export default function HistoryScreen() {
       geoCountries: nonEmpty(advancedFilters.geoCountries),
       mediaTypes: nonEmpty(advancedFilters.mediaTypes),
       transcodeDecisions: nonEmpty(advancedFilters.transcodeDecisions),
+      subtitleBurnIn: advancedFilters.subtitleBurnIn || undefined,
     }),
     [period, search, advancedFilters]
   );

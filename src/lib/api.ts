@@ -29,6 +29,7 @@ import type {
   NotificationPreferences,
   NotificationPreferencesWithStatus,
   PlaybackDecision,
+  ServerDownReason,
   ServerLiveStats,
   TerminationLogWithDetails,
   HistorySessionResponse,
@@ -49,7 +50,7 @@ export interface HistoryFilterParams {
   scope: ServerScope;
   serverUserIds?: string[];
   state?: 'playing' | 'paused' | 'stopped';
-  mediaTypes?: ('movie' | 'episode' | 'track' | 'live')[];
+  mediaTypes?: ('movie' | 'episode' | 'track' | 'live' | 'trailer')[];
   startDate?: Date;
   endDate?: Date;
   search?: string;
@@ -62,6 +63,7 @@ export interface HistoryFilterParams {
   geoCity?: string;
   geoRegion?: string;
   transcodeDecisions?: PlaybackDecision[];
+  subtitleBurnIn?: boolean;
   watched?: boolean;
   excludeShortSessions?: boolean;
 }
@@ -75,6 +77,7 @@ export type UserDetailScope = 'account' | 'identity';
 export interface UnhealthyServer {
   serverId: string;
   serverName: string;
+  reason?: ServerDownReason;
 }
 
 // `acknowledged` is always false. 2.1 servers ignore `true` in a bulk filter, and with the
@@ -119,6 +122,7 @@ function appendHistoryFilters(searchParams: URLSearchParams, params: HistoryFilt
   if (params.geoRegion) searchParams.set('geoRegion', params.geoRegion);
   if (params.transcodeDecisions?.length)
     searchParams.set('transcodeDecisions', params.transcodeDecisions.join(','));
+  if (params.subtitleBurnIn) searchParams.set('subtitleBurnIn', 'true');
   if (params.watched !== undefined) searchParams.set('watched', String(params.watched));
   if (params.excludeShortSessions !== undefined)
     searchParams.set('excludeShortSessions', String(params.excludeShortSessions));

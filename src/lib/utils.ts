@@ -1,5 +1,21 @@
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import type { TranscodeInfo } from '@tracearr/shared';
+
+export function getBufferedPercent(session: {
+  transcodeInfo: TranscodeInfo | null;
+  totalDurationMs: number | null;
+}): number | null {
+  const info = session.transcodeInfo;
+  if (!info) return null;
+  if (info.maxOffsetAvailable != null && session.totalDurationMs) {
+    return Math.min(
+      100,
+      Math.round(((info.maxOffsetAvailable * 1000) / session.totalDurationMs) * 100)
+    );
+  }
+  return info.progress != null ? Math.min(100, Math.round(info.progress)) : null;
+}
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));

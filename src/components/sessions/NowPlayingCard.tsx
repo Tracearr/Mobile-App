@@ -36,6 +36,7 @@ import { useAuthStateStore } from '@/lib/authStateStore';
 import { haptics } from '@/lib/haptics';
 import { ACCENT_COLOR, colors, spacing } from '@/lib/theme';
 import { formatDuration } from '@/lib/formatters';
+import { getBufferedPercent } from '@/lib/utils';
 import { formatEpisodeLabel, type ActiveSession } from '@tracearr/shared';
 import { QualityBadge } from './QualityBadge';
 import { TerminateSessionDialog } from './TerminateSessionDialog';
@@ -146,7 +147,11 @@ export function NowPlayingCard({
   const { t } = useTranslation(['common', 'pages']);
   const getImageUrl = useImageUrl();
   const { isTablet, select } = useResponsive();
-  const { title, subtitle } = getMediaDisplay(session);
+  const { title, subtitle: mediaSubtitle } = getMediaDisplay(session);
+  const subtitle =
+    session.mediaType === 'trailer'
+      ? [t('pages:automations.options.trailer'), mediaSubtitle].filter(Boolean).join(' · ')
+      : mediaSubtitle;
   const [terminateOpen, setTerminateOpen] = useState(false);
   const isOffline = useAuthStateStore((s) => s.connectionState !== 'connected');
 
@@ -167,6 +172,8 @@ export function NowPlayingCard({
   });
 
   const isPaused = session.state === 'paused';
+  const bufferedPercent = getBufferedPercent(session);
+  const progressColor = isMultiServer && serverColor ? serverColor : ACCENT_COLOR;
   const username = session.user?.username ?? t('common:labels.unknown');
   const displayName = session.user?.identityName ?? username;
   const userThumbUrl = session.user?.thumbUrl || null;
@@ -294,13 +301,23 @@ export function NowPlayingCard({
 
         {/* Progress bar with time labels - like web */}
         <View className="px-2.5 pb-2">
-          <View className="bg-surface h-1 rounded-full">
+          <View className="bg-surface h-1 overflow-hidden rounded-full">
+            {bufferedPercent != null && bufferedPercent > progressPercent && (
+              <View
+                className="absolute inset-y-0 left-0"
+                style={{
+                  width: `${bufferedPercent}%`,
+                  backgroundColor: progressColor,
+                  opacity: 0.4,
+                }}
+              />
+            )}
             <View
               className="rounded-full"
               style={{
                 height: '100%',
                 width: `${progressPercent}%`,
-                backgroundColor: isMultiServer && serverColor ? serverColor : ACCENT_COLOR,
+                backgroundColor: progressColor,
               }}
             />
           </View>
@@ -308,9 +325,9 @@ export function NowPlayingCard({
             <Text className="text-muted-foreground text-[10px]">
               {formatDuration(estimatedProgressMs, { style: 'clock' })}
             </Text>
-            {isPaused ? (
+            {isPaused || session.buffering ? (
               <Text className="text-warning text-[10px] font-medium">
-                {t('common:playback.paused')}
+                {t(session.buffering ? 'common:playback.buffering' : 'common:playback.paused')}
               </Text>
             ) : (
               <Text className="text-muted-foreground text-[10px]">
