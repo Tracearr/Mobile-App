@@ -12,6 +12,7 @@ import { SegmentedControl } from '@/components/ui/segmented-control';
 import { Text } from '@/components/ui/text';
 import { safeFormatDistanceToNow } from '@/lib/formatters';
 import { haptics } from '@/lib/haptics';
+import { keyById } from '@/lib/listKeys';
 import { ACCENT_COLOR, spacing } from '@/lib/theme';
 import { RunRow } from './RunRow';
 
@@ -54,7 +55,7 @@ export function RunsFeed({ horizontalPadding }: { horizontalPadding: number }) {
   return (
     <FlashList
       data={rows}
-      keyExtractor={(item) => item.id}
+      keyExtractor={keyById}
       renderItem={({ item }) => (
         <RunRow run={item} automation={automationsById.get(item.automationId)} />
       )}

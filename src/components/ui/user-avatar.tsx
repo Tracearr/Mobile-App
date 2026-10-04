@@ -13,7 +13,7 @@ interface UserAvatarProps {
   /** Server ID for constructing proxy URLs (required for non-Plex avatars) */
   serverId?: string | null;
   /** Username for generating initials fallback */
-  username: string;
+  username?: string | null;
   /** Size of the avatar (default: 40) */
   size?: number;
 }
@@ -60,7 +60,7 @@ function buildAvatarUrl(
 }
 
 export function UserAvatar({ thumbUrl, serverId, username, size = 40 }: UserAvatarProps) {
-  const initials = username.slice(0, 2).toUpperCase();
+  const initials = (username ?? '').slice(0, 2).toUpperCase();
   const fontSize = Math.max(size * 0.4, 10);
   const borderRadius = size / 2;
 
@@ -70,7 +70,7 @@ export function UserAvatar({ thumbUrl, serverId, username, size = 40 }: UserAvat
       return (
         <Image
           source={{ uri: imageUrl }}
-          accessibilityLabel={username}
+          accessibilityLabel={username ?? undefined}
           style={{ width: size, height: size, borderRadius }}
           className="bg-surface"
         />
@@ -80,7 +80,7 @@ export function UserAvatar({ thumbUrl, serverId, username, size = 40 }: UserAvat
 
   return (
     <View
-      accessibilityLabel={username}
+      accessibilityLabel={username ?? undefined}
       style={{ width: size, height: size, borderRadius }}
       className="bg-primary items-center justify-center"
     >

@@ -17,7 +17,7 @@ import type { ViolationWithDetails } from '@tracearr/shared';
 import { isEncrypted, registerBackgroundNotificationTask } from '../lib/backgroundTasks';
 import { decryptPushPayload, isEncryptionAvailable, ensureDeviceSecret } from '../lib/crypto';
 import { api } from '../lib/api';
-import { describeApiError, isNetworkFailure } from '../lib/apiError';
+import { describeApiError, isNetworkFailure, isTransientReply } from '../lib/apiError';
 import { useAuthStateStore } from '../lib/authStateStore';
 import { ROUTES } from '../lib/routes';
 import { pushDestination, type PushDestination } from '../lib/pushRoute';
@@ -183,7 +183,8 @@ export function usePushNotifications() {
   // token changes: the Expo token is stable, expo-notifications re-points it at a
   // rotated APNs or FCM token on its own, and fetching a token inside such a
   // listener re-fires it. A 400 means the server will keep refusing this token
-  // (an old server drops deviceId from refreshed tokens), so it is reported once.
+  // (a malformed token or secret, or an access token without a deviceId), so it
+  // is reported once. Proxy, 429 and 5xx replies are not the app's errors.
   const registration = useRef<{ token: string; promise: Promise<void> } | null>(null);
   const rejectedToken = useRef<string | null>(null);
   const registeredToken = useRef<string | null>(null);
@@ -219,7 +220,7 @@ export function usePushNotifications() {
           if (axios.isAxiosError(error) && error.response?.status === 400) {
             rejectedToken.current = token;
           }
-          (isNetworkFailure(error) ? console.warn : console.error)(
+          (isNetworkFailure(error) || isTransientReply(error) ? console.warn : console.error)(
             describeApiError('Push token registration failed', error)
           );
         } finally {

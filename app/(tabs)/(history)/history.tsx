@@ -10,6 +10,7 @@ import { useRouter, Stack } from 'expo-router';
 import { Play } from 'lucide-react-native';
 import { api } from '@/lib/api';
 import { queryKeys } from '@/lib/queryKeys';
+import { keyById } from '@/lib/listKeys';
 import { ROUTES } from '@/lib/routes';
 import { useMediaServer } from '@/providers/MediaServerProvider';
 import { TabToolbar, androidHeaderOptions } from '@/components/navigation/TabHeaderButtons';
@@ -144,8 +145,6 @@ export default function HistoryScreen() {
     [router]
   );
 
-  const keyExtractor = useCallback((item: SessionWithDetails) => item.id, []);
-
   const { controlKey, refreshControlProps } = usePullToRefresh(() =>
     Promise.all([refetch(), refetchAggregates()])
   );
@@ -157,7 +156,7 @@ export default function HistoryScreen() {
       <View className="bg-background flex-1">
         <FlashList
           data={sessions}
-          keyExtractor={keyExtractor}
+          keyExtractor={keyById}
           renderItem={renderItem}
           ItemSeparatorComponent={HistoryRowSeparator}
           contentContainerStyle={{ paddingBottom: 24 }}

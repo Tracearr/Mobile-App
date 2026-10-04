@@ -8,6 +8,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { Text } from '@/components/ui/text';
 import { latestRunByAutomation } from '@/lib/automations';
+import { keyById } from '@/lib/listKeys';
 import { ACCENT_COLOR, spacing } from '@/lib/theme';
 import { AutomationRow } from './AutomationRow';
 
@@ -29,7 +30,7 @@ export function AutomationsList({ horizontalPadding }: { horizontalPadding: numb
   return (
     <FlashList
       data={rows}
-      keyExtractor={(item) => item.id}
+      keyExtractor={keyById}
       renderItem={({ item }) => <AutomationRow automation={item} lastRun={lastRuns.get(item.id)} />}
       extraData={lastRuns}
       contentContainerStyle={{

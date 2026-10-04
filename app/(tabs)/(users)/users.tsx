@@ -14,6 +14,7 @@ import { useRouter, Stack } from 'expo-router';
 import { Users as UsersIcon, SearchX } from 'lucide-react-native';
 import { api } from '@/lib/api';
 import { nextPageOf, pageMetaOf } from '@/lib/listPage';
+import { keyById } from '@/lib/listKeys';
 import { queryKeys } from '@/lib/queryKeys';
 import { ROUTES } from '@/lib/routes';
 import { useMediaServer } from '@/providers/MediaServerProvider';
@@ -119,7 +120,7 @@ export default function UsersScreen() {
     <>
       <FlashList<ServerUserWithIdentity>
         data={users}
-        keyExtractor={(item) => item.id}
+        keyExtractor={keyById}
         numColumns={numColumns}
         key={numColumns}
         extraData={showServers}

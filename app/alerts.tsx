@@ -22,6 +22,7 @@ import { safeFormatDistanceToNow } from '@/lib/formatters';
 import { ruleIcon, violationDescription } from '@/lib/violations';
 import { ROUTES } from '@/lib/routes';
 import { nextPageOf, pageMetaOf } from '@/lib/listPage';
+import { keyById } from '@/lib/listKeys';
 import { useMediaServer } from '@/providers/MediaServerProvider';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useResponsive } from '@/hooks/useResponsive';
@@ -366,7 +367,7 @@ export default function AlertsScreen() {
 
       <FlashList
         data={violations}
-        keyExtractor={(item) => item.id}
+        keyExtractor={keyById}
         numColumns={numColumns}
         key={numColumns}
         extraData={extraData}
