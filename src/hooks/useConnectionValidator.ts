@@ -10,6 +10,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { ALL_SERVERS } from '@tracearr/shared';
 import { useAuthStateStore } from '../lib/authStateStore';
 import { api } from '../lib/api';
+import { isTracearrError } from '../lib/apiError';
 import type { AxiosError } from 'axios';
 
 type ValidationResult = 'connected' | 'reconnected' | 'disconnected' | 'unauthenticated' | 'error';
@@ -52,9 +53,10 @@ export function useConnectionValidator() {
     } catch (error: unknown) {
       const axiosError = error as AxiosError;
 
-      // 401 = token invalid/revoked
-      if (axiosError.response?.status === 401) {
-        handleAuthFailure();
+      // A Tracearr 401 that outlived the interceptor's refresh; a proxy's 401 is not a verdict
+      const body: unknown = axiosError.response?.data;
+      if (axiosError.response?.status === 401 && isTracearrError(body)) {
+        handleAuthFailure(body.code);
         return 'unauthenticated';
       }
 

@@ -38,7 +38,9 @@ export interface UserInfo {
 // 'connected' = successfully connected to server
 // 'disconnected' = was connected but lost connection (show offline banner)
 // 'unauthenticated' = token revoked (show re-auth screen)
-type ConnectionState = 'unknown' | 'connected' | 'disconnected' | 'unauthenticated';
+// 'clientTooOld' = server needs a newer app build (tokens kept, show update screen)
+type ConnectionState =
+  'unknown' | 'connected' | 'disconnected' | 'unauthenticated' | 'clientTooOld';
 type TokenStatus = 'valid' | 'revoked' | 'refreshing' | 'unknown';
 
 interface AuthState {
@@ -49,6 +51,8 @@ interface AuthState {
   // Connection status
   connectionState: ConnectionState;
   tokenStatus: TokenStatus;
+  // Code of the reply that signed this device out; servers before 2.6.2 send none
+  revokedReason: string | null;
 
   // UI state
   isInitializing: boolean;
@@ -65,7 +69,7 @@ interface AuthState {
   setTokenStatus: (status: TokenStatus) => void;
   setUser: (user: UserInfo | null) => void;
   clearError: () => void;
-  handleAuthFailure: () => void;
+  handleAuthFailure: (code?: string | null) => void;
   setInitializing: (isInitializing: boolean) => void;
   setError: (error: string | null) => void;
 
@@ -162,6 +166,7 @@ export const useAuthStateStore = create<AuthState>()(
       user: null,
       connectionState: 'unknown',
       tokenStatus: 'unknown',
+      revokedReason: null,
       isInitializing: true,
       error: null,
       _cachedServerUrl: null,
@@ -255,6 +260,7 @@ export const useAuthStateStore = create<AuthState>()(
             user,
             connectionState: 'connected',
             tokenStatus: 'valid',
+            revokedReason: null,
             isInitializing: false,
             error: null,
             _cachedServerUrl: normalizedUrl,
@@ -290,6 +296,7 @@ export const useAuthStateStore = create<AuthState>()(
           user: null,
           connectionState: 'disconnected',
           tokenStatus: 'unknown',
+          revokedReason: null,
           error: null,
           _cachedServerUrl: null,
           _cachedServerName: null,
@@ -297,9 +304,12 @@ export const useAuthStateStore = create<AuthState>()(
       },
 
       setConnectionState: (connectionState) => {
-        const current = get();
-        // Don't overwrite 'unauthenticated' with 'disconnected'
-        if (current.connectionState === 'unauthenticated' && connectionState === 'disconnected') {
+        const current = get().connectionState;
+        // 'disconnected' must not hide a screen that needs the user to act
+        if (
+          connectionState === 'disconnected' &&
+          (current === 'unauthenticated' || current === 'clientTooOld')
+        ) {
           return;
         }
         set({ connectionState });
@@ -315,13 +325,14 @@ export const useAuthStateStore = create<AuthState>()(
 
       setError: (error) => set({ error }),
 
-      handleAuthFailure: () => {
+      handleAuthFailure: (code = null) => {
         const current = get();
         _inMemoryRefreshToken = null;
         // Cache server info for unauthenticated screen
         set({
           connectionState: 'unauthenticated',
           tokenStatus: 'revoked',
+          revokedReason: code,
           _cachedServerUrl: current.server?.url ?? current._cachedServerUrl,
           _cachedServerName: current.server?.name ?? current._cachedServerName,
         });

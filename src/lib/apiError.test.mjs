@@ -1,7 +1,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { AxiosError } from 'axios';
-import { describeApiError, isNetworkFailure } from './apiError.ts';
+import {
+  classifyRefreshFailure,
+  describeApiError,
+  isNetworkFailure,
+  isTransientReply,
+} from './apiError.ts';
 
 function axiosFailure(status, data, statusText = '') {
   return new AxiosError('Request failed', 'ERR_BAD_REQUEST', undefined, undefined, {
@@ -55,4 +60,58 @@ test('a request that got no answer is a network failure, a server reply is not',
   });
   assert.equal(isNetworkFailure(expoOffline), true);
   assert.equal(isNetworkFailure(new Error('Session expired')), false);
+});
+
+function tracearr(statusCode, message, code) {
+  return { statusCode, error: 'Error', message, ...(code ? { code } : {}) };
+}
+
+test('a refresh that got no answer or not a Tracearr verdict is transient', () => {
+  const transient = { kind: 'transient' };
+  assert.deepEqual(
+    classifyRefreshFailure(new AxiosError('Network Error', 'ERR_NETWORK')),
+    transient
+  );
+  assert.deepEqual(classifyRefreshFailure(new Error('Token refresh timed out')), transient);
+  assert.deepEqual(classifyRefreshFailure(axiosFailure(401, '<html>401</html>')), transient);
+  assert.deepEqual(
+    classifyRefreshFailure(axiosFailure(429, tracearr(429, 'Rate limit'))),
+    transient
+  );
+  assert.deepEqual(
+    classifyRefreshFailure(axiosFailure(503, tracearr(503, 'Unavailable', 'SRV_002'))),
+    transient
+  );
+});
+
+test('a Tracearr 400, 401 or 403 signs out with the code when there is one', () => {
+  assert.deepEqual(
+    classifyRefreshFailure(
+      axiosFailure(401, tracearr(401, 'Session has been revoked', 'AUTH_005'))
+    ),
+    { kind: 'signedOut', code: 'AUTH_005' }
+  );
+  assert.deepEqual(
+    classifyRefreshFailure(axiosFailure(401, tracearr(401, 'Invalid or expired refresh token'))),
+    { kind: 'signedOut', code: null }
+  );
+  assert.deepEqual(classifyRefreshFailure(axiosFailure(400, tracearr(400, 'Bad Request'))), {
+    kind: 'signedOut',
+    code: null,
+  });
+});
+
+test('a Tracearr 426 with AUTH_008 means the app is too old', () => {
+  assert.deepEqual(
+    classifyRefreshFailure(axiosFailure(426, tracearr(426, 'Update the app', 'AUTH_008'))),
+    { kind: 'clientTooOld' }
+  );
+});
+
+test('a proxy reply, a 429 or a 5xx is a transient reply, a Tracearr verdict or no reply is not', () => {
+  assert.equal(isTransientReply(new AxiosError('Network Error', 'ERR_NETWORK')), false);
+  assert.equal(isTransientReply(axiosFailure(502, '<html>Bad Gateway</html>')), true);
+  assert.equal(isTransientReply(axiosFailure(400, tracearr(400, 'Bad Request'))), false);
+  assert.equal(isTransientReply(axiosFailure(429, tracearr(429, 'Rate limit'))), true);
+  assert.equal(isTransientReply(axiosFailure(503, tracearr(503, 'Unavailable', 'SRV_002'))), true);
 });

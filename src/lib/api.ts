@@ -6,8 +6,15 @@
 import axios from 'axios';
 import type { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { Platform } from 'react-native';
-import { serverScopeParamEntries, type ServerScope } from '@tracearr/shared';
+import * as Application from 'expo-application';
+import {
+  ErrorCodes,
+  MOBILE_CLIENT_HEADER,
+  serverScopeParamEntries,
+  type ServerScope,
+} from '@tracearr/shared';
 import { useAuthStateStore, getAccessToken, getRefreshToken, setTokens } from './authStateStore';
+import { classifyRefreshFailure, isTracearrError } from './apiError';
 import { getDeviceTimezone } from './timezone';
 import { pageMetaOf } from './listPage';
 import { isVersionInfo } from './serverVersion';
@@ -162,12 +169,17 @@ async function apiGet<T>(url: string, options?: RequestOptions): Promise<T> {
   return response.data;
 }
 
+// The store build's version: an OTA update does not change it.
+export const CLIENT_HEADER_VALUE = `mobile/${Application.nativeApplicationVersion ?? '0.0.0'}`;
+const CLIENT_HEADERS = { [MOBILE_CLIENT_HEADER]: CLIENT_HEADER_VALUE };
+
 export function createApiClient(baseURL: string): AxiosInstance {
   const client = axios.create({
     baseURL: `${baseURL}/api/v1`,
     timeout: 30000,
     headers: {
       'Content-Type': 'application/json',
+      ...CLIENT_HEADERS,
     },
   });
 
@@ -196,29 +208,38 @@ export function createApiClient(baseURL: string): AxiosInstance {
     },
     async (error: AxiosError) => {
       const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+      const status = error.response?.status;
+      const code = isTracearrError(error.response?.data) ? error.response.data.code : undefined;
 
-      // If 401 and not already retrying, attempt token refresh
-      if (error.response?.status === 401 && !originalRequest._retry) {
+      if (status === 426 && code === ErrorCodes.CLIENT_TOO_OLD) {
+        useAuthStateStore.getState().setConnectionState('clientTooOld');
+        return Promise.reject(error);
+      }
+
+      const needsRefresh =
+        status === 401 || (status === 403 && code === ErrorCodes.MOBILE_TOKEN_REQUIRED);
+      if (needsRefresh && !originalRequest._retry) {
         originalRequest._retry = true;
 
+        let newAccessToken: string;
         try {
-          const newAccessToken = await refreshAccessToken();
-          originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
-          return await client(originalRequest);
-        } catch {
-          // refreshAccessToken handles auth state (handleAuthFailure for server rejections)
-          throw new Error('Session expired');
+          newAccessToken = await refreshAccessToken();
+        } catch (refreshError) {
+          // 'revoked' only when Tracearr itself refused the session
+          if (useAuthStateStore.getState().tokenStatus === 'revoked') {
+            throw new Error('Session expired');
+          }
+          throw refreshError;
         }
+        originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+        return client(originalRequest);
       }
 
       // Network error = server unreachable
-      // But don't overwrite 'unauthenticated' state - that takes priority
       if (error.code === 'ERR_NETWORK' || error.code === 'ECONNABORTED') {
-        const { connectionState, setConnectionState, setError } = useAuthStateStore.getState();
-        if (connectionState !== 'unauthenticated') {
-          setConnectionState('disconnected');
-          setError(error.code === 'ECONNABORTED' ? 'Connection timed out' : 'Server unreachable');
-        }
+        const { setConnectionState, setError } = useAuthStateStore.getState();
+        setConnectionState('disconnected');
+        setError(error.code === 'ECONNABORTED' ? 'Connection timed out' : 'Server unreachable');
       }
 
       return Promise.reject(error);
@@ -249,9 +270,12 @@ const REFRESH_TIMEOUT_MS = 35000;
 /**
  * Refresh the access token using the stored refresh token.
  * Uses a mutex so concurrent callers all wait for a single refresh.
- * On auth rejection (server returns 401/403), calls handleAuthFailure().
- * On network errors, or when the stored refresh token cannot be read, throws
- * without killing auth state.
+ * Only a 400, 401 or 403 from Tracearr itself signs the device out, through
+ * handleAuthFailure() with the reply's code. A Tracearr 426 AUTH_008 sets
+ * 'clientTooOld' and keeps the tokens. Any other failed request (no answer,
+ * a proxy's own reply, 429, 5xx) keeps the tokens and sets 'disconnected'. A
+ * stored refresh token that cannot be read throws without touching auth state.
+ * Every failure rethrows the original error.
  *
  * The refresh is raced against a watchdog timeout: if iOS suspends the app
  * mid-request, the axios promise can dangle forever, which would otherwise
@@ -318,7 +342,7 @@ async function performTokenRefresh(generation: number): Promise<string> {
     const response = await axios.post<{ accessToken: string; refreshToken: string }>(
       `${server.url}/api/v1/mobile/refresh`,
       { refreshToken },
-      { timeout: 30000 }
+      { timeout: 30000, headers: CLIENT_HEADERS }
     );
 
     if (!isCurrent()) {
@@ -339,12 +363,19 @@ async function performTokenRefresh(generation: number): Promise<string> {
     useAuthStateStore.getState().setTokenStatus('valid');
     return response.data.accessToken;
   } catch (error) {
-    if (axios.isAxiosError(error) && error.response && isCurrent()) {
-      // Server explicitly rejected the refresh token, so auth is dead
-      resetApiClient();
-      useAuthStateStore.getState().handleAuthFailure();
+    if (isCurrent()) {
+      const verdict = classifyRefreshFailure(error);
+      const store = useAuthStateStore.getState();
+      if (verdict.kind === 'signedOut') {
+        resetApiClient();
+        store.handleAuthFailure(verdict.code);
+      } else if (verdict.kind === 'clientTooOld') {
+        store.setConnectionState('clientTooOld');
+      } else {
+        store.setConnectionState('disconnected');
+        store.setTokenStatus('valid');
+      }
     }
-    // Network errors: don't kill auth, token may still be valid server-side
     throw error;
   }
 }
@@ -376,7 +407,7 @@ export const api = {
       const response = await axios.post<MobilePairResponse>(
         `${serverUrl}/api/v1/mobile/pair`,
         { token, deviceName, deviceId, platform, deviceSecret },
-        { timeout: 15000 }
+        { timeout: 15000, headers: CLIENT_HEADERS }
       );
 
       // Validate response shape - a tunnel/proxy may return 200 with non-Tracearr content
