@@ -12,6 +12,7 @@
 import { Platform } from 'react-native';
 import crypto from 'react-native-quick-crypto';
 import * as ResilientStorage from './resilientStorage';
+import { pushSecretId } from './pushSecretId';
 import type { EncryptedPushPayload, NotificationEventType } from '@tracearr/shared';
 
 // Storage key for the per-device encryption secret
@@ -109,10 +110,19 @@ export async function decryptPushPayload(
     throw new Error(`Unsupported encryption version: ${encrypted.v}`);
   }
 
-  try {
-    // Get device secret
-    const deviceSecret = await getDeviceSecret();
+  const deviceSecret = await getDeviceSecret();
+  // Servers before 2.6.2 send no kid. A mismatch means the server holds an older
+  // secret; the next foreground launch posts this one again, which repairs it.
+  if (
+    encrypted.kid !== undefined &&
+    encrypted.kid !==
+      pushSecretId(deviceSecret, (s) => crypto.createHash('sha256').update(s).digest('hex'))
+  ) {
+    console.warn('[Push] Secret mismatch');
+    throw new Error('Failed to decrypt push payload');
+  }
 
+  try {
     // Decode Base64 values
     const iv = Buffer.from(encrypted.iv, 'base64');
     const salt = Buffer.from(encrypted.salt, 'base64');
