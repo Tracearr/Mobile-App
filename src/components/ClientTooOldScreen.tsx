@@ -2,7 +2,6 @@
  * Full-screen replacement when the server needs a newer app build.
  * The pairing stays: updating the app is all it takes.
  */
-import React from 'react';
 import { View, Pressable, Linking, Platform } from 'react-native';
 import { Text } from '@/components/ui/text';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -31,7 +30,7 @@ export function ClientTooOldScreen() {
           <ArrowUpCircle size={48} color={colors.text.muted.dark} />
         </View>
 
-        <Text className="text-foreground mb-4 text-2xl font-semibold">
+        <Text accessibilityRole="header" className="text-foreground mb-4 text-2xl font-semibold">
           {t('mobile:clientTooOld.title')}
         </Text>
 
@@ -40,8 +39,15 @@ export function ClientTooOldScreen() {
         </Text>
 
         <Pressable
+          accessibilityRole="button"
           className="bg-primary w-full items-center rounded-md px-8 py-4"
-          onPress={() => void Linking.openURL(STORE_URL)}
+          onPress={() =>
+            void Linking.openURL(STORE_URL).catch(() =>
+              Linking.openURL(
+                'https://play.google.com/store/apps/details?id=com.tracearr.mobile'
+              ).catch(() => {})
+            )
+          }
         >
           <Text className="text-primary-foreground text-base font-semibold">
             {t('mobile:clientTooOld.update')}
