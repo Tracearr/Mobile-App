@@ -28,7 +28,7 @@ function lucideNodes(icon) {
   vm.runInNewContext(fs.readFileSync(file, 'utf8'), {
     module,
     exports: module.exports,
-    require: () => (_name, nodes) => nodes,
+    require: () => (iconData) => iconData.node,
   });
   return module.exports;
 }
