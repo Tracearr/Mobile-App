@@ -160,7 +160,7 @@ importers:
         version: 5.0.0-rc.0(react-native-css@3.1.0-rc.0(@expo/metro-config@58.0.4(expo@58.0.0-preview.6)(supports-color@8.1.1)(typescript@7.0.2))(lightningcss@1.32.0)(react-native@0.88.0-rc.2(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.0-rc.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(react@19.3.0)(supports-color@8.1.1))(tailwindcss@4.3.3)
       posthog-react-native:
         specifier: ^4.74.0
-        version: 4.74.2(36e1678631bde5ca3aa54e46b094c3b6)
+        version: 4.78.0(36e1678631bde5ca3aa54e46b094c3b6)
       react:
         specifier: 19.3.0
         version: 19.3.0
@@ -4301,8 +4301,8 @@ packages:
     resolution: {integrity: sha512-RRuzqDtt5Y9h3quz5hWhK+TPnsmVs6WwSU6LkJMeY4HstUEDuYTG8UJSdawMRzmzAtV+KEoG8N3Qg2qLy5vM/A==}
     engines: {node: ^10 || ^12 || >=14}
 
-  posthog-react-native@4.74.2:
-    resolution: {integrity: sha512-8WK2PeeyffBekBTsXIvw1+Quh8qQOJQPQ7ETn3Wiz8XodeGWT9S3Ntb/0jMRHGuZ3O8as3zEoE2xCSt2+Kudug==}
+  posthog-react-native@4.78.0:
+    resolution: {integrity: sha512-T5GJ0/Vv8j9/+ewKb61mFD+AFBj+OOollZKuYHv+VJWYnQ8Qqv1i4lS2Z2iuIrPL/MzeBRjuhAPHMPAvYeceUA==}
     hasBin: true
     peerDependencies:
       '@posthog/react-native-plugin': '>= 2.9.3'
@@ -9932,7 +9932,7 @@ snapshots:
       picocolors: 1.1.1
       source-map-js: 1.2.1
 
-  posthog-react-native@4.74.2(36e1678631bde5ca3aa54e46b094c3b6):
+  posthog-react-native@4.78.0(36e1678631bde5ca3aa54e46b094c3b6):
     dependencies:
       '@posthog/core': 1.55.2
       '@posthog/types': 1.412.4
