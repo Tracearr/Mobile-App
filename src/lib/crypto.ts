@@ -110,7 +110,10 @@ export async function decryptPushPayload(
     throw new Error(`Unsupported encryption version: ${encrypted.v}`);
   }
 
-  const deviceSecret = await getDeviceSecret();
+  const deviceSecret = await getDeviceSecret().catch((error: unknown) => {
+    console.error('[Crypto] Decryption failed:', error);
+    throw new Error('Failed to decrypt push payload');
+  });
   // Servers before 2.6.2 send no kid. A mismatch means the server holds an older
   // secret; the next foreground launch posts this one again, which repairs it.
   if (
