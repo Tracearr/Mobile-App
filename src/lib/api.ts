@@ -225,7 +225,7 @@ export function createApiClient(baseURL: string): AxiosInstance {
         try {
           newAccessToken = await refreshAccessToken();
         } catch (refreshError) {
-          // 'revoked' only when Tracearr itself refused the session
+          // 'revoked' when Tracearr refused the session or no refresh token or server is stored
           if (useAuthStateStore.getState().tokenStatus === 'revoked') {
             throw new Error('Session expired');
           }

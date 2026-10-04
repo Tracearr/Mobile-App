@@ -9,6 +9,7 @@ import { Text } from '@/components/ui/text';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Unlink } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
+import { ErrorCodes } from '@tracearr/shared';
 import { useAuthStateStore } from '../lib/authStateStore';
 import { colors } from '../lib/theme';
 import { instanceHost } from '../lib/utils';
@@ -18,6 +19,7 @@ export function UnauthenticatedScreen() {
   const { t } = useTranslation(['mobile']);
   const router = useRouter();
   const cachedServerUrl = useAuthStateStore((s) => s._cachedServerUrl);
+  const revokedReason = useAuthStateStore((s) => s.revokedReason);
   const unpairServer = useAuthStateStore((s) => s.unpairServer);
 
   const handleScanQR = async () => {
@@ -36,6 +38,12 @@ export function UnauthenticatedScreen() {
   };
 
   const serverDisplay = cachedServerUrl ? instanceHost(cachedServerUrl) : 'your server';
+  const reasonKey =
+    revokedReason === ErrorCodes.DEVICE_REVOKED
+      ? 'deviceRemoved'
+      : revokedReason === ErrorCodes.TOKEN_EXPIRED
+        ? 'expired'
+        : 'accessRevoked';
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background.dark }}>
@@ -49,7 +57,7 @@ export function UnauthenticatedScreen() {
         </Text>
 
         <Text className="text-secondary-foreground mb-8 text-center text-base leading-6">
-          {t('mobile:unauthenticated.accessRevoked', { serverName: serverDisplay })}
+          {t(`mobile:unauthenticated.${reasonKey}`, { serverName: serverDisplay })}
         </Text>
 
         <Pressable

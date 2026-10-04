@@ -13,7 +13,8 @@ import { api } from '../lib/api';
 import { isTracearrError } from '../lib/apiError';
 import type { AxiosError } from 'axios';
 
-type ValidationResult = 'connected' | 'reconnected' | 'disconnected' | 'unauthenticated' | 'error';
+type ValidationResult =
+  'connected' | 'reconnected' | 'disconnected' | 'unauthenticated' | 'clientTooOld' | 'error';
 
 export function useConnectionValidator() {
   // Use single-server auth state store with shallow compare for state values
@@ -35,8 +36,10 @@ export function useConnectionValidator() {
   const validate = useCallback(async (): Promise<ValidationResult> => {
     if (!server) return 'error';
 
-    // Don't validate if already unauthenticated
-    if (connectionState === 'unauthenticated') return 'unauthenticated';
+    // Don't validate if already unauthenticated or too old: a success would clear that screen
+    if (connectionState === 'unauthenticated' || connectionState === 'clientTooOld') {
+      return connectionState;
+    }
 
     try {
       // Use a lightweight endpoint to validate connection

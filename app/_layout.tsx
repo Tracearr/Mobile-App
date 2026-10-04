@@ -18,6 +18,7 @@ import { ErrorBoundary, ScreenErrorFallback } from '@/components/ErrorBoundary';
 import { OfflineBanner } from '@/components/OfflineBanner';
 import { ServerHealthBanner } from '@/components/server/ServerHealthBanner';
 import { UnauthenticatedScreen } from '@/components/UnauthenticatedScreen';
+import { ClientTooOldScreen } from '@/components/ClientTooOldScreen';
 import { Toast } from '@/components/Toast';
 import { useShallow } from 'zustand/react/shallow';
 import { useAuthStateStore } from '@/lib/authStateStore';
@@ -100,16 +101,19 @@ function RootLayoutNav() {
     prevConnectionState.current = connectionState;
   }, [connectionState]);
 
-  // UnauthenticatedScreen renders outside any route, so the route-scoped marker has no screen.
+  // UnauthenticatedScreen and ClientTooOldScreen render outside any route, so the
+  // route-scoped marker has no screen.
   useEffect(() => {
-    if (connectionState === 'unauthenticated') Observe.markInteractive();
+    if (connectionState === 'unauthenticated' || connectionState === 'clientTooOld') {
+      Observe.markInteractive();
+    }
   }, [connectionState]);
 
   // Handle navigation based on auth state
-  // Don't redirect if unauthenticated - we show UnauthenticatedScreen instead
+  // Don't redirect if unauthenticated or too old: those get their own screens
   useEffect(() => {
     if (isInitializing) return;
-    if (connectionState === 'unauthenticated') return;
+    if (connectionState === 'unauthenticated' || connectionState === 'clientTooOld') return;
 
     const inAuthGroup = segments[0] === '(auth)';
 
@@ -134,6 +138,15 @@ function RootLayoutNav() {
       <>
         <StatusBar style="light" />
         <UnauthenticatedScreen />
+      </>
+    );
+  }
+
+  if (connectionState === 'clientTooOld') {
+    return (
+      <>
+        <StatusBar style="light" />
+        <ClientTooOldScreen />
       </>
     );
   }

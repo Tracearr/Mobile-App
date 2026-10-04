@@ -80,8 +80,8 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    // Don't connect if already unauthenticated
-    if (connectionState === 'unauthenticated') {
+    // Don't connect if already unauthenticated or the server needs a newer app
+    if (connectionState === 'unauthenticated' || connectionState === 'clientTooOld') {
       return;
     }
 
@@ -244,7 +244,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
 
     // Unguarded on purpose: cleanup nulls socketRef before this body reruns, so
     // anything behind `if (socketRef.current)` never fires on teardown.
-    if (connectionState === 'unauthenticated') {
+    if (connectionState === 'unauthenticated' || connectionState === 'clientTooOld') {
       socketRef.current?.disconnect();
       socketRef.current = null;
       connectedServerIdRef.current = null;
