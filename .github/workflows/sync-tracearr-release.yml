@@ -72,14 +72,16 @@ jobs:
       - name: Wait for packages to be published
         env:
           VERSION: ${{ steps.versions.outputs.package-version }}
+          # npm can keep answering "not found" for a few minutes after a publish
+          MAX_ATTEMPTS: 15
         run: |
           for pkg in shared translations; do
-            for attempt in 1 2 3 4 5 6; do
+            for attempt in $(seq 1 "$MAX_ATTEMPTS"); do
               if npm view "@tracearr/${pkg}@${VERSION}" version >/dev/null 2>&1; then
                 echo "@tracearr/${pkg}@${VERSION} is published"
                 break
               fi
-              if [ "$attempt" = "6" ]; then
+              if [ "$attempt" = "$MAX_ATTEMPTS" ]; then
                 echo "::error::@tracearr/${pkg}@${VERSION} never appeared on npm"
                 exit 1
               fi
