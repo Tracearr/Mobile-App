@@ -124,6 +124,8 @@ export default function UsersScreen() {
         numColumns={numColumns}
         key={numColumns}
         extraData={showServers}
+        // a re-sort keeps the old rows up, and anchoring would scroll after the top user's new spot
+        maintainVisibleContentPosition={{ disabled: true }}
         contentInsetAdjustmentBehavior="automatic"
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
