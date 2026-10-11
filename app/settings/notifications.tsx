@@ -2,12 +2,25 @@
  * Notification Settings Screen
  * Per-device push notification configuration
  */
-import { useState } from 'react';
-import { View, ScrollView, Switch, ActivityIndicator, Alert } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import {
+  View,
+  ScrollView,
+  Switch,
+  ActivityIndicator,
+  Alert,
+  Linking,
+  Platform,
+  Pressable,
+} from 'react-native';
+import * as Notifications from 'expo-notifications';
+import { getCalendars } from 'expo-localization';
+import DateTimePicker from '@expo/ui/community/datetime-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Bell,
+  BellOff,
   ShieldAlert,
   Play,
   RefreshCw,
@@ -35,11 +48,13 @@ import { SegmentedControl, type SegmentedOption } from '@/components/ui/segmente
 import { cn } from '@/lib/utils';
 import { haptics } from '@/lib/haptics';
 import { queryKeys } from '@/lib/queryKeys';
-import { api } from '@/lib/api';
+import { api, type PushEventPreference } from '@/lib/api';
 import { useAuthStateStore } from '@/lib/authStateStore';
 import { useServerVersion } from '@/hooks/useServerVersion';
 import { backgroundRefreshStatus } from '@/lib/widgetBridge';
 import { SERVER_2_2 } from '@/lib/serverVersion';
+import { getDeviceTimezone } from '@/lib/timezone';
+import { DEFAULT_QUIET_END, DEFAULT_QUIET_START, dateToTime, timeToDate } from '@/lib/quietHours';
 import { colors, ACCENT_COLOR } from '@/lib/theme';
 import type { NotificationPreferences } from '@tracearr/shared';
 import { useTranslation } from '@tracearr/translations/mobile';
@@ -54,17 +69,131 @@ const RULE_TYPES: { value: string; icon: LucideIcon }[] = [
   { value: 'account_inactivity', icon: Clock },
 ];
 
+interface SettingNote {
+  text: string;
+  warn?: boolean;
+}
+
 function Divider() {
   return <View className="bg-border ml-4 h-px" />;
 }
 
-function SettingsSection({ title, children }: { title: string; children: React.ReactNode }) {
+function SettingsSection({
+  title,
+  footer,
+  children,
+}: {
+  title: string;
+  footer?: string;
+  children: React.ReactNode;
+}) {
   return (
     <View className="mb-6">
       <SectionHeader title={title} className="mb-2" />
       <Card padding="none" className="overflow-hidden">
         {children}
       </Card>
+      {footer ? (
+        <Text className="text-muted-foreground mt-2 px-1 text-xs leading-4">{footer}</Text>
+      ) : null}
+    </View>
+  );
+}
+
+function Notice({
+  icon: Icon,
+  text,
+  warn,
+  action,
+}: {
+  icon: LucideIcon;
+  text: string;
+  warn?: boolean;
+  action?: { label: string; onPress: () => void };
+}) {
+  return (
+    <>
+      <Divider />
+      <View className="flex-row items-center px-4 py-3">
+        <Icon
+          size={18}
+          color={warn ? colors.warning : colors.text.secondary.dark}
+          style={{ marginRight: 10 }}
+        />
+        <Text className="text-muted-foreground flex-1 text-xs">{text}</Text>
+        {action ? (
+          <Button variant="outline" size="sm" className="ml-3" onPress={action.onPress}>
+            {action.label}
+          </Button>
+        ) : null}
+      </View>
+    </>
+  );
+}
+
+function QuietTime({
+  label,
+  time,
+  onChange,
+}: {
+  label: string;
+  time: string;
+  onChange: (time: string) => void;
+}) {
+  const [value, setValue] = useState(() => timeToDate(time));
+  // A save that fails rolls the stored time back; the picker follows it.
+  const [stored, setStored] = useState(time);
+  if (time !== stored) {
+    setStored(time);
+    setValue(timeToDate(time));
+  }
+  const [open, setOpen] = useState(false);
+  const pending = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  // The iOS wheel reports every tick; only the time it settles on is saved.
+  const pick = (date: Date) => {
+    setValue(date);
+    clearTimeout(pending.current);
+    pending.current = setTimeout(() => onChange(dateToTime(date)), 500);
+  };
+
+  return (
+    <View>
+      <Text className="text-muted-foreground text-sm">{label}</Text>
+      {Platform.OS === 'ios' ? (
+        <DateTimePicker
+          mode="time"
+          display="compact"
+          themeVariant="dark"
+          accentColor={ACCENT_COLOR}
+          value={value}
+          onValueChange={(_event, date) => pick(date)}
+        />
+      ) : (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={label}
+          onPress={() => setOpen(true)}
+        >
+          <Text className="text-primary text-base">
+            {value.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+          </Text>
+        </Pressable>
+      )}
+      {open ? (
+        <DateTimePicker
+          mode="time"
+          is24Hour={getCalendars()[0]?.uses24hourClock ?? false}
+          accentColor={ACCENT_COLOR}
+          value={value}
+          onDismiss={() => setOpen(false)}
+          onValueChange={(_event, date) => {
+            setOpen(false);
+            setValue(date);
+            onChange(dateToTime(date));
+          }}
+        />
+      ) : null}
     </View>
   );
 }
@@ -73,6 +202,7 @@ function SettingRow({
   icon: Icon,
   label,
   description,
+  note,
   value,
   onValueChange,
   disabled,
@@ -80,6 +210,7 @@ function SettingRow({
   icon?: LucideIcon;
   label: string;
   description?: string;
+  note?: SettingNote;
   value: boolean;
   onValueChange: (value: boolean) => void;
   disabled?: boolean;
@@ -106,6 +237,17 @@ function SettingRow({
             )}
           >
             {description}
+          </Text>
+        ) : null}
+        {note ? (
+          <Text
+            className={cn(
+              'mt-0.5 text-xs',
+              note.warn ? 'text-warning' : 'text-muted-foreground',
+              Icon && 'ml-7'
+            )}
+          >
+            {note.text}
           </Text>
         ) : null}
       </View>
@@ -181,6 +323,12 @@ export default function NotificationSettingsScreen() {
     enabled: !!server, // Still need auth
   });
 
+  // Refetched on foreground, so a change made in the phone's settings shows on return.
+  const { data: permission } = useQuery({
+    queryKey: queryKeys.notifications.permission(),
+    queryFn: () => Notifications.getPermissionsAsync(),
+  });
+
   // Update mutation with optimistic updates
   const updateMutation = useMutation({
     mutationFn: api.notifications.updatePreferences,
@@ -224,10 +372,26 @@ export default function NotificationSettingsScreen() {
 
   const handleUpdate = (
     key: keyof Omit<NotificationPreferences, 'id' | 'mobileSessionId' | 'createdAt' | 'updatedAt'>,
-    value: boolean | number | string[]
+    value: boolean | number | string | string[]
   ) => {
     updateMutation.mutate({ [key]: value });
   };
+
+  // Quiet hours follow the device: a server still holding another zone, or no times, is
+  // corrected once per visit. Once only, so a rejected save cannot loop.
+  const quietHoursSynced = useRef(false);
+  const { mutate: savePreferences } = updateMutation;
+  useEffect(() => {
+    if (!preferences?.quietHoursEnabled || quietHoursSynced.current) return;
+    quietHoursSynced.current = true;
+    const timezone = getDeviceTimezone();
+    const fix = {
+      ...(preferences.quietHoursTimezone !== timezone && { quietHoursTimezone: timezone }),
+      ...(!preferences.quietHoursStart && { quietHoursStart: DEFAULT_QUIET_START }),
+      ...(!preferences.quietHoursEnd && { quietHoursEnd: DEFAULT_QUIET_END }),
+    };
+    if (Object.keys(fix).length > 0) savePreferences(fix);
+  }, [preferences, savePreferences]);
 
   if (isLoading) {
     return (
@@ -262,6 +426,90 @@ export default function NotificationSettingsScreen() {
   }
 
   const pushEnabled = preferences.pushEnabled;
+  const { delivery } = preferences;
+
+  const senderNote = (key: PushEventPreference): SettingNote | undefined => {
+    if (!delivery) return undefined;
+    if (key === 'onViolationDetected' && delivery.violationsSubscribed) {
+      return {
+        text: t('mobile:notifications.everyViolationSent', {
+          defaultValue: 'Every violation is sent to Mobile push',
+        }),
+      };
+    }
+    const count = delivery.automations[key];
+    if (count > 0) {
+      return {
+        text: t('mobile:notifications.sentByAutomations', {
+          count,
+          defaultValue: 'Sent by {{count}} automations',
+          defaultValue_one: 'Sent by {{count}} automation',
+          defaultValue_other: 'Sent by {{count}} automations',
+        }),
+      };
+    }
+    return {
+      warn: true,
+      text:
+        key === 'onViolationDetected'
+          ? t('mobile:notifications.noViolationSender', {
+              defaultValue: 'Receive violations is off for Mobile push',
+            })
+          : t('mobile:notifications.noAutomationSends', {
+              defaultValue: 'No automation sends this to Mobile push',
+            }),
+    };
+  };
+
+  const eventRows: {
+    key: PushEventPreference;
+    icon: LucideIcon;
+    label: string;
+    description: string;
+  }[] = [
+    {
+      key: 'onViolationDetected',
+      icon: ShieldAlert,
+      label: t('notifications:settings.violationDetected'),
+      description: t('mobile:notifications.ruleViolationTriggered'),
+    },
+    {
+      key: 'onStreamStarted',
+      icon: Play,
+      label: t('notifications:settings.streamStarted'),
+      description: t('mobile:notifications.newPlaybackBegan'),
+    },
+    {
+      key: 'onStreamStopped',
+      icon: Square,
+      label: t('notifications:settings.streamStopped'),
+      description: t('mobile:notifications.playbackEnded'),
+    },
+    {
+      key: 'onNewDevice',
+      icon: Smartphone,
+      label: t('notifications:settings.newDevice'),
+      description: t('mobile:notifications.newDeviceDetected'),
+    },
+    {
+      key: 'onTrustScoreChanged',
+      icon: AlertTriangle,
+      label: t('notifications:settings.trustScoreChanged'),
+      description: t('mobile:notifications.trustScoreDegraded'),
+    },
+    {
+      key: 'onServerDown',
+      icon: ServerCrash,
+      label: t('notifications:settings.serverDown'),
+      description: t('mobile:notifications.serverUnreachable'),
+    },
+    {
+      key: 'onServerUp',
+      icon: ServerCog,
+      label: t('notifications:settings.serverUp'),
+      description: t('mobile:notifications.serverBackOnline'),
+    },
+  ];
 
   const ruleTypeLabels: Record<string, string> = {
     impossible_travel: t('mobile:notifications.ruleTypes.impossibleTravel', {
@@ -319,90 +567,76 @@ export default function NotificationSettingsScreen() {
             value={pushEnabled}
             onValueChange={(v) => handleUpdate('pushEnabled', v)}
           />
+          {permission && !permission.granted ? (
+            <Notice
+              warn
+              icon={BellOff}
+              text={t('mobile:notifications.permissionOff', {
+                defaultValue:
+                  "Notifications are turned off for Tracearr in this phone's settings, so nothing can be shown.",
+              })}
+              action={{
+                label: t('mobile:notifications.openSettings', { defaultValue: 'Open Settings' }),
+                onPress: () => void Linking.openSettings(),
+              }}
+            />
+          ) : delivery && !delivery.tokenRegistered ? (
+            <Notice
+              warn
+              icon={Smartphone}
+              text={t('mobile:notifications.tokenMissing', {
+                defaultValue:
+                  'Your server has no push token for this device yet. The app registers again each time it opens.',
+              })}
+            />
+          ) : null}
+          {delivery && !delivery.destinationEnabled ? (
+            <Notice
+              warn
+              icon={AlertTriangle}
+              text={t('mobile:notifications.destinationOff', {
+                defaultValue:
+                  'The Mobile push destination is switched off on your server. Turn it on in the web dashboard under Settings, Notifications, Destinations.',
+              })}
+            />
+          ) : null}
           {backgroundRefresh === 'denied' || backgroundRefresh === 'restricted' ? (
-            <>
-              <Divider />
-              <View className="flex-row items-center px-4 py-3">
-                <RefreshCw
-                  size={18}
-                  color={colors.text.secondary.dark}
-                  style={{ marginRight: 10 }}
-                />
-                <Text className="text-muted-foreground flex-1 text-xs">
-                  {t('mobile:notifications.backgroundRefreshOff', {
-                    defaultValue:
-                      'Background App Refresh is off for Tracearr. Silent pushes cannot update the widget until it is on.',
-                  })}
-                </Text>
-              </View>
-            </>
+            <Notice
+              icon={RefreshCw}
+              text={t('mobile:notifications.backgroundRefreshOff', {
+                defaultValue:
+                  'Background App Refresh is off for Tracearr. Silent pushes cannot update the widget until it is on.',
+              })}
+            />
           ) : null}
         </SettingsSection>
 
         {/* Event Toggles */}
-        <SettingsSection title={t('notifications:settings.notificationEvents')}>
-          <SettingRow
-            icon={ShieldAlert}
-            label={t('notifications:settings.violationDetected')}
-            description={t('mobile:notifications.ruleViolationTriggered')}
-            value={preferences.onViolationDetected}
-            onValueChange={(v) => handleUpdate('onViolationDetected', v)}
-            disabled={!pushEnabled}
-          />
-          <Divider />
-          <SettingRow
-            icon={Play}
-            label={t('notifications:settings.streamStarted')}
-            description={t('mobile:notifications.newPlaybackBegan')}
-            value={preferences.onStreamStarted}
-            onValueChange={(v) => handleUpdate('onStreamStarted', v)}
-            disabled={!pushEnabled}
-          />
-          <Divider />
-          <SettingRow
-            icon={Square}
-            label={t('notifications:settings.streamStopped')}
-            description={t('mobile:notifications.playbackEnded')}
-            value={preferences.onStreamStopped}
-            onValueChange={(v) => handleUpdate('onStreamStopped', v)}
-            disabled={!pushEnabled}
-          />
-          <Divider />
-          <SettingRow
-            icon={Smartphone}
-            label={t('notifications:settings.newDevice')}
-            description={t('mobile:notifications.newDeviceDetected')}
-            value={preferences.onNewDevice}
-            onValueChange={(v) => handleUpdate('onNewDevice', v)}
-            disabled={!pushEnabled}
-          />
-          <Divider />
-          <SettingRow
-            icon={AlertTriangle}
-            label={t('notifications:settings.trustScoreChanged')}
-            description={t('mobile:notifications.trustScoreDegraded')}
-            value={preferences.onTrustScoreChanged}
-            onValueChange={(v) => handleUpdate('onTrustScoreChanged', v)}
-            disabled={!pushEnabled}
-          />
-          <Divider />
-          <SettingRow
-            icon={ServerCrash}
-            label={t('notifications:settings.serverDown')}
-            description={t('mobile:notifications.serverUnreachable')}
-            value={preferences.onServerDown}
-            onValueChange={(v) => handleUpdate('onServerDown', v)}
-            disabled={!pushEnabled}
-          />
-          <Divider />
-          <SettingRow
-            icon={ServerCog}
-            label={t('notifications:settings.serverUp')}
-            description={t('mobile:notifications.serverBackOnline')}
-            value={preferences.onServerUp}
-            onValueChange={(v) => handleUpdate('onServerUp', v)}
-            disabled={!pushEnabled}
-          />
+        <SettingsSection
+          title={t('notifications:settings.notificationEvents')}
+          footer={
+            delivery
+              ? t('mobile:notifications.eventsFooter', {
+                  defaultValue:
+                    'Your server pushes an event when an automation sends it to the Mobile push destination. These switches choose which of those this device shows. Automations are set up in the web dashboard.',
+                })
+              : undefined
+          }
+        >
+          {eventRows.map((row, index) => (
+            <View key={row.key}>
+              {index > 0 && <Divider />}
+              <SettingRow
+                icon={row.icon}
+                label={row.label}
+                description={row.description}
+                note={senderNote(row.key)}
+                value={preferences[row.key]}
+                onValueChange={(v) => handleUpdate(row.key, v)}
+                disabled={!pushEnabled}
+              />
+            </View>
+          ))}
         </SettingsSection>
 
         {/* Violation Filters - Only show if violation notifications are enabled */}
@@ -490,7 +724,16 @@ export default function NotificationSettingsScreen() {
             label={t('notifications:settings.enableQuietHours')}
             description={t('mobile:notifications.quietHoursDescription')}
             value={preferences.quietHoursEnabled}
-            onValueChange={(v) => handleUpdate('quietHoursEnabled', v)}
+            onValueChange={(v) =>
+              updateMutation.mutate({
+                quietHoursEnabled: v,
+                ...(v && {
+                  quietHoursStart: preferences.quietHoursStart ?? DEFAULT_QUIET_START,
+                  quietHoursEnd: preferences.quietHoursEnd ?? DEFAULT_QUIET_END,
+                  quietHoursTimezone: getDeviceTimezone(),
+                }),
+              })
+            }
             disabled={!pushEnabled}
           />
           {pushEnabled && preferences.quietHoursEnabled && (
@@ -498,24 +741,20 @@ export default function NotificationSettingsScreen() {
               <Divider />
               <View className="px-4 py-3">
                 <View className="flex-row items-center justify-between">
-                  <View>
-                    <Text className="text-muted-foreground text-sm">
-                      {t('mobile:notifications.startTime')}
-                    </Text>
-                    <Text className="text-base">{preferences.quietHoursStart ?? '23:00'}</Text>
-                  </View>
+                  <QuietTime
+                    label={t('mobile:notifications.startTime')}
+                    time={preferences.quietHoursStart ?? DEFAULT_QUIET_START}
+                    onChange={(time) => handleUpdate('quietHoursStart', time)}
+                  />
                   <Text className="text-muted-foreground mx-4">{t('mobile:notifications.to')}</Text>
-                  <View>
-                    <Text className="text-muted-foreground text-sm">
-                      {t('mobile:notifications.endTime')}
-                    </Text>
-                    <Text className="text-base">{preferences.quietHoursEnd ?? '08:00'}</Text>
-                  </View>
+                  <QuietTime
+                    label={t('mobile:notifications.endTime')}
+                    time={preferences.quietHoursEnd ?? DEFAULT_QUIET_END}
+                    onChange={(time) => handleUpdate('quietHoursEnd', time)}
+                  />
                 </View>
                 <Text className="text-muted-foreground mt-2 text-xs">
-                  {t('mobile:notifications.timezoneLabel', {
-                    timezone: preferences.quietHoursTimezone || 'UTC',
-                  })}
+                  {t('mobile:notifications.timezoneLabel', { timezone: getDeviceTimezone() })}
                 </Text>
               </View>
               <Divider />
@@ -563,7 +802,10 @@ export default function NotificationSettingsScreen() {
             )}
           </Button>
           <Text className="text-muted-foreground mt-2 text-center text-xs">
-            {t('mobile:notifications.testDescription')}
+            {t('mobile:notifications.testReach', {
+              defaultValue:
+                'Checks that your server can reach this phone. It skips automations, the switches above and quiet hours.',
+            })}
           </Text>
         </View>
       </ScrollView>

@@ -390,6 +390,27 @@ export function getServerUrl(): string | null {
 /**
  * API methods organized by domain
  */
+export type PushEventPreference =
+  | 'onViolationDetected'
+  | 'onStreamStarted'
+  | 'onStreamStopped'
+  | 'onNewDevice'
+  | 'onTrustScoreChanged'
+  | 'onServerDown'
+  | 'onServerUp';
+
+export interface PushDeliveryStatus {
+  tokenRegistered: boolean;
+  destinationEnabled: boolean;
+  violationsSubscribed: boolean;
+  automations: Record<PushEventPreference, number>;
+}
+
+// Older servers leave delivery out, and the pinned @tracearr/shared does not type it yet.
+export type NotificationPreferencesResponse = NotificationPreferencesWithStatus & {
+  delivery?: PushDeliveryStatus;
+};
+
 export const api = {
   /**
    * Pair with server using mobile token
@@ -940,8 +961,8 @@ export const api = {
      * Get notification preferences for current device
      * Returns preferences with live rate limit status from Redis
      */
-    getPreferences: async (signal?: AbortSignal): Promise<NotificationPreferencesWithStatus> => {
-      return apiGet<NotificationPreferencesWithStatus>('/notifications/preferences', { signal });
+    getPreferences: async (signal?: AbortSignal): Promise<NotificationPreferencesResponse> => {
+      return apiGet<NotificationPreferencesResponse>('/notifications/preferences', { signal });
     },
 
     /**

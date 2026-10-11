@@ -137,6 +137,7 @@ export const queryKeys = {
 
   notifications: {
     preferences: () => ['notifications', 'preferences'] as const,
+    permission: () => ['notifications', 'permission'] as const,
   },
 
   versionPrefix: () => ['version'] as const,
