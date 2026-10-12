@@ -215,7 +215,7 @@ importers:
     devDependencies:
       '@posthog/cli':
         specifier: ^0.18.3
-        version: 0.18.9
+        version: 0.18.10
       '@react-native/jest-preset':
         specifier: ^0.88.0-rc.3
         version: 0.88.0-rc.3(@babel/core@7.29.7(supports-color@8.1.1))(react@19.3.0)(supports-color@8.1.1)
@@ -1471,8 +1471,8 @@ packages:
     resolution: {integrity: sha512-SEeaJLb3qBNF/OaXnaR1NmmBbFYk1zC0ZH/52fATcRPLFg/p791YrcyFFy44Bo9sLaGuSuLp5Q6axbb/O+v/RA==}
     engines: {node: ^14.18.0 || >=16.0.0}
 
-  '@posthog/cli@0.18.9':
-    resolution: {integrity: sha512-uASaB3MLV5zHIZs9IqeG9d5sgo1lHhxxGh01Ndkmw6RWzLhZaM8ud+pcT0DVbYvpRZvT+eGFookh0/QakeaJ1g==}
+  '@posthog/cli@0.18.10':
+    resolution: {integrity: sha512-WFucXcIqUL35NkH4hVlch3TBSGRRAhjqvmh2/2z8sj+HsR7e+NUiG3QT5dy9Qs1C3hVe7uWkdNU6DKyKvONAXw==}
     engines: {node: '>=14.14', npm: '>=6'}
     hasBin: true
 
@@ -7032,7 +7032,7 @@ snapshots:
 
   '@pkgr/core@0.3.6': {}
 
-  '@posthog/cli@0.18.9':
+  '@posthog/cli@0.18.10':
     dependencies:
       detect-libc: 2.1.2
 
