@@ -219,6 +219,8 @@ export function StreamDetailsPanel({
   // Booleans, not the raw values: a bare 0 or '' from `value && <View />` crashes outside <Text>.
   const hasVideoDetails = !!(sourceVideoCodec || streamVideoCodec || sourceVideoWidth);
   const hasAudioDetails = !!(sourceAudioCodec || streamAudioCodec || sourceAudioChannels);
+  // Atmos is metadata inside the core codec, so a direct play or copy keeps it
+  const atmosSuffix = sourceAudioDetails?.atmos ? ' Atmos' : '';
   const hasSubtitleDetails = !!(subtitleInfo?.codec || subtitleInfo?.language);
   const hasTranscodeDetails = !!(
     transcodeInfo?.hwDecoding ||
@@ -389,10 +391,11 @@ export function StreamDetailsPanel({
             <SectionColumnLabels />
             <ComparisonRow
               label={codecLabel}
-              sourceValue={
-                formatCodec(sourceAudioCodec) + (sourceAudioDetails?.atmos ? ' Atmos' : '')
+              sourceValue={formatCodec(sourceAudioCodec) + atmosSuffix}
+              streamValue={
+                formatCodec(streamAudioCodec ?? sourceAudioCodec) +
+                (audioDecision === 'transcode' ? '' : atmosSuffix)
               }
-              streamValue={formatCodec(streamAudioCodec ?? sourceAudioCodec)}
             />
             <ComparisonRow
               label={t('mobile:streamDetails.channels', { defaultValue: 'Channels' })}
