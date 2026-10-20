@@ -40,7 +40,8 @@
         "simulator": false
       },
       "android": {
-        "buildType": "app-bundle"
+        "buildType": "app-bundle",
+        "resourceClass": "large"
       }
     },
     "production": {
@@ -53,7 +54,8 @@
         "resourceClass": "m-medium"
       },
       "android": {
-        "buildType": "app-bundle"
+        "buildType": "app-bundle",
+        "resourceClass": "large"
       }
     }
   },
