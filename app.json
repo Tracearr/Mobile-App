@@ -68,8 +68,9 @@
       [
         "./plugins/withGradleProperties",
         {
-          "org.gradle.jvmargs": "-Xmx4g -XX:MaxMetaspaceSize=1g -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8",
+          "org.gradle.jvmargs": "-Xmx3g -XX:MaxMetaspaceSize=1g -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8",
           "org.gradle.daemon": "false",
+          "org.gradle.workers.max": "2",
           "expo.camera.document-scanner-enabled": "false"
         }
       ],
