@@ -11,12 +11,15 @@ import { Text } from '@/components/ui/text';
 import { QualityBadge } from '@/components/sessions/QualityBadge';
 import { useImageUrl } from '@/hooks/useImageUrl';
 import { borderRadius, colors } from '@/lib/theme';
+import { cn } from '@/lib/utils';
 import { formatDuration, formatListTimestamp } from '@/lib/formatters';
 import { formatEpisodeLabel, type SessionWithDetails, type MediaType } from '@tracearr/shared';
 
 interface HistoryRowProps {
   session: SessionWithDetails;
   onPress: () => void;
+  /** Highlighted as the row shown in the detail pane beside the list. */
+  selected?: boolean;
 }
 
 // Calculate progress percentage (playback position)
@@ -78,7 +81,7 @@ function ProgressBar({ progress }: { progress: number }) {
 const POSTER_WIDTH = 40;
 const POSTER_HEIGHT = 60;
 
-export function HistoryRow({ session, onPress }: HistoryRowProps) {
+export function HistoryRow({ session, onPress, selected = false }: HistoryRowProps) {
   const { t } = useTranslation(['common']);
   const getImageUrl = useImageUrl();
   const displayName =
@@ -103,7 +106,10 @@ export function HistoryRow({ session, onPress }: HistoryRowProps) {
       accessibilityLabel={[title.primary, title.secondary, displayName, dateTimeStr]
         .filter(Boolean)
         .join(', ')}
-      className="bg-card flex-row items-center gap-2.5 px-4 py-2.5"
+      className={cn(
+        'flex-row items-center gap-2.5 px-4 py-2.5',
+        selected ? 'bg-primary/10' : 'bg-card'
+      )}
     >
       {posterUrl ? (
         <Image

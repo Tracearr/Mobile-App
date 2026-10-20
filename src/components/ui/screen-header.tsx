@@ -4,13 +4,19 @@ import { ChevronLeft } from 'lucide-react-native';
 import { useTranslation } from '@tracearr/translations/mobile';
 import { colors } from '@/lib/theme';
 
-export const stackHeaderOptions = {
+const headerOptions = {
   headerShown: true,
   headerTintColor: colors.text.primary.dark,
   headerTitleStyle: { fontWeight: '600' },
   headerTitleAlign: 'center',
   headerShadowVisible: false,
   headerStyle: { backgroundColor: colors.background.dark },
+} as const satisfies NativeStackNavigationOptions;
+
+// Layout-level defaults. Screens spread headerOptions instead, so a layout's
+// contentStyle (background, safe-area padding) is not overridden per screen.
+export const stackHeaderOptions = {
+  ...headerOptions,
   contentStyle: { backgroundColor: colors.background.dark },
 } as const satisfies NativeStackNavigationOptions;
 
@@ -48,7 +54,7 @@ export function ScreenHeader({ title, onBack, right }: ScreenHeaderProps) {
     <>
       <Stack.Screen
         options={{
-          ...stackHeaderOptions,
+          ...headerOptions,
           title,
           // These screens sit on the root stack, where the screen behind is a
           // route group like (tabs) whose name iOS would print as the back label.

@@ -5,6 +5,7 @@
  * Tab root screens set their own titles via <Stack.Screen options>.
  */
 import { Stack } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '@/lib/theme';
 import { useTranslation } from '@tracearr/translations/mobile';
 
@@ -37,6 +38,10 @@ const DETAIL_TITLE_KEYS = {
 
 export default function TabStackLayout() {
   const { t } = useTranslation(['nav']);
+  // iPhone Duo and iPad put the toolbar and tab bar on a vertical rail that
+  // arrives as a horizontal safe-area inset, so every screen in the stack
+  // starts beside it instead of underneath it.
+  const insets = useSafeAreaInsets();
   return (
     <Stack
       screenOptions={({ route }) => {
@@ -46,7 +51,11 @@ export default function TabStackLayout() {
           headerTitleStyle: { fontWeight: '600' },
           headerShadowVisible: false,
           headerStyle: { backgroundColor: colors.background.dark },
-          contentStyle: { backgroundColor: colors.background.dark },
+          contentStyle: {
+            backgroundColor: colors.background.dark,
+            paddingLeft: insets.left,
+            paddingRight: insets.right,
+          },
           headerTitleAlign: 'center',
           // Root screens override this with their own <Stack.Screen options>.
           ...(titleKey ? { title: t(titleKey) } : {}),

@@ -189,10 +189,7 @@ export default function SettingsScreen() {
   };
 
   return (
-    <SafeAreaView
-      style={{ flex: 1, backgroundColor: colors.background.dark }}
-      edges={['left', 'right', 'bottom']}
-    >
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background.dark }} edges={['bottom']}>
       <ScreenHeader title={t('nav:settings')} onBack={() => router.back()} />
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, padding: 16 }}>
         {(showUpdate || showAutomations) && (

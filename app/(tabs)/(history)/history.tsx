@@ -15,6 +15,9 @@ import { ROUTES } from '@/lib/routes';
 import { useMediaServer } from '@/providers/MediaServerProvider';
 import { TabToolbar, androidHeaderOptions } from '@/components/navigation/TabHeaderButtons';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
+import { useResponsive } from '@/hooks/useResponsive';
+import { SplitPane } from '@/components/ui/split-pane';
+import { SessionDetail } from '@/screens/SessionDetail';
 import { ACCENT_COLOR } from '@/lib/theme';
 import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -53,7 +56,11 @@ export default function HistoryScreen() {
   const { t } = useTranslation(['mobile', 'common', 'nav']);
   const router = useRouter();
   const { scope } = useMediaServer();
+  const { isTablet } = useResponsive();
   const filterSheetRef = useRef<FilterBottomSheetRef>(null);
+
+  // Regular width shows the session beside the list instead of pushing it.
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const [period, setPeriod] = useState<TimePeriod>('month');
   const [search, setSearch] = useState('');
@@ -140,9 +147,13 @@ export default function HistoryScreen() {
 
   const renderItem = useCallback(
     ({ item }: { item: SessionWithDetails }) => (
-      <HistoryRow session={item} onPress={() => router.push(ROUTES.SESSION(item.id))} />
+      <HistoryRow
+        session={item}
+        onPress={() => (isTablet ? setSelectedId(item.id) : router.push(ROUTES.SESSION(item.id)))}
+        selected={isTablet && selectedId === item.id}
+      />
     ),
-    [router]
+    [router, isTablet, selectedId]
   );
 
   const { controlKey, refreshControlProps } = usePullToRefresh(() =>
@@ -151,80 +162,100 @@ export default function HistoryScreen() {
 
   const hasFilters = search.trim().length > 0 || activeFilterCount > 0;
 
+  const list = (
+    <View className="bg-background flex-1">
+      <FlashList
+        data={sessions}
+        keyExtractor={keyById}
+        renderItem={renderItem}
+        extraData={selectedId}
+        ItemSeparatorComponent={HistoryRowSeparator}
+        contentContainerStyle={{ paddingBottom: 24 }}
+        contentInsetAdjustmentBehavior="automatic"
+        keyboardShouldPersistTaps="handled"
+        onEndReached={handleEndReached}
+        onEndReachedThreshold={0.5}
+        refreshControl={<RefreshControl key={controlKey} {...refreshControlProps} />}
+        ListHeaderComponent={
+          <View className="px-4 pt-2">
+            <HistoryFilters
+              period={period}
+              onPeriodChange={setPeriod}
+              search={search}
+              onSearchChange={setSearch}
+              activeFilterCount={activeFilterCount}
+              onFilterPress={() => filterSheetRef.current?.open()}
+            />
+            <HistoryAggregates
+              aggregates={aggregates}
+              isLoading={isLoadingAggregates}
+              isFetching={isFetchingAggregates}
+              error={aggregatesError}
+              onRetry={() => void refetchAggregates()}
+            />
+          </View>
+        }
+        ListFooterComponent={
+          isFetchingNextPage ? (
+            <View className="items-center py-4">
+              <ActivityIndicator size="small" color={ACCENT_COLOR} />
+            </View>
+          ) : undefined
+        }
+        ListEmptyComponent={
+          isLoading ? (
+            <View className="items-center py-12">
+              <ActivityIndicator size="large" color={ACCENT_COLOR} />
+            </View>
+          ) : (
+            <View className="px-4">
+              <Card padding="none">
+                {error && !data ? (
+                  <ErrorState message={error.message} onRetry={() => void refetch()} />
+                ) : (
+                  <EmptyState
+                    icon={Play}
+                    title={t('common:empty.noSessionsFound')}
+                    description={
+                      hasFilters
+                        ? t('mobile:history.adjustFilters')
+                        : t('mobile:history.historyWillAppear')
+                    }
+                  />
+                )}
+              </Card>
+            </View>
+          )
+        }
+      />
+
+      <FilterBottomSheet
+        ref={filterSheetRef}
+        filterOptions={filterOptions}
+        filters={advancedFilters}
+        onFiltersChange={setAdvancedFilters}
+      />
+    </View>
+  );
+
   return (
     <>
-      <View className="bg-background flex-1">
-        <FlashList
-          data={sessions}
-          keyExtractor={keyById}
-          renderItem={renderItem}
-          ItemSeparatorComponent={HistoryRowSeparator}
-          contentContainerStyle={{ paddingBottom: 24 }}
-          contentInsetAdjustmentBehavior="automatic"
-          keyboardShouldPersistTaps="handled"
-          onEndReached={handleEndReached}
-          onEndReachedThreshold={0.5}
-          refreshControl={<RefreshControl key={controlKey} {...refreshControlProps} />}
-          ListHeaderComponent={
-            <View className="px-4 pt-2">
-              <HistoryFilters
-                period={period}
-                onPeriodChange={setPeriod}
-                search={search}
-                onSearchChange={setSearch}
-                activeFilterCount={activeFilterCount}
-                onFilterPress={() => filterSheetRef.current?.open()}
-              />
-              <HistoryAggregates
-                aggregates={aggregates}
-                isLoading={isLoadingAggregates}
-                isFetching={isFetchingAggregates}
-                error={aggregatesError}
-                onRetry={() => void refetchAggregates()}
-              />
-            </View>
+      {isTablet ? (
+        <SplitPane
+          list={list}
+          detail={
+            selectedId ? (
+              <SessionDetail id={selectedId} embedded onBack={() => setSelectedId(null)} />
+            ) : null
           }
-          ListFooterComponent={
-            isFetchingNextPage ? (
-              <View className="items-center py-4">
-                <ActivityIndicator size="small" color={ACCENT_COLOR} />
-              </View>
-            ) : undefined
-          }
-          ListEmptyComponent={
-            isLoading ? (
-              <View className="items-center py-12">
-                <ActivityIndicator size="large" color={ACCENT_COLOR} />
-              </View>
-            ) : (
-              <View className="px-4">
-                <Card padding="none">
-                  {error && !data ? (
-                    <ErrorState message={error.message} onRetry={() => void refetch()} />
-                  ) : (
-                    <EmptyState
-                      icon={Play}
-                      title={t('common:empty.noSessionsFound')}
-                      description={
-                        hasFilters
-                          ? t('mobile:history.adjustFilters')
-                          : t('mobile:history.historyWillAppear')
-                      }
-                    />
-                  )}
-                </Card>
-              </View>
-            )
-          }
+          placeholder={{
+            icon: Play,
+            title: t('mobile:history.selectSession', { defaultValue: 'Select a session' }),
+          }}
         />
-
-        <FilterBottomSheet
-          ref={filterSheetRef}
-          filterOptions={filterOptions}
-          filters={advancedFilters}
-          onFiltersChange={setAdvancedFilters}
-        />
-      </View>
+      ) : (
+        list
+      )}
 
       <Stack.Screen options={{ title: t('nav:history'), ...androidHeaderOptions }} />
       <TabToolbar />

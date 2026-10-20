@@ -395,10 +395,7 @@ export default function NotificationSettingsScreen() {
 
   if (isLoading) {
     return (
-      <SafeAreaView
-        style={{ flex: 1, backgroundColor: colors.background.dark }}
-        edges={['left', 'right', 'bottom']}
-      >
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.background.dark }} edges={['bottom']}>
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator size="large" color={ACCENT_COLOR} />
           <Text className="text-muted-foreground mt-4">
@@ -411,10 +408,7 @@ export default function NotificationSettingsScreen() {
 
   if (!preferences) {
     return (
-      <SafeAreaView
-        style={{ flex: 1, backgroundColor: colors.background.dark }}
-        edges={['left', 'right', 'bottom']}
-      >
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.background.dark }} edges={['bottom']}>
         <ErrorState
           className="flex-1 justify-center"
           title={t('mobile:notifications.unableToLoadPreferences')}
@@ -549,10 +543,7 @@ export default function NotificationSettingsScreen() {
   ];
 
   return (
-    <SafeAreaView
-      style={{ flex: 1, backgroundColor: colors.background.dark }}
-      edges={['left', 'right', 'bottom']}
-    >
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background.dark }} edges={['bottom']}>
       <ScrollView style={{ flex: 1 }} contentContainerClassName="p-4">
         {/* Master Toggle */}
         <SettingsSection

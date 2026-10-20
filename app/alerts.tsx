@@ -21,6 +21,7 @@ import { haptics } from '@/lib/haptics';
 import { safeFormatDistanceToNow } from '@/lib/formatters';
 import { ruleIcon, violationDescription } from '@/lib/violations';
 import { ROUTES } from '@/lib/routes';
+import { cn } from '@/lib/utils';
 import { nextPageOf, pageMetaOf } from '@/lib/listPage';
 import { keyById } from '@/lib/listKeys';
 import { useMediaServer } from '@/providers/MediaServerProvider';
@@ -39,6 +40,8 @@ import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { ScreenHeader } from '@/components/ui/screen-header';
+import { SplitPane } from '@/components/ui/split-pane';
+import { ViolationDetail } from '@/screens/ViolationDetail';
 import { SegmentedControl, type SegmentedOption } from '@/components/ui/segmented-control';
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { SeverityBadge } from '@/components/violations/SeverityBadge';
@@ -69,6 +72,7 @@ function ViolationCard({
   onPress,
   unitSystem,
   isTablet,
+  selected = false,
 }: {
   violation: ViolationWithDetails;
   onAcknowledge: () => void;
@@ -76,6 +80,7 @@ function ViolationCard({
   onPress: () => void;
   unitSystem: UnitSystem;
   isTablet?: boolean;
+  selected?: boolean;
 }) {
   const { t } = useTranslation(['common']);
   const username = violation.user.username;
@@ -85,7 +90,7 @@ function ViolationCard({
   const avatarSize = isTablet ? 48 : 40;
 
   return (
-    <Card className="mb-3">
+    <Card className={cn('mb-3', selected && 'border-primary bg-primary/10')}>
       <Pressable
         onPress={onPress}
         accessibilityRole="button"
@@ -159,7 +164,7 @@ export default function AlertsScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { scope, servers, selectedServers, isAllServersSelected } = useMediaServer();
-  const { isTablet, horizontalPadding } = useResponsive();
+  const { isTablet } = useResponsive();
   const { supports } = useServerVersion();
   const showAutomations = supports(SERVER_2_2);
 
@@ -183,7 +188,10 @@ export default function AlertsScreen() {
   const [isCountingPending, setIsCountingPending] = useState(false);
   const severity = severityFilter === 'all' ? undefined : severityFilter;
 
-  const numColumns = isTablet ? 2 : 1;
+  // Regular width shows the violation beside the list instead of pushing it.
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const openViolation = (id: string) =>
+    isTablet ? setSelectedId(id) : router.push(ROUTES.VIOLATION(id));
 
   const { data: settings } = useQuery({
     queryKey: queryKeys.settings(),
@@ -324,12 +332,147 @@ export default function AlertsScreen() {
   };
 
   const extraData = useMemo(
-    () => ({ unitSystem, isTablet, acknowledgingId }),
-    [unitSystem, isTablet, acknowledgingId]
+    () => ({ unitSystem, isTablet, acknowledgingId, selectedId }),
+    [unitSystem, isTablet, acknowledgingId, selectedId]
   );
 
   const openAutomations = () => router.push(ROUTES.AUTOMATIONS);
   const isBulkBusy = isCountingPending || bulkAcknowledge.isPending;
+
+  const list = (
+    <FlashList
+      data={violations}
+      keyExtractor={keyById}
+      extraData={extraData}
+      renderItem={({ item }) => (
+        <ViolationCard
+          violation={item}
+          onAcknowledge={() => acknowledgeMutation.mutate(item.id)}
+          isAcknowledging={acknowledgingId === item.id}
+          onPress={() => openViolation(item.id)}
+          unitSystem={unitSystem}
+          isTablet={isTablet}
+          selected={isTablet && selectedId === item.id}
+        />
+      )}
+      contentContainerStyle={{
+        paddingHorizontal: spacing.md,
+        paddingTop: spacing.sm,
+        paddingBottom: spacing.xl,
+      }}
+      onEndReached={handleEndReached}
+      onEndReachedThreshold={0.5}
+      refreshControl={<RefreshControl key={controlKey} {...refreshControlProps} />}
+      ListHeaderComponent={
+        <View className="mb-4 gap-3">
+          <View className="min-h-9 flex-row items-center justify-between gap-2">
+            <View className="flex-shrink flex-row items-center gap-2">
+              {total !== null && (
+                <Text className="text-muted-foreground text-sm">
+                  {t('common:count.alert', { count: total })}
+                </Text>
+              )}
+              {pendingLoaded && pendingCount > 0 && statusFilter !== 'acknowledged' && (
+                <Badge variant="warning">
+                  {t('mobile:alerts.pendingCount', {
+                    count: pendingCount,
+                    defaultValue: '{{count}} pending',
+                  })}
+                </Badge>
+              )}
+            </View>
+            {canAcknowledgeAll && (
+              <Button
+                variant="outline"
+                size="sm"
+                hitSlop={4}
+                className="gap-1.5"
+                disabled={isBulkBusy}
+                onPress={handleAcknowledgeAll}
+              >
+                {isBulkBusy ? (
+                  <ActivityIndicator size="small" color={ACCENT_COLOR} />
+                ) : (
+                  <CheckCheck size={14} color={ACCENT_COLOR} />
+                )}
+                <Text className="text-xs font-medium">
+                  {t('mobile:alerts.acknowledgeAll', { defaultValue: 'Acknowledge all' })}
+                </Text>
+              </Button>
+            )}
+          </View>
+
+          <View className="gap-1.5">
+            <Text className="text-muted-foreground text-xs font-medium">
+              {t('common:labels.severity')}
+            </Text>
+            <SegmentedControl
+              options={severityOptions}
+              value={severityFilter}
+              onChange={(value) => {
+                haptics.selection();
+                setSeverityFilter(value);
+              }}
+              accessibilityLabel={t('common:labels.severity')}
+            />
+          </View>
+
+          <View className="gap-1.5">
+            <Text className="text-muted-foreground text-xs font-medium">
+              {t('common:labels.status')}
+            </Text>
+            <SegmentedControl
+              options={statusOptions}
+              value={statusFilter}
+              onChange={(value) => {
+                haptics.selection();
+                setStatusFilter(value);
+              }}
+              accessibilityLabel={t('common:labels.status')}
+            />
+          </View>
+        </View>
+      }
+      ListFooterComponent={
+        isFetchingNextPage ? (
+          <View className="items-center py-4">
+            <ActivityIndicator size="small" color={ACCENT_COLOR} />
+          </View>
+        ) : undefined
+      }
+      ListEmptyComponent={
+        isLoading ? (
+          <View className="items-center py-12">
+            <ActivityIndicator size="large" color={ACCENT_COLOR} />
+          </View>
+        ) : error && !data ? (
+          <ErrorState message={error.message} onRetry={() => void refetch()} />
+        ) : hasActiveFilters ? (
+          <EmptyState
+            icon={Filter}
+            title={t('mobile:alerts.noMatches', { defaultValue: 'No matching alerts' })}
+            description={t('pages:violations.tryAdjustingFilters')}
+            action={{
+              label: t('mobile:alerts.clearFilters'),
+              onPress: () => {
+                setSeverityFilter('all');
+                setStatusFilter('all');
+              },
+            }}
+          />
+        ) : (
+          <EmptyState
+            icon={Check}
+            tone="success"
+            title={t('mobile:alerts.allClear', { defaultValue: 'All clear' })}
+            description={t('mobile:alerts.noAlertsRecorded', {
+              defaultValue: 'No alerts have been recorded yet.',
+            })}
+          />
+        )
+      }
+    />
+  );
 
   return (
     <SafeAreaView
@@ -365,146 +508,22 @@ export default function AlertsScreen() {
         </Stack.Toolbar>
       ) : null}
 
-      <FlashList
-        data={violations}
-        keyExtractor={keyById}
-        numColumns={numColumns}
-        key={numColumns}
-        extraData={extraData}
-        renderItem={({ item, index }) => (
-          <View
-            style={{
-              paddingLeft: isTablet && index % 2 === 1 ? spacing.sm / 2 : 0,
-              paddingRight: isTablet && index % 2 === 0 ? spacing.sm / 2 : 0,
-            }}
-          >
-            <ViolationCard
-              violation={item}
-              onAcknowledge={() => acknowledgeMutation.mutate(item.id)}
-              isAcknowledging={acknowledgingId === item.id}
-              onPress={() => router.push(ROUTES.VIOLATION(item.id))}
-              unitSystem={unitSystem}
-              isTablet={isTablet}
-            />
-          </View>
-        )}
-        contentContainerStyle={{
-          paddingHorizontal: horizontalPadding,
-          paddingTop: spacing.sm,
-          paddingBottom: spacing.xl,
-        }}
-        onEndReached={handleEndReached}
-        onEndReachedThreshold={0.5}
-        refreshControl={<RefreshControl key={controlKey} {...refreshControlProps} />}
-        ListHeaderComponent={
-          <View className="mb-4 gap-3">
-            <View className="min-h-9 flex-row items-center justify-between gap-2">
-              <View className="flex-shrink flex-row items-center gap-2">
-                {total !== null && (
-                  <Text className="text-muted-foreground text-sm">
-                    {t('common:count.alert', { count: total })}
-                  </Text>
-                )}
-                {pendingLoaded && pendingCount > 0 && statusFilter !== 'acknowledged' && (
-                  <Badge variant="warning">
-                    {t('mobile:alerts.pendingCount', {
-                      count: pendingCount,
-                      defaultValue: '{{count}} pending',
-                    })}
-                  </Badge>
-                )}
-              </View>
-              {canAcknowledgeAll && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  hitSlop={4}
-                  className="gap-1.5"
-                  disabled={isBulkBusy}
-                  onPress={handleAcknowledgeAll}
-                >
-                  {isBulkBusy ? (
-                    <ActivityIndicator size="small" color={ACCENT_COLOR} />
-                  ) : (
-                    <CheckCheck size={14} color={ACCENT_COLOR} />
-                  )}
-                  <Text className="text-xs font-medium">
-                    {t('mobile:alerts.acknowledgeAll', { defaultValue: 'Acknowledge all' })}
-                  </Text>
-                </Button>
-              )}
-            </View>
-
-            <View className="gap-1.5">
-              <Text className="text-muted-foreground text-xs font-medium">
-                {t('common:labels.severity')}
-              </Text>
-              <SegmentedControl
-                options={severityOptions}
-                value={severityFilter}
-                onChange={(value) => {
-                  haptics.selection();
-                  setSeverityFilter(value);
-                }}
-                accessibilityLabel={t('common:labels.severity')}
-              />
-            </View>
-
-            <View className="gap-1.5">
-              <Text className="text-muted-foreground text-xs font-medium">
-                {t('common:labels.status')}
-              </Text>
-              <SegmentedControl
-                options={statusOptions}
-                value={statusFilter}
-                onChange={(value) => {
-                  haptics.selection();
-                  setStatusFilter(value);
-                }}
-                accessibilityLabel={t('common:labels.status')}
-              />
-            </View>
-          </View>
-        }
-        ListFooterComponent={
-          isFetchingNextPage ? (
-            <View className="items-center py-4">
-              <ActivityIndicator size="small" color={ACCENT_COLOR} />
-            </View>
-          ) : undefined
-        }
-        ListEmptyComponent={
-          isLoading ? (
-            <View className="items-center py-12">
-              <ActivityIndicator size="large" color={ACCENT_COLOR} />
-            </View>
-          ) : error && !data ? (
-            <ErrorState message={error.message} onRetry={() => void refetch()} />
-          ) : hasActiveFilters ? (
-            <EmptyState
-              icon={Filter}
-              title={t('mobile:alerts.noMatches', { defaultValue: 'No matching alerts' })}
-              description={t('pages:violations.tryAdjustingFilters')}
-              action={{
-                label: t('mobile:alerts.clearFilters'),
-                onPress: () => {
-                  setSeverityFilter('all');
-                  setStatusFilter('all');
-                },
-              }}
-            />
-          ) : (
-            <EmptyState
-              icon={Check}
-              tone="success"
-              title={t('mobile:alerts.allClear', { defaultValue: 'All clear' })}
-              description={t('mobile:alerts.noAlertsRecorded', {
-                defaultValue: 'No alerts have been recorded yet.',
-              })}
-            />
-          )
-        }
-      />
+      {isTablet ? (
+        <SplitPane
+          list={list}
+          detail={
+            selectedId ? (
+              <ViolationDetail id={selectedId} embedded onBack={() => setSelectedId(null)} />
+            ) : null
+          }
+          placeholder={{
+            icon: Filter,
+            title: t('mobile:alerts.selectAlert', { defaultValue: 'Select an alert' }),
+          }}
+        />
+      ) : (
+        list
+      )}
     </SafeAreaView>
   );
 }

@@ -220,7 +220,7 @@ export default function PairScreen() {
     return (
       <SafeAreaView
         style={{ flex: 1, backgroundColor: colors.background.dark }}
-        edges={['top', 'bottom']}
+        edges={['top', 'bottom', 'left', 'right']}
       >
         <ObserveInteractiveMarker />
         <KeyboardAvoidingView
@@ -306,7 +306,7 @@ export default function PairScreen() {
   return (
     <SafeAreaView
       style={{ flex: 1, backgroundColor: colors.background.dark }}
-      edges={['top', 'bottom']}
+      edges={['top', 'bottom', 'left', 'right']}
     >
       <ObserveInteractiveMarker />
       <View

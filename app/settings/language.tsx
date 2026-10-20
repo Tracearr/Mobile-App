@@ -34,10 +34,7 @@ export default function LanguageScreen() {
   const languages = Object.entries(languageNames);
 
   return (
-    <SafeAreaView
-      style={{ flex: 1, backgroundColor: colors.background.dark }}
-      edges={['left', 'right', 'bottom']}
-    >
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background.dark }} edges={['bottom']}>
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
         <Card padding="none" className="overflow-hidden" accessibilityRole="radiogroup">
           {languages.map(([code, name], index) => (

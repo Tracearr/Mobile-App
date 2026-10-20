@@ -7,6 +7,7 @@ import { Text } from '@/components/ui/text';
 import { Card } from '@/components/ui/card';
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { colors } from '@/lib/theme';
+import { cn } from '@/lib/utils';
 import { TrustScoreBadge } from './TrustScoreBadge';
 import { ServerPills } from './ServerPills';
 import { getIdentityServers, parseServerTimestamp } from './identity';
@@ -16,9 +17,17 @@ interface UserListItemProps {
   onPress: () => void;
   isTablet: boolean;
   showServers: boolean;
+  /** Highlighted as the row shown in the detail pane beside the list. */
+  selected?: boolean;
 }
 
-export function UserListItem({ user, onPress, isTablet, showServers }: UserListItemProps) {
+export function UserListItem({
+  user,
+  onPress,
+  isTablet,
+  showServers,
+  selected = false,
+}: UserListItemProps) {
   const { t } = useTranslation(['common', 'pages', 'mobile']);
   const displayName = user.identityName ?? user.username;
   const joinedAt = parseServerTimestamp(user.identityJoinedAt ?? user.joinedAt);
@@ -39,7 +48,13 @@ export function UserListItem({ user, onPress, isTablet, showServers }: UserListI
 
   return (
     <Pressable onPress={onPress} accessibilityRole="button" className="active:opacity-70">
-      <Card padding="compact" className="mb-2 flex-row items-center gap-3">
+      <Card
+        padding="compact"
+        className={cn(
+          'mb-2 flex-row items-center gap-3',
+          selected && 'border-primary bg-primary/10'
+        )}
+      >
         <UserAvatar
           thumbUrl={user.thumbUrl}
           serverId={user.serverId}

@@ -46,8 +46,8 @@ export function Banner({ tone, icon: Icon, message, numberOfLines, action }: Ban
       className={toneStyle.bg}
       style={{
         position: 'absolute',
-        left: 16,
-        right: 16,
+        left: insets.left + spacing.md,
+        right: insets.right + spacing.md,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',

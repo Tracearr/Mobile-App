@@ -27,6 +27,8 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { UserListItem } from '@/components/users/UserListItem';
 import { UserListControls } from '@/components/users/UserListControls';
+import { SplitPane } from '@/components/ui/split-pane';
+import { UserDetail } from '@/screens/UserDetail';
 import { DEFAULT_SORT_DIR } from '@/components/users/identity';
 import { spacing, ACCENT_COLOR } from '@/lib/theme';
 import type { ServerUserWithIdentity, UserSortField } from '@tracearr/shared';
@@ -39,14 +41,16 @@ export default function UsersScreen() {
   const { t } = useTranslation(['mobile', 'common', 'nav']);
   const router = useRouter();
   const { scope, servers } = useMediaServer();
-  const { isTablet, horizontalPadding } = useResponsive();
+  const { isTablet } = useResponsive();
   const [searchText, setSearchText] = useState('');
   const [orderBy, setOrderBy] = useState<UserSortField>('username');
   const [orderDir, setOrderDir] = useState<'asc' | 'desc'>(DEFAULT_SORT_DIR.username);
 
   const search = useDebounce(searchText, SEARCH_DEBOUNCE_MS).trim();
 
-  const numColumns = isTablet ? 2 : 1;
+  // Regular width shows the user beside the list instead of pushing it.
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const openUser = (id: string) => (isTablet ? setSelectedId(id) : router.push(ROUTES.USER(id)));
   const showServers = servers.length > 1;
 
   const {
@@ -116,68 +120,79 @@ export default function UsersScreen() {
     );
   };
 
+  const list = (
+    <FlashList<ServerUserWithIdentity>
+      data={users}
+      keyExtractor={keyById}
+      extraData={{ showServers, selectedId }}
+      // a re-sort keeps the old rows up, and anchoring would scroll after the top user's new spot
+      maintainVisibleContentPosition={{ disabled: true }}
+      contentInsetAdjustmentBehavior="automatic"
+      keyboardShouldPersistTaps="handled"
+      keyboardDismissMode="on-drag"
+      renderItem={({ item }) => (
+        <UserListItem
+          user={item}
+          onPress={() => openUser(item.id)}
+          isTablet={isTablet}
+          showServers={showServers}
+          selected={isTablet && selectedId === item.id}
+        />
+      )}
+      contentContainerStyle={{
+        paddingHorizontal: spacing.md,
+        paddingTop: spacing.sm,
+        paddingBottom: spacing.xl,
+      }}
+      onEndReached={handleEndReached}
+      onEndReachedThreshold={0.5}
+      refreshControl={<RefreshControl key={controlKey} {...refreshControlProps} />}
+      ListHeaderComponent={
+        <View>
+          <UserListControls
+            search={searchText}
+            onSearchChange={setSearchText}
+            orderBy={orderBy}
+            orderDir={orderDir}
+            onOrderByChange={handleOrderByChange}
+            onToggleOrderDir={() => setOrderDir((dir) => (dir === 'asc' ? 'desc' : 'asc'))}
+          />
+          {total !== null && (
+            <Text className="text-muted-foreground mb-3 text-sm">
+              {t('common:count.user', { count: total })}
+            </Text>
+          )}
+        </View>
+      }
+      ListFooterComponent={
+        isFetchingNextPage ? (
+          <View className="items-center py-4">
+            <ActivityIndicator size="small" color={ACCENT_COLOR} />
+          </View>
+        ) : undefined
+      }
+      ListEmptyComponent={renderEmpty()}
+    />
+  );
+
   return (
     <>
-      <FlashList<ServerUserWithIdentity>
-        data={users}
-        keyExtractor={keyById}
-        numColumns={numColumns}
-        key={numColumns}
-        extraData={showServers}
-        // a re-sort keeps the old rows up, and anchoring would scroll after the top user's new spot
-        maintainVisibleContentPosition={{ disabled: true }}
-        contentInsetAdjustmentBehavior="automatic"
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="on-drag"
-        renderItem={({ item, index }) => (
-          <View
-            style={{
-              paddingLeft: isTablet && index % 2 === 1 ? spacing.sm / 2 : 0,
-              paddingRight: isTablet && index % 2 === 0 ? spacing.sm / 2 : 0,
-            }}
-          >
-            <UserListItem
-              user={item}
-              onPress={() => router.push(ROUTES.USER(item.id))}
-              isTablet={isTablet}
-              showServers={showServers}
-            />
-          </View>
-        )}
-        contentContainerStyle={{
-          paddingHorizontal: horizontalPadding,
-          paddingTop: spacing.sm,
-          paddingBottom: spacing.xl,
-        }}
-        onEndReached={handleEndReached}
-        onEndReachedThreshold={0.5}
-        refreshControl={<RefreshControl key={controlKey} {...refreshControlProps} />}
-        ListHeaderComponent={
-          <View>
-            <UserListControls
-              search={searchText}
-              onSearchChange={setSearchText}
-              orderBy={orderBy}
-              orderDir={orderDir}
-              onOrderByChange={handleOrderByChange}
-              onToggleOrderDir={() => setOrderDir((dir) => (dir === 'asc' ? 'desc' : 'asc'))}
-            />
-            {total !== null && (
-              <Text className="text-muted-foreground mb-3 text-sm">
-                {t('common:count.user', { count: total })}
-              </Text>
-            )}
-          </View>
-        }
-        ListFooterComponent={
-          isFetchingNextPage ? (
-            <View className="items-center py-4">
-              <ActivityIndicator size="small" color={ACCENT_COLOR} />
-            </View>
-          ) : undefined
-        }
-        ListEmptyComponent={renderEmpty()}
-      />
+      {isTablet ? (
+        <SplitPane
+          list={list}
+          detail={
+            selectedId ? (
+              <UserDetail id={selectedId} embedded onBack={() => setSelectedId(null)} />
+            ) : null
+          }
+          placeholder={{
+            icon: UsersIcon,
+            title: t('mobile:users.selectUser', { defaultValue: 'Select a user' }),
+          }}
+        />
+      ) : (
+        list
+      )}
 
       <Stack.Screen options={{ title: t('nav:users'), ...androidHeaderOptions }} />
       <TabToolbar />
