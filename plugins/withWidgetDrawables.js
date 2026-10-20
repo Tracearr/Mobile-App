@@ -30,7 +30,8 @@ function lucideNodes(icon) {
     exports: module.exports,
     require: () => (iconData) => iconData.node,
   });
-  return module.exports;
+  // lucide 1.59 moved from `module.exports = icon` to `exports.__iconData` and `exports.default`
+  return module.exports.__iconData?.node ?? module.exports.default ?? module.exports;
 }
 
 function rectPath({ x = 0, y = 0, width, height, rx = 0 }) {
