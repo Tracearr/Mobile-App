@@ -21,6 +21,7 @@ const TRIGGER_KEYS: Record<TriggerType, string> = {
   'account.inactive_for': 'accountInactiveFor',
   'account.new_device': 'accountNewDevice',
   'account.trust_changed': 'accountTrustChanged',
+  'account.media_downloaded': 'accountMediaDownloaded',
   'media.added': 'mediaAdded',
   'media.upgraded': 'mediaUpgraded',
   'server.down': 'serverDown',

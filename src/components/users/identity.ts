@@ -58,6 +58,8 @@ export const DEFAULT_SORT_DIR: Record<UserSortField, 'asc' | 'desc'> = {
   trustScore: 'desc',
   joinedAt: 'desc',
   lastActivityAt: 'desc',
+  role: 'asc',
+  pendingViolations: 'desc',
 };
 
 /**
