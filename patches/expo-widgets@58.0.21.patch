@@ -78,17 +78,3 @@ index 0cbd5fb4ac48eb6cf9f20af6916396bbc2591bc9..d7726c1117c24570d90e39c02cd07d7e
      // Unsupported Expo UI modifiers are ignored until they have exact Glance semantics.
      else -> null
    } ?: GlanceModifier
-diff --git a/scripts/build-layout-registry.mjs b/scripts/build-layout-registry.mjs
-index d52a60e342c8e0a8a1d78f7174da5e60e6bd1c53..5ffce423b015487c5a5998781d7537b4ddd99aa3 100644
---- a/scripts/build-layout-registry.mjs
-+++ b/scripts/build-layout-registry.mjs
-@@ -154,6 +154,8 @@ function createLayoutRegistry(expectedWidgets, capturedLayouts) {
-   return registry;
- }
- 
--if (process.argv[1] && path.resolve(process.argv[1]) === __filename) {
-+// Expo autolinking hands Gradle the symlinked path for pnpm-patched packages, while __filename is
-+// the real path, so both sides are compared after resolving symlinks.
-+if (process.argv[1] && fs.realpathSync(process.argv[1]) === __filename) {
-   await main();
- }

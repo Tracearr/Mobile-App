@@ -17,4 +17,4 @@ allowBuilds:
 minimumReleaseAgeExclude:
   - '@tracearr/*'
 patchedDependencies:
-  expo-widgets@58.0.12: patches/expo-widgets@58.0.12.patch
+  expo-widgets@58.0.21: patches/expo-widgets@58.0.21.patch
