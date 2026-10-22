@@ -19,7 +19,8 @@
         "NSAppTransportSecurity": {
           "NSAllowsArbitraryLoads": true
         },
-        "NSLocalNetworkUsageDescription": "Tracearr needs local network access to connect to your self-hosted server."
+        "NSLocalNetworkUsageDescription": "Tracearr needs local network access to connect to your self-hosted server.",
+        "NSLocationWhenInUseUsageDescription": "Tracearr doesn't use your location. The map only shows where your server's streams are playing."
       }
     },
     "android": {
