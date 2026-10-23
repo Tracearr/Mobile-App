@@ -73,3 +73,16 @@ test('buildTimelineFromInput leaves the server url alone', () => {
   buildTimelineFromInput(input);
   assert.equal(input.context.serverUrl, 'https://tracearr.local/');
 });
+
+test('the widget writes times in the conventions the app sent, and builds without them', () => {
+  const withoutConventions = buildTimelineFromInput(input);
+  assert.ok(withoutConventions[0].props.timeLabel.length > 0);
+  const entries = buildTimelineFromInput({
+    ...input,
+    context: {
+      ...input.context,
+      dateConventions: { locale: 'en-GB-u-ca-gregory-nu-latn', hour12: false },
+    },
+  });
+  assert.match(entries[0].props.timeLabel, /^\d{1,2}:\d{2}$/);
+});

@@ -8,6 +8,8 @@ import { useRouter } from 'expo-router';
 import {
   ArrowUpCircle,
   Bell,
+  CalendarDays,
+  CalendarRange,
   ChevronRight,
   Languages,
   LogOut,
@@ -35,6 +37,8 @@ import { ROUTES } from '@/lib/routes';
 import { useAuthStateStore } from '@/lib/authStateStore';
 import { colors } from '@/lib/theme';
 import { instanceHost } from '@/lib/utils';
+import { formatSample, weekdayName } from '@/lib/dateFormat';
+import { useDateConventions, useDateSettings } from '@/lib/dateSettings';
 import {
   getCurrentLanguage,
   getLanguageDisplayName,
@@ -135,6 +139,16 @@ function ProfileRow() {
 
 export default function SettingsScreen() {
   const { t } = useTranslation(['mobile', 'common', 'nav', 'settings', 'pages']);
+  const conventions = useDateConventions();
+  const dateRegion = useDateSettings((s) => s.dateRegion);
+  const weekStart = useDateSettings((s) => s.weekStart);
+  const automatic = t('settings:general.automatic');
+  const dateSample = formatSample(conventions.locale);
+  const dateFormatValue = dateRegion === 'auto' ? `${automatic} · ${dateSample}` : dateSample;
+  const weekStartValue =
+    weekStart === 'auto'
+      ? `${automatic} · ${weekdayName(conventions.weekStart, 'long')}`
+      : weekdayName(weekStart, 'long');
   const router = useRouter();
   const server = useAuthStateStore((s) => s.server);
   const unpairServer = useAuthStateStore((s) => s.unpairServer);
@@ -234,6 +248,20 @@ export default function SettingsScreen() {
             label={t('mobile:settings.language')}
             description={getLanguageDisplayName(getCurrentLanguage())}
             onPress={() => router.push('/settings/language')}
+          />
+          <View className="bg-border ml-14 h-px" />
+          <SettingsRow
+            icon={<CalendarDays size={20} color={colors.icon.default} />}
+            label={t('settings:general.dateFormat')}
+            description={dateFormatValue}
+            onPress={() => router.push('/settings/date-format')}
+          />
+          <View className="bg-border ml-14 h-px" />
+          <SettingsRow
+            icon={<CalendarRange size={20} color={colors.icon.default} />}
+            label={t('settings:general.weekStart')}
+            description={weekStartValue}
+            onPress={() => router.push('/settings/week-start')}
           />
         </SettingsSection>
 

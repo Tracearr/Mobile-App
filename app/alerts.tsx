@@ -18,7 +18,7 @@ import { Check, CheckCheck, Filter, ChevronRight, Workflow } from 'lucide-react-
 import { api } from '@/lib/api';
 import { queryKeys } from '@/lib/queryKeys';
 import { haptics } from '@/lib/haptics';
-import { safeFormatDistanceToNow } from '@/lib/formatters';
+import { safeFormatDistanceToNow } from '@/lib/dateFormat';
 import { ruleIcon, violationDescription } from '@/lib/violations';
 import { ROUTES } from '@/lib/routes';
 import { cn } from '@/lib/utils';

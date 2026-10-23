@@ -13,7 +13,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { ServerTag } from '@/components/server/ServerTag';
 import { SeverityBadge } from '@/components/violations/SeverityBadge';
 import { useMediaServer } from '@/providers/MediaServerProvider';
-import { safeFormatDistanceToNow } from '@/lib/formatters';
+import { safeFormatDistanceToNow } from '@/lib/dateFormat';
 import { haptics } from '@/lib/haptics';
 import { ACCENT_COLOR, colors } from '@/lib/theme';
 import { UserSection, SectionRow } from './UserSection';

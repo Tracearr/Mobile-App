@@ -5,6 +5,8 @@ import { api } from './api';
 import { accessTokenGeneration } from './accessTokenStorage';
 import { isAuthStateUnread, useAuthStateStore } from './authStateStore';
 import { i18nReady } from './i18n';
+import { getDateConventions } from './dateFormat';
+import { syncDateConventions } from './dateSettings';
 import { publishNowPlaying, publishWidgetContext, widgetsSupported } from './nowPlayingPublisher';
 import { widgetResources, widgetText, type WidgetContext } from './nowPlayingText';
 import {
@@ -34,17 +36,31 @@ export function nowPlayingSnapshotAge(): number {
 }
 
 // The extension reads this before each fetch, so it is rewritten only when the
-// server, the language, the strings or the stored token change. writtenAt lets
+// server, the language, the strings, the date conventions or the stored token change. writtenAt lets
 // the extension tell a fresh token from one it already saw rejected.
 function syncWidgetContext(): void {
   const serverUrl = useAuthStateStore.getState().server?.url;
   if (!serverUrl) return;
   const lng = i18n.language;
   const resources = widgetResources((l, ns) => i18n.getResourceBundle(l, ns), lng);
-  const version = JSON.stringify([serverUrl, lng, resources, accessTokenGeneration()]);
+  const { locale, hour12 } = getDateConventions();
+  const dateConventions = { locale, hour12 };
+  const version = JSON.stringify([
+    serverUrl,
+    lng,
+    resources,
+    dateConventions,
+    accessTokenGeneration(),
+  ]);
   if (version === contextVersion) return;
   contextVersion = version;
-  const context: WidgetContext = { writtenAt: Date.now(), serverUrl, lng, resources };
+  const context: WidgetContext = {
+    writtenAt: Date.now(),
+    serverUrl,
+    lng,
+    resources,
+    dateConventions,
+  };
   publishWidgetContext(context);
 }
 
@@ -99,6 +115,7 @@ function isSignedOut(): boolean {
 export async function refreshNowPlayingWidget(): Promise<boolean> {
   if (!widgetsSupported) return false;
   await Promise.all([authReady(), i18nReady.catch(() => undefined)]);
+  syncDateConventions();
   // A launch that could not read the store hydrated without a server, which looks
   // exactly like being signed out. Replacing a live card with the pairing prompt
   // on that guess is worse than leaving the last snapshot to go stale on its own.

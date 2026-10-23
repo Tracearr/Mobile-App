@@ -12,6 +12,7 @@ import { AppleMaps, GoogleMaps } from 'expo-maps';
 import { Map as MapIcon } from 'lucide-react-native';
 import type { ActiveSession } from '@tracearr/shared';
 import { ACCENT_COLOR, colors } from '@/lib/theme';
+import { countryName } from '@/lib/regionNames';
 import { Text } from '@/components/ui/text';
 import { useTranslation } from '@tracearr/translations/mobile';
 
@@ -85,7 +86,9 @@ function buildMarkers(
   return sessions.map((session) => {
     const username = session.user?.username ?? 'Unknown';
     const displayName = session.user?.identityName ?? username;
-    const location = [session.geoCity, session.geoCountry].filter(Boolean).join(', ');
+    const location = [session.geoCity, session.geoCountry && countryName(session.geoCountry)]
+      .filter(Boolean)
+      .join(', ');
     const mediaTitle = session.mediaTitle || '';
     const truncatedTitle =
       mediaTitle.length > 40 ? mediaTitle.substring(0, 37) + '...' : mediaTitle;

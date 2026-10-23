@@ -2,7 +2,6 @@
  * Bar chart showing plays by hour of day with touch interaction
  */
 import React, { useState, useCallback, useMemo } from 'react';
-import { useTranslation } from '@tracearr/translations/mobile';
 import { CartesianChart, Bar, useChartPressState } from 'victory-native';
 import { useAnimatedReaction } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
@@ -12,6 +11,8 @@ import { ChartCard, PlaysReadout } from './ChartCard';
 import { ChartCursor } from './ChartCursor';
 import { AXIS_COLORS } from './chartColors';
 import { COUNT_TICKS, countDomain, hasCounts } from './countAxis';
+import { formatHourOfDay } from '@/lib/dateFormat';
+import { useDateConventions } from '@/lib/dateSettings';
 
 interface HourOfDayChartProps {
   data: { hour: number; count: number }[];
@@ -21,12 +22,8 @@ interface HourOfDayChartProps {
 
 const BAR_COLOR = colors.chart[1];
 
-function formatHour(hour: number, locale: string): string {
-  return new Date(2023, 0, 1, hour).toLocaleTimeString(locale, { hour: 'numeric' });
-}
-
 export function HourOfDayChart({ data, height = 180, isLoading }: HourOfDayChartProps) {
-  const { i18n } = useTranslation(['common']);
+  useDateConventions();
   const font = useChartFont(9);
   const { state, isActive } = useChartPressState({ x: 0, y: { count: 0 } });
 
@@ -72,7 +69,7 @@ export function HourOfDayChart({ data, height = 180, isLoading }: HourOfDayChart
         active={
           displayValue && {
             count: displayValue.count,
-            label: formatHour(displayValue.hour, i18n.language),
+            label: formatHourOfDay(displayValue.hour),
           }
         }
       />
@@ -91,7 +88,7 @@ export function HourOfDayChart({ data, height = 180, isLoading }: HourOfDayChart
           tickCount: 12,
           formatXLabel: (value) => {
             const hour = Math.round(value);
-            return hour % 6 === 0 && hour < 24 ? formatHour(hour, i18n.language) : '';
+            return hour % 6 === 0 && hour < 24 ? formatHourOfDay(hour) : '';
           },
         }}
         yAxis={[

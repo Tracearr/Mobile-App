@@ -15,7 +15,7 @@ import {
 } from '@tracearr/shared';
 import { useAuthStateStore, getAccessToken, getRefreshToken, setTokens } from './authStateStore';
 import { classifyRefreshFailure, isTracearrError } from './apiError';
-import { getDeviceTimezone } from './timezone';
+import { getDeviceTimezone } from './dateFormat';
 import { pageMetaOf } from './listPage';
 import { isVersionInfo } from './serverVersion';
 import type {

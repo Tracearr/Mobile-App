@@ -16,9 +16,11 @@ import {
   DATE_TICKS,
   formatAxisDate,
   formatReadoutDate,
+  parseChartDate,
   usesMonthLabels,
   type ChartPeriod,
-} from './dateLabels';
+} from '@/lib/dateFormat';
+import { useDateConventions } from '@/lib/dateSettings';
 
 interface PlaysChartProps {
   data: { date: string; count: number }[];
@@ -28,7 +30,8 @@ interface PlaysChartProps {
 }
 
 export function PlaysChart({ data, period = 'month', height = 200, isLoading }: PlaysChartProps) {
-  const { t, i18n } = useTranslation(['common', 'mobile']);
+  useDateConventions();
+  const { t } = useTranslation(['common', 'mobile']);
   const font = useChartFont(10);
   const { state, isActive } = useChartPressState({ x: 0, y: { count: 0 } });
 
@@ -45,7 +48,7 @@ export function PlaysChart({ data, period = 'month', height = 200, isLoading }: 
     [byDate]
   );
   const counts = chartData.map((d) => d.count);
-  const dates = byDate.map((d) => new Date(d.date));
+  const dates = byDate.map((d) => parseChartDate(d.date));
   const monthLabels = usesMonthLabels(dates[0] ?? null, dates[dates.length - 1] ?? null);
 
   // Sync SharedValue changes to React state
@@ -74,7 +77,7 @@ export function PlaysChart({ data, period = 'month', height = 200, isLoading }: 
   );
 
   const activeDate = displayValue ? dates[displayValue.index] : undefined;
-  const activeLabel = activeDate ? formatReadoutDate(activeDate, period, i18n.language) : '';
+  const activeLabel = activeDate ? formatReadoutDate(activeDate, period) : '';
 
   return (
     <ChartCard height={height} isLoading={isLoading} isEmpty={!hasCounts(counts)}>
@@ -109,7 +112,7 @@ export function PlaysChart({ data, period = 'month', height = 200, isLoading }: 
           tickCount: DATE_TICKS,
           formatXLabel: (value) => {
             const date = dates[Math.round(value)];
-            return date ? formatAxisDate(date, monthLabels, i18n.language) : '';
+            return date ? formatAxisDate(date, monthLabels) : '';
           },
         }}
         yAxis={[

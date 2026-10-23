@@ -35,7 +35,8 @@ import { useResponsive } from '@/hooks/useResponsive';
 import { useAuthStateStore } from '@/lib/authStateStore';
 import { haptics } from '@/lib/haptics';
 import { ACCENT_COLOR, colors, spacing } from '@/lib/theme';
-import { formatDuration } from '@/lib/formatters';
+import { formatDuration } from '@/lib/dateFormat';
+import { countryName } from '@/lib/regionNames';
 import { getBufferedPercent } from '@/lib/utils';
 import { formatEpisodeLabel, type ActiveSession } from '@tracearr/shared';
 import { QualityBadge } from './QualityBadge';
@@ -127,10 +128,10 @@ function getDeviceIcon(session: ActiveSession): LucideIcon {
  */
 function getLocationString(session: ActiveSession): string | null {
   if (session.geoCity && session.geoCountry) {
-    return `${session.geoCity}, ${session.geoCountry}`;
+    return `${session.geoCity}, ${countryName(session.geoCountry)}`;
   }
   if (session.geoCountry) {
-    return session.geoCountry;
+    return countryName(session.geoCountry);
   }
   if (session.geoCity) {
     return session.geoCity;

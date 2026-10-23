@@ -30,7 +30,9 @@ import { api } from '@/lib/api';
 import { queryKeys } from '@/lib/queryKeys';
 import { ROUTES } from '@/lib/routes';
 import { haptics } from '@/lib/haptics';
-import { safeFormatDate, safeFormatDistanceToNow } from '@/lib/formatters';
+import { FULL_DATE_TIME_OPTIONS, safeFormatDate, safeFormatDistanceToNow } from '@/lib/dateFormat';
+import { useDateConventions } from '@/lib/dateSettings';
+import { countryName } from '@/lib/regionNames';
 import { useResponsive } from '@/hooks/useResponsive';
 import type { DetailScreenProps } from './detail-props';
 import { useMediaServer } from '@/providers/MediaServerProvider';
@@ -56,8 +58,6 @@ import type { ViolationWithDetails, ViolationSessionInfo } from '@tracearr/share
 import { useTranslation } from '@tracearr/translations/mobile';
 import { ObserveInteractiveMarker } from 'expo-observe';
 import { ruleIcon, violationDescription } from '@/lib/violations';
-
-const FULL_DATE_TIME = 'PPpp';
 
 function getMediaIcon(mediaType: string): typeof Film {
   switch (mediaType) {
@@ -116,7 +116,11 @@ function StreamCard({
       ? String(session.year)
       : null;
 
-  const locationText = [session.geoCity, session.geoRegion, session.geoCountry]
+  const locationText = [
+    session.geoCity,
+    session.geoRegion,
+    session.geoCountry && countryName(session.geoCountry),
+  ]
     .filter(Boolean)
     .join(', ');
   const deviceText = session.device || session.platform || t('common:labels.unknown');
@@ -203,6 +207,7 @@ function findViolationInCache(
 }
 
 export function ViolationDetail({ id, embedded = false, onBack }: DetailScreenProps) {
+  useDateConventions();
   const { t } = useTranslation(['mobile', 'common', 'pages', 'nav']);
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -560,7 +565,7 @@ export function ViolationDetail({ id, embedded = false, onBack }: DetailScreenPr
                 ) : typeof lastActivityAt === 'string' ? (
                   <View>
                     <Text className="text-sm font-medium">
-                      {safeFormatDate(lastActivityAt, FULL_DATE_TIME, unknown)}
+                      {safeFormatDate(lastActivityAt, FULL_DATE_TIME_OPTIONS, unknown)}
                     </Text>
                     <Text className="text-muted-foreground text-xs">
                       {safeFormatDistanceToNow(lastActivityAt, unknown)}
@@ -591,7 +596,7 @@ export function ViolationDetail({ id, embedded = false, onBack }: DetailScreenPr
                 {t('pages:violations.detail.created')}
               </Text>
               <Text className="text-sm font-medium">
-                {safeFormatDate(violation.createdAt, FULL_DATE_TIME, unknown)}
+                {safeFormatDate(violation.createdAt, FULL_DATE_TIME_OPTIONS, unknown)}
               </Text>
               <Text className="text-muted-foreground text-xs">
                 {safeFormatDistanceToNow(violation.createdAt, unknown)}
@@ -603,7 +608,7 @@ export function ViolationDetail({ id, embedded = false, onBack }: DetailScreenPr
                   {t('pages:violations.detail.acknowledged')}
                 </Text>
                 <Text className="text-sm font-medium">
-                  {safeFormatDate(violation.acknowledgedAt, FULL_DATE_TIME, unknown)}
+                  {safeFormatDate(violation.acknowledgedAt, FULL_DATE_TIME_OPTIONS, unknown)}
                 </Text>
                 <Text className="text-muted-foreground text-xs">
                   {safeFormatDistanceToNow(violation.acknowledgedAt, unknown)}

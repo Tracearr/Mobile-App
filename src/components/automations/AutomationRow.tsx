@@ -6,7 +6,7 @@ import { Card } from '@/components/ui/card';
 import { Text } from '@/components/ui/text';
 import { SeverityBadge } from '@/components/violations/SeverityBadge';
 import { actionLabel, actionTypes, conditionCount, triggerSummary } from '@/lib/automations';
-import { safeFormatDistanceToNow } from '@/lib/formatters';
+import { safeFormatDistanceToNow } from '@/lib/dateFormat';
 import { haptics } from '@/lib/haptics';
 import { colors } from '@/lib/theme';
 import { AutomationKindBadge } from './AutomationKindBadge';

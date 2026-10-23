@@ -37,11 +37,14 @@ import { queryKeys } from '@/lib/queryKeys';
 import { ROUTES } from '@/lib/routes';
 import { haptics } from '@/lib/haptics';
 import {
+  DATE_TIME_OPTIONS,
   formatDuration,
   safeFormatDate,
   safeFormatDistanceToNow,
   safeParseDate,
-} from '@/lib/formatters';
+} from '@/lib/dateFormat';
+import { useDateConventions } from '@/lib/dateSettings';
+import { countryName } from '@/lib/regionNames';
 import { useMediaServer } from '@/providers/MediaServerProvider';
 import { useAuthStateStore } from '@/lib/authStateStore';
 import { useImageUrl } from '@/hooks/useImageUrl';
@@ -71,7 +74,6 @@ import { useTranslation } from '@tracearr/translations/mobile';
 
 const POSTER_WIDTH = 56;
 const POSTER_HEIGHT = 80;
-const DATE_TIME_FORMAT = 'MMM d, h:mm a';
 
 const SERVER_LABELS: Record<ServerType, string> = {
   plex: 'Plex',
@@ -151,17 +153,6 @@ function formatReason(reason: string): string {
     .trim();
 }
 
-// Get country name from country code
-function getCountryName(countryCode: string | null, language: string): string | null {
-  if (!countryCode) return null;
-  try {
-    const displayNames = new Intl.DisplayNames([language], { type: 'region' });
-    return displayNames.of(countryCode) ?? countryCode;
-  } catch {
-    return countryCode;
-  }
-}
-
 // Section container
 function Section({
   icon: Icon,
@@ -211,7 +202,8 @@ function InfoRow({
 }
 
 export function SessionDetail({ id, embedded = false, onBack }: DetailScreenProps) {
-  const { t, i18n } = useTranslation(['mobile', 'common', 'pages']);
+  useDateConventions();
+  const { t } = useTranslation(['mobile', 'common', 'pages']);
   const router = useRouter();
   const { selectedServerId } = useMediaServer();
   const connectionState = useAuthStateStore((s) => s.connectionState);
@@ -295,7 +287,7 @@ export function SessionDetail({ id, embedded = false, onBack }: DetailScreenProp
   const locationParts = [
     session.geoCity,
     session.geoRegion,
-    getCountryName(session.geoCountry, i18n.language),
+    session.geoCountry && countryName(session.geoCountry),
   ].filter(Boolean);
   const locationString = locationParts.join(', ');
 
@@ -467,14 +459,14 @@ export function SessionDetail({ id, embedded = false, onBack }: DetailScreenProp
               {startedAt && (
                 <InfoRow
                   label={t('common:labels.started')}
-                  value={safeFormatDate(startedAt, DATE_TIME_FORMAT)}
+                  value={safeFormatDate(startedAt, DATE_TIME_OPTIONS)}
                   subValue={`(${safeFormatDistanceToNow(startedAt)})`}
                 />
               )}
               {stoppedAt && (
                 <InfoRow
                   label={t('common:labels.stopped')}
-                  value={safeFormatDate(stoppedAt, DATE_TIME_FORMAT)}
+                  value={safeFormatDate(stoppedAt, DATE_TIME_OPTIONS)}
                 />
               )}
               <InfoRow

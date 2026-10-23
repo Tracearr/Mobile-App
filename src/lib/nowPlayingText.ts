@@ -1,11 +1,6 @@
-import {
-  i18n,
-  formatBitrate,
-  formatDateTime,
-  formatNumber,
-  formatTime,
-} from '@tracearr/translations/mobile';
+import { i18n, formatBitrate, formatNumber } from '@tracearr/translations/mobile';
 import { PLAYBACK_DECISION_LABEL_KEYS } from '@tracearr/shared';
+import { TIME_OPTIONS, formatDate, type DateConventions } from './dateFormat.ts';
 import type { NowPlayingText } from './nowPlayingWidget';
 
 // Every key widgetText reads. The widget extension carries only these (and their
@@ -41,6 +36,8 @@ export type WidgetContext = {
   serverUrl: string;
   lng: string;
   resources: WidgetResources;
+  // Absent in contexts written before the app sent its date conventions.
+  dateConventions?: Pick<DateConventions, 'locale' | 'hour12'>;
 };
 
 type Tree = Record<string, unknown>;
@@ -153,11 +150,11 @@ export function widgetText(): NowPlayingText {
         defaultValue_one: '{{count}} server down',
         defaultValue_other: '{{count}} servers down',
       }),
-    time: (ms) => formatTime(ms, 'short'),
+    time: (ms) => formatDate(ms, TIME_OPTIONS),
     asOf: (ms, dated) =>
       i18n.t('mobile:widget.asOf', {
         defaultValue: 'as of {{time}}',
-        time: dated ? formatDateTime(ms, 'medium', 'short') : formatTime(ms, 'short'),
+        time: formatDate(ms, dated ? { dateStyle: 'medium', timeStyle: 'short' } : TIME_OPTIONS),
       }),
   };
 }

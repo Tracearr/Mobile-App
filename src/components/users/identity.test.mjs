@@ -4,7 +4,6 @@ import {
   getIdentityServers,
   getMergedIdentityServers,
   isPersonRemoved,
-  parseServerTimestamp,
   violationsPageFilter,
 } from './identity.ts';
 
@@ -31,23 +30,6 @@ test('a person is removed only when every account is removed', () => {
   assert.equal(isPersonRemoved([]), false);
   assert.equal(isPersonRemoved([{ removedAt: '2026-01-01' }, { removedAt: null }]), false);
   assert.equal(isPersonRemoved([{ removedAt: '2026-01-01' }, { removedAt: '2026-02-01' }]), true);
-});
-
-test('parses the Postgres text timestamps the users list sends', () => {
-  assert.equal(
-    parseServerTimestamp('2026-09-17 14:29:35.04+00')?.toISOString(),
-    '2026-09-17T14:29:35.040Z'
-  );
-  assert.equal(
-    parseServerTimestamp('2026-09-17 20:00:00+05:30')?.toISOString(),
-    '2026-09-17T14:30:00.000Z'
-  );
-  assert.equal(
-    parseServerTimestamp('2026-09-17T14:29:35.040Z')?.toISOString(),
-    '2026-09-17T14:29:35.040Z'
-  );
-  assert.equal(parseServerTimestamp(null), null);
-  assert.equal(parseServerTimestamp('not a date'), null);
 });
 
 test('violations page by person in identity scope and by account otherwise', () => {

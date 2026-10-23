@@ -12,6 +12,7 @@ import type { UnhealthyServer } from '@/lib/api';
 import { isAuthStateUnread, useAuthStateStore } from '@/lib/authStateStore';
 import { registerWidgetRefreshTask, unregisterWidgetRefreshTask } from '@/lib/backgroundTasks';
 import { queryKeys } from '@/lib/queryKeys';
+import { useDateConventions } from '@/lib/dateSettings';
 import { widgetsSupported } from '@/lib/nowPlayingPublisher';
 import {
   WIDGET_SCOPE,
@@ -29,6 +30,8 @@ export function useNowPlayingWidget() {
   const queryClient = useQueryClient();
   const { i18n } = useTranslation();
   const language = i18n.language;
+  // A new locale or clock republishes the cached snapshot so the widget's time label follows.
+  const { locale: dateLocale, hour12 } = useDateConventions();
   const backendId = useAuthStateStore((s) => s.server?.id ?? null);
   // A launch that could not read the stored pairing hydrates without a server.
   // It is left alone like one still loading, not published as signed out.
@@ -102,5 +105,5 @@ export function useNowPlayingWidget() {
       stopHealth();
       appState.remove();
     };
-  }, [queryClient, auth, backendId, language]);
+  }, [queryClient, auth, backendId, language, dateLocale, hour12]);
 }

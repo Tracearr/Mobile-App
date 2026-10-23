@@ -10,7 +10,8 @@ import { Text } from '@/components/ui/text';
 import { Badge } from '@/components/ui/badge';
 import { ServerTag } from '@/components/server/ServerTag';
 import { useMediaServer } from '@/providers/MediaServerProvider';
-import { formatDuration } from '@/lib/formatters';
+import { formatDuration } from '@/lib/dateFormat';
+import { countryName } from '@/lib/regionNames';
 import { colors } from '@/lib/theme';
 import { UserSection, SectionRow, SectionEmptyText } from './UserSection';
 import { LoadMoreButton } from './LoadMoreButton';
@@ -56,7 +57,9 @@ function SessionRow({
   });
   const MediaIcon = mediaIcon(session.mediaType);
   const title = sessionTitle(session);
-  const locationText = [session.geoCity, session.geoCountry].filter(Boolean).join(', ');
+  const locationText = [session.geoCity, session.geoCountry && countryName(session.geoCountry)]
+    .filter(Boolean)
+    .join(', ');
 
   const state = session.watched
     ? ({

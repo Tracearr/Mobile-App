@@ -8,7 +8,7 @@ import { Text } from '@/components/ui/text';
 import { Badge } from '@/components/ui/badge';
 import { ServerTag } from '@/components/server/ServerTag';
 import { useMediaServer } from '@/providers/MediaServerProvider';
-import { safeFormatDistanceToNow } from '@/lib/formatters';
+import { safeFormatDistanceToNow } from '@/lib/dateFormat';
 import { ACCENT_COLOR, colors } from '@/lib/theme';
 import { UserSection, SectionRow, SectionEmptyText } from './UserSection';
 import { LoadMoreButton } from './LoadMoreButton';

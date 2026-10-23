@@ -4,7 +4,8 @@ import { MapPin, Smartphone, type LucideIcon } from 'lucide-react-native';
 import type { UserLocation, UserDevice } from '@tracearr/shared';
 import { useTranslation } from '@tracearr/translations/mobile';
 import { Text } from '@/components/ui/text';
-import { safeFormatDistanceToNow } from '@/lib/formatters';
+import { safeFormatDistanceToNow } from '@/lib/dateFormat';
+import { countryName } from '@/lib/regionNames';
 import { ACCENT_COLOR } from '@/lib/theme';
 import { UserSection, SectionRow, SectionEmptyText } from './UserSection';
 
@@ -87,7 +88,9 @@ export function UserLocationsCard({
           icon={MapPin}
           isFirst={index === 0}
           title={
-            [location.city, location.region, location.country].filter(Boolean).join(', ') || unknown
+            [location.city, location.region, location.country && countryName(location.country)]
+              .filter(Boolean)
+              .join(', ') || unknown
           }
           lines={[
             `${t('common:count.session', { count: location.sessionCount })} · ${safeFormatDistanceToNow(location.lastSeenAt, unknown)}`,

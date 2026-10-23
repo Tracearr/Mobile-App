@@ -9,7 +9,8 @@ import { pageMetaOf } from '@/lib/listPage';
 import { Text } from '@/components/ui/text';
 import { Badge } from '@/components/ui/badge';
 import { ErrorState } from '@/components/ui/error-state';
-import { formatDuration, safeFormatDate } from '@/lib/formatters';
+import { DATE_OPTIONS, formatDuration, safeFormatDate } from '@/lib/dateFormat';
+import { useDateConventions } from '@/lib/dateSettings';
 import { colors } from '@/lib/theme';
 import { cn } from '@/lib/utils';
 import { UserSection, SectionRow } from './UserSection';
@@ -83,6 +84,7 @@ function RequestsSummary({ summary }: { summary: UserRequestsSummary }) {
 }
 
 function RequestRow({ request, isFirst }: { request: UserRequestEntry; isFirst: boolean }) {
+  useDateConventions();
   const { t } = useTranslation(['pages']);
   const MediaIcon = request.media.mediaType === 'movie' ? Film : Tv;
   const isDeleted = request.deletedAt !== null;
@@ -94,7 +96,7 @@ function RequestRow({ request, isFirst }: { request: UserRequestEntry; isFirst: 
         ? t('pages:requests.wait.pending')
         : formatWaitDuration(request.waitMs);
 
-  const details = [safeFormatDate(request.requestedAt, 'MMM d, yyyy', '-'), wait];
+  const details = [safeFormatDate(request.requestedAt, DATE_OPTIONS, '-'), wait];
   if (request.seasons) {
     details.push(
       request.seasons.length === 0

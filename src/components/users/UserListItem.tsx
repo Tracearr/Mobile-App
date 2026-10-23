@@ -1,6 +1,5 @@
 import { View, Pressable } from 'react-native';
 import { Crown } from 'lucide-react-native';
-import { formatDistanceToNow } from 'date-fns';
 import type { ServerUserWithIdentity } from '@tracearr/shared';
 import { useTranslation } from '@tracearr/translations/mobile';
 import { Text } from '@/components/ui/text';
@@ -8,9 +7,10 @@ import { Card } from '@/components/ui/card';
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { colors } from '@/lib/theme';
 import { cn } from '@/lib/utils';
+import { safeFormatDistanceToNow, safeParseDate } from '@/lib/dateFormat';
 import { TrustScoreBadge } from './TrustScoreBadge';
 import { ServerPills } from './ServerPills';
-import { getIdentityServers, parseServerTimestamp } from './identity';
+import { getIdentityServers } from './identity';
 
 interface UserListItemProps {
   user: ServerUserWithIdentity;
@@ -30,18 +30,18 @@ export function UserListItem({
 }: UserListItemProps) {
   const { t } = useTranslation(['common', 'pages', 'mobile']);
   const displayName = user.identityName ?? user.username;
-  const joinedAt = parseServerTimestamp(user.identityJoinedAt ?? user.joinedAt);
-  const lastActivityAt = parseServerTimestamp(user.identityLastActivityAt ?? user.lastActivityAt);
+  const joinedAt = safeParseDate(user.identityJoinedAt ?? user.joinedAt);
+  const lastActivityAt = safeParseDate(user.identityLastActivityAt ?? user.lastActivityAt);
 
   const activity = lastActivityAt
     ? t('pages:users.mergeLastActive', {
-        relative: formatDistanceToNow(lastActivityAt, { addSuffix: true }),
+        relative: safeFormatDistanceToNow(lastActivityAt),
       })
     : t('pages:users.mergeNeverActive');
   const joined =
     isTablet && joinedAt
       ? t('mobile:users.joinedRelative', {
-          relative: formatDistanceToNow(joinedAt, { addSuffix: true }),
+          relative: safeFormatDistanceToNow(joinedAt),
           defaultValue: 'Joined {{relative}}',
         })
       : null;

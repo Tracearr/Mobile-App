@@ -10,7 +10,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { SegmentedControl } from '@/components/ui/segmented-control';
 import { Text } from '@/components/ui/text';
-import { safeFormatDistanceToNow } from '@/lib/formatters';
+import { safeFormatDistanceToNow } from '@/lib/dateFormat';
 import { haptics } from '@/lib/haptics';
 import { keyById } from '@/lib/listKeys';
 import { ACCENT_COLOR, spacing } from '@/lib/theme';

@@ -39,7 +39,8 @@ import { UserViolationsCard } from '@/components/users/UserViolationsCard';
 import { UserTerminationsCard } from '@/components/users/UserTerminationsCard';
 import type { TrustEditTarget } from '@/components/users/TrustScoreEditor';
 import { violationsPageFilter } from '@/components/users/identity';
-import { formatWatchTime, safeFormatDate } from '@/lib/formatters';
+import { DATE_OPTIONS, formatWatchTime, safeFormatDate } from '@/lib/dateFormat';
+import { useDateConventions } from '@/lib/dateSettings';
 import { haptics } from '@/lib/haptics';
 import { colors, spacing, ACCENT_COLOR } from '@/lib/theme';
 
@@ -90,6 +91,7 @@ function ScopePicker({
 }
 
 export function UserDetail({ id, embedded = false, onBack }: DetailScreenProps) {
+  useDateConventions();
   const { t } = useTranslation(['mobile', 'common', 'pages']);
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -243,7 +245,7 @@ export function UserDetail({ id, embedded = false, onBack }: DetailScreenProps) 
                   label: t('common:labels.joined'),
                   value: safeFormatDate(
                     detail.user.joinedAt ?? detail.user.createdAt,
-                    'MMM d, yyyy',
+                    DATE_OPTIONS,
                     t('common:labels.unknown')
                   ),
                 },
@@ -252,7 +254,7 @@ export function UserDetail({ id, embedded = false, onBack }: DetailScreenProps) 
                   label: t('common:labels.lastActivity'),
                   value: safeFormatDate(
                     detail.user.lastActivityAt,
-                    'MMM d, yyyy',
+                    DATE_OPTIONS,
                     t('common:labels.never')
                   ),
                 },

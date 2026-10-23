@@ -11,7 +11,7 @@ import { Card } from '@/components/ui/card';
 import { ErrorState } from '@/components/ui/error-state';
 import { cn } from '@/lib/utils';
 import { ACCENT_COLOR } from '@/lib/theme';
-import { formatWatchTime } from '@/lib/formatters';
+import { formatWatchTime } from '@/lib/dateFormat';
 import type { HistoryAggregates as AggregatesType } from '@tracearr/shared';
 
 interface HistoryAggregatesProps {

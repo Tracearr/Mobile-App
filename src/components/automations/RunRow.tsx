@@ -7,7 +7,8 @@ import { Card } from '@/components/ui/card';
 import { Text } from '@/components/ui/text';
 import { SeverityBadge } from '@/components/violations/SeverityBadge';
 import { runSummary, runWhere, runWho, triggerSummary } from '@/lib/automations';
-import { safeFormatDate, safeFormatDistanceToNow } from '@/lib/formatters';
+import { FULL_DATE_TIME_OPTIONS, safeFormatDate, safeFormatDistanceToNow } from '@/lib/dateFormat';
+import { useDateConventions } from '@/lib/dateSettings';
 import { colors } from '@/lib/theme';
 import { AutomationKindBadge } from './AutomationKindBadge';
 import { RunOutcome } from './RunOutcome';
@@ -29,6 +30,7 @@ function DetailLine({ label, value }: { label: string; value: string }) {
 }
 
 export function RunRow({ run, automation }: RunRowProps) {
+  useDateConventions();
   const { t } = useTranslation(['pages', 'common']);
   const translate = useTranslate();
   const [expanded, setExpanded] = useRecyclingState(false, [run.id]);
@@ -95,12 +97,12 @@ export function RunRow({ run, automation }: RunRowProps) {
             ) : null}
             <DetailLine
               label={t('pages:automations.activity.started')}
-              value={safeFormatDate(run.startedAt, 'PPpp', unknown)}
+              value={safeFormatDate(run.startedAt, FULL_DATE_TIME_OPTIONS, unknown)}
             />
             {run.finishedAt ? (
               <DetailLine
                 label={t('pages:automations.activity.finished')}
-                value={safeFormatDate(run.finishedAt, 'PPpp', unknown)}
+                value={safeFormatDate(run.finishedAt, FULL_DATE_TIME_OPTIONS, unknown)}
               />
             ) : null}
           </View>

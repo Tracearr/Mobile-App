@@ -2,7 +2,6 @@
  * Bar chart showing plays by day of week with touch interaction
  */
 import React, { useState, useCallback, useMemo } from 'react';
-import { useTranslation } from '@tracearr/translations/mobile';
 import { CartesianChart, Bar, useChartPressState } from 'victory-native';
 import { useAnimatedReaction } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
@@ -12,6 +11,8 @@ import { ChartCard, PlaysReadout } from './ChartCard';
 import { ChartCursor } from './ChartCursor';
 import { AXIS_COLORS } from './chartColors';
 import { COUNT_TICKS, countDomain, hasCounts } from './countAxis';
+import { weekdayCounts, weekdayName } from '@/lib/dateFormat';
+import { useDateConventions } from '@/lib/dateSettings';
 
 interface DayOfWeekChartProps {
   data: { day: number; name: string; count: number }[];
@@ -19,25 +20,20 @@ interface DayOfWeekChartProps {
   isLoading?: boolean;
 }
 
-// 2023-01-01 is a Sunday, matching the API's day 0.
-function dayName(day: number, locale: string, weekday: 'short' | 'long'): string {
-  return new Date(2023, 0, 1 + day).toLocaleDateString(locale, { weekday });
-}
-
 export function DayOfWeekChart({ data, height = 180, isLoading }: DayOfWeekChartProps) {
-  const { i18n } = useTranslation(['common']);
+  const conventions = useDateConventions();
   const font = useChartFont(10);
   const { state, isActive } = useChartPressState({ x: 0, y: { count: 0 } });
 
   // React state to display values (synced from SharedValues)
   const [displayValue, setDisplayValue] = useState<{
-    day: number;
+    index: number;
     count: number;
   } | null>(null);
 
   // Sync SharedValue changes to React state
-  const updateDisplayValue = useCallback((day: number, count: number) => {
-    setDisplayValue({ day: Math.round(day), count: Math.round(count) });
+  const updateDisplayValue = useCallback((index: number, count: number) => {
+    setDisplayValue({ index: Math.round(index), count: Math.round(count) });
   }, []);
 
   const clearDisplayValue = useCallback(() => {
@@ -60,8 +56,14 @@ export function DayOfWeekChart({ data, height = 180, isLoading }: DayOfWeekChart
     }
   );
 
+  // Bars run from the week start; x is the position, not the day number.
   // CartesianChart cancels an active press whenever `data` changes identity.
-  const chartData = useMemo(() => data.map((d) => ({ x: d.day, count: d.count })), [data]);
+  const days = useMemo(
+    () => weekdayCounts(data, conventions.weekStart),
+    [data, conventions.weekStart]
+  );
+  const chartData = useMemo(() => days.map((d, index) => ({ x: index, count: d.count })), [days]);
+  const dayAt = (index: number) => days[Math.round(index)]?.day;
   const counts = chartData.map((d) => d.count);
 
   return (
@@ -71,7 +73,7 @@ export function DayOfWeekChart({ data, height = 180, isLoading }: DayOfWeekChart
         active={
           displayValue && {
             count: displayValue.count,
-            label: dayName(displayValue.day, i18n.language, 'long'),
+            label: weekdayName(dayAt(displayValue.index) ?? 0, 'long'),
           }
         }
       />
@@ -87,7 +89,10 @@ export function DayOfWeekChart({ data, height = 180, isLoading }: DayOfWeekChart
           ...AXIS_COLORS,
           font,
           tickCount: 7,
-          formatXLabel: (value) => dayName(Math.round(value), i18n.language, 'short'),
+          formatXLabel: (value) => {
+            const day = dayAt(value);
+            return day === undefined ? '' : weekdayName(day, 'short');
+          },
         }}
         yAxis={[
           {

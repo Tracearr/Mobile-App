@@ -19,9 +19,11 @@ import {
   DATE_TICKS,
   formatAxisDate,
   formatReadoutDate,
+  safeParseDate,
   usesMonthLabels,
   type ChartPeriod,
-} from './dateLabels';
+} from '@/lib/dateFormat';
+import { useDateConventions } from '@/lib/dateSettings';
 
 interface ConcurrentChartProps {
   data: { hour: string; total: number; direct: number; directStream?: number; transcode: number }[];
@@ -36,24 +38,14 @@ const CHART_COLORS = {
   ...PLAYBACK_COLORS,
 };
 
-/**
- * Parse a timestamp string safely, handling various formats from the backend
- */
-function parseTimestamp(timestamp: string): Date | null {
-  // Handle PostgreSQL timestamp format: "2024-01-15 13:00:00+00"
-  // Convert to ISO 8601 format that JS can parse reliably
-  const normalized = timestamp.includes('T') ? timestamp : timestamp.replace(' ', 'T');
-  const date = new Date(normalized);
-  return isNaN(date.getTime()) ? null : date;
-}
-
 export function ConcurrentChart({
   data,
   period = 'month',
   height = 200,
   isLoading,
 }: ConcurrentChartProps) {
-  const { t, i18n } = useTranslation(['common', 'mobile']);
+  useDateConventions();
+  const { t } = useTranslation(['common', 'mobile']);
   const hasDirectStream = data.some((d) => (d.directStream ?? 0) > 0);
   const font = useChartFont(10);
   const { state, isActive } = useChartPressState({
@@ -83,7 +75,7 @@ export function ConcurrentChart({
   );
   // The areas stack, so the axis has to fit the sum, not the largest single series.
   const stackTotals = chartData.map((d) => d.direct + d.directStream + d.transcode);
-  const dates = data.map((d) => parseTimestamp(d.hour));
+  const dates = data.map((d) => safeParseDate(d.hour));
   const monthLabels = usesMonthLabels(dates[0] ?? null, dates[dates.length - 1] ?? null);
 
   // Sync SharedValue changes to React state
@@ -129,7 +121,7 @@ export function ConcurrentChart({
 
   const currentItem = displayValue ? chartData[displayValue.index] : null;
   const activeDate = displayValue ? dates[displayValue.index] : null;
-  const activeLabel = activeDate ? formatReadoutDate(activeDate, period, i18n.language) : '';
+  const activeLabel = activeDate ? formatReadoutDate(activeDate, period) : '';
   const dateLabel =
     period === 'all' && activeLabel
       ? t('mobile:charts.weekOf', { date: activeLabel, defaultValue: 'Week of {{date}}' })
@@ -211,7 +203,7 @@ export function ConcurrentChart({
           tickCount: DATE_TICKS,
           formatXLabel: (value) => {
             const date = dates[Math.round(value)];
-            return date ? formatAxisDate(date, monthLabels, i18n.language) : '';
+            return date ? formatAxisDate(date, monthLabels) : '';
           },
         }}
         yAxis={[

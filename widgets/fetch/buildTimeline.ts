@@ -6,6 +6,7 @@ import {
   type WidgetSession,
 } from '../../src/lib/nowPlayingWidget.ts';
 import { widgetText, type WidgetContext } from '../../src/lib/nowPlayingText.ts';
+import { getDateConventions, setDateConventions } from '../../src/lib/dateFormat.ts';
 
 export type FetchInput = {
   sessions: WidgetSession[];
@@ -20,6 +21,9 @@ export type FetchTimelineEntry = { timestamp: number; props: NowPlayingWidgetPro
 // which widgetText and the package's formatters read. With inline resources
 // init and changeLanguage complete before they return.
 function prepare(context: WidgetContext): void {
+  if (context.dateConventions) {
+    setDateConventions({ ...getDateConventions(), ...context.dateConventions });
+  }
   if (i18n.isInitialized) {
     for (const [lng, namespaces] of Object.entries(context.resources)) {
       for (const [ns, bundle] of Object.entries(namespaces)) {

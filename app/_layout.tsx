@@ -28,6 +28,7 @@ import { useNowPlayingWidget } from '@/hooks/useNowPlayingWidget';
 import { useServerVersion } from '@/hooks/useServerVersion';
 import { colors } from '@/lib/theme';
 import { i18nReady } from '@/lib/i18n';
+import { startDateConventionSync } from '@/lib/dateSettings';
 import { useTranslation } from '@tracearr/translations/mobile';
 import { Observe, ObserveRoot } from 'expo-observe';
 import { PostHogProvider, usePostHog } from 'posthog-react-native';
@@ -209,6 +210,8 @@ function RootLayout() {
       .catch((error: unknown) => console.error('[i18n] Rendering without translations:', error))
       .then(() => setI18nLoaded(true));
   }, []);
+
+  useEffect(() => startDateConventionSync(), []);
 
   if (!i18nLoaded) {
     return null;

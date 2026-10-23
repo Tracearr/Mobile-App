@@ -12,7 +12,8 @@ import { QualityBadge } from '@/components/sessions/QualityBadge';
 import { useImageUrl } from '@/hooks/useImageUrl';
 import { borderRadius, colors } from '@/lib/theme';
 import { cn } from '@/lib/utils';
-import { formatDuration, formatListTimestamp } from '@/lib/formatters';
+import { formatDuration, formatListTimestamp } from '@/lib/dateFormat';
+import { useDateConventions } from '@/lib/dateSettings';
 import { formatEpisodeLabel, type SessionWithDetails, type MediaType } from '@tracearr/shared';
 
 interface HistoryRowProps {
@@ -82,6 +83,7 @@ const POSTER_WIDTH = 40;
 const POSTER_HEIGHT = 60;
 
 export function HistoryRow({ session, onPress, selected = false }: HistoryRowProps) {
+  useDateConventions();
   const { t } = useTranslation(['common']);
   const getImageUrl = useImageUrl();
   const displayName =

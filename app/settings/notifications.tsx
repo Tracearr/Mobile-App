@@ -14,7 +14,6 @@ import {
   Pressable,
 } from 'react-native';
 import * as Notifications from 'expo-notifications';
-import { getCalendars } from 'expo-localization';
 import DateTimePicker from '@expo/ui/community/datetime-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -53,8 +52,16 @@ import { useAuthStateStore } from '@/lib/authStateStore';
 import { useServerVersion } from '@/hooks/useServerVersion';
 import { backgroundRefreshStatus } from '@/lib/widgetBridge';
 import { SERVER_2_2 } from '@/lib/serverVersion';
-import { getDeviceTimezone } from '@/lib/timezone';
-import { DEFAULT_QUIET_END, DEFAULT_QUIET_START, dateToTime, timeToDate } from '@/lib/quietHours';
+import {
+  TIME_OPTIONS,
+  dateToTime,
+  formatDate,
+  getDeviceTimezone,
+  is24HourClock,
+  timeToDate,
+} from '@/lib/dateFormat';
+import { useDateConventions } from '@/lib/dateSettings';
+import { DEFAULT_QUIET_END, DEFAULT_QUIET_START } from '@/lib/quietHours';
 import { colors, ACCENT_COLOR } from '@/lib/theme';
 import type { NotificationPreferences } from '@tracearr/shared';
 import { useTranslation } from '@tracearr/translations/mobile';
@@ -140,6 +147,7 @@ function QuietTime({
   time: string;
   onChange: (time: string) => void;
 }) {
+  useDateConventions();
   const [value, setValue] = useState(() => timeToDate(time));
   // A save that fails rolls the stored time back; the picker follows it.
   const [stored, setStored] = useState(time);
@@ -175,15 +183,13 @@ function QuietTime({
           accessibilityLabel={label}
           onPress={() => setOpen(true)}
         >
-          <Text className="text-primary text-base">
-            {value.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
-          </Text>
+          <Text className="text-primary text-base">{formatDate(value, TIME_OPTIONS)}</Text>
         </Pressable>
       )}
       {open ? (
         <DateTimePicker
           mode="time"
-          is24Hour={getCalendars()[0]?.uses24hourClock ?? false}
+          is24Hour={is24HourClock()}
           accentColor={ACCENT_COLOR}
           value={value}
           onDismiss={() => setOpen(false)}

@@ -9,7 +9,7 @@ import { useResponsive } from '@/hooks/useResponsive';
 import { stackHeaderOptions } from '@/components/ui/screen-header';
 
 export default function SettingsLayout() {
-  const { t } = useTranslation(['nav', 'mobile']);
+  const { t } = useTranslation(['nav', 'mobile', 'settings']);
   // At compact width the sheet spans the window and iPhone Duo draws its
   // vertical rail over it without reporting a safe-area inset to the sheet, so
   // the window insets pad the content. At regular width the sheet floats clear
@@ -31,6 +31,8 @@ export default function SettingsLayout() {
       <Stack.Screen name="index" options={{ title: t('nav:settings') }} />
       <Stack.Screen name="notifications" options={{ title: t('mobile:settings.notifications') }} />
       <Stack.Screen name="language" options={{ title: t('mobile:settings.language') }} />
+      <Stack.Screen name="date-format" options={{ title: t('settings:general.dateFormat') }} />
+      <Stack.Screen name="week-start" options={{ title: t('settings:general.weekStart') }} />
     </Stack>
   );
 }
