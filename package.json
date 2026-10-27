@@ -114,7 +114,7 @@
     "babel-preset-expo": "~58.0.18",
     "jest": "^30.5.2",
     "jest-expo": "~58.0.11",
-    "oxlint": "1.88.0",
+    "oxlint": "1.89.0",
     "oxlint-tsgolint": "^7.0.2004",
     "postcss": "^8.5.31",
     "prettier": "^3.9.10",
