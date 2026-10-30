@@ -120,6 +120,10 @@ export async function unregisterWidgetRefreshTask(): Promise<void> {
       await BackgroundTask.unregisterTaskAsync(WIDGET_REFRESH_TASK);
     }
   } catch (error) {
-    console.error('[BackgroundTask] Failed to unregister widget refresh:', error);
+    // Android's scheduler can lose the task while TaskManager still lists it, leaving nothing to remove.
+    (String(error).includes('TaskNotFound') ? console.warn : console.error)(
+      '[BackgroundTask] Failed to unregister widget refresh:',
+      error
+    );
   }
 }

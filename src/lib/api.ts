@@ -14,7 +14,7 @@ import {
   type ServerScope,
 } from '@tracearr/shared';
 import { useAuthStateStore, getAccessToken, getRefreshToken, setTokens } from './authStateStore';
-import { classifyRefreshFailure, isTracearrError } from './apiError';
+import { classifyRefreshFailure, isTracearrError, sessionExpiredError } from './apiError';
 import { getDeviceTimezone } from './dateFormat';
 import { pageMetaOf } from './listPage';
 import { isVersionInfo } from './serverVersion';
@@ -227,7 +227,7 @@ export function createApiClient(baseURL: string): AxiosInstance {
         } catch (refreshError) {
           // 'revoked' when Tracearr refused the session or no refresh token or server is stored
           if (useAuthStateStore.getState().tokenStatus === 'revoked') {
-            throw new Error('Session expired');
+            throw sessionExpiredError();
           }
           throw refreshError;
         }

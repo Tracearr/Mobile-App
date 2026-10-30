@@ -5,7 +5,9 @@ import {
   classifyRefreshFailure,
   describeApiError,
   isNetworkFailure,
+  isSessionExpired,
   isTransientReply,
+  sessionExpiredError,
 } from './apiError.ts';
 
 function axiosFailure(status, data, statusText = '') {
@@ -60,6 +62,12 @@ test('a request that got no answer is a network failure, a server reply is not',
   });
   assert.equal(isNetworkFailure(expoOffline), true);
   assert.equal(isNetworkFailure(new Error('Session expired')), false);
+});
+
+test('a revoked session is recognised, other errors are not', () => {
+  assert.equal(isSessionExpired(sessionExpiredError()), true);
+  assert.equal(isSessionExpired(new Error('Network Error')), false);
+  assert.equal(isSessionExpired('Session expired'), false);
 });
 
 function tracearr(statusCode, message, code) {

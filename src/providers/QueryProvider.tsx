@@ -8,6 +8,7 @@ import {
   onlineManager,
 } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
+import { isSessionExpired } from '@/lib/apiError';
 import * as Network from 'expo-network';
 import React, { useEffect, useRef } from 'react';
 import type { AppStateStatus } from 'react-native';
@@ -43,11 +44,7 @@ function isAuthError(error: unknown): boolean {
   if (error instanceof AxiosError && error.response?.status === 401) {
     return true;
   }
-  // Check for session expired message (from auth interceptor)
-  if (error instanceof Error && error.message === 'Session expired') {
-    return true;
-  }
-  return false;
+  return isSessionExpired(error);
 }
 
 const queryClient = new QueryClient({

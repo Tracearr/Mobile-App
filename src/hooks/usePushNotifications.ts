@@ -17,7 +17,12 @@ import type { ViolationWithDetails } from '@tracearr/shared';
 import { isEncrypted, registerBackgroundNotificationTask } from '../lib/backgroundTasks';
 import { decryptPushPayload, isEncryptionAvailable, ensureDeviceSecret } from '../lib/crypto';
 import { api } from '../lib/api';
-import { describeApiError, isNetworkFailure, isTransientReply } from '../lib/apiError';
+import {
+  describeApiError,
+  isNetworkFailure,
+  isSessionExpired,
+  isTransientReply,
+} from '../lib/apiError';
 import { useAuthStateStore } from '../lib/authStateStore';
 import { ROUTES } from '../lib/routes';
 import { pushDestination, type PushDestination } from '../lib/pushRoute';
@@ -220,9 +225,9 @@ export function usePushNotifications() {
           if (axios.isAxiosError(error) && error.response?.status === 400) {
             rejectedToken.current = token;
           }
-          (isNetworkFailure(error) || isTransientReply(error) ? console.warn : console.error)(
-            describeApiError('Push token registration failed', error)
-          );
+          (isNetworkFailure(error) || isTransientReply(error) || isSessionExpired(error)
+            ? console.warn
+            : console.error)(describeApiError('Push token registration failed', error));
         } finally {
           if (registration.current === entry) registration.current = null;
         }

@@ -14,6 +14,17 @@ export function isNetworkFailure(error: unknown): boolean {
   );
 }
 
+const SESSION_EXPIRED = 'Session expired';
+
+// Tracearr refused the refresh token: the device has to pair again.
+export function sessionExpiredError(): Error {
+  return new Error(SESSION_EXPIRED);
+}
+
+export function isSessionExpired(error: unknown): boolean {
+  return error instanceof Error && error.message === SESSION_EXPIRED;
+}
+
 // PostHog's console hook keeps the first Error it finds and drops the rest of
 // the arguments, so the status and the server's reply have to be in the message.
 export function describeApiError(prefix: string, error: unknown): Error {
