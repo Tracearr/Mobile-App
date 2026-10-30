@@ -30,19 +30,10 @@ import { colors } from '@/lib/theme';
 import { i18nReady } from '@/lib/i18n';
 import { startDateConventionSync } from '@/lib/dateSettings';
 import { useTranslation } from '@tracearr/translations/mobile';
-import { Observe, ObserveRoot } from 'expo-observe';
 import { PostHogProvider, usePostHog } from 'posthog-react-native';
-import * as Updates from 'expo-updates';
 import { startReviewTracking } from '@/lib/reviewPrompt';
 import * as SplashScreen from 'expo-splash-screen';
 
-// Every build profile bundles with NODE_ENV=production, so the channel is what
-// separates internal, beta and production. Route params carry server-side ids
-// and the paired server URL.
-Observe.configure({
-  environment: Updates.channel ?? 'development',
-  integrations: { 'expo-router': { filteredParams: ['id', 'prefillUrl'] } },
-});
 startReviewTracking();
 
 // Held until the first real screen can render; hidden in RootLayoutNav, or by
@@ -78,7 +69,7 @@ function RootLayoutNav() {
   usePushNotifications();
   useNowPlayingWidget();
 
-  // Route pattern, not pathname: ids stay out of PostHog as filteredParams keeps them out of Observe.
+  // Route pattern, not pathname, so ids stay out of PostHog.
   const posthog = usePostHog();
   const screen = '/' + segments.filter((s) => !(s.startsWith('(') && s.endsWith(')'))).join('/');
   useEffect(() => {
@@ -100,14 +91,6 @@ function RootLayoutNav() {
       setShowReconnectedToast(true);
     }
     prevConnectionState.current = connectionState;
-  }, [connectionState]);
-
-  // UnauthenticatedScreen and ClientTooOldScreen render outside any route, so the
-  // route-scoped marker has no screen.
-  useEffect(() => {
-    if (connectionState === 'unauthenticated' || connectionState === 'clientTooOld') {
-      Observe.markInteractive();
-    }
   }, [connectionState]);
 
   // Handle navigation based on auth state
@@ -242,7 +225,7 @@ function RootLayout() {
                           autocapture: {
                             uncaughtExceptions: true,
                             unhandledRejections: true,
-                            // Render errors stop at ObserveErrorBoundary, which is above
+                            // Render errors stop at ErrorBoundary, which is above
                             // this provider, so they only surface via React's console.
                             console: ['error'],
                           },
@@ -264,4 +247,4 @@ function RootLayout() {
   );
 }
 
-export default ObserveRoot.wrap(RootLayout);
+export default RootLayout;

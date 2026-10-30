@@ -9,7 +9,6 @@ import { View, ScrollView, Pressable, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { useQuery } from '@tanstack/react-query';
-import { ObserveInteractiveMarker } from 'expo-observe';
 import { maybeRequestReview } from '@/lib/reviewPrompt';
 import {
   Play,
@@ -300,7 +299,6 @@ export function SessionDetail({ id, embedded = false, onBack }: DetailScreenProp
 
   return (
     <>
-      {embedded ? null : <ObserveInteractiveMarker />}
       <SafeAreaView style={{ flex: 1, backgroundColor: colors.background.dark }} edges={['bottom']}>
         <ScrollView
           style={{ flex: 1 }}

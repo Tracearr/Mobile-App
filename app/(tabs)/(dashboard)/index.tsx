@@ -43,7 +43,6 @@ import { ErrorState } from '@/components/ui/error-state';
 import { SectionHeader } from '@/components/ui/section-header';
 import { spacing, ACCENT_COLOR } from '@/lib/theme';
 import { useTranslation } from '@tracearr/translations/mobile';
-import { ObserveInteractiveMarker } from 'expo-observe';
 
 const TILE_GAP = spacing.sm;
 
@@ -172,7 +171,6 @@ export default function DashboardScreen() {
 
   return (
     <>
-      <ObserveInteractiveMarker />
       <ScrollView
         style={{ flex: 1 }}
         onLayout={(e) => setContentWidth(e.nativeEvent.layout.width)}

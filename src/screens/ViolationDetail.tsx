@@ -56,7 +56,6 @@ import {
 } from '@tracearr/shared';
 import type { ViolationWithDetails, ViolationSessionInfo } from '@tracearr/shared';
 import { useTranslation } from '@tracearr/translations/mobile';
-import { ObserveInteractiveMarker } from 'expo-observe';
 import { ruleIcon, violationDescription } from '@/lib/violations';
 
 function getMediaIcon(mediaType: string): typeof Film {
@@ -347,7 +346,6 @@ export function ViolationDetail({ id, embedded = false, onBack }: DetailScreenPr
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background.dark }} edges={['bottom']}>
-      {embedded ? null : <ObserveInteractiveMarker />}
       <ScrollView
         className="flex-1"
         contentContainerStyle={{

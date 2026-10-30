@@ -23,7 +23,6 @@ import { Button } from '@/components/ui/button';
 import { ACCENT_COLOR, colors } from '@/lib/theme';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@tracearr/translations/mobile';
-import { ObserveInteractiveMarker } from 'expo-observe';
 
 interface QRPairingPayload {
   url: string;
@@ -222,7 +221,6 @@ export default function PairScreen() {
         style={{ flex: 1, backgroundColor: colors.background.dark }}
         edges={['top', 'bottom', 'left', 'right']}
       >
-        <ObserveInteractiveMarker />
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={{ flex: 1 }}
@@ -308,7 +306,6 @@ export default function PairScreen() {
       style={{ flex: 1, backgroundColor: colors.background.dark }}
       edges={['top', 'bottom', 'left', 'right']}
     >
-      <ObserveInteractiveMarker />
       <View
         style={{ alignItems: 'center', paddingHorizontal: 24, paddingTop: 32, paddingBottom: 24 }}
       >

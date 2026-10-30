@@ -14,7 +14,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useRouter } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { isAxiosError } from 'axios';
-import { ObserveInteractiveMarker } from 'expo-observe';
 import { Play, Clock, AlertTriangle, Activity, User } from 'lucide-react-native';
 import type { ServerUserFullDetail, Session } from '@tracearr/shared';
 import { useTranslation } from '@tracearr/translations/mobile';
@@ -188,7 +187,6 @@ export function UserDetail({ id, embedded = false, onBack }: DetailScreenProps) 
           options={{ title: person.data.user.identityName ?? person.data.user.username }}
         />
       )}
-      {embedded ? null : <ObserveInteractiveMarker />}
       <ScrollView
         className="flex-1"
         keyboardShouldPersistTaps="handled"

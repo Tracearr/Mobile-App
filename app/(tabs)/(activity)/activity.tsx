@@ -31,7 +31,6 @@ import {
   QualityChart,
 } from '@/components/charts';
 import { useTranslation } from '@tracearr/translations/mobile';
-import { ObserveInteractiveMarker } from 'expo-observe';
 
 // A period switch keeps the last period's chart on screen, dimmed, until the new one
 // arrives. A scope switch never does: another server's chart must not pass for this one.
@@ -123,7 +122,6 @@ export default function ActivityScreen() {
 
   return (
     <>
-      <ObserveInteractiveMarker />
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{

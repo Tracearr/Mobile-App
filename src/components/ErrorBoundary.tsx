@@ -1,14 +1,9 @@
 /**
  * Error Boundary component for catching and displaying React errors
  */
-import { useEffect, type ReactNode } from 'react';
+import { Component, useEffect, type ReactNode } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { AlertTriangle, RefreshCw } from 'lucide-react-native';
-import {
-  Observe,
-  ObserveErrorBoundary,
-  type ObserveErrorBoundaryFallbackProps,
-} from 'expo-observe';
 import type { ErrorBoundaryProps } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useTranslation } from '@tracearr/translations/mobile';
@@ -16,23 +11,30 @@ import { ErrorState } from '@/components/ui/error-state';
 import { recordTrouble } from '@/lib/reviewPrompt';
 import { colors } from '@/lib/theme';
 
-export function ErrorBoundary({ children }: { children: ReactNode }) {
-  return (
-    <ObserveErrorBoundary fallback={(props) => <ErrorFallback {...props} />}>
-      {children}
-    </ObserveErrorBoundary>
-  );
+// React logs every caught error through console.error, which PostHog captures.
+export class ErrorBoundary extends Component<{ children: ReactNode }, { error: unknown }> {
+  state: { error: unknown } = { error: null };
+
+  static getDerivedStateFromError(error: unknown) {
+    return { error };
+  }
+
+  render() {
+    if (this.state.error === null) return this.props.children;
+    return (
+      <ErrorFallback error={this.state.error} resetError={() => this.setState({ error: null })} />
+    );
+  }
 }
 
 // Wired as unstable_settings.screenErrorBoundary in the root layout: one broken
 // screen shows this inside its own tab or stack entry and the rest of the app
-// keeps working. expo-router's boundary reports nowhere, so this does.
+// keeps working.
 export function ScreenErrorFallback({ error, retry }: ErrorBoundaryProps) {
   const { t } = useTranslation(['common']);
 
   useEffect(() => {
     recordTrouble();
-    Observe.reportError(error);
   }, [error]);
 
   return (
@@ -45,7 +47,7 @@ export function ScreenErrorFallback({ error, retry }: ErrorBoundaryProps) {
   );
 }
 
-function ErrorFallback({ error, resetError }: ObserveErrorBoundaryFallbackProps) {
+function ErrorFallback({ error, resetError }: { error: unknown; resetError: () => void }) {
   const { t } = useTranslation(['common', 'mobile']);
 
   // A throw during the first render means the root layout's own hide never runs.
