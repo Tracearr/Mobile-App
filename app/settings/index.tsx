@@ -2,7 +2,15 @@
  * Settings Index Screen
  * Main settings page with links to sub-settings, external links, and disconnect option
  */
-import { View, Pressable, Alert, ScrollView, Linking, ActivityIndicator } from 'react-native';
+import {
+  View,
+  Pressable,
+  Alert,
+  ScrollView,
+  Linking,
+  ActivityIndicator,
+  Platform,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import {
@@ -302,15 +310,19 @@ export default function SettingsScreen() {
             showChevron={false}
             external
           />
-          <View className="bg-border ml-14 h-px" />
-          <SettingsRow
-            icon={<Heart size={20} color="#DB61A2" />}
-            label={t('mobile:settings.sponsor')}
-            description={t('mobile:settings.supportDevelopment')}
-            onPress={() => openUrl(SPONSOR_URL)}
-            showChevron={false}
-            external
-          />
+          {Platform.OS !== 'ios' && (
+            <>
+              <View className="bg-border ml-14 h-px" />
+              <SettingsRow
+                icon={<Heart size={20} color="#DB61A2" />}
+                label={t('mobile:settings.sponsor')}
+                description={t('mobile:settings.supportDevelopment')}
+                onPress={() => openUrl(SPONSOR_URL)}
+                showChevron={false}
+                external
+              />
+            </>
+          )}
         </SettingsSection>
 
         {/* Account */}
