@@ -55,7 +55,7 @@ const nonEmpty = <T,>(values: T[]): T[] | undefined => (values.length > 0 ? valu
 export default function HistoryScreen() {
   const { t } = useTranslation(['mobile', 'common', 'nav']);
   const router = useRouter();
-  const { scope } = useMediaServer();
+  const { scope, scopeReady } = useMediaServer();
   const { isTablet } = useResponsive();
   const filterSheetRef = useRef<FilterBottomSheetRef>(null);
 
@@ -102,9 +102,10 @@ export default function HistoryScreen() {
     [period, search, advancedFilters]
   );
 
-  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, refetch, isLoading, error } =
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, refetch, isPending, error } =
     useInfiniteQuery({
       queryKey: queryKeys.sessions.history(scope, filters),
+      enabled: scopeReady,
       queryFn: ({ pageParam, signal }) =>
         api.sessions.history(
           {
@@ -146,13 +147,16 @@ export default function HistoryScreen() {
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const renderItem = useCallback(
-    ({ item }: { item: SessionWithDetails }) => (
-      <HistoryRow
-        session={item}
-        onPress={() => (isTablet ? setSelectedId(item.id) : router.push(ROUTES.SESSION(item.id)))}
-        selected={isTablet && selectedId === item.id}
-      />
-    ),
+    // FlashList 2.3 can hand over an index past the end after React discards a render
+    // (Shopify/flash-list#2527).
+    ({ item }: { item: SessionWithDetails | undefined }) =>
+      item ? (
+        <HistoryRow
+          session={item}
+          onPress={() => (isTablet ? setSelectedId(item.id) : router.push(ROUTES.SESSION(item.id)))}
+          selected={isTablet && selectedId === item.id}
+        />
+      ) : null,
     [router, isTablet, selectedId]
   );
 
@@ -203,7 +207,7 @@ export default function HistoryScreen() {
           ) : undefined
         }
         ListEmptyComponent={
-          isLoading ? (
+          isPending ? (
             <View className="items-center py-12">
               <ActivityIndicator size="large" color={ACCENT_COLOR} />
             </View>

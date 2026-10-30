@@ -40,7 +40,7 @@ const SEARCH_DEBOUNCE_MS = 300;
 export default function UsersScreen() {
   const { t } = useTranslation(['mobile', 'common', 'nav']);
   const router = useRouter();
-  const { scope, servers } = useMediaServer();
+  const { scope, scopeReady, servers } = useMediaServer();
   const { isTablet } = useResponsive();
   const [searchText, setSearchText] = useState('');
   const [orderBy, setOrderBy] = useState<UserSortField>('username');
@@ -59,11 +59,12 @@ export default function UsersScreen() {
     hasNextPage,
     isFetchingNextPage,
     refetch,
-    isLoading,
+    isPending,
     isError,
     error,
   } = useInfiniteQuery({
     queryKey: queryKeys.users.list(scope, { search, orderBy, orderDir }),
+    enabled: scopeReady,
     queryFn: ({ pageParam, signal }) =>
       api.users.list(
         { page: pageParam, pageSize: PAGE_SIZE, scope, search, orderBy, orderDir },
@@ -92,7 +93,7 @@ export default function UsersScreen() {
   const { controlKey, refreshControlProps } = usePullToRefresh(() => refetch());
 
   const renderEmpty = () => {
-    if (isLoading) {
+    if (isPending) {
       return (
         <View className="items-center py-12">
           <ActivityIndicator size="large" color={ACCENT_COLOR} />
@@ -130,15 +131,18 @@ export default function UsersScreen() {
       contentInsetAdjustmentBehavior="automatic"
       keyboardShouldPersistTaps="handled"
       keyboardDismissMode="on-drag"
-      renderItem={({ item }) => (
-        <UserListItem
-          user={item}
-          onPress={() => openUser(item.id)}
-          isTablet={isTablet}
-          showServers={showServers}
-          selected={isTablet && selectedId === item.id}
-        />
-      )}
+      // See the history list: FlashList 2.3 can pass undefined (Shopify/flash-list#2527).
+      renderItem={({ item }: { item: ServerUserWithIdentity | undefined }) =>
+        item ? (
+          <UserListItem
+            user={item}
+            onPress={() => openUser(item.id)}
+            isTablet={isTablet}
+            showServers={showServers}
+            selected={isTablet && selectedId === item.id}
+          />
+        ) : null
+      }
       contentContainerStyle={{
         paddingHorizontal: spacing.md,
         paddingTop: spacing.sm,

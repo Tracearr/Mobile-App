@@ -33,6 +33,8 @@ const LEGACY_SERVER_KEY = 'tracearr_selected_media_server'; // single-server era
 interface MediaServerContextValue {
   servers: Server[];
   scope: ServerScope;
+  /** False until the saved scope has loaded, so a list does not fetch every server first. */
+  scopeReady: boolean;
   selectedServer: Server | null;
   selectedServerId: string | null;
   isLoading: boolean;
@@ -211,6 +213,7 @@ export function MediaServerProvider({ children }: { children: ReactNode }) {
     () => ({
       servers: mediaServers,
       scope: effectiveScope,
+      scopeReady: initialized,
       selectedServer,
       selectedServerId,
       isLoading,
@@ -227,6 +230,7 @@ export function MediaServerProvider({ children }: { children: ReactNode }) {
     [
       mediaServers,
       effectiveScope,
+      initialized,
       selectedServer,
       selectedServerId,
       isLoading,
