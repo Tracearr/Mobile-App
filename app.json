@@ -192,6 +192,13 @@
             }
           ]
         }
+      ],
+      [
+        "./plugins/withNotificationService",
+        {
+          "bundleIdentifier": "com.tracearr.app.NotificationService",
+          "deploymentTarget": "17.0"
+        }
       ]
     ],
     "experiments": {
