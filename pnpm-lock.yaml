@@ -8,6 +8,7 @@ overrides:
   '@expo/metro-config>lightningcss': 1.30.1
 
 patchedDependencies:
+  '@shopify/react-native-skia@2.14.0': dcd2d6674af321a6d3ded07a75439f27ae82641eecd98b8f2ab00cb1d252c3e9
   expo-widgets@58.0.26: 87ed0e4469cd932717e01f4434b4fccfad6de3c5c20b88a7fadc07fbde86391b
   react-native-css@3.1.0-rc.0: 225f52270663d3b4ab7e0cc8098a7dfc189c3315b937974be35208f89ca35b25
 
@@ -35,7 +36,7 @@ importers:
         version: 2.3.3(@babel/runtime@7.29.10)(react-native@0.88.1(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(react@19.3.0)
       '@shopify/react-native-skia':
         specifier: 2.14.0
-        version: 2.14.0(3b0d24e1f879855e4286f09f19860dff)
+        version: 2.14.0(patch_hash=dcd2d6674af321a6d3ded07a75439f27ae82641eecd98b8f2ab00cb1d252c3e9)(3b0d24e1f879855e4286f09f19860dff)
       '@tanstack/react-query':
         specifier: ^5.104.4
         version: 5.104.4(@types/react@19.3.0)(react@19.3.0)
@@ -206,7 +207,7 @@ importers:
         version: 3.7.0
       victory-native:
         specifier: ^42.0.1
-        version: 42.0.1(babf391f4a8251f4ee08bb6a4a41c833)
+        version: 42.0.1(768d66273e05c76f7a4a7e309610b14c)
       zustand:
         specifier: ^5.0.15
         version: 5.0.15(@types/react@19.3.0)(react@19.3.0)(use-sync-external-store@1.7.0(react@19.3.0))
@@ -7509,7 +7510,7 @@ snapshots:
       react: 19.3.0
       react-native: 0.88.1(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.1(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1)
 
-  '@shopify/react-native-skia@2.14.0(3b0d24e1f879855e4286f09f19860dff)':
+  '@shopify/react-native-skia@2.14.0(patch_hash=dcd2d6674af321a6d3ded07a75439f27ae82641eecd98b8f2ab00cb1d252c3e9)(3b0d24e1f879855e4286f09f19860dff)':
     dependencies:
       canvaskit-wasm: 0.41.0
       react: 19.3.0
@@ -11493,9 +11494,9 @@ snapshots:
 
   vary@1.1.2: {}
 
-  victory-native@42.0.1(babf391f4a8251f4ee08bb6a4a41c833):
+  victory-native@42.0.1(768d66273e05c76f7a4a7e309610b14c):
     dependencies:
-      '@shopify/react-native-skia': 2.14.0(3b0d24e1f879855e4286f09f19860dff)
+      '@shopify/react-native-skia': 2.14.0(patch_hash=dcd2d6674af321a6d3ded07a75439f27ae82641eecd98b8f2ab00cb1d252c3e9)(3b0d24e1f879855e4286f09f19860dff)
       d3-scale: 4.0.2
       d3-shape: 3.2.0
       d3-zoom: 3.0.0

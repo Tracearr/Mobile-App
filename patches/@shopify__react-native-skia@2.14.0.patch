@@ -1,0 +1,16 @@
+diff --git a/android/CMakeLists.txt b/android/CMakeLists.txt
+index 6a50c5880f72082314ededd5aaa2b0e3ade2fd2c..4b05cde506eccc1b781feb586ff89209a72b7ec5 100644
+--- a/android/CMakeLists.txt
++++ b/android/CMakeLists.txt
+@@ -95,6 +95,11 @@ add_library(
+ )
+ 
+ 
++# RNSkManager.cpp, RNSkPictureView.cpp and ViewProperty.cpp each take 2.4 to 4.8 GB to compile.
++# In parallel they exhaust a 16 GB EAS worker (wcandillon/react-native-skia#4272, fixed by #4284 on 2.x).
++set_property(GLOBAL APPEND PROPERTY JOB_POOLS rnskia_compile=1)
++set_property(TARGET ${PACKAGE_NAME} PROPERTY JOB_POOL_COMPILE rnskia_compile)
++
+ 
+ target_include_directories(
+         ${PACKAGE_NAME}
