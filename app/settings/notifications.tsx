@@ -427,9 +427,28 @@ export default function NotificationSettingsScreen() {
 
   const pushEnabled = preferences.pushEnabled;
   const { delivery } = preferences;
+  const switches = delivery?.switches;
 
   const senderNote = (key: PushEventPreference): SettingNote | undefined => {
     if (!delivery) return undefined;
+    if (switches) {
+      const { others, scoped } = switches[key];
+      if (others === 0) return undefined;
+      const text = t('mobile:notifications.alsoSentBy', {
+        count: others,
+        defaultValue_one:
+          'Also sent by {{count}} automation from the web dashboard, which this switch does not change',
+        defaultValue_other:
+          'Also sent by {{count}} automations from the web dashboard, which this switch does not change',
+      });
+      if (scoped === 0) return { text };
+      const scopedText = t('mobile:notifications.scopedSenders', {
+        count: scoped,
+        defaultValue_one: '{{count}} of them is limited to one server',
+        defaultValue_other: '{{count}} of them are limited to one server',
+      });
+      return { text: `${text}. ${scopedText}` };
+    }
     if (key === 'onViolationDetected' && delivery.violationsSubscribed) {
       return {
         text: t('mobile:notifications.everyViolationSent', {
@@ -612,12 +631,17 @@ export default function NotificationSettingsScreen() {
         <SettingsSection
           title={t('notifications:settings.notificationEvents')}
           footer={
-            delivery
-              ? t('mobile:notifications.eventsFooter', {
+            switches
+              ? t('mobile:notifications.sharedEventsFooter', {
                   defaultValue:
-                    'Your server pushes an event when an automation sends it to the Mobile push destination. These switches choose which of those this device shows. Automations are set up in the web dashboard.',
+                    'These switches change what your server sends to Mobile push, so they apply to every paired device. Push notifications and quiet hours apply to this device only.',
                 })
-              : undefined
+              : delivery
+                ? t('mobile:notifications.eventsFooter', {
+                    defaultValue:
+                      'Your server pushes an event when an automation sends it to the Mobile push destination. These switches choose which of those this device shows. Automations are set up in the web dashboard.',
+                  })
+                : undefined
           }
         >
           {eventRows.map((row, index) => (
@@ -630,93 +654,98 @@ export default function NotificationSettingsScreen() {
                 note={senderNote(row.key)}
                 value={preferences[row.key]}
                 onValueChange={(v) => handleUpdate(row.key, v)}
-                disabled={!pushEnabled}
+                disabled={!pushEnabled || (!!switches && !delivery?.destinationEnabled)}
               />
             </View>
           ))}
         </SettingsSection>
 
-        {/* Violation Filters - Only show if violation notifications are enabled */}
-        {pushEnabled && preferences.onViolationDetected && (
-          <>
-            {showRuleTypes && (
-              <SettingsSection
-                title={t('mobile:notifications.violationTypes', {
-                  defaultValue: 'Violation Types',
-                })}
-              >
-                <SettingRow
-                  icon={ShieldAlert}
-                  label={t('mobile:notifications.allViolationTypes')}
-                  description={t('mobile:notifications.notifyForEveryRule')}
-                  value={preferences.violationRuleTypes.length === 0}
-                  onValueChange={(allEnabled) => {
-                    if (allEnabled) {
-                      handleUpdate('violationRuleTypes', []);
-                    } else {
-                      // When turning off "All", enable all individual types
-                      handleUpdate(
-                        'violationRuleTypes',
-                        RULE_TYPES.map((r) => r.value)
-                      );
-                    }
-                  }}
-                />
-                {preferences.violationRuleTypes.length > 0 && (
-                  <>
-                    {RULE_TYPES.map((ruleType) => {
-                      const isEnabled = preferences.violationRuleTypes.includes(ruleType.value);
-                      return (
-                        <View key={ruleType.value}>
-                          <Divider />
-                          <SettingRow
-                            icon={ruleType.icon}
-                            label={ruleTypeLabels[ruleType.value] ?? ruleType.value}
-                            value={isEnabled}
-                            onValueChange={(enabled) => {
-                              const current = preferences.violationRuleTypes;
-                              if (enabled) {
-                                handleUpdate('violationRuleTypes', [...current, ruleType.value]);
-                              } else {
-                                const updated = current.filter((v) => v !== ruleType.value);
-                                // If none left, keep at least one or revert to all
-                                handleUpdate(
-                                  'violationRuleTypes',
-                                  updated.length === 0 ? [] : updated
-                                );
-                              }
-                            }}
-                          />
-                        </View>
-                      );
-                    })}
-                  </>
-                )}
-              </SettingsSection>
-            )}
-
-            <SettingsSection title={t('notifications:settings.minimumSeverity')}>
-              <View className="px-4 py-3">
-                <View
-                  style={{ width: '100%', maxWidth: layout.secondaryMaxWidth, alignSelf: 'center' }}
+        {/* Violation filters, while violations reach this device by any sender */}
+        {pushEnabled &&
+          (preferences.onViolationDetected || !!switches?.onViolationDetected.others) && (
+            <>
+              {showRuleTypes && (
+                <SettingsSection
+                  title={t('mobile:notifications.violationTypes', {
+                    defaultValue: 'Violation Types',
+                  })}
                 >
-                  <SegmentedControl
-                    options={severityOptions}
-                    value={String(preferences.violationMinSeverity)}
-                    onChange={(value) => {
-                      haptics.selection();
-                      handleUpdate('violationMinSeverity', Number(value));
+                  <SettingRow
+                    icon={ShieldAlert}
+                    label={t('mobile:notifications.allViolationTypes')}
+                    description={t('mobile:notifications.notifyForEveryRule')}
+                    value={preferences.violationRuleTypes.length === 0}
+                    onValueChange={(allEnabled) => {
+                      if (allEnabled) {
+                        handleUpdate('violationRuleTypes', []);
+                      } else {
+                        // When turning off "All", enable all individual types
+                        handleUpdate(
+                          'violationRuleTypes',
+                          RULE_TYPES.map((r) => r.value)
+                        );
+                      }
                     }}
-                    accessibilityLabel={t('notifications:settings.minimumSeverity')}
                   />
+                  {preferences.violationRuleTypes.length > 0 && (
+                    <>
+                      {RULE_TYPES.map((ruleType) => {
+                        const isEnabled = preferences.violationRuleTypes.includes(ruleType.value);
+                        return (
+                          <View key={ruleType.value}>
+                            <Divider />
+                            <SettingRow
+                              icon={ruleType.icon}
+                              label={ruleTypeLabels[ruleType.value] ?? ruleType.value}
+                              value={isEnabled}
+                              onValueChange={(enabled) => {
+                                const current = preferences.violationRuleTypes;
+                                if (enabled) {
+                                  handleUpdate('violationRuleTypes', [...current, ruleType.value]);
+                                } else {
+                                  const updated = current.filter((v) => v !== ruleType.value);
+                                  // If none left, keep at least one or revert to all
+                                  handleUpdate(
+                                    'violationRuleTypes',
+                                    updated.length === 0 ? [] : updated
+                                  );
+                                }
+                              }}
+                            />
+                          </View>
+                        );
+                      })}
+                    </>
+                  )}
+                </SettingsSection>
+              )}
+
+              <SettingsSection title={t('notifications:settings.minimumSeverity')}>
+                <View className="px-4 py-3">
+                  <View
+                    style={{
+                      width: '100%',
+                      maxWidth: layout.secondaryMaxWidth,
+                      alignSelf: 'center',
+                    }}
+                  >
+                    <SegmentedControl
+                      options={severityOptions}
+                      value={String(preferences.violationMinSeverity)}
+                      onChange={(value) => {
+                        haptics.selection();
+                        handleUpdate('violationMinSeverity', Number(value));
+                      }}
+                      accessibilityLabel={t('notifications:settings.minimumSeverity')}
+                    />
+                  </View>
+                  <Text className="text-muted-foreground mt-2 text-xs">
+                    {t('mobile:notifications.severityDescription')}
+                  </Text>
                 </View>
-                <Text className="text-muted-foreground mt-2 text-xs">
-                  {t('mobile:notifications.severityDescription')}
-                </Text>
-              </View>
-            </SettingsSection>
-          </>
-        )}
+              </SettingsSection>
+            </>
+          )}
 
         {/* Quiet Hours */}
         <SettingsSection title={t('notifications:settings.quietHours')}>

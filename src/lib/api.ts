@@ -399,14 +399,22 @@ export type PushEventPreference =
   | 'onServerDown'
   | 'onServerUp';
 
+export interface PushSwitch {
+  on: boolean;
+  others: number;
+  scoped: number;
+}
+
 export interface PushDeliveryStatus {
   tokenRegistered: boolean;
   destinationEnabled: boolean;
   violationsSubscribed: boolean;
   automations: Record<PushEventPreference, number>;
+  /** Servers whose switches write the senders instead of filtering this device. */
+  switches?: Record<PushEventPreference, PushSwitch>;
 }
 
-// Older servers leave delivery out, and the pinned @tracearr/shared does not type it yet.
+// Older servers leave delivery out, and the pinned @tracearr/shared does not type switches yet.
 export type NotificationPreferencesResponse = NotificationPreferencesWithStatus & {
   delivery?: PushDeliveryStatus;
 };
