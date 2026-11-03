@@ -3,7 +3,7 @@
  * Uses @gorhom/bottom-sheet for native-feeling filter interface
  */
 import React, { useCallback, useMemo, useRef, forwardRef, useImperativeHandle } from 'react';
-import { View, Pressable, type ViewStyle } from 'react-native';
+import { View, Pressable, useWindowDimensions, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import BottomSheet, {
   BottomSheetBackdrop,
@@ -190,15 +190,28 @@ function ChipOption({
   );
 }
 
+// M3 bottom sheets: full width up to 640 dp, then 56 dp side margins.
+const SHEET_MAX_WIDTH = 640;
+
 export const FilterBottomSheet = forwardRef<FilterBottomSheetRef, FilterBottomSheetProps>(
   ({ filterOptions, filters, onFiltersChange }, ref) => {
     const { t } = useTranslation(['common', 'mobile', 'nav', 'pages']);
     const insets = useSafeAreaInsets();
-    const { isCompactHeight } = useResponsive();
+    const { isCompactHeight, isSplit } = useResponsive();
+    const { width } = useWindowDimensions();
     const bottomSheetRef = useRef<BottomSheet>(null);
     const [activeSection, setActiveSection] = React.useState<FilterSection>('main');
 
     const snapPoints = useMemo(() => ['60%', '90%'], []);
+    const sheetMargin = useMemo<ViewStyle>(
+      () => ({
+        marginHorizontal:
+          !isSplit && width > SHEET_MAX_WIDTH
+            ? (width - Math.min(SHEET_MAX_WIDTH, width - 112)) / 2
+            : 0,
+      }),
+      [width, isSplit]
+    );
 
     useImperativeHandle(ref, () => ({
       open: () => bottomSheetRef.current?.expand(),
@@ -491,6 +504,7 @@ export const FilterBottomSheet = forwardRef<FilterBottomSheetRef, FilterBottomSh
         onChange={handleSheetChange}
         backgroundStyle={bottomSheetBackground}
         handleIndicatorStyle={handleIndicator}
+        style={sheetMargin}
       >
         {activeSection === 'main' ? renderMainMenu() : renderListSection(activeSection)}
       </BottomSheet>

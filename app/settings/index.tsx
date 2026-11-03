@@ -186,6 +186,9 @@ export default function SettingsScreen() {
           onPress: () => {
             void (async () => {
               await unpairServer();
+              // Drops the tab tree with this server's detail screens, so the
+              // next pairing starts on fresh tabs instead of popping to them.
+              router.dismissAll();
               router.replace(ROUTES.PAIR);
             })();
           },

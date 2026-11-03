@@ -28,12 +28,14 @@ import {
 } from 'lucide-react-native';
 import { api } from '@/lib/api';
 import { queryKeys } from '@/lib/queryKeys';
-import { ROUTES } from '@/lib/routes';
 import { haptics } from '@/lib/haptics';
 import { FULL_DATE_TIME_OPTIONS, safeFormatDate, safeFormatDistanceToNow } from '@/lib/dateFormat';
 import { useDateConventions } from '@/lib/dateSettings';
 import { countryName } from '@/lib/regionNames';
 import { useResponsive } from '@/hooks/useResponsive';
+import { useScrollMemory } from '@/hooks/useScrollMemory';
+import { useStackRoutes } from '@/hooks/useOpenInTabs';
+import { scrollKey } from '@/lib/detailMemory';
 import type { DetailScreenProps } from './detail-props';
 import { useMediaServer } from '@/providers/MediaServerProvider';
 import { Text } from '@/components/ui/text';
@@ -48,7 +50,7 @@ import { ServerTag } from '@/components/server/ServerTag';
 import { ActionResultsList } from '@/components/violations/ActionResultsList';
 import { EvidenceList } from '@/components/violations/EvidenceList';
 import { SeverityBadge } from '@/components/violations/SeverityBadge';
-import { colors, spacing, ACCENT_COLOR } from '@/lib/theme';
+import { colors, spacing, ACCENT_COLOR, layout } from '@/lib/theme';
 import {
   getViolationDetails,
   collectViolationSessions,
@@ -205,10 +207,12 @@ function findViolationInCache(
   return undefined;
 }
 
-export function ViolationDetail({ id, embedded = false, onBack }: DetailScreenProps) {
+export function ViolationDetail({ id, mem, embedded = false, onBack }: DetailScreenProps) {
+  const scrollProps = useScrollMemory(scrollKey(mem));
   useDateConventions();
   const { t } = useTranslation(['mobile', 'common', 'pages', 'nav']);
   const router = useRouter();
+  const routes = useStackRoutes();
   const queryClient = useQueryClient();
   const { servers } = useMediaServer();
   const { isTablet, horizontalPadding: screenPadding } = useResponsive();
@@ -347,6 +351,7 @@ export function ViolationDetail({ id, embedded = false, onBack }: DetailScreenPr
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background.dark }} edges={['bottom']}>
       <ScrollView
+        {...scrollProps}
         className="flex-1"
         contentContainerStyle={{
           paddingHorizontal: horizontalPadding,
@@ -385,7 +390,13 @@ export function ViolationDetail({ id, embedded = false, onBack }: DetailScreenPr
 
         <View
           className="mb-6"
-          style={{ flexDirection: isTablet ? 'row' : 'column', gap: spacing.sm }}
+          style={{
+            flexDirection: isTablet ? 'row' : 'column',
+            gap: spacing.sm,
+            width: '100%',
+            maxWidth: layout.secondaryMaxWidth,
+            alignSelf: 'center',
+          }}
         >
           {isPending && (
             <Button
@@ -446,7 +457,7 @@ export function ViolationDetail({ id, embedded = false, onBack }: DetailScreenPr
           <Card>
             <Pressable
               className="flex-row items-center gap-4 active:opacity-80"
-              onPress={() => router.push(ROUTES.USER(violation.user.id))}
+              onPress={() => router.push(routes.user(violation.user.id))}
               accessibilityRole="button"
               accessibilityLabel={displayName}
               accessibilityHint={t('common:actions.viewProfile')}

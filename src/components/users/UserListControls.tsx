@@ -3,7 +3,7 @@ import { Search, X, ArrowDownWideNarrow, ArrowUpNarrowWide } from 'lucide-react-
 import type { UserSortField } from '@tracearr/shared';
 import { useTranslation } from '@tracearr/translations/mobile';
 import { SegmentedControl } from '@/components/ui/segmented-control';
-import { colors } from '@/lib/theme';
+import { colors, layout } from '@/lib/theme';
 import { haptics } from '@/lib/haptics';
 
 interface UserListControlsProps {
@@ -14,6 +14,10 @@ interface UserListControlsProps {
   onOrderByChange: (orderBy: UserSortField) => void;
   onToggleOrderDir: () => void;
 }
+
+// h-11 is 38.5 dp (see button.tsx on rem); 6 dp holds 48 dp at every dpi from
+// 240 to 640 and stays inside the 7 dp gap to the search field.
+export const SQUARE_BUTTON_HIT_SLOP = 6;
 
 /** Same rows and sizes as HistoryFilters: a segmented control, then search beside one button. */
 export function UserListControls({
@@ -28,7 +32,10 @@ export function UserListControls({
   const DirectionIcon = orderDir === 'asc' ? ArrowUpNarrowWide : ArrowDownWideNarrow;
 
   return (
-    <View className="mb-4 gap-2">
+    <View
+      className="mb-4 gap-2"
+      style={{ width: '100%', maxWidth: layout.secondaryMaxWidth, alignSelf: 'flex-start' }}
+    >
       <SegmentedControl
         accessibilityLabel={t('common:actions.sort')}
         value={orderBy}
@@ -93,6 +100,7 @@ export function UserListControls({
                   defaultValue: 'Sorted descending, tap to reverse',
                 })
           }
+          hitSlop={SQUARE_BUTTON_HIT_SLOP}
           className="border-border bg-card h-11 w-11 items-center justify-center rounded-lg border"
         >
           <DirectionIcon size={18} color={colors.text.primary.dark} />

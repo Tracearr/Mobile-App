@@ -9,6 +9,9 @@ interface LoadMoreButtonProps {
   isLoading: boolean;
 }
 
+// min-h-11 renders at 38.5 dp (see button.tsx on rem and the dpi sweep).
+const HIT_SLOP = { top: 6, bottom: 6 };
+
 export function LoadMoreButton({ onPress, isLoading }: LoadMoreButtonProps) {
   const { t } = useTranslation(['common']);
 
@@ -17,6 +20,7 @@ export function LoadMoreButton({ onPress, isLoading }: LoadMoreButtonProps) {
       accessibilityRole="button"
       accessibilityState={{ busy: isLoading, disabled: isLoading }}
       className="min-h-11 items-center justify-center active:opacity-70"
+      hitSlop={HIT_SLOP}
       onPress={onPress}
       disabled={isLoading}
     >

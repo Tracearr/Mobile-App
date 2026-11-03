@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { View, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
 import { Workflow } from 'lucide-react-native';
 import { useTranslation } from '@tracearr/translations/mobile';
 import { SERVER_2_2, useServerVersion } from '@/hooks';
@@ -12,15 +11,17 @@ import { ErrorState } from '@/components/ui/error-state';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { SegmentedControl } from '@/components/ui/segmented-control';
 import { useResponsive } from '@/hooks/useResponsive';
+import { useRouter } from 'expo-router';
+import { useReturnToTabs } from '@/hooks/useOpenInTabs';
 import { haptics } from '@/lib/haptics';
-import { ROUTES } from '@/lib/routes';
-import { ACCENT_COLOR, colors, spacing } from '@/lib/theme';
+import { ACCENT_COLOR, colors, layout, spacing } from '@/lib/theme';
 
 type Segment = 'automations' | 'activity';
 
 export default function AutomationsScreen() {
   const { t } = useTranslation(['pages', 'mobile', 'common']);
   const router = useRouter();
+  const returnToTabs = useReturnToTabs();
   const { horizontalPadding } = useResponsive();
   const { version, supports, isError, refetch } = useServerVersion();
   const [segment, setSegment] = useState<Segment>('automations');
@@ -35,14 +36,18 @@ export default function AutomationsScreen() {
     body = (
       <>
         <View style={{ paddingHorizontal: horizontalPadding, paddingTop: spacing.sm }}>
-          <SegmentedControl
-            options={[
-              { value: 'automations', label: t('pages:automations.title') },
-              { value: 'activity', label: t('pages:automations.activity.title') },
-            ]}
-            value={segment}
-            onChange={handleSegmentChange}
-          />
+          <View
+            style={{ width: '100%', maxWidth: layout.secondaryMaxWidth, alignSelf: 'flex-start' }}
+          >
+            <SegmentedControl
+              options={[
+                { value: 'automations', label: t('pages:automations.title') },
+                { value: 'activity', label: t('pages:automations.activity.title') },
+              ]}
+              value={segment}
+              onChange={handleSegmentChange}
+            />
+          </View>
         </View>
         {segment === 'automations' ? (
           <AutomationsList horizontalPadding={horizontalPadding} />
@@ -91,7 +96,7 @@ export default function AutomationsScreen() {
     >
       <ScreenHeader
         title={t('pages:automations.title')}
-        onBack={router.canGoBack() ? undefined : () => router.replace(ROUTES.TABS)}
+        onBack={router.canGoBack() ? undefined : returnToTabs}
       />
       {body}
     </SafeAreaView>

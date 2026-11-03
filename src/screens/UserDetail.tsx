@@ -4,11 +4,18 @@
  * whole person (scope=identity); picking a server narrows it to that one account,
  * the way web's ?scope= picker does. The global server selection does not apply here.
  *
+ * Sections, as on web: Overview, Sessions, Requests (when configured) and Violations,
+ * with termination history under Violations. The person's header and the picker scroll
+ * with the content; the section control sticks to the top once it gets there. The section
+ * lives in the route's `tab` param when pushed and in detailMemory when embedded, under
+ * the opened detail's `mem` token; a fold or unfold hands the token to the other copy, and
+ * closing forgets it.
+ *
  * Responsive layout:
  * - Phone: Single column, 64px avatar, 2x2 stats grid
  * - Tablet (md+): Responsive padding, 80px avatar, 1x4 stats row, 2-column Locations/Devices
  */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { View, ScrollView, RefreshControl, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useRouter } from 'expo-router';
@@ -17,17 +24,22 @@ import { isAxiosError } from 'axios';
 import { Play, Clock, AlertTriangle, Activity, User } from 'lucide-react-native';
 import type { ServerUserFullDetail, Session } from '@tracearr/shared';
 import { useTranslation } from '@tracearr/translations/mobile';
+import type { UserDetailScope } from '@/lib/api';
 import { queryKeys } from '@/lib/queryKeys';
-import { ROUTES } from '@/lib/routes';
 import { useAuthStateStore } from '@/lib/authStateStore';
 import { useUserFull, useRequestsStatus } from '@/hooks';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useResponsive } from '@/hooks/useResponsive';
-import type { DetailScreenProps } from './detail-props';
+import { useScrollMemory } from '@/hooks/useScrollMemory';
+import { useStackRoutes } from '@/hooks/useOpenInTabs';
+import { rememberTab, scrollKey } from '@/lib/detailMemory';
+import { parseUserTab, userTabs, type UserTab } from '@/lib/userTabs';
+import type { UserDetailProps } from './detail-props';
 import { Text } from '@/components/ui/text';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { SegmentedControl } from '@/components/ui/segmented-control';
+import { SectionTabs } from '@/components/ui/section-tabs';
 import { UserHeaderCard } from '@/components/users/UserHeaderCard';
 import { UserStatsGrid } from '@/components/users/UserStatsGrid';
 import { LinkedAccountsCard } from '@/components/users/LinkedAccountsCard';
@@ -89,15 +101,35 @@ function ScopePicker({
   );
 }
 
-export function UserDetail({ id, embedded = false, onBack }: DetailScreenProps) {
+export function UserDetail({
+  id,
+  mem,
+  embedded = false,
+  onBack,
+  tab: tabParam,
+  onTabChange,
+}: UserDetailProps) {
   useDateConventions();
-  const { t } = useTranslation(['mobile', 'common', 'pages']);
+  const { t } = useTranslation(['mobile', 'common', 'pages', 'nav']);
   const router = useRouter();
+  const routes = useStackRoutes();
   const queryClient = useQueryClient();
   const { isTablet, horizontalPadding: screenPadding } = useResponsive();
   const horizontalPadding = embedded ? spacing.md : screenPadding;
   const isOwner = useAuthStateStore((state) => state.user?.role === 'owner');
   const { configured: requestsConfigured } = useRequestsStatus();
+  const tab = parseUserTab(tabParam, userTabs(requestsConfigured));
+  const [tabsY, setTabsY] = useState<number>();
+  const scrollProps = useScrollMemory(scrollKey(mem, tab), tabsY);
+
+  useEffect(() => {
+    if (tabParam === undefined || tab === tabParam) rememberTab(mem, tab);
+  }, [mem, tab, tabParam]);
+
+  const handleTabChange = (next: UserTab) => {
+    if (embedded) onTabChange?.(next);
+    else router.setParams({ tab: next === 'overview' ? undefined : next });
+  };
 
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
   const [editTarget, setEditTarget] = useState<TrustEditTarget | null>(null);
@@ -113,7 +145,30 @@ export function UserDetail({ id, embedded = false, onBack }: DetailScreenProps) 
   const isAllScope = selectedAccountId === null;
   const view = isAllScope ? person : account;
   const effectiveId = selectedAccountId ?? id;
-  const scope = isAllScope ? 'identity' : 'account';
+  const scope: UserDetailScope = isAllScope ? 'identity' : 'account';
+
+  // A scope switch keeps the last loaded account on screen, dimmed, while the
+  // new one loads, so the header, the section row and the offset stay put. A
+  // failed fetch drops it, so nothing of the old account can be acted on.
+  const [last, setLast] = useState<{
+    detail: ServerUserFullDetail;
+    id: string;
+    scope: UserDetailScope;
+  }>();
+  if (view.data && view.data !== last?.detail) {
+    setLast({ detail: view.data, id: effectiveId, scope });
+  }
+  const shown = view.data
+    ? { detail: view.data, id: effectiveId, scope }
+    : view.isPending
+      ? last
+      : undefined;
+  const loadingScope = view.isPending && shown !== undefined;
+  const [editingFor, setEditingFor] = useState(shown?.id);
+  if (shown?.id !== editingFor) {
+    setEditingFor(shown?.id);
+    setEditTarget(null);
+  }
 
   const identity = person.data?.identity;
   const identityUserId = identity?.userId;
@@ -144,7 +199,7 @@ export function UserDetail({ id, embedded = false, onBack }: DetailScreenProps) 
   };
 
   const handleSessionPress = (session: Session) => {
-    router.push(ROUTES.SESSION(session.id));
+    router.push(routes.session(session.id));
   };
 
   if (!person.data || !identity) {
@@ -176,9 +231,20 @@ export function UserDetail({ id, embedded = false, onBack }: DetailScreenProps) 
   }
 
   const isMergedIdentity = identity.serverUsers.length > 1;
-  const showServer = isAllScope && isMergedIdentity;
-  const detail = view.data;
-  const sectionKey = `${effectiveId}-${scope}-${refreshGeneration}`;
+  const detail = shown?.detail;
+  const shownAll = shown?.scope === 'identity';
+  const showServer = shownAll && isMergedIdentity;
+  const sectionKey = `${shown?.id}-${shown?.scope}-${refreshGeneration}`;
+  const sectionLabels: Record<UserTab, string> = {
+    overview: t('nav:overview'),
+    sessions: t('common:labels.sessions'),
+    requests: t('nav:requests'),
+    violations: t('nav:violations'),
+  };
+  const sections = userTabs(requestsConfigured).map((value) => ({
+    value,
+    label: sectionLabels[value],
+  }));
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background.dark }} edges={['bottom']}>
@@ -188,6 +254,7 @@ export function UserDetail({ id, embedded = false, onBack }: DetailScreenProps) 
         />
       )}
       <ScrollView
+        {...scrollProps}
         className="flex-1"
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{
@@ -195,8 +262,20 @@ export function UserDetail({ id, embedded = false, onBack }: DetailScreenProps) 
           paddingTop: spacing.sm,
           paddingBottom: spacing.xl,
         }}
+        stickyHeaderIndices={detail ? [isMergedIdentity ? 2 : 1] : undefined}
         refreshControl={<RefreshControl key={controlKey} {...refreshControlProps} />}
       >
+        {detail && (
+          <UserHeaderCard
+            user={detail.user}
+            identity={identity}
+            isAllScope={shownAll}
+            avatarSize={avatarSize}
+            canEditTrust={isOwner && !loadingScope}
+            editTarget={editTarget}
+            onEditTrust={setEditTarget}
+          />
+        )}
         {isMergedIdentity && (
           <ScopePicker
             accounts={identity.serverUsers}
@@ -204,121 +283,128 @@ export function UserDetail({ id, embedded = false, onBack }: DetailScreenProps) 
             onChange={handleScopeChange}
           />
         )}
-
-        {!detail ? (
-          view.isError ? (
+        {detail && (
+          <View
+            style={{ backgroundColor: colors.background.dark }}
+            onLayout={(event) => setTabsY(event.nativeEvent.layout.y)}
+          >
+            <SectionTabs sections={sections} value={tab} onChange={handleTabChange} />
+          </View>
+        )}
+        <View style={{ paddingTop: spacing.md, opacity: loadingScope ? 0.6 : 1 }}>
+          {view.isError && !view.data ? (
             <ErrorState message={view.error.message} onRetry={() => void view.refetch()} />
-          ) : (
+          ) : !shown ? (
             <View className="items-center py-12">
               <ActivityIndicator size="large" color={ACCENT_COLOR} />
             </View>
-          )
-        ) : (
-          <>
-            <UserHeaderCard
-              user={detail.user}
-              identity={identity}
-              isAllScope={isAllScope}
-              avatarSize={avatarSize}
-              canEditTrust={isOwner}
-              editTarget={editTarget}
-              onEditTrust={setEditTarget}
-            />
+          ) : (
+            <>
+              {tab === 'overview' && (
+                <>
+                  <UserStatsGrid
+                    isTablet={isTablet}
+                    stats={[
+                      {
+                        icon: Play,
+                        label: t('pages:userDetail.sessions'),
+                        value: shown.detail.user.stats.totalSessions,
+                      },
+                      {
+                        icon: AlertTriangle,
+                        label: t('pages:userDetail.violations'),
+                        value: shown.detail.violations.total,
+                      },
+                      {
+                        icon: Clock,
+                        label: t('common:labels.joined'),
+                        value: safeFormatDate(
+                          shown.detail.user.joinedAt ?? shown.detail.user.createdAt,
+                          DATE_OPTIONS,
+                          t('common:labels.unknown')
+                        ),
+                      },
+                      {
+                        icon: Activity,
+                        label: t('common:labels.lastActivity'),
+                        value: safeFormatDate(
+                          shown.detail.user.lastActivityAt,
+                          DATE_OPTIONS,
+                          t('common:labels.never')
+                        ),
+                      },
+                    ]}
+                  />
+                  {!shownAll && isMergedIdentity && (
+                    <Text className="text-muted-foreground -mt-2 mb-4 text-xs">
+                      {t('pages:userDetail.acrossAllServers')}{' '}
+                      {t('common:count.session', { count: identity.stats.totalSessions })} ·{' '}
+                      {formatWatchTime(identity.stats.totalWatchTime)}
+                    </Text>
+                  )}
 
-            <UserStatsGrid
-              isTablet={isTablet}
-              stats={[
-                {
-                  icon: Play,
-                  label: t('pages:userDetail.sessions'),
-                  value: detail.user.stats.totalSessions,
-                },
-                {
-                  icon: AlertTriangle,
-                  label: t('pages:userDetail.violations'),
-                  value: detail.violations.total,
-                },
-                {
-                  icon: Clock,
-                  label: t('common:labels.joined'),
-                  value: safeFormatDate(
-                    detail.user.joinedAt ?? detail.user.createdAt,
-                    DATE_OPTIONS,
-                    t('common:labels.unknown')
-                  ),
-                },
-                {
-                  icon: Activity,
-                  label: t('common:labels.lastActivity'),
-                  value: safeFormatDate(
-                    detail.user.lastActivityAt,
-                    DATE_OPTIONS,
-                    t('common:labels.never')
-                  ),
-                },
-              ]}
-            />
-            {!isAllScope && isMergedIdentity && (
-              <Text className="text-muted-foreground -mt-2 mb-4 text-xs">
-                {t('pages:userDetail.acrossAllServers')}{' '}
-                {t('common:count.session', { count: identity.stats.totalSessions })} ·{' '}
-                {formatWatchTime(identity.stats.totalWatchTime)}
-              </Text>
-            )}
+                  {isMergedIdentity && (
+                    <LinkedAccountsCard
+                      accounts={identity.serverUsers}
+                      canEditTrust={isOwner && !loadingScope}
+                      editTarget={editTarget}
+                      onEditTrust={setEditTarget}
+                    />
+                  )}
 
-            {isMergedIdentity && (
-              <LinkedAccountsCard
-                accounts={identity.serverUsers}
-                canEditTrust={isOwner}
-                editTarget={editTarget}
-                onEditTrust={setEditTarget}
-              />
-            )}
+                  <View
+                    style={{
+                      flexDirection: isTablet ? 'row' : 'column',
+                      gap: spacing.md,
+                      marginBottom: spacing.md,
+                    }}
+                  >
+                    <UserLocationsCard
+                      locations={shown.detail.locations}
+                      style={{ flex: isTablet ? 1 : undefined }}
+                    />
+                    <UserDevicesCard
+                      devices={shown.detail.devices}
+                      style={{ flex: isTablet ? 1 : undefined }}
+                    />
+                  </View>
+                </>
+              )}
 
-            {requestsConfigured && <UserRequestsCard userId={effectiveId} scope={scope} />}
+              {tab === 'sessions' && (
+                <UserSessionsCard
+                  key={`sessions-${sectionKey}`}
+                  userId={shown.id}
+                  first={shown.detail.sessions}
+                  scope={shown.scope}
+                  showServer={showServer}
+                  onSessionPress={handleSessionPress}
+                />
+              )}
 
-            <View
-              style={{
-                flexDirection: isTablet ? 'row' : 'column',
-                gap: spacing.md,
-                marginBottom: spacing.md,
-              }}
-            >
-              <UserLocationsCard
-                locations={detail.locations}
-                style={{ flex: isTablet ? 1 : undefined }}
-              />
-              <UserDevicesCard
-                devices={detail.devices}
-                style={{ flex: isTablet ? 1 : undefined }}
-              />
-            </View>
+              {tab === 'requests' && <UserRequestsCard userId={shown.id} scope={shown.scope} />}
 
-            <UserSessionsCard
-              key={`sessions-${sectionKey}`}
-              userId={effectiveId}
-              first={detail.sessions}
-              scope={scope}
-              showServer={showServer}
-              onSessionPress={handleSessionPress}
-            />
+              {tab === 'violations' && (
+                <>
+                  <UserViolationsCard
+                    key={`violations-${sectionKey}`}
+                    filter={violationsPageFilter(shown.scope, shown.id, identity.userId)}
+                    first={shown.detail.violations}
+                    showServer={showServer}
+                  />
 
-            <UserViolationsCard
-              key={`violations-${sectionKey}`}
-              filter={violationsPageFilter(scope, effectiveId, identity.userId)}
-              first={detail.violations}
-              showServer={showServer}
-            />
-
-            <UserTerminationsCard
-              key={`terminations-${sectionKey}`}
-              userId={effectiveId}
-              first={detail.terminations}
-              scope={scope}
-              showServer={showServer}
-            />
-          </>
-        )}
+                  <UserTerminationsCard
+                    key={`terminations-${sectionKey}`}
+                    userId={shown.id}
+                    first={shown.detail.terminations}
+                    scope={shown.scope}
+                    showServer={showServer}
+                  />
+                </>
+              )}
+            </>
+          )}
+        </View>
       </ScrollView>
     </SafeAreaView>
   );

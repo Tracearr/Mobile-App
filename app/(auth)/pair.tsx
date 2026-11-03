@@ -16,11 +16,11 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useAuthStateStore } from '@/lib/authStateStore';
-import { validateServerUrl, isInternalUrl, showInternalUrlWarning } from '@/lib/validation';
 import { ROUTES } from '@/lib/routes';
+import { validateServerUrl, isInternalUrl, showInternalUrlWarning } from '@/lib/validation';
 import { Text } from '@/components/ui/text';
 import { Button } from '@/components/ui/button';
-import { ACCENT_COLOR, colors } from '@/lib/theme';
+import { ACCENT_COLOR, colors, layout } from '@/lib/theme';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@tracearr/translations/mobile';
 
@@ -132,7 +132,7 @@ export default function PairScreen() {
         // User chose to continue - proceed with pairing
         try {
           await pairServer(payload.url, payload.token);
-          router.replace(ROUTES.TABS);
+          router.dismissTo(ROUTES.TABS);
         } catch (err) {
           Alert.alert(
             t('mobile:errors.pairingFailed'),
@@ -147,7 +147,7 @@ export default function PairScreen() {
       }
 
       await pairServer(payload.url, payload.token);
-      router.replace(ROUTES.TABS);
+      router.dismissTo(ROUTES.TABS);
     } catch (err) {
       Alert.alert(
         t('mobile:errors.pairingFailed'),
@@ -196,7 +196,7 @@ export default function PairScreen() {
       // User chose to continue - proceed with pairing
       try {
         await pairServer(trimmedUrl, trimmedToken);
-        router.replace(ROUTES.TABS);
+        router.dismissTo(ROUTES.TABS);
       } catch {
         // Error stored in auth store - displayed below inputs
       } finally {
@@ -207,7 +207,7 @@ export default function PairScreen() {
 
     try {
       await pairServer(trimmedUrl, trimmedToken);
-      router.replace(ROUTES.TABS);
+      router.dismissTo(ROUTES.TABS);
     } catch {
       // Error is stored in auth store - stay on screen to show error
     } finally {
@@ -238,7 +238,10 @@ export default function PairScreen() {
               </Text>
             </View>
 
-            <View className="flex-1 gap-4">
+            <View
+              className="flex-1 gap-4"
+              style={{ width: '100%', maxWidth: layout.secondaryMaxWidth, alignSelf: 'center' }}
+            >
               <View className="gap-1">
                 <Text className="text-muted-foreground text-sm font-medium">
                   {t('mobile:pair.serverUrl')}

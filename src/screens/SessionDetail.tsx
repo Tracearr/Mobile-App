@@ -33,7 +33,6 @@ import {
 } from 'lucide-react-native';
 import { api } from '@/lib/api';
 import { queryKeys } from '@/lib/queryKeys';
-import { ROUTES } from '@/lib/routes';
 import { haptics } from '@/lib/haptics';
 import {
   DATE_TIME_OPTIONS,
@@ -48,6 +47,9 @@ import { useMediaServer } from '@/providers/MediaServerProvider';
 import { useAuthStateStore } from '@/lib/authStateStore';
 import { useImageUrl } from '@/hooks/useImageUrl';
 import { useResponsive } from '@/hooks/useResponsive';
+import { useScrollMemory } from '@/hooks/useScrollMemory';
+import { useStackRoutes } from '@/hooks/useOpenInTabs';
+import { scrollKey } from '@/lib/detailMemory';
 import type { DetailScreenProps } from './detail-props';
 import { ACCENT_COLOR, colors, spacing, withAlpha } from '@/lib/theme';
 import { cn } from '@/lib/utils';
@@ -200,10 +202,12 @@ function InfoRow({
   );
 }
 
-export function SessionDetail({ id, embedded = false, onBack }: DetailScreenProps) {
+export function SessionDetail({ id, mem, embedded = false, onBack }: DetailScreenProps) {
+  const scrollProps = useScrollMemory(scrollKey(mem));
   useDateConventions();
   const { t } = useTranslation(['mobile', 'common', 'pages']);
   const router = useRouter();
+  const routes = useStackRoutes();
   const { selectedServerId } = useMediaServer();
   const connectionState = useAuthStateStore((s) => s.connectionState);
   const isOffline = connectionState !== 'connected';
@@ -301,6 +305,7 @@ export function SessionDetail({ id, embedded = false, onBack }: DetailScreenProp
     <>
       <SafeAreaView style={{ flex: 1, backgroundColor: colors.background.dark }} edges={['bottom']}>
         <ScrollView
+          {...scrollProps}
           style={{ flex: 1 }}
           contentContainerStyle={{
             gap: 12,
@@ -394,7 +399,7 @@ export function SessionDetail({ id, embedded = false, onBack }: DetailScreenProp
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={`${displayName}, ${t('common:actions.viewProfile')}`}
-            onPress={() => router.push(ROUTES.USER(session.serverUserId))}
+            onPress={() => router.push(routes.user(session.serverUserId))}
           >
             <Card padding="compact" className="flex-row items-center gap-3">
               <UserAvatar

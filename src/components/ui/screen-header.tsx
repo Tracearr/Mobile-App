@@ -1,6 +1,6 @@
-import { Platform, Pressable } from 'react-native';
-import { Stack, type NativeStackNavigationOptions } from 'expo-router';
-import { ChevronLeft } from 'lucide-react-native';
+import { PixelRatio, Platform, Pressable } from 'react-native';
+import { Stack, useNavigation, useRouter, type NativeStackNavigationOptions } from 'expo-router';
+import { ArrowLeft } from 'lucide-react-native';
 import { useTranslation } from '@tracearr/translations/mobile';
 import { colors } from '@/lib/theme';
 
@@ -20,6 +20,14 @@ export const stackHeaderOptions = {
   contentStyle: { backgroundColor: colors.background.dark },
 } as const satisfies NativeStackNavigationOptions;
 
+// Numeric so the target is 48 dp (h-12 rendered at 42 dp; see button.tsx on
+// rem). The size is 48 dp rounded up to a whole pixel: Yoga
+// would otherwise round it to the nearest pixel and lose up to half of one
+// where 48 dp is fractional, and slop cannot make that up, because the native
+// toolbar only delivers touches inside this view's bounds.
+const BACK_BUTTON_DP = Math.ceil(48 * PixelRatio.get()) / PixelRatio.get();
+const BACK_BUTTON_SIZE = { width: BACK_BUTTON_DP, height: BACK_BUTTON_DP };
+
 export function HeaderBackButton({ onPress }: { onPress: () => void }) {
   const { t } = useTranslation(['common']);
 
@@ -28,9 +36,10 @@ export function HeaderBackButton({ onPress }: { onPress: () => void }) {
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={t('common:actions.back')}
-      className="h-11 w-11 items-center justify-center"
+      className="items-center justify-center"
+      style={BACK_BUTTON_SIZE}
     >
-      <ChevronLeft size={24} color={colors.text.primary.dark} />
+      <ArrowLeft size={24} color={colors.text.primary.dark} />
     </Pressable>
   );
 }
@@ -38,17 +47,26 @@ export function HeaderBackButton({ onPress }: { onPress: () => void }) {
 export interface ScreenHeaderProps {
   title: string;
   /**
-   * Replaces the native back button. Only for screens the stack cannot pop on
-   * its own: the first screen of a modal's nested stack, or a screen opened
-   * from a push notification with no history behind it.
+   * Replaces the native back button where there is none: on iOS the first screen
+   * of a nested stack (Settings, Alerts), and on either platform a screen opened
+   * from a push notification with no history behind it. Android's toolbar shows
+   * its own up button on a nested stack's first screen, so it is kept there.
    */
   onBack?: () => void;
   right?: NativeStackNavigationOptions['headerRight'];
 }
 
-export function ScreenHeader({ title, onBack, right }: ScreenHeaderProps) {
+export function ScreenHeader({ title, onBack: onBackProp, right }: ScreenHeaderProps) {
   const { t } = useTranslation(['common']);
+  const router = useRouter();
+  const navigation = useNavigation();
   const useToolbar = Platform.OS === 'ios';
+  // Both sources, because each is false on one first render: router.canGoBack()
+  // until the container reports ready (a screen seeded under a cold deep link),
+  // navigation.canGoBack() until a nested stack has joined its parent (Alerts
+  // pushed from a tab).
+  const canGoBack = router.canGoBack() || navigation.canGoBack();
+  const onBack = useToolbar || !canGoBack ? onBackProp : undefined;
 
   return (
     <>

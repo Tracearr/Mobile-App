@@ -10,7 +10,7 @@ import * as Device from 'expo-device';
 import Constants from 'expo-constants';
 import { Platform, AppState } from 'react-native';
 import axios from 'axios';
-import { useRouter, type Href } from 'expo-router';
+import type { Href } from 'expo-router';
 import { useTranslation } from '@tracearr/translations/mobile';
 import { useSocket } from '../providers/SocketProvider';
 import type { ViolationWithDetails } from '@tracearr/shared';
@@ -25,6 +25,7 @@ import {
 } from '../lib/apiError';
 import { useAuthStateStore } from '../lib/authStateStore';
 import { ROUTES } from '../lib/routes';
+import { useOpenInTabs } from './useOpenInTabs';
 import { pushDestination, type PushDestination } from '../lib/pushRoute';
 
 // A remote push is shown while the app is open. The socket-driven local
@@ -90,7 +91,7 @@ export function usePushNotifications() {
   // True once the server holds this device's token, which is when it starts pushing.
   const pushRegistered = useRef(false);
   const handledResponseId = useRef<string | null>(null);
-  const router = useRouter();
+  const openInTabs = useOpenInTabs();
   const { socket } = useSocket();
 
   // Auth state - needed to know when we can register tokens
@@ -304,7 +305,7 @@ export function usePushNotifications() {
 
         // Notification taps never mutate the server selection; detail screens
         // are id-based and don't need it.
-        router.push(pushHref(pushDestination(data)));
+        openInTabs(pushHref(pushDestination(data)));
       })();
     };
 
@@ -313,7 +314,7 @@ export function usePushNotifications() {
 
     const subscription = Notifications.addNotificationResponseReceivedListener(handleResponse);
     return () => subscription.remove();
-  }, [canNavigate, isInitializing, server, router]);
+  }, [canNavigate, isInitializing, server, openInTabs]);
 
   // Listen for violation events from socket
   useEffect(() => {

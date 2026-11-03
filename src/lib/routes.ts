@@ -21,6 +21,8 @@ export const ROUTES = {
   USER: (id: string) => `/user/${id}` as Href,
   SESSION: (id: string) => `/session/${id}` as Href,
   VIOLATION: (id: string) => `/violation/${id}` as Href,
+  ALERTS_USER: (id: string) => `/alerts/user/${id}` as Href,
+  ALERTS_SESSION: (id: string) => `/alerts/session/${id}` as Href,
 
   // Other
   SETTINGS: '/settings',

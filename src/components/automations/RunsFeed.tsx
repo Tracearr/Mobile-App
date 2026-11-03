@@ -13,7 +13,7 @@ import { Text } from '@/components/ui/text';
 import { safeFormatDistanceToNow } from '@/lib/dateFormat';
 import { haptics } from '@/lib/haptics';
 import { keyById } from '@/lib/listKeys';
-import { ACCENT_COLOR, spacing } from '@/lib/theme';
+import { ACCENT_COLOR, layout, spacing } from '@/lib/theme';
 import { RunRow } from './RunRow';
 
 // Web's order and default: runs that did something first, the rest one tap away.
@@ -71,7 +71,10 @@ export function RunsFeed({ horizontalPadding }: { horizontalPadding: number }) {
       onEndReachedThreshold={0.5}
       refreshControl={<RefreshControl key={controlKey} {...refreshControlProps} />}
       ListHeaderComponent={
-        <View className="mb-4 gap-3">
+        <View
+          className="mb-4 gap-3"
+          style={{ width: '100%', maxWidth: layout.secondaryMaxWidth, alignSelf: 'flex-start' }}
+        >
           {counts.data ? (
             <Text className="text-muted-foreground text-sm">
               {counts.data.completed > 0 && counts.data.lastRunAt

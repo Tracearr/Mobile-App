@@ -41,7 +41,10 @@ startReviewTracking();
 void SplashScreen.preventAutoHideAsync();
 
 // Every route below gets this boundary, so a screen that throws keeps its tab bar and back button.
+// The anchor keeps the tabs under a cold deep link or notification into Alerts,
+// so system Back reaches them instead of leaving the app.
 export const unstable_settings = {
+  anchor: '(tabs)',
   screenErrorBoundary: ScreenErrorFallback,
 };
 

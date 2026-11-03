@@ -11,11 +11,11 @@ import { Play } from 'lucide-react-native';
 import { api } from '@/lib/api';
 import { queryKeys } from '@/lib/queryKeys';
 import { keyById } from '@/lib/listKeys';
-import { ROUTES } from '@/lib/routes';
 import { useMediaServer } from '@/providers/MediaServerProvider';
 import { TabToolbar, androidHeaderOptions } from '@/components/navigation/TabHeaderButtons';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useResponsive } from '@/hooks/useResponsive';
+import { useSplitSelection } from '@/hooks/useSplitSelection';
 import { SplitPane } from '@/components/ui/split-pane';
 import { SessionDetail } from '@/screens/SessionDetail';
 import { ACCENT_COLOR } from '@/lib/theme';
@@ -56,11 +56,16 @@ export default function HistoryScreen() {
   const { t } = useTranslation(['mobile', 'common', 'nav']);
   const router = useRouter();
   const { scope, scopeReady } = useMediaServer();
-  const { isTablet } = useResponsive();
+  const { isSplit } = useResponsive();
   const filterSheetRef = useRef<FilterBottomSheetRef>(null);
 
   // Regular width shows the session beside the list instead of pushing it.
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const { selection, open, clear } = useSplitSelection({
+    isSplit,
+    detail: 'session',
+    push: (id, mem) => router.push({ pathname: '/session/[id]', params: { id, mem } }),
+  });
+  const selectedId = selection?.id ?? null;
 
   const [period, setPeriod] = useState<TimePeriod>('month');
   const [search, setSearch] = useState('');
@@ -153,11 +158,11 @@ export default function HistoryScreen() {
       item ? (
         <HistoryRow
           session={item}
-          onPress={() => (isTablet ? setSelectedId(item.id) : router.push(ROUTES.SESSION(item.id)))}
-          selected={isTablet && selectedId === item.id}
+          onPress={() => open(item.id)}
+          selected={isSplit && selectedId === item.id}
         />
       ) : null,
-    [router, isTablet, selectedId]
+    [open, isSplit, selectedId]
   );
 
   const { controlKey, refreshControlProps } = usePullToRefresh(() =>
@@ -244,22 +249,25 @@ export default function HistoryScreen() {
 
   return (
     <>
-      {isTablet ? (
-        <SplitPane
-          list={list}
-          detail={
-            selectedId ? (
-              <SessionDetail id={selectedId} embedded onBack={() => setSelectedId(null)} />
-            ) : null
-          }
-          placeholder={{
-            icon: Play,
-            title: t('mobile:history.selectSession', { defaultValue: 'Select a session' }),
-          }}
-        />
-      ) : (
-        list
-      )}
+      <SplitPane
+        split={isSplit}
+        list={list}
+        detail={
+          selection ? (
+            <SessionDetail
+              key={selection.mem}
+              id={selection.id}
+              mem={selection.mem}
+              embedded
+              onBack={clear}
+            />
+          ) : null
+        }
+        placeholder={{
+          icon: Play,
+          title: t('mobile:history.selectSession', { defaultValue: 'Select a session' }),
+        }}
+      />
 
       <Stack.Screen options={{ title: t('nav:history'), ...androidHeaderOptions }} />
       <TabToolbar />

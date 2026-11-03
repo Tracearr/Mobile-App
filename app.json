@@ -75,6 +75,7 @@
           "expo.camera.document-scanner-enabled": "false"
         }
       ],
+      "./plugins/withFontScaleConfigChange",
       "expo-router",
       "expo-image",
       "expo-status-bar",

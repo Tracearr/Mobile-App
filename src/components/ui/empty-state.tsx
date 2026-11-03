@@ -59,7 +59,6 @@ export function EmptyState({
         <Button
           variant="outline"
           size={compact ? 'default' : 'lg'}
-          hitSlop={compact ? 4 : undefined}
           className={compact ? 'mt-4' : 'mt-6'}
           onPress={action.onPress}
         >

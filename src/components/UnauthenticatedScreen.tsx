@@ -22,15 +22,17 @@ export function UnauthenticatedScreen() {
   const revokedReason = useAuthStateStore((s) => s.revokedReason);
   const unpairServer = useAuthStateStore((s) => s.unpairServer);
 
+  // Unpairing drops the revoked server; dismissAll drops its tab tree, so the
+  // next pairing starts on fresh tabs instead of popping to the old screens.
   const handleScanQR = async () => {
-    // Remove the revoked server and reset state before navigating
     await unpairServer();
+    router.dismissAll();
     router.replace('/(auth)/pair');
   };
 
   const handleManualEntry = async () => {
-    // Remove the revoked server and reset state before navigating
     await unpairServer();
+    router.dismissAll();
     router.replace({
       pathname: '/(auth)/pair',
       params: { prefillUrl: cachedServerUrl ?? '' },

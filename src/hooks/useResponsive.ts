@@ -1,6 +1,7 @@
-import { useWindowDimensions } from 'react-native';
+import { Platform, useWindowDimensions } from 'react-native';
 import { useMemo } from 'react';
 import { breakpoints, heightBreakpoints, spacing } from '@/lib/theme';
+import { isSplitWidth } from '@/lib/splitLayout';
 
 export function cardColumns(width: number) {
   return width >= breakpoints.expanded ? 3 : width >= breakpoints.medium ? 2 : 1;
@@ -16,6 +17,7 @@ export function useResponsive() {
 
     return {
       isTablet: isMedium,
+      isSplit: isSplitWidth(width, Platform.OS),
       isCompactHeight: height < heightBreakpoints.medium,
       horizontalPadding: isExpanded ? spacing.xl : isMedium ? spacing.lg : spacing.md,
       select: <T>(options: { compact: T; medium?: T; expanded?: T; extraLarge?: T }): T => {

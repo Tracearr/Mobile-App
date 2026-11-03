@@ -192,3 +192,7 @@ export const breakpoints = {
 export const heightBreakpoints = {
   medium: 480,
 } as const;
+
+export const layout = {
+  secondaryMaxWidth: 560,
+} as const;

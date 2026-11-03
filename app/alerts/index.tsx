@@ -27,6 +27,9 @@ import { keyById } from '@/lib/listKeys';
 import { useMediaServer } from '@/providers/MediaServerProvider';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useResponsive } from '@/hooks/useResponsive';
+import { useSplitSelection } from '@/hooks/useSplitSelection';
+import { useReturnToTabs } from '@/hooks/useOpenInTabs';
+import { ICON_BUTTON } from '@/components/navigation/TabHeaderButtons';
 import {
   useBulkAcknowledgeViolations,
   useServerVersion,
@@ -45,7 +48,7 @@ import { ViolationDetail } from '@/screens/ViolationDetail';
 import { SegmentedControl, type SegmentedOption } from '@/components/ui/segmented-control';
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { SeverityBadge } from '@/components/violations/SeverityBadge';
-import { colors, spacing, ACCENT_COLOR } from '@/lib/theme';
+import { colors, spacing, ACCENT_COLOR, layout } from '@/lib/theme';
 import type { ViolationWithDetails, ViolationSeverity, UnitSystem } from '@tracearr/shared';
 import { ALL_SERVERS } from '@tracearr/shared';
 import { useTranslation } from '@tracearr/translations/mobile';
@@ -161,9 +164,10 @@ function ViolationCard({
 export default function AlertsScreen() {
   const { t } = useTranslation(['mobile', 'common', 'pages', 'nav']);
   const router = useRouter();
+  const returnToTabs = useReturnToTabs();
   const queryClient = useQueryClient();
   const { scope, servers, selectedServers, isAllServersSelected } = useMediaServer();
-  const { isTablet } = useResponsive();
+  const { isTablet, isSplit } = useResponsive();
   const { supports } = useServerVersion();
   const showAutomations = supports(SERVER_2_2);
 
@@ -188,9 +192,16 @@ export default function AlertsScreen() {
   const severity = severityFilter === 'all' ? undefined : severityFilter;
 
   // Regular width shows the violation beside the list instead of pushing it.
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const openViolation = (id: string) =>
-    isTablet ? setSelectedId(id) : router.push(ROUTES.VIOLATION(id));
+  const {
+    selection,
+    open: openViolation,
+    clear,
+  } = useSplitSelection({
+    isSplit,
+    detail: 'violation',
+    push: (id, mem) => router.push({ pathname: '/alerts/violation/[id]', params: { id, mem } }),
+  });
+  const selectedId = selection?.id ?? null;
 
   const { data: settings } = useQuery({
     queryKey: queryKeys.settings(),
@@ -331,8 +342,8 @@ export default function AlertsScreen() {
   };
 
   const extraData = useMemo(
-    () => ({ unitSystem, isTablet, acknowledgingId, selectedId }),
-    [unitSystem, isTablet, acknowledgingId, selectedId]
+    () => ({ unitSystem, isTablet, isSplit, acknowledgingId, selectedId }),
+    [unitSystem, isTablet, isSplit, acknowledgingId, selectedId]
   );
 
   const openAutomations = () => router.push(ROUTES.AUTOMATIONS);
@@ -351,7 +362,7 @@ export default function AlertsScreen() {
           onPress={() => openViolation(item.id)}
           unitSystem={unitSystem}
           isTablet={isTablet}
-          selected={isTablet && selectedId === item.id}
+          selected={isSplit && selectedId === item.id}
         />
       )}
       contentContainerStyle={{
@@ -363,7 +374,10 @@ export default function AlertsScreen() {
       onEndReachedThreshold={0.5}
       refreshControl={<RefreshControl key={controlKey} {...refreshControlProps} />}
       ListHeaderComponent={
-        <View className="mb-4 gap-3">
+        <View
+          className="mb-4 gap-3"
+          style={{ width: '100%', maxWidth: layout.secondaryMaxWidth, alignSelf: 'flex-start' }}
+        >
           <View className="min-h-9 flex-row items-center justify-between gap-2">
             <View className="flex-shrink flex-row items-center gap-2">
               {total !== null && (
@@ -384,7 +398,6 @@ export default function AlertsScreen() {
               <Button
                 variant="outline"
                 size="sm"
-                hitSlop={4}
                 className="gap-1.5"
                 disabled={isBulkBusy}
                 onPress={handleAcknowledgeAll}
@@ -474,13 +487,10 @@ export default function AlertsScreen() {
   );
 
   return (
-    <SafeAreaView
-      style={{ flex: 1, backgroundColor: colors.background.dark }}
-      edges={['left', 'right', 'bottom']}
-    >
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background.dark }} edges={['bottom']}>
       <ScreenHeader
         title={t('nav:alerts')}
-        onBack={router.canGoBack() ? undefined : () => router.replace(ROUTES.TABS)}
+        onBack={returnToTabs}
         right={
           showAutomations && Platform.OS !== 'ios'
             ? () => (
@@ -488,7 +498,7 @@ export default function AlertsScreen() {
                   onPress={openAutomations}
                   accessibilityRole="button"
                   accessibilityLabel={t('nav:automations')}
-                  className="h-11 w-11 items-center justify-center"
+                  style={ICON_BUTTON}
                 >
                   <Workflow size={22} color={colors.text.primary.dark} />
                 </Pressable>
@@ -506,22 +516,25 @@ export default function AlertsScreen() {
         </Stack.Toolbar>
       ) : null}
 
-      {isTablet ? (
-        <SplitPane
-          list={list}
-          detail={
-            selectedId ? (
-              <ViolationDetail id={selectedId} embedded onBack={() => setSelectedId(null)} />
-            ) : null
-          }
-          placeholder={{
-            icon: Filter,
-            title: t('mobile:alerts.selectAlert', { defaultValue: 'Select an alert' }),
-          }}
-        />
-      ) : (
-        list
-      )}
+      <SplitPane
+        split={isSplit}
+        list={list}
+        detail={
+          selection ? (
+            <ViolationDetail
+              key={selection.mem}
+              id={selection.id}
+              mem={selection.mem}
+              embedded
+              onBack={clear}
+            />
+          ) : null
+        }
+        placeholder={{
+          icon: Filter,
+          title: t('mobile:alerts.selectAlert', { defaultValue: 'Select an alert' }),
+        }}
+      />
     </SafeAreaView>
   );
 }

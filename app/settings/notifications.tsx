@@ -62,7 +62,7 @@ import {
 } from '@/lib/dateFormat';
 import { useDateConventions } from '@/lib/dateSettings';
 import { DEFAULT_QUIET_END, DEFAULT_QUIET_START } from '@/lib/quietHours';
-import { colors, ACCENT_COLOR } from '@/lib/theme';
+import { colors, ACCENT_COLOR, layout } from '@/lib/theme';
 import type { NotificationPreferences } from '@tracearr/shared';
 import { useTranslation } from '@tracearr/translations/mobile';
 
@@ -697,15 +697,19 @@ export default function NotificationSettingsScreen() {
 
             <SettingsSection title={t('notifications:settings.minimumSeverity')}>
               <View className="px-4 py-3">
-                <SegmentedControl
-                  options={severityOptions}
-                  value={String(preferences.violationMinSeverity)}
-                  onChange={(value) => {
-                    haptics.selection();
-                    handleUpdate('violationMinSeverity', Number(value));
-                  }}
-                  accessibilityLabel={t('notifications:settings.minimumSeverity')}
-                />
+                <View
+                  style={{ width: '100%', maxWidth: layout.secondaryMaxWidth, alignSelf: 'center' }}
+                >
+                  <SegmentedControl
+                    options={severityOptions}
+                    value={String(preferences.violationMinSeverity)}
+                    onChange={(value) => {
+                      haptics.selection();
+                      handleUpdate('violationMinSeverity', Number(value));
+                    }}
+                    accessibilityLabel={t('notifications:settings.minimumSeverity')}
+                  />
+                </View>
                 <Text className="text-muted-foreground mt-2 text-xs">
                   {t('mobile:notifications.severityDescription')}
                 </Text>
@@ -786,7 +790,10 @@ export default function NotificationSettingsScreen() {
         </SettingsSection>
 
         {/* Test Notification */}
-        <View className="mt-2 mb-4">
+        <View
+          className="mt-2 mb-4"
+          style={{ width: '100%', maxWidth: layout.secondaryMaxWidth, alignSelf: 'center' }}
+        >
           <Button
             onPress={() => testMutation.mutate()}
             disabled={!pushEnabled || testMutation.isPending}

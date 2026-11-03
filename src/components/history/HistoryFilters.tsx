@@ -7,7 +7,8 @@ import { View, Pressable, TextInput } from 'react-native';
 import { Search, X, SlidersHorizontal } from 'lucide-react-native';
 import { Text } from '@/components/ui/text';
 import { SegmentedControl } from '@/components/ui/segmented-control';
-import { colors } from '@/lib/theme';
+import { SQUARE_BUTTON_HIT_SLOP } from '@/components/users/UserListControls';
+import { colors, layout } from '@/lib/theme';
 import { haptics } from '@/lib/haptics';
 import { useTranslation } from '@tracearr/translations/mobile';
 
@@ -101,7 +102,10 @@ export function HistoryFilters({
   }, [onSearchChange]);
 
   return (
-    <View className="mb-4 gap-2">
+    <View
+      className="mb-4 gap-2"
+      style={{ width: '100%', maxWidth: layout.secondaryMaxWidth, alignSelf: 'flex-start' }}
+    >
       <TimeRangePicker value={period} onChange={onPeriodChange} />
 
       <View className="flex-row gap-2">
@@ -142,6 +146,7 @@ export function HistoryFilters({
                 })
               : t('common:labels.filters')
           }
+          hitSlop={SQUARE_BUTTON_HIT_SLOP}
           className="border-border bg-card h-11 w-11 items-center justify-center rounded-lg border"
         >
           <SlidersHorizontal size={18} color={colors.text.primary.dark} />

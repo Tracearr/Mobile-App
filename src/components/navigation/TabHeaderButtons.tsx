@@ -9,9 +9,18 @@ import { Stack, useRouter } from 'expo-router';
 import { Server, Bell, Settings } from 'lucide-react-native';
 import { useUnacknowledgedAlertsCount } from '@/hooks';
 import { Text } from '@/components/ui/text';
-import { colors, spacing } from '@/lib/theme';
+import { colors } from '@/lib/theme';
 import { ROUTES } from '@/lib/routes';
 import { useTranslation } from '@tracearr/translations/mobile';
+
+// Header icons sit in the native toolbar, which only delivers touches inside a
+// view's bounds, so the 48 dp target is the view itself.
+export const ICON_BUTTON = {
+  width: 48,
+  height: 48,
+  alignItems: 'center',
+  justifyContent: 'center',
+} as const;
 
 function useAlertsButton() {
   const { t } = useTranslation(['mobile']);
@@ -31,8 +40,7 @@ export function HeaderLeft() {
       onPress={() => router.push(ROUTES.SERVER_SELECT)}
       accessibilityRole="button"
       accessibilityLabel={t('mobile:a11y.selectServer')}
-      style={{ padding: spacing.xs }}
-      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+      style={ICON_BUTTON}
     >
       <Server size={24} color={colors.text.primary.dark} />
     </Pressable>
@@ -50,8 +58,7 @@ export function HeaderRight() {
         onPress={() => router.push(ROUTES.ALERTS)}
         accessibilityRole="button"
         accessibilityLabel={label}
-        style={{ padding: spacing.xs }}
-        hitSlop={{ top: 10, bottom: 10, left: 4, right: 4 }}
+        style={ICON_BUTTON}
       >
         <View style={{ position: 'relative' }}>
           <Bell size={24} color={colors.text.primary.dark} />
@@ -69,7 +76,10 @@ export function HeaderRight() {
                 paddingHorizontal: 4,
               }}
             >
-              <Text style={{ fontSize: 10, fontWeight: '700', color: colors.text.primary.dark }}>
+              <Text
+                maxFontSizeMultiplier={1.5}
+                style={{ fontSize: 10, fontWeight: '700', color: colors.text.primary.dark }}
+              >
                 {displayCount}
               </Text>
             </View>
@@ -80,8 +90,7 @@ export function HeaderRight() {
         onPress={() => router.push(ROUTES.SETTINGS)}
         accessibilityRole="button"
         accessibilityLabel={t('mobile:a11y.settings')}
-        style={{ padding: spacing.xs }}
-        hitSlop={{ top: 10, bottom: 10, left: 4, right: 4 }}
+        style={ICON_BUTTON}
       >
         <Settings size={24} color={colors.text.primary.dark} />
       </Pressable>

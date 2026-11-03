@@ -6,7 +6,7 @@
  * - Phone: Single column, compact cards
  * - Tablet (md+): 2-column grid, larger avatars, joined date
  */
-import { useState } from 'react';
+import { useState, useSyncExternalStore } from 'react';
 import { View, RefreshControl, ActivityIndicator } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { keepPreviousData, useInfiniteQuery } from '@tanstack/react-query';
@@ -16,11 +16,12 @@ import { api } from '@/lib/api';
 import { nextPageOf, pageMetaOf } from '@/lib/listPage';
 import { keyById } from '@/lib/listKeys';
 import { queryKeys } from '@/lib/queryKeys';
-import { ROUTES } from '@/lib/routes';
+import { recallTab, rememberTab, subscribeTabs } from '@/lib/detailMemory';
 import { useMediaServer } from '@/providers/MediaServerProvider';
 import { useDebounce } from '@/hooks/useDebounce';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useResponsive } from '@/hooks/useResponsive';
+import { useSplitSelection } from '@/hooks/useSplitSelection';
 import { TabToolbar, androidHeaderOptions } from '@/components/navigation/TabHeaderButtons';
 import { Text } from '@/components/ui/text';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -41,7 +42,7 @@ export default function UsersScreen() {
   const { t } = useTranslation(['mobile', 'common', 'nav']);
   const router = useRouter();
   const { scope, scopeReady, servers } = useMediaServer();
-  const { isTablet } = useResponsive();
+  const { isTablet, isSplit } = useResponsive();
   const [searchText, setSearchText] = useState('');
   const [orderBy, setOrderBy] = useState<UserSortField>('username');
   const [orderDir, setOrderDir] = useState<'asc' | 'desc'>(DEFAULT_SORT_DIR.username);
@@ -49,8 +50,24 @@ export default function UsersScreen() {
   const search = useDebounce(searchText, SEARCH_DEBOUNCE_MS).trim();
 
   // Regular width shows the user beside the list instead of pushing it.
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const openUser = (id: string) => (isTablet ? setSelectedId(id) : router.push(ROUTES.USER(id)));
+  const userParams = (id: string, mem: string): { id: string; mem: string; tab?: string } => {
+    const tab = recallTab(mem);
+    return tab ? { id, mem, tab } : { id, mem };
+  };
+  const {
+    selection,
+    open: openUser,
+    clear,
+  } = useSplitSelection({
+    isSplit,
+    detail: 'user',
+    params: userParams,
+    push: (id, mem) => router.push({ pathname: '/user/[id]', params: userParams(id, mem) }),
+  });
+  const selectedId = selection?.id ?? null;
+  const selectedTab = useSyncExternalStore(subscribeTabs, () =>
+    selection ? recallTab(selection.mem) : undefined
+  );
   const showServers = servers.length > 1;
 
   const {
@@ -139,7 +156,7 @@ export default function UsersScreen() {
             onPress={() => openUser(item.id)}
             isTablet={isTablet}
             showServers={showServers}
-            selected={isTablet && selectedId === item.id}
+            selected={isSplit && selectedId === item.id}
           />
         ) : null
       }
@@ -181,22 +198,27 @@ export default function UsersScreen() {
 
   return (
     <>
-      {isTablet ? (
-        <SplitPane
-          list={list}
-          detail={
-            selectedId ? (
-              <UserDetail id={selectedId} embedded onBack={() => setSelectedId(null)} />
-            ) : null
-          }
-          placeholder={{
-            icon: UsersIcon,
-            title: t('mobile:users.selectUser', { defaultValue: 'Select a user' }),
-          }}
-        />
-      ) : (
-        list
-      )}
+      <SplitPane
+        split={isSplit}
+        list={list}
+        detail={
+          selection ? (
+            <UserDetail
+              key={selection.mem}
+              id={selection.id}
+              mem={selection.mem}
+              embedded
+              onBack={clear}
+              tab={selectedTab}
+              onTabChange={(tab) => rememberTab(selection.mem, tab)}
+            />
+          ) : null
+        }
+        placeholder={{
+          icon: UsersIcon,
+          title: t('mobile:users.selectUser', { defaultValue: 'Select a user' }),
+        }}
+      />
 
       <Stack.Screen options={{ title: t('nav:users'), ...androidHeaderOptions }} />
       <TabToolbar />

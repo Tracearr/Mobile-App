@@ -5,6 +5,7 @@ import { Stack, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AlertCircle } from 'lucide-react-native';
 import { EmptyState } from '@/components/ui/empty-state';
+import { ROUTES } from '@/lib/routes';
 import { colors } from '@/lib/theme';
 import { useTranslation } from '@tracearr/translations/mobile';
 
@@ -21,7 +22,10 @@ export default function NotFoundScreen() {
           icon={AlertCircle}
           title={t('common:errors.pageNotFound')}
           description={t('common:errors.pageNotFoundDesc')}
-          action={{ label: t('common:actions.goHome'), onPress: () => router.replace('/') }}
+          action={{
+            label: t('common:actions.goHome'),
+            onPress: () => router.dismissTo(ROUTES.TABS),
+          }}
         />
       </SafeAreaView>
     </>
