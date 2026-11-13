@@ -43,7 +43,7 @@ jobs:
           ref: ${{ inputs.ref }}
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6
 
       - name: Setup Node.js
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
@@ -59,9 +59,9 @@ jobs:
 
       - name: Setup Expo
         if: inputs.store != 'play'
-        uses: expo/expo-github-action@9da89d3617bb88139671bad31b09c65714c2ee06 # v9
+        uses: expo/expo-github-action@5273c2136bd09c2a341fe3340d3e767ce5a13015 # v9
         with:
-          eas-version: 27.2.0
+          eas-version: 27.7.2
           token: ${{ secrets.EXPO_TOKEN }}
 
       - name: Push App Store listing
