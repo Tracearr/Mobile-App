@@ -25,6 +25,7 @@ import {
 } from '../lib/apiError';
 import { useAuthStateStore } from '../lib/authStateStore';
 import { ROUTES } from '../lib/routes';
+import { ACCENT_COLOR, colors } from '../lib/theme';
 import { useOpenInTabs } from './useOpenInTabs';
 import { pushDestination, type PushDestination } from '../lib/pushRoute';
 
@@ -66,21 +67,21 @@ async function ensureAndroidChannels(): Promise<void> {
       description: 'Alerts when rule violations are detected',
       importance: Notifications.AndroidImportance.HIGH,
       vibrationPattern: [0, 250, 250, 250],
-      lightColor: '#22D3EE',
+      lightColor: ACCENT_COLOR,
     }),
     Notifications.setNotificationChannelAsync('sessions', {
       name: 'Stream Activity',
       description: 'Notifications for stream start/stop events',
       importance: Notifications.AndroidImportance.DEFAULT,
       vibrationPattern: [0, 100, 100, 100],
-      lightColor: '#10B981',
+      lightColor: colors.success,
     }),
     Notifications.setNotificationChannelAsync('alerts', {
       name: 'Server Alerts',
       description: 'Server online/offline notifications',
       importance: Notifications.AndroidImportance.HIGH,
       vibrationPattern: [0, 500],
-      lightColor: '#EF4444',
+      lightColor: colors.danger,
     }),
   ]);
 }

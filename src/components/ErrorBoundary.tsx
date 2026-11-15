@@ -9,7 +9,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useTranslation } from '@tracearr/translations/mobile';
 import { ErrorState } from '@/components/ui/error-state';
 import { recordTrouble } from '@/lib/reviewPrompt';
-import { colors } from '@/lib/theme';
+import { ACCENT_COLOR, ACCENT_FOREGROUND, colors } from '@/lib/theme';
 
 // React logs every caught error through console.error, which PostHog captures.
 export class ErrorBoundary extends Component<{ children: ReactNode }, { error: unknown }> {
@@ -73,7 +73,7 @@ function ErrorFallback({ error, resetError }: { error: unknown; resetError: () =
         )}
 
         <TouchableOpacity style={styles.button} onPress={resetError}>
-          <RefreshCw size={20} color={colors.text.primary.dark} />
+          <RefreshCw size={20} color={ACCENT_FOREGROUND} />
           <Text style={styles.buttonText}>{t('common:actions.tryAgain')}</Text>
         </TouchableOpacity>
       </View>
@@ -131,7 +131,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: colors.cyan.core,
+    backgroundColor: ACCENT_COLOR,
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 8,
@@ -140,6 +140,6 @@ const styles = StyleSheet.create({
   buttonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: colors.text.primary.dark,
+    color: ACCENT_FOREGROUND,
   },
 });

@@ -1,8 +1,9 @@
 import { colors } from '../../lib/theme';
 
 export const PLAYBACK_COLORS = {
-  directStream: colors.info,
-  transcode: colors.chart[3],
+  direct: colors.chart[0],
+  directStream: colors.chart[3],
+  transcode: colors.chart[1],
 } as const;
 
 export const AXIS_COLORS = {

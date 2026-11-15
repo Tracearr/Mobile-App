@@ -6,7 +6,7 @@ import React from 'react';
 import { View } from 'react-native';
 import { Pie, PolarChart } from 'victory-native';
 import { Text } from '@/components/ui/text';
-import { colors, ACCENT_COLOR } from '../../lib/theme';
+import { colors } from '../../lib/theme';
 import { ChartCard } from './ChartCard';
 
 interface PlatformChartProps {
@@ -14,15 +14,6 @@ interface PlatformChartProps {
   height?: number;
   isLoading?: boolean;
 }
-
-const SLICE_COLORS = [
-  ACCENT_COLOR,
-  colors.info,
-  colors.success,
-  colors.warning,
-  colors.purple,
-  colors.danger,
-];
 
 export function PlatformChart({ data, height, isLoading }: PlatformChartProps) {
   // Sort by count and take top 5
@@ -32,7 +23,7 @@ export function PlatformChart({ data, height, isLoading }: PlatformChartProps) {
     .map((d, index) => ({
       label: d.platform.replace('Plex for ', '').replace('Jellyfin ', ''),
       value: d.count,
-      color: SLICE_COLORS[index % SLICE_COLORS.length],
+      color: colors.chart[index % colors.chart.length],
     }));
 
   const total = sortedData.reduce((sum, item) => sum + item.value, 0);

@@ -5,7 +5,7 @@ import React, { useState, useCallback, useMemo } from 'react';
 import { CartesianChart, Bar, useChartPressState } from 'victory-native';
 import { useAnimatedReaction } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
-import { colors } from '../../lib/theme';
+import { ACCENT_COLOR } from '../../lib/theme';
 import { useChartFont } from './useChartFont';
 import { ChartCard, PlaysReadout } from './ChartCard';
 import { ChartCursor } from './ChartCursor';
@@ -20,7 +20,7 @@ interface HourOfDayChartProps {
   isLoading?: boolean;
 }
 
-const BAR_COLOR = colors.chart[1];
+const BAR_COLOR = ACCENT_COLOR;
 
 export function HourOfDayChart({ data, height = 180, isLoading }: HourOfDayChartProps) {
   useDateConventions();

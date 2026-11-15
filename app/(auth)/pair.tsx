@@ -278,7 +278,7 @@ export default function PairScreen() {
                 />
               </View>
 
-              {error && <Text className="text-destructive text-center text-sm">{error}</Text>}
+              {error && <Text className="text-danger text-center text-sm">{error}</Text>}
 
               <Button
                 size="lg"

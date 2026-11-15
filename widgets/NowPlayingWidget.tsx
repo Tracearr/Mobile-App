@@ -141,11 +141,11 @@ const NowPlayingWidget = (
     primary: dark ? '#FAFAFA' : '#09090B',
     secondary: dark ? '#A1A1AA' : '#71717A',
     tertiary: dark ? '#71717A' : '#A1A1AA',
-    accent: dark ? '#18D1E7' : '#0891B2',
-    transcode: dark ? '#F59E0B' : '#B45309',
-    direct: dark ? '#22C55E' : '#15803D',
+    accent: dark ? '#16C3DD' : '#09707F',
+    transcode: dark ? '#F0B135' : '#8D5406',
+    direct: dark ? '#61CB7C' : '#067132',
     tile: dark ? '#18181B' : '#F4F4F5',
-    rule: dark ? '#27272A' : '#E4E4E7',
+    rule: dark ? '#2C2C30' : '#DFDFE2',
   };
   const tone = (
     hex: string,

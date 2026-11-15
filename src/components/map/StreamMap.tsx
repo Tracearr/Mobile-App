@@ -44,9 +44,7 @@ class MapErrorBoundary extends Component<
           <MapIcon size={32} color={colors.icon.default} />
           <Text className="text-muted-foreground text-sm">{this.props.fallbackText}</Text>
           {__DEV__ && this.state.error && (
-            <Text className="text-destructive px-4 text-center text-xs">
-              {this.state.error.message}
-            </Text>
+            <Text className="text-danger px-4 text-center text-xs">{this.state.error.message}</Text>
           )}
         </View>
       );

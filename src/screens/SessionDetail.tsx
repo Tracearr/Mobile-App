@@ -430,10 +430,11 @@ export function SessionDetail({ id, mem, embedded = false, onBack }: DetailScree
             <View className="flex-row items-center justify-between">
               <Text className="text-muted-foreground text-[13px]">{t('common:labels.server')}</Text>
               <View className="flex-row items-center gap-1">
-                <Text
-                  className="text-[13px] font-medium"
-                  style={{ color: SERVER_TYPE_BRAND_COLORS[session.server.type] }}
-                >
+                <View
+                  className="mr-0.5 h-2 w-2 rounded-full"
+                  style={{ backgroundColor: SERVER_TYPE_BRAND_COLORS[session.server.type] }}
+                />
+                <Text className="text-foreground text-[13px] font-medium">
                   {SERVER_LABELS[session.server.type]}
                 </Text>
                 <Text className="text-muted-foreground text-[13px]">·</Text>

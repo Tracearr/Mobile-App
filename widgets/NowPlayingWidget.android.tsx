@@ -45,11 +45,10 @@ const NowPlayingWidget = (props: NowPlayingWidgetProps, environment: WidgetEnvir
   const primary = dark ? '#FAFAFA' : '#09090B';
   const secondary = dark ? '#A1A1AA' : '#71717A';
   const tertiary = dark ? '#71717A' : '#A1A1AA';
-  const accent = dark ? '#18D1E7' : '#0891B2';
-  const accentText = dark ? '#18D1E7' : '#0E7490';
-  const warning = dark ? '#F59E0B' : '#B45309';
-  const direct = dark ? '#22C55E' : '#15803D';
-  const track = dark ? '#27272A' : '#E4E4E7';
+  const accent = dark ? '#16C3DD' : '#09707F';
+  const warning = dark ? '#F0B135' : '#8D5406';
+  const direct = dark ? '#61CB7C' : '#067132';
+  const track = dark ? '#2C2C30' : '#DFDFE2';
   const now = Date.now();
   const signedOut = props.status === 'signedOut';
   const stale = props.asOfMs > 0 && now >= props.staleAtMs;
@@ -191,7 +190,7 @@ const NowPlayingWidget = (props: NowPlayingWidgetProps, environment: WidgetEnvir
       <Spacer modifiers={[height(4)]} />
       <Row verticalAlignment="bottom">
         <Text
-          color={stale || empty ? tertiary : accentText}
+          color={stale || empty ? tertiary : accent}
           maxLines={1}
           style={{ fontSize: 36, fontWeight: 'bold' }}
         >

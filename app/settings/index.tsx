@@ -100,7 +100,7 @@ function SettingsRow({
       <View className="flex-1 flex-row items-center gap-4">
         {icon}
         <View className="flex-1">
-          <Text className={`text-[15px] font-medium ${destructive ? 'text-destructive' : ''}`}>
+          <Text className={`text-[15px] font-medium ${destructive ? 'text-danger' : ''}`}>
             {label}
           </Text>
           {description ? (

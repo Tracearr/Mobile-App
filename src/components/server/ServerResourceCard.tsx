@@ -18,8 +18,8 @@ import { colors } from '@/lib/theme';
 
 // Web's series colors (apps/web ServerResourceCharts.tsx)
 const BAR_COLORS = {
-  process: '#00b4e4',
-  system: '#cc7b9f',
+  process: colors.chart[0],
+  system: colors.chart[1],
 };
 
 const PROCESS_LABELS: Record<ServerType, string> = {

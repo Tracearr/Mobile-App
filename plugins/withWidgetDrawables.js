@@ -108,7 +108,7 @@ ${paths
 `;
 }
 
-// Tokens from src/lib/theme.ts: colors.blue.core into colors.background.dark.
+// The logo's shield fill (style guide blue-core) into colors.background.dark; the iOS widget uses the same pair.
 const CARD_DARK = `<?xml version="1.0" encoding="utf-8"?>
 <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
     <gradient

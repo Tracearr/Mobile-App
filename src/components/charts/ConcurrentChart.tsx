@@ -32,12 +32,6 @@ interface ConcurrentChartProps {
   isLoading?: boolean;
 }
 
-// Web's ConcurrentChart series: --chart-2, a fixed blue, --chart-4.
-const CHART_COLORS = {
-  direct: colors.chart[1],
-  ...PLAYBACK_COLORS,
-};
-
 export function ConcurrentChart({
   data,
   period = 'month',
@@ -136,14 +130,17 @@ export function ConcurrentChart({
       {/* Legend */}
       <View className="mb-1 flex-row justify-end gap-4 px-1">
         <View className="flex-row items-center gap-1">
-          <View className="h-2 w-2 rounded-full" style={{ backgroundColor: CHART_COLORS.direct }} />
+          <View
+            className="h-2 w-2 rounded-full"
+            style={{ backgroundColor: PLAYBACK_COLORS.direct }}
+          />
           <Text className="text-muted-foreground text-xs">{t('common:playback.directPlay')}</Text>
         </View>
         {hasDirectStream && (
           <View className="flex-row items-center gap-1">
             <View
               className="h-2 w-2 rounded-full"
-              style={{ backgroundColor: CHART_COLORS.directStream }}
+              style={{ backgroundColor: PLAYBACK_COLORS.directStream }}
             />
             <Text className="text-muted-foreground text-xs">
               {t('common:playback.directStream')}
@@ -153,7 +150,7 @@ export function ConcurrentChart({
         <View className="flex-row items-center gap-1">
           <View
             className="h-2 w-2 rounded-full"
-            style={{ backgroundColor: CHART_COLORS.transcode }}
+            style={{ backgroundColor: PLAYBACK_COLORS.transcode }}
           />
           <Text className="text-muted-foreground text-xs">{t('common:playback.transcode')}</Text>
         </View>
@@ -168,19 +165,19 @@ export function ConcurrentChart({
                 {t('common:count.stream', { count: total })}
               </Text>
               <Text className="text-xs">
-                <Text className="text-xs" style={{ color: CHART_COLORS.direct }}>
+                <Text className="text-xs" style={{ color: PLAYBACK_COLORS.direct }}>
                   {displayValue.direct} {t('common:playback.directPlay')}
                 </Text>
                 {hasDirectStream && (
                   <>
                     {' · '}
-                    <Text className="text-xs" style={{ color: CHART_COLORS.directStream }}>
+                    <Text className="text-xs" style={{ color: PLAYBACK_COLORS.directStream }}>
                       {displayValue.directStream} {t('common:playback.directStream')}
                     </Text>
                   </>
                 )}
                 {' · '}
-                <Text className="text-xs" style={{ color: CHART_COLORS.transcode }}>
+                <Text className="text-xs" style={{ color: PLAYBACK_COLORS.transcode }}>
                   {displayValue.transcode} {t('common:playback.transcode')}
                 </Text>
               </Text>
@@ -224,9 +221,9 @@ export function ConcurrentChart({
               animate={{ type: 'timing', duration: 500 }}
               areaOptions={({ rowIndex, lowestY, highestY }) => {
                 const colorOrder = [
-                  CHART_COLORS.direct,
-                  CHART_COLORS.directStream,
-                  CHART_COLORS.transcode,
+                  PLAYBACK_COLORS.direct,
+                  PLAYBACK_COLORS.directStream,
+                  PLAYBACK_COLORS.transcode,
                 ];
                 return {
                   children: (

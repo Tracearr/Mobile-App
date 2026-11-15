@@ -1,13 +1,10 @@
 /**
- * Design system tokens matching Tracearr web app
- * These values match the web's dark mode theme exactly (shadcn neutral palette)
+ * Design system tokens matching the Tracearr web app's dark mode
+ * (tracearr docs/style-guide.md, apps/web/src/styles/globals.css).
  *
- * HSL to Hex conversions from web globals.css:
- * - hsl(240 10% 4%)  = #09090B (background)
- * - hsl(0 0% 98%)    = #FAFAFA (foreground)
- * - hsl(240 4% 16%)  = #27272A (secondary/muted/border)
- * - hsl(240 5% 65%)  = #A1A1AA (muted-foreground)
- * - hsl(240 6% 10%)  = #18181B (surface/sidebar)
+ * React Native cannot parse oklch(), and react-native-css drops oklch(var(--x)),
+ * so every web value is written here and in global.css as the sRGB hex that
+ * react-native-css compiles the literal to, which is also what Chrome renders.
  */
 
 /**
@@ -16,94 +13,72 @@
  * For UI elements, prefer using className="bg-primary" or "text-primary".
  * Matches --color-primary in global.css
  */
-export const ACCENT_COLOR = '#18D1E7';
+export const ACCENT_COLOR = '#16C3DD'; // oklch(0.75 0.128 212)
+export const ACCENT_FOREGROUND = '#071417'; // oklch(0.18 0.02 212)
 
 // global.css is canonical for palette values; keep these in sync with it.
 export const colors = {
-  // Brand colors (Tracearr identity - cyan accent hue 187)
-  cyan: {
-    core: '#18D1E7', // hsl(187 80% 50%) - primary accent
-    deep: '#0891B2',
-    dark: '#0E7490',
-  },
-  // Legacy blue panel colors - kept for gradual migration
-  blue: {
-    core: '#0B1A2E', // hsl(213 62% 11%)
-    steel: '#162840', // hsl(213 47% 17%)
-    soft: '#1E3A5C', // hsl(212 49% 24%)
-  },
-
-  // Background colors - shadcn neutral dark mode
   background: {
-    dark: '#09090B', // hsl(240 10% 4%) - matches web --background
-    light: '#FFFFFF', // hsl(0 0% 100%)
+    dark: '#09090B', // hsl(240 10% 4%)
   },
   card: {
-    dark: '#09090B', // hsl(240 10% 4%) - matches web --card (same as bg)
-    light: '#FFFFFF', // hsl(0 0% 100%)
+    dark: '#111113', // hsl(240 6% 7%)
   },
+  // web --card-raised: anything nested in a card or sheet
   surface: {
-    dark: '#18181B', // hsl(240 6% 10%) - matches web --sidebar
-    light: '#F4F4F5', // hsl(240 5% 96%)
+    dark: '#18181B', // hsl(240 5% 10%)
   },
 
-  // Accent colors
-  orange: {
-    core: '#F97316',
-  },
-  purple: '#8B5CF6',
-
-  // Status colors
-  success: '#22C55E',
-  warning: '#F59E0B',
-  error: '#DC2626',
-  danger: '#DC2626',
-  info: '#3B82F6',
-  // success and warning fail contrast on white; these are their light mode text colors
-  successOnLight: '#15803D',
-  warningOnLight: '#B45309',
+  // Status colors, never chart series
+  success: '#61CB7C', // oklch(0.76 0.15 150)
+  warning: '#F0B135', // oklch(0.8 0.15 80)
+  error: '#F75D59', // oklch(0.68 0.19 25), web --destructive
+  danger: '#F75D59',
+  info: '#6DB0F4', // oklch(0.74 0.12 250)
 
   // Switch/toggle colors
   switch: {
-    trackOff: '#27272A', // matches border color
+    trackOff: '#27272A', // matches muted
     trackOn: '#0891B2',
-    thumbOn: '#18D1E7', // cyan-core
+    thumbOn: ACCENT_COLOR,
     thumbOff: '#71717A', // zinc-500
   },
 
-  // Text colors - shadcn neutral palette
   text: {
     // --color-foreground / --color-card-foreground
     primary: {
-      dark: '#FAFAFA', // hsl(0 0% 98%) - matches web --foreground
-      light: '#09090B', // hsl(240 10% 4%)
+      dark: '#FAFAFA', // hsl(0 0% 98%)
     },
     // --color-muted-foreground
     secondary: {
-      dark: '#A1A1AA', // hsl(240 5% 65%) - matches web --muted-foreground
-      light: '#71717A', // hsl(240 4% 46%)
+      dark: '#A1A1AA', // hsl(240 5% 65%)
     },
     muted: {
       dark: '#A1A1AA', // alias for secondary
-      light: '#71717A',
     },
   },
 
-  // Icon colors
   icon: {
     default: '#A1A1AA', // matches muted-foreground
-    active: '#18D1E7', // cyan-core
-    danger: '#FCA5A5',
+    active: ACCENT_COLOR,
+    danger: '#F75D59',
   },
 
-  // Border colors - shadcn neutral
   border: {
-    dark: '#27272A', // hsl(240 4% 16%) - matches web --border
-    light: '#E4E4E7', // hsl(240 6% 90%)
+    dark: '#2C2C30', // hsl(240 4% 18%)
   },
 
-  // --color-chart-1 through --color-chart-5
-  chart: ['#18D1E7', '#22D3EE', '#6B7280', '#FBBF24', '#EF4444'],
+  // Categorical --color-chart-1 through --color-chart-8; one-series charts use ACCENT_COLOR
+  chart: [
+    '#65A7FA', // oklch(0.72 0.14 255) blue
+    '#F99549', // oklch(0.76 0.15 55) orange
+    '#E579C4', // oklch(0.72 0.16 340) magenta
+    '#3EBFC6', // oklch(0.74 0.11 200) teal
+    '#A689F1', // oklch(0.7 0.15 295) violet
+    '#CBB94C', // oklch(0.78 0.13 100) olive
+    '#5AC576', // oklch(0.74 0.15 150) green
+    '#F16F7E', // oklch(0.7 0.16 15) rose
+  ],
 } as const;
 
 /**
