@@ -67,7 +67,7 @@ function RuleIcon({ ruleType }: { ruleType: string | null | undefined }) {
   );
 }
 
-function ViolationCard({
+export function ViolationCard({
   violation,
   onAcknowledge,
   isAcknowledging,
@@ -85,8 +85,7 @@ function ViolationCard({
   selected?: boolean;
 }) {
   const { t } = useTranslation(['common']);
-  const username = violation.user.username;
-  const displayName = violation.user.identityName ?? username;
+  const displayName = violation.user.identityName ?? violation.user.username;
   const ruleName = violation.rule.name || t('common:labels.unknown');
   const timeAgo = safeFormatDistanceToNow(violation.createdAt, t('common:labels.unknown'));
   const avatarSize = isTablet ? 48 : 40;
@@ -104,16 +103,13 @@ function ViolationCard({
             <UserAvatar
               thumbUrl={violation.user.thumbUrl}
               serverId={violation.user.serverId}
-              username={username}
+              name={displayName}
               size={avatarSize}
             />
             <View className="flex-1">
               <Text className="text-base font-semibold" numberOfLines={1}>
                 {displayName}
               </Text>
-              {violation.user.identityName && violation.user.identityName !== username && (
-                <Text className="text-muted-foreground text-xs">@{username}</Text>
-              )}
               <Text className="text-muted-foreground text-xs">{timeAgo}</Text>
             </View>
           </View>

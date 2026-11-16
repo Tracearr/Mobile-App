@@ -39,6 +39,7 @@ export function UserHeaderCard({
   const showsOverallTrust = isAllScope && isMergedIdentity;
   const isRemoved = isAllScope ? isPersonRemoved(identity.serverUsers) : user.removedAt != null;
   const isEditing = editTarget?.origin === 'header';
+  const displayName = user.identityName ?? user.username;
 
   const headerServers = isAllScope
     ? getMergedIdentityServers(
@@ -54,7 +55,7 @@ export function UserHeaderCard({
         <UserAvatar
           thumbUrl={user.thumbUrl}
           serverId={user.serverId}
-          username={user.username}
+          name={displayName}
           size={avatarSize}
         />
         <View className="flex-1 gap-1">
@@ -65,7 +66,7 @@ export function UserHeaderCard({
                 isRemoved && 'text-muted-foreground line-through'
               )}
             >
-              {user.identityName ?? user.username}
+              {displayName}
             </Text>
             {user.role === 'owner' && (
               <View accessible accessibilityLabel={t('common:labels.serverOwner')}>
@@ -74,9 +75,6 @@ export function UserHeaderCard({
             )}
             {isRemoved && <RemovedBadge />}
           </View>
-          {user.identityName && user.identityName !== user.username && (
-            <Text className="text-muted-foreground text-sm">@{user.username}</Text>
-          )}
           {user.email && <Text className="text-muted-foreground text-sm">{user.email}</Text>}
           <ServerPills servers={headerServers} size="md" max={4} />
           <View className="mt-1 flex-row flex-wrap items-center gap-2">

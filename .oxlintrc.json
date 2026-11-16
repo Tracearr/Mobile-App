@@ -17,5 +17,11 @@
 
     "typescript/no-unsafe-type-assertion": "warn"
   },
+  "overrides": [
+    {
+      "files": ["**/__tests__/**"],
+      "rules": { "typescript/no-unsafe-type-assertion": "off" }
+    }
+  ],
   "ignorePatterns": [".expo/", "dist/", "android/", "ios/", "credentials/", "*.config.js"]
 }

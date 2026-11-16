@@ -405,7 +405,7 @@ export const FilterBottomSheet = forwardRef<FilterBottomSheetRef, FilterBottomSh
                 <UserAvatar
                   thumbUrl={user.thumbUrl}
                   serverId={user.serverId}
-                  username={displayName}
+                  name={displayName}
                   size={36}
                 />
               }

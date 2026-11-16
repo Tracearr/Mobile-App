@@ -132,7 +132,7 @@ function ProfileRow() {
 
   return (
     <View className="flex-row items-center gap-4 px-4 py-3.5">
-      <UserAvatar thumbUrl={user.thumbUrl} username={user.username} size={40} />
+      <UserAvatar thumbUrl={user.thumbUrl} name={user.username} size={40} />
       <View className="flex-1">
         <Text className="text-[15px] font-semibold" numberOfLines={1}>
           {user.friendlyName}

@@ -318,8 +318,7 @@ export function ViolationDetail({ id, mem, embedded = false, onBack }: DetailScr
   }
 
   const unknown = t('common:labels.unknown');
-  const username = violation.user.username;
-  const displayName = violation.user.identityName ?? username;
+  const displayName = violation.user.identityName ?? violation.user.username;
   const description = violationDescription(violation, unitSystem);
   const details = Object.entries(getViolationDetails(violation, unitSystem)).map(
     ([key, value]): [string, unknown] => [key, value === violation.user.id ? displayName : value]
@@ -465,14 +464,11 @@ export function ViolationDetail({ id, mem, embedded = false, onBack }: DetailScr
               <UserAvatar
                 thumbUrl={violation.user.thumbUrl}
                 serverId={violation.user.serverId}
-                username={username}
+                name={displayName}
                 size={isTablet ? 64 : 56}
               />
               <View className="flex-1">
                 <Text className="text-lg font-semibold">{displayName}</Text>
-                {violation.user.identityName && violation.user.identityName !== username && (
-                  <Text className="text-muted-foreground text-sm">@{username}</Text>
-                )}
                 <ServerTag
                   size="md"
                   name={violation.server?.name}

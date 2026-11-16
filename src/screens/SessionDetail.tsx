@@ -405,22 +405,16 @@ export function SessionDetail({ id, mem, embedded = false, onBack }: DetailScree
               <UserAvatar
                 thumbUrl={session.user.thumbUrl}
                 serverId={session.serverId}
-                username={session.user.username}
+                name={displayName}
                 size={36}
               />
               <View className="min-w-0 flex-1">
                 <Text className="text-foreground text-[15px] font-medium" numberOfLines={1}>
                   {displayName}
                 </Text>
-                {session.user.identityName &&
-                  session.user.identityName !== session.user.username && (
-                    <Text className="text-muted-foreground text-xs">@{session.user.username}</Text>
-                  )}
-                {!session.user.identityName && (
-                  <Text className="text-muted-foreground text-xs">
-                    {t('common:actions.viewProfile')}
-                  </Text>
-                )}
+                <Text className="text-muted-foreground text-xs">
+                  {t('common:actions.viewProfile')}
+                </Text>
               </View>
               <ChevronRight size={16} color={colors.text.muted.dark} />
             </Card>
@@ -575,7 +569,7 @@ export function SessionDetail({ id, mem, embedded = false, onBack }: DetailScree
         onClose={() => setTerminateModalVisible(false)}
         sessionId={id}
         mediaTitle={title.primary}
-        username={session.user.username}
+        username={displayName}
         onTerminated={onBack}
       />
     </>

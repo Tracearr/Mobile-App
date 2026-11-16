@@ -58,7 +58,7 @@ export function UserListItem({
         <UserAvatar
           thumbUrl={user.thumbUrl}
           serverId={user.serverId}
-          username={user.username}
+          name={displayName}
           size={isTablet ? 56 : 48}
         />
         <View className="flex-1 gap-0.5">
@@ -72,11 +72,6 @@ export function UserListItem({
               </View>
             )}
           </View>
-          {user.identityName && user.identityName !== user.username && (
-            <Text className="text-muted-foreground text-xs" numberOfLines={1}>
-              @{user.username}
-            </Text>
-          )}
           <Text className="text-muted-foreground text-xs" numberOfLines={1}>
             {joined ? `${activity} · ${joined}` : activity}
           </Text>

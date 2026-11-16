@@ -175,8 +175,8 @@ export function NowPlayingCard({
   const isPaused = session.state === 'paused';
   const bufferedPercent = getBufferedPercent(session);
   const progressColor = isMultiServer && serverColor ? serverColor : ACCENT_COLOR;
-  const username = session.user?.username ?? t('common:labels.unknown');
-  const displayName = session.user?.identityName ?? username;
+  const displayName =
+    session.user?.identityName ?? session.user?.username ?? t('common:labels.unknown');
   const userThumbUrl = session.user?.thumbUrl || null;
 
   const DeviceIcon = getDeviceIcon(session);
@@ -267,7 +267,7 @@ export function NowPlayingCard({
               <UserAvatar
                 thumbUrl={userThumbUrl}
                 serverId={session.serverId}
-                username={username}
+                name={displayName}
                 size={avatarSize}
               />
               <Text className="text-secondary-foreground flex-1 text-xs" numberOfLines={1}>
@@ -367,7 +367,7 @@ export function NowPlayingCard({
             onClose={() => setTerminateOpen(false)}
             sessionId={session.id}
             mediaTitle={title}
-            username={username}
+            username={displayName}
           />
         </>
       )}

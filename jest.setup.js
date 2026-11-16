@@ -13,3 +13,9 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   setItem: jest.fn(async () => undefined),
   removeItem: jest.fn(async () => undefined),
 }));
+
+// lucide-react-native ships ESM that Jest does not transform; tests never assert on icons.
+jest.mock('lucide-react-native', () => new Proxy({}, { get: () => () => null }));
+
+// English strings, the same as the app's fallback when the device language fails to load.
+beforeAll(() => require('@tracearr/translations/mobile').initI18n({ lng: 'en' }));

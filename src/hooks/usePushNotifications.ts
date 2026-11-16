@@ -165,13 +165,14 @@ export function usePushNotifications() {
         defaultValue: '{{severity}} Violation',
         severity: t(`common:severity.${violation.severity}`),
       });
-      const username = violation.user?.username || t('common:labels.unknown');
+      const name =
+        violation.user?.identityName ?? violation.user?.username ?? t('common:labels.unknown');
       const ruleName = violation.rule?.name || t('pages:userDetail.unknownRule');
 
       await Notifications.scheduleNotificationAsync({
         content: {
           title,
-          body: `${username}: ${ruleName}`,
+          body: `${name}: ${ruleName}`,
           data: {
             type: 'violation_detected',
             violationId: violation.id,

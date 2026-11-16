@@ -54,9 +54,9 @@ function TerminationRow({
       <View className="ml-9 gap-1">
         <Text className="text-muted-foreground text-xs">
           {isManual
-            ? t('mobile:userDetail.terminatedBy', {
-                username: termination.triggeredByUsername ?? unknown,
-                defaultValue: 'By @{{username}}',
+            ? t('mobile:userDetail.terminatedByName', {
+                name: termination.triggeredByUsername ?? unknown,
+                defaultValue: 'By {{name}}',
               })
             : (termination.ruleName ?? t('pages:userDetail.unknownRule'))}
         </Text>

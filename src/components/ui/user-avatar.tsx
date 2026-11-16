@@ -12,8 +12,8 @@ interface UserAvatarProps {
   thumbUrl?: string | null;
   /** Server ID for constructing proxy URLs (required for non-Plex avatars) */
   serverId?: string | null;
-  /** Username for generating initials fallback */
-  username?: string | null;
+  /** The person's name: the accessibility label and the initials fallback */
+  name?: string | null;
   /** Size of the avatar (default: 40) */
   size?: number;
 }
@@ -59,8 +59,8 @@ function buildAvatarUrl(
   return `${serverUrl}/api/v1/images/proxy?${params}`;
 }
 
-export function UserAvatar({ thumbUrl, serverId, username, size = 40 }: UserAvatarProps) {
-  const initials = (username ?? '').slice(0, 2).toUpperCase();
+export function UserAvatar({ thumbUrl, serverId, name, size = 40 }: UserAvatarProps) {
+  const initials = (name ?? '').slice(0, 2).toUpperCase();
   const fontSize = Math.max(size * 0.4, 10);
   const borderRadius = size / 2;
 
@@ -70,7 +70,7 @@ export function UserAvatar({ thumbUrl, serverId, username, size = 40 }: UserAvat
       return (
         <Image
           source={{ uri: imageUrl }}
-          accessibilityLabel={username ?? undefined}
+          accessibilityLabel={name ?? undefined}
           style={{ width: size, height: size, borderRadius }}
           className="bg-surface"
         />
@@ -80,7 +80,7 @@ export function UserAvatar({ thumbUrl, serverId, username, size = 40 }: UserAvat
 
   return (
     <View
-      accessibilityLabel={username ?? undefined}
+      accessibilityLabel={name ?? undefined}
       style={{ width: size, height: size, borderRadius }}
       className="bg-primary items-center justify-center"
     >
