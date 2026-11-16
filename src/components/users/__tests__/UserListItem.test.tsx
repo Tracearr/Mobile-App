@@ -4,7 +4,7 @@ import type { ServerUserWithIdentity } from '@tracearr/shared';
 
 import { UserListItem } from '../UserListItem';
 
-jest.mock('../../../lib/api', () => ({ getServerUrl: () => null }));
+jest.mock('../../../lib/api', () => ({ getServerUrl: () => 'https://tracearr.test' }));
 jest.mock('../../../providers/MediaServerProvider', () => ({
   useMediaServer: () => ({ serverColor: () => null }),
 }));
@@ -34,4 +34,26 @@ test('names the person without their account username', async () => {
   expect(screen.getByText('alice')).toBeTruthy();
   expect(screen.queryByText(/alice_plex/)).toBeNull();
   expect(screen.queryByText(/@/)).toBeNull();
+});
+
+test("loads a merged person's picture through the server it came from", async () => {
+  const merged = { ...user, thumbUrl: '/Users/2/Images/Primary', thumbServerId: 's-2' };
+  await render(
+    <UserListItem user={merged} onPress={() => {}} isTablet={false} showServers={false} />
+  );
+  const source = screen.getByLabelText('alice').props.source as { uri: string }[];
+  expect(source[0].uri).toContain('server=s-2');
+});
+
+test('falls back to the account server when the server sends no thumbServerId', async () => {
+  await render(
+    <UserListItem
+      user={{ ...user, thumbUrl: '/Users/1/Images/Primary' }}
+      onPress={() => {}}
+      isTablet={false}
+      showServers={false}
+    />
+  );
+  const source = screen.getByLabelText('alice').props.source as { uri: string }[];
+  expect(source[0].uri).toContain('server=s-1');
 });

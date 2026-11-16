@@ -57,7 +57,7 @@ export function UserListItem({
       >
         <UserAvatar
           thumbUrl={user.thumbUrl}
-          serverId={user.serverId}
+          serverId={user.thumbServerId === undefined ? user.serverId : user.thumbServerId}
           name={displayName}
           size={isTablet ? 56 : 48}
         />
