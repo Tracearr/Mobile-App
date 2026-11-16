@@ -9,9 +9,11 @@ import { useTranslation } from '@tracearr/translations/mobile';
 import { Text } from '@/components/ui/text';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { formatDuration } from '@/lib/dateFormat';
 import { colors, withAlpha, ACCENT_COLOR } from '@/lib/theme';
 import {
   PLAYBACK_DECISION_LABEL_KEYS,
+  SERVER_PROFILES,
   formatMediaTech,
   formatResolutionDisplay,
   type SourceVideoDetails,
@@ -43,7 +45,6 @@ interface StreamDetailsPanelProps {
   videoDecision: string | null;
   audioDecision: string | null;
   bitrate: number | null;
-  // Server type for conditional display
   serverType: ServerType;
 }
 
@@ -222,6 +223,9 @@ export function StreamDetailsPanel({
   // Atmos is metadata inside the core codec, so a direct play or copy keeps it
   const atmosSuffix = sourceAudioDetails?.atmos ? ' Atmos' : '';
   const hasSubtitleDetails = !!(subtitleInfo?.codec || subtitleInfo?.language);
+  const rebufferCount = transcodeInfo?.rebufferCount;
+  const droppedFrames = transcodeInfo?.droppedFrames;
+  const hasPlaybackHealth = rebufferCount !== undefined || droppedFrames !== undefined;
   const hasTranscodeDetails = !!(
     transcodeInfo?.hwDecoding ||
     transcodeInfo?.hwEncoding ||
@@ -268,7 +272,7 @@ export function StreamDetailsPanel({
   return (
     <View className="gap-2">
       {/* Container and overall bitrate */}
-      {transcodeInfo?.sourceContainer || bitrate ? (
+      {transcodeInfo?.sourceContainer || bitrate || hasPlaybackHealth ? (
         <>
           {transcodeInfo?.sourceContainer ? (
             <ComparisonRow
@@ -284,6 +288,29 @@ export function StreamDetailsPanel({
               <Text className="text-muted-foreground w-20 text-[13px]">{bitrateLabel}</Text>
               <Text className="text-foreground text-[13px] font-medium">
                 {formatBitrate(bitrate)}
+              </Text>
+            </View>
+          ) : null}
+          {rebufferCount !== undefined ? (
+            <View className="flex-row items-center py-0.5">
+              <Text className="text-muted-foreground min-w-20 pr-2 text-[13px]">
+                {t('pages:history.stream.rebuffers')}
+              </Text>
+              <Text className="text-foreground text-[13px] font-medium">
+                {rebufferCount}
+                {transcodeInfo?.rebufferDurationMs
+                  ? ` · ${formatDuration(transcodeInfo.rebufferDurationMs)}`
+                  : ''}
+              </Text>
+            </View>
+          ) : null}
+          {droppedFrames !== undefined ? (
+            <View className="flex-row items-center py-0.5">
+              <Text className="text-muted-foreground min-w-20 pr-2 text-[13px]">
+                {t('pages:history.stream.droppedFrames')}
+              </Text>
+              <Text className="text-foreground text-[13px] font-medium">
+                {droppedFrames.toLocaleString()}
               </Text>
             </View>
           ) : null}
@@ -322,10 +349,10 @@ export function StreamDetailsPanel({
               label={bitrateLabel}
               sourceValue={formatBitrate(sourceVideoDetails?.bitrate)}
               streamValue={
-                // Show N/A for Jellyfin/Emby transcodes without stream bitrate
+                // N/A for servers whose transcodes report only a total bitrate
                 videoDecision === 'transcode' &&
                 !streamVideoDetails?.bitrate &&
-                serverType !== 'plex'
+                !SERVER_PROFILES[serverType].reportsTranscodeTrackBitrates
                   ? notAvailable
                   : formatBitrate(streamVideoDetails?.bitrate ?? sourceVideoDetails?.bitrate)
               }
@@ -406,10 +433,10 @@ export function StreamDetailsPanel({
               label={bitrateLabel}
               sourceValue={formatBitrate(sourceAudioDetails?.bitrate)}
               streamValue={
-                // Show N/A for Jellyfin/Emby transcodes without stream bitrate
+                // N/A for servers whose transcodes report only a total bitrate
                 audioDecision === 'transcode' &&
                 !streamAudioDetails?.bitrate &&
-                serverType !== 'plex'
+                !SERVER_PROFILES[serverType].reportsTranscodeTrackBitrates
                   ? notAvailable
                   : formatBitrate(streamAudioDetails?.bitrate ?? sourceAudioDetails?.bitrate)
               }

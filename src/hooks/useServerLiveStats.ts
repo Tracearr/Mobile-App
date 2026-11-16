@@ -1,12 +1,17 @@
 /**
  * Live CPU/RAM per server, one query per server against /live-stats. Tracearr
- * serves Plex from Plex's statistics API and Jellyfin/Emby from the buffer its
- * SSE plugin fills, which is empty until the plugin reports and drains when
- * it goes quiet. Polls stop while the app is backgrounded.
+ * serves Plex from Plex's statistics API, tofa from its metrics endpoint, and
+ * Jellyfin/Emby from the buffer its SSE plugin fills, which is empty until the
+ * plugin reports and drains when it goes quiet. Polls stop while the app is backgrounded.
  */
 import { useRef } from 'react';
 import { useQueries } from '@tanstack/react-query';
-import { SERVER_STATS_CONFIG, type ServerResourceDataPoint } from '@tracearr/shared';
+import {
+  SERVER_STATS_CONFIG,
+  liveStatsGapSeconds,
+  type ServerResourceDataPoint,
+  type ServerType,
+} from '@tracearr/shared';
 import { api } from '@/lib/api';
 import { queryKeys } from '@/lib/queryKeys';
 import {
@@ -44,18 +49,20 @@ export interface ServerLiveStatsResult {
   serverId: string;
   statistics: ServerResourceDataPoint[];
   // Null with statistics present means the source went quiet: the newest sample
-  // is older than SERVER_STATS_CONFIG.GAP_BREAK_SECONDS on the server's clock.
+  // is older than liveStatsGapSeconds(type) on the server's clock.
   latest: ServerLiveStatsLatest | null;
   isLoading: boolean;
   error: Error | null;
 }
 
-export function useServerLiveStats(serverIds: string[]): ServerLiveStatsResult[] {
+export function useServerLiveStats(
+  servers: { id: string; type: ServerType }[]
+): ServerLiveStatsResult[] {
   const windowsRef = useRef(new Map<string, LiveStatsWindow>());
-  const selected = new Set(serverIds);
+  const selected = new Set(servers.map((s) => s.id));
 
   const results = useQueries({
-    queries: serverIds.map((serverId) => ({
+    queries: servers.map(({ id: serverId }) => ({
       queryKey: queryKeys.servers.liveStats(serverId),
       queryFn: async ({ signal }: { signal: AbortSignal }): Promise<LiveStatsData> => {
         const response = await api.servers.liveStats(serverId, signal);
@@ -78,10 +85,14 @@ export function useServerLiveStats(serverIds: string[]): ServerLiveStatsResult[]
     })),
   });
 
-  return serverIds.map((serverId, index) => {
+  return servers.map(({ id: serverId, type }, index) => {
     const query = results[index];
     const statistics = query?.data?.statistics ?? [];
-    const last = latestLivePoint(statistics, query?.data?.serverNow ?? 0);
+    const last = latestLivePoint(
+      statistics,
+      query?.data?.serverNow ?? 0,
+      liveStatsGapSeconds(type)
+    );
     return {
       serverId,
       statistics,

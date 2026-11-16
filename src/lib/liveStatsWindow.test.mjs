@@ -1,5 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { liveStatsGapSeconds } from '@tracearr/shared';
 import { latestLivePoint, mergeWindow, serverNowSeconds } from './liveStatsWindow.ts';
 
 const point = (at, cpu = 10) => ({
@@ -50,7 +51,13 @@ test('reads the server clock from fetchedAt in whole seconds', () => {
 
 test('stops reporting a latest point once the newest sample is older than the gap', () => {
   const stats = [point(NOW - 6), point(NOW)];
-  assert.equal(latestLivePoint(stats, NOW + 15)?.at, NOW);
-  assert.equal(latestLivePoint(stats, NOW + 16), null);
-  assert.equal(latestLivePoint([], NOW), null);
+  assert.equal(latestLivePoint(stats, NOW + 15, 15)?.at, NOW);
+  assert.equal(latestLivePoint(stats, NOW + 16, 15), null);
+  assert.equal(latestLivePoint([], NOW, 15), null);
+});
+
+test('bridges a tofa server across its slower idle sampling', () => {
+  const stats = [point(NOW)];
+  assert.equal(latestLivePoint(stats, NOW + 30, liveStatsGapSeconds('plex')), null);
+  assert.equal(latestLivePoint(stats, NOW + 30, liveStatsGapSeconds('tofa'))?.at, NOW);
 });

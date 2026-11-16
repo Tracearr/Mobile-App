@@ -5,6 +5,7 @@ import React from 'react';
 import { View } from 'react-native';
 import { Image } from 'expo-image';
 import { Text } from './text';
+import { isDirectAvatarUrl, isProxiableAvatarUrl } from '@tracearr/shared';
 import { getServerUrl } from '@/lib/api';
 
 interface UserAvatarProps {
@@ -22,7 +23,8 @@ interface UserAvatarProps {
  * Build avatar URL that goes through Tracearr's image proxy.
  * This ensures proper caching and avoids direct media server access.
  *
- * - Plex avatars from plex.tv are already absolute URLs - pass through
+ * - Plex avatars from plex.tv load directly; other absolute URLs are proxied when a
+ *   server type's art host serves them and dropped otherwise, as web does
  * - Already-constructed proxy URLs (start with /api/) - just prepend server URL
  * - Raw media server paths - construct full proxy URL
  */
@@ -33,9 +35,8 @@ function buildAvatarUrl(
 ): string | null {
   const serverUrl = getServerUrl();
 
-  // Already absolute URL (e.g., Plex avatars from plex.tv)
-  if (thumbUrl.startsWith('http')) {
-    return thumbUrl;
+  if (thumbUrl.startsWith('http') && !isProxiableAvatarUrl(thumbUrl)) {
+    return isDirectAvatarUrl(thumbUrl) ? thumbUrl : null;
   }
 
   // Already a proxy URL (from API that pre-constructs it)
@@ -43,7 +44,7 @@ function buildAvatarUrl(
     return serverUrl ? `${serverUrl}${thumbUrl}` : null;
   }
 
-  // Raw media server path - construct proxy URL (same as web's getAvatarUrl)
+  // Raw media server path or proxiable absolute URL (same as web's getAvatarUrl)
   if (!serverId || !serverUrl) {
     return null;
   }

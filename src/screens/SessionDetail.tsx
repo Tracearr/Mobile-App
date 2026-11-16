@@ -64,23 +64,17 @@ import { StreamDetailsPanel } from '@/components/session';
 import { QualityBadge } from '@/components/sessions/QualityBadge';
 import { TerminateSessionDialog } from '@/components/sessions';
 import {
+  SERVER_PROFILES,
   SERVER_TYPE_BRAND_COLORS,
   formatEpisodeLabel,
   type SessionWithDetails,
   type SessionState,
   type MediaType,
-  type ServerType,
 } from '@tracearr/shared';
 import { useTranslation } from '@tracearr/translations/mobile';
 
 const POSTER_WIDTH = 56;
 const POSTER_HEIGHT = 80;
-
-const SERVER_LABELS: Record<ServerType, string> = {
-  plex: 'Plex',
-  jellyfin: 'Jellyfin',
-  emby: 'Emby',
-};
 
 const STATE_CONFIG = {
   playing: { icon: Play, color: colors.success, labelKey: 'common:playback.playing' },
@@ -205,10 +199,10 @@ function InfoRow({
 export function SessionDetail({ id, mem, embedded = false, onBack }: DetailScreenProps) {
   const scrollProps = useScrollMemory(scrollKey(mem));
   useDateConventions();
-  const { t } = useTranslation(['mobile', 'common', 'pages']);
+  const { t } = useTranslation(['mobile', 'common', 'pages', 'settings']);
   const router = useRouter();
   const routes = useStackRoutes();
-  const { selectedServerId } = useMediaServer();
+  const { selectedServerId, servers } = useMediaServer();
   const connectionState = useAuthStateStore((s) => s.connectionState);
   const isOffline = connectionState !== 'connected';
   const getImageUrl = useImageUrl();
@@ -278,6 +272,8 @@ export function SessionDetail({ id, mem, embedded = false, onBack }: DetailScree
   // canTerminate. A row read from the database has no such field.
   const canTerminate =
     session.state !== 'stopped' && !('canTerminate' in session && session.canTerminate === false);
+  const stopRefused =
+    servers.find((server) => server.id === session.serverId)?.canStopStreams === false;
 
   const posterUrl = getImageUrl({
     serverId: session.serverId,
@@ -340,10 +336,14 @@ export function SessionDetail({ id, mem, embedded = false, onBack }: DetailScree
               <Button
                 variant="destructive"
                 size="sm"
-                className={cn('min-h-11 gap-1.5', isOffline && 'opacity-50')}
+                className={cn('min-h-11 gap-1.5', (isOffline || stopRefused) && 'opacity-50')}
                 onPress={handleTerminate}
-                disabled={isOffline}
-                accessibilityLabel={t('pages:terminateStream.title')}
+                disabled={isOffline || stopRefused}
+                accessibilityLabel={
+                  stopRefused
+                    ? t('settings:servers.cannotStopStreams')
+                    : t('pages:terminateStream.title')
+                }
               >
                 <X size={16} color={colors.text.primary.dark} />
                 <Text className="text-destructive-foreground text-xs font-medium">
@@ -429,7 +429,7 @@ export function SessionDetail({ id, mem, embedded = false, onBack }: DetailScree
                   style={{ backgroundColor: SERVER_TYPE_BRAND_COLORS[session.server.type] }}
                 />
                 <Text className="text-foreground text-[13px] font-medium">
-                  {SERVER_LABELS[session.server.type]}
+                  {SERVER_PROFILES[session.server.type].displayName}
                 </Text>
                 <Text className="text-muted-foreground text-[13px]">·</Text>
                 <Text className="text-foreground text-[13px] font-medium">

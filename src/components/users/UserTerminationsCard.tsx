@@ -56,7 +56,6 @@ function TerminationRow({
           {isManual
             ? t('mobile:userDetail.terminatedByName', {
                 name: termination.triggeredByUsername ?? unknown,
-                defaultValue: 'By {{name}}',
               })
             : (termination.ruleName ?? t('pages:userDetail.unknownRule'))}
         </Text>

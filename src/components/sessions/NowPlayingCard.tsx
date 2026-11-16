@@ -33,6 +33,7 @@ import { useImageUrl } from '@/hooks/useImageUrl';
 import { useEstimatedProgress } from '@/hooks/useEstimatedProgress';
 import { useResponsive } from '@/hooks/useResponsive';
 import { useAuthStateStore } from '@/lib/authStateStore';
+import { useMediaServer } from '@/providers/MediaServerProvider';
 import { haptics } from '@/lib/haptics';
 import { ACCENT_COLOR, colors, spacing } from '@/lib/theme';
 import { formatDuration } from '@/lib/dateFormat';
@@ -145,7 +146,7 @@ export function NowPlayingCard({
   isMultiServer,
   serverColor,
 }: NowPlayingCardProps) {
-  const { t } = useTranslation(['common', 'pages']);
+  const { t } = useTranslation(['common', 'pages', 'settings']);
   const getImageUrl = useImageUrl();
   const { isTablet, select } = useResponsive();
   const { title, subtitle: mediaSubtitle } = getMediaDisplay(session);
@@ -155,6 +156,9 @@ export function NowPlayingCard({
       : mediaSubtitle;
   const [terminateOpen, setTerminateOpen] = useState(false);
   const isOffline = useAuthStateStore((s) => s.connectionState !== 'connected');
+  const { servers } = useMediaServer();
+  const stopRefused =
+    servers.find((server) => server.id === session.serverId)?.canStopStreams === false;
 
   // Use estimated progress for smooth updates between SSE/poll events
   const { estimatedProgressMs, progressPercent } = useEstimatedProgress(session);
@@ -173,6 +177,7 @@ export function NowPlayingCard({
   });
 
   const isPaused = session.state === 'paused';
+  const isLive = session.mediaType === 'live';
   const bufferedPercent = getBufferedPercent(session);
   const progressColor = isMultiServer && serverColor ? serverColor : ACCENT_COLOR;
   const displayName =
@@ -317,20 +322,22 @@ export function NowPlayingCard({
               className="rounded-full"
               style={{
                 height: '100%',
-                width: `${progressPercent}%`,
+                width: `${isLive ? 100 : progressPercent}%`,
                 backgroundColor: progressColor,
               }}
             />
           </View>
           <View className="mt-0.5 flex-row justify-between">
             <Text className="text-muted-foreground text-[10px]">
-              {formatDuration(estimatedProgressMs, { style: 'clock' })}
+              {isLive
+                ? t('common:media.liveTV')
+                : formatDuration(estimatedProgressMs, { style: 'clock' })}
             </Text>
             {isPaused || session.buffering ? (
               <Text className="text-warning text-[10px] font-medium">
                 {t(session.buffering ? 'common:playback.buffering' : 'common:playback.paused')}
               </Text>
-            ) : (
+            ) : isLive ? null : (
               <Text className="text-muted-foreground text-[10px]">
                 {session.totalDurationMs && estimatedProgressMs
                   ? `-${formatDuration(session.totalDurationMs - estimatedProgressMs, { style: 'clock' })}`
@@ -346,9 +353,13 @@ export function NowPlayingCard({
         <>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={t('pages:terminateStream.title')}
-            accessibilityState={{ disabled: isOffline }}
-            disabled={isOffline}
+            accessibilityLabel={
+              stopRefused
+                ? t('settings:servers.cannotStopStreams')
+                : t('pages:terminateStream.title')
+            }
+            accessibilityState={{ disabled: isOffline || stopRefused }}
+            disabled={isOffline || stopRefused}
             hitSlop={10}
             onPress={() => {
               haptics.warning();
@@ -360,7 +371,7 @@ export function NowPlayingCard({
               height: TERMINATE_BUTTON_SIZE,
             }}
           >
-            <X size={16} color={colors.error} />
+            <X size={16} color={stopRefused ? colors.text.muted.dark : colors.error} />
           </Pressable>
           <TerminateSessionDialog
             visible={terminateOpen}

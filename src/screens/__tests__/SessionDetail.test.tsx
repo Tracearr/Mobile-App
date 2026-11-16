@@ -29,6 +29,8 @@ const mockSession = {
   geoCountry: null,
 };
 
+let mockServers: { id: string; canStopStreams?: boolean | null }[] = [];
+
 jest.mock('../../lib/api', () => ({
   getServerUrl: () => null,
   api: { sessions: { get: jest.fn(async () => mockSession) } },
@@ -38,7 +40,11 @@ jest.mock('../../lib/authStateStore', () => ({
     select({ connectionState: 'connected' }),
 }));
 jest.mock('../../providers/MediaServerProvider', () => ({
-  useMediaServer: () => ({ selectedServerId: 's-1', serverColor: () => null }),
+  useMediaServer: () => ({
+    selectedServerId: 's-1',
+    servers: mockServers,
+    serverColor: () => null,
+  }),
 }));
 jest.mock('../../lib/reviewPrompt', () => ({ maybeRequestReview: async () => {} }));
 jest.mock('../../hooks/useOpenInTabs', () => ({
@@ -56,9 +62,17 @@ async function renderDetail() {
 }
 
 test('names the person without their account username', async () => {
+  mockServers = [];
   await renderDetail();
   expect(await screen.findByText('alice')).toBeTruthy();
   expect(screen.queryByText(/alice_plex/)).toBeNull();
   expect(screen.queryByText(/@/)).toBeNull();
   expect(screen.getByText('View Profile')).toBeTruthy();
+});
+
+test('disables stop when the server key cannot stop streams', async () => {
+  mockServers = [{ id: 's-1', canStopStreams: false }];
+  await renderDetail();
+  const stop = await screen.findByLabelText(/cannot stop streams/);
+  expect(stop.props.accessibilityState?.disabled).toBe(true);
 });

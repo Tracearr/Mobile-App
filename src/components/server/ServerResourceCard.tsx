@@ -26,6 +26,7 @@ const PROCESS_LABELS: Record<ServerType, string> = {
   plex: 'Plex Media Server',
   jellyfin: 'Jellyfin',
   emby: 'Emby',
+  tofa: 'tofa',
 };
 
 // An idle media server process sits under 1%, which a whole-number label shows as 0%.

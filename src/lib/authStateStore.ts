@@ -15,6 +15,7 @@ import {
   readAccessToken,
   writeAccessToken,
 } from './accessTokenStorage';
+import type { ServerType } from '@tracearr/shared';
 import { api, resetApiClient } from './api';
 import { isEncryptionAvailable, ensureDeviceSecret } from './crypto';
 import { unregisterBackgroundNotificationTask } from './backgroundTasks';
@@ -24,7 +25,7 @@ export interface StoredServer {
   id: string;
   url: string;
   name: string;
-  type: 'plex' | 'jellyfin' | 'emby';
+  type: ServerType;
   pairedAt: string;
 }
 

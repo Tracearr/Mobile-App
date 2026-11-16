@@ -42,6 +42,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { SectionHeader } from '@/components/ui/section-header';
 import { spacing, ACCENT_COLOR } from '@/lib/theme';
+import { SERVER_PROFILES } from '@tracearr/shared';
 import { useTranslation } from '@tracearr/translations/mobile';
 
 const TILE_GAP = spacing.sm;
@@ -142,14 +143,16 @@ export default function DashboardScreen() {
       ),
     [selectedServers, serverOrderMap]
   );
-  const liveStats = useServerLiveStats(resourceServers.map((s) => s.id));
-  // Plex always has a stats source, so its card always shows. A Jellyfin/Emby
-  // card shows only while its SSE plugin is reporting: keying on the retained
+  const liveStats = useServerLiveStats(resourceServers);
+  // Plex always has a stats source, so its card always shows. Any other card
+  // shows only while its source (SSE plugin, tofa metrics) is reporting: keying on the retained
   // window instead would park an empty card on screen until the window drains.
   const resourceCards = resourceServers.flatMap((server, index) => {
     const stats = liveStats[index];
     if (!stats) return [];
-    return server.type === 'plex' || stats.latest !== null ? [{ server, stats }] : [];
+    return SERVER_PROFILES[server.type].hostStats === 'plexStatistics' || stats.latest !== null
+      ? [{ server, stats }]
+      : [];
   });
 
   // Live stats are included so a server on the empty backoff is polled now, not in 30s.
