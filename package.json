@@ -42,10 +42,10 @@
     "@react-native-async-storage/async-storage": "2.2.0",
     "@shopify/flash-list": "2.3.3",
     "@shopify/react-native-skia": "2.14.0",
-    "@tanstack/react-query": "^5.104.4",
+    "@tanstack/react-query": "^5.107.1",
     "@tracearr/shared": "3.2.0-beta.1",
     "@tracearr/translations": "3.2.0-beta.1",
-    "axios": "^1.20.0",
+    "axios": "^1.21.1",
     "buffer": "^6.0.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -82,7 +82,7 @@
     "i18next": "^27.1.1",
     "lucide-react-native": "^1.59.0",
     "nativewind": "5.0.0-rc.0",
-    "posthog-react-native": "^4.81.2",
+    "posthog-react-native": "^4.86.0",
     "react": "19.3.0",
     "react-dom": "19.3.1",
     "react-i18next": "^18.0.1",
@@ -99,10 +99,10 @@
     "socket.io-client": "^4.8.4",
     "tailwind-merge": "^3.7.0",
     "victory-native": "^42.0.1",
-    "zustand": "^5.0.15"
+    "zustand": "^5.1.0"
   },
   "devDependencies": {
-    "@posthog/cli": "^0.19.0",
+    "@posthog/cli": "^0.20.0",
     "@react-native/jest-preset": "^0.88.0",
     "@tailwindcss/postcss": "^4.3.3",
     "@testing-library/react-native": "^14.1.0",
@@ -113,10 +113,10 @@
     "babel-preset-expo": "~58.0.18",
     "jest": "^30.5.2",
     "jest-expo": "~58.0.13",
-    "oxlint": "1.92.0",
-    "oxlint-tsgolint": "^7.0.2004",
-    "postcss": "^8.5.31",
-    "prettier": "^3.9.10",
+    "oxlint": "1.93.0",
+    "oxlint-tsgolint": "^7.0.2007",
+    "postcss": "^8.5.33",
+    "prettier": "^3.10.1",
     "prettier-plugin-tailwindcss": "^0.8.1",
     "react-server-dom-webpack": "~19.3.1",
     "react-test-renderer": "19.3.1",
@@ -132,7 +132,7 @@
       ]
     }
   },
-  "packageManager": "pnpm@11.28.9+sha512.35421cea2720eca3f5ad722b67e8ef18f4d3cd4745ed2fcfeb0dc288d4e9437fad3870d91ee6e83f268f0f6f7e0f62723317b19617bb45ee4333172ef51159f8",
+  "packageManager": "pnpm@11.28.11+sha512.740184d10f81f5d5b165be88560ee7ba62406c4134896abc27a580109eec2f47c1e41d91251c944c2cababcb1c22461799ebb72de2ec625af2030b0e36c735a3",
   "engines": {
     "node": ">=22.22.1",
     "pnpm": ">=11.8.0"
