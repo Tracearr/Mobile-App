@@ -19,7 +19,7 @@ interface TerminateSessionDialogProps {
   onClose: () => void;
   sessionId: string;
   mediaTitle: string;
-  username: string;
+  name: string;
   onTerminated?: () => void;
 }
 
@@ -28,7 +28,7 @@ export function TerminateSessionDialog({
   onClose,
   sessionId,
   mediaTitle,
-  username,
+  name,
   onTerminated,
 }: TerminateSessionDialogProps) {
   const { t } = useTranslation(['pages', 'mobile', 'common']);
@@ -74,7 +74,7 @@ export function TerminateSessionDialog({
                 {t('pages:terminateStream.title')}
               </Text>
               <Text className="text-muted-foreground mt-1 text-sm">
-                {t('pages:terminateStream.stopMedia', { mediaTitle, username })}
+                {t('pages:terminateStream.stopMediaFor', { mediaTitle, name })}
               </Text>
             </View>
             <View className="px-4 pb-3">

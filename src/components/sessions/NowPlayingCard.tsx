@@ -378,7 +378,7 @@ export function NowPlayingCard({
             onClose={() => setTerminateOpen(false)}
             sessionId={session.id}
             mediaTitle={title}
-            username={displayName}
+            name={displayName}
           />
         </>
       )}

@@ -569,7 +569,7 @@ export function SessionDetail({ id, mem, embedded = false, onBack }: DetailScree
         onClose={() => setTerminateModalVisible(false)}
         sessionId={id}
         mediaTitle={title.primary}
-        username={displayName}
+        name={displayName}
         onTerminated={onBack}
       />
     </>
