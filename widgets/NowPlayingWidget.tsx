@@ -138,14 +138,14 @@ const NowPlayingWidget = (
     'showsContainerBackground' in environment && environment.showsContainerBackground === false;
   const fills = !accented && !standBy;
   const palette = {
-    primary: dark ? '#FAFAFA' : '#09090B',
-    secondary: dark ? '#A1A1AA' : '#71717A',
-    tertiary: dark ? '#71717A' : '#A1A1AA',
+    primary: dark ? '#F6FBFC' : '#070A0B',
+    secondary: dark ? '#98A5A8' : '#5A6568',
+    tertiary: dark ? '#687577' : '#99A5A7',
     accent: dark ? '#16C3DD' : '#09707F',
     transcode: dark ? '#F0B135' : '#8D5406',
     direct: dark ? '#61CB7C' : '#067132',
-    tile: dark ? '#18181B' : '#F4F4F5',
-    rule: dark ? '#2C2C30' : '#DFDFE2',
+    tile: dark ? '#121A1C' : '#F3F8F9',
+    rule: dark ? '#262E30' : '#D8DDDF',
   };
   const tone = (
     hex: string,
@@ -163,7 +163,7 @@ const NowPlayingWidget = (
     dark
       ? {
           type: 'linearGradient',
-          colors: ['#0B1A2E', '#09090B'],
+          colors: ['#0B1A2E', '#050B0C'],
           startPoint: { x: 0, y: 0 },
           endPoint: { x: 0.55, y: 0.55 },
         }

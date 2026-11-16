@@ -5,30 +5,30 @@
 
 /* Tailwind v4 @theme block - creates utility classes at build time */
 @theme {
-  --color-background: #09090B;
-  --color-foreground: #FAFAFA;
-  --color-card: #111113;
-  --color-card-foreground: #FAFAFA;
-  --color-popover: #1B1B1D;
-  --color-popover-foreground: #FAFAFA;
+  --color-background: #050B0C;
+  --color-foreground: #F6FBFC;
+  --color-card: #0B1314;
+  --color-card-foreground: #F6FBFC;
+  --color-popover: #151D1E;
+  --color-popover-foreground: #F6FBFC;
   --color-primary: #16C3DD;
   --color-primary-foreground: #071417;
-  --color-secondary: #27272A;
-  --color-secondary-foreground: #FAFAFA;
-  --color-muted: #27272A;
-  --color-muted-foreground: #A1A1AA;
-  --color-accent: #27272A;
-  --color-accent-foreground: #FAFAFA;
-  --color-destructive: #9B3F3D;
+  --color-secondary: #21292B;
+  --color-secondary-foreground: #F6FBFC;
+  --color-muted: #21292B;
+  --color-muted-foreground: #98A5A8;
+  --color-accent: #21292B;
+  --color-accent-foreground: #F6FBFC;
+  --color-destructive: #993F3E;
   --color-destructive-foreground: #FAFAFA;
-  --color-border: #2C2C30;
-  --color-input: #27272A;
+  --color-border: #262E30;
+  --color-input: #21292B;
   --color-ring: #16C3DD;
-  --color-surface: #18181B;
+  --color-surface: #121A1C;
   --color-success: #61CB7C;
   --color-warning: #F0B135;
   --color-danger: #F75D59;
-  --color-icon: #A1A1AA;
+  --color-icon: #98A5A8;
   --color-icon-active: #16C3DD;
   --color-icon-danger: #F75D59;
   --color-chart-1: #65A7FA;
@@ -47,30 +47,30 @@
 
 /* Runtime defaults - NativeWind needs these for CSS variable resolution */
 :root {
-  --color-background: #09090B;
-  --color-foreground: #FAFAFA;
-  --color-card: #111113;
-  --color-card-foreground: #FAFAFA;
-  --color-popover: #1B1B1D;
-  --color-popover-foreground: #FAFAFA;
+  --color-background: #050B0C;
+  --color-foreground: #F6FBFC;
+  --color-card: #0B1314;
+  --color-card-foreground: #F6FBFC;
+  --color-popover: #151D1E;
+  --color-popover-foreground: #F6FBFC;
   --color-primary: #16C3DD;
   --color-primary-foreground: #071417;
-  --color-secondary: #27272A;
-  --color-secondary-foreground: #FAFAFA;
-  --color-muted: #27272A;
-  --color-muted-foreground: #A1A1AA;
-  --color-accent: #27272A;
-  --color-accent-foreground: #FAFAFA;
-  --color-destructive: #9B3F3D;
+  --color-secondary: #21292B;
+  --color-secondary-foreground: #F6FBFC;
+  --color-muted: #21292B;
+  --color-muted-foreground: #98A5A8;
+  --color-accent: #21292B;
+  --color-accent-foreground: #F6FBFC;
+  --color-destructive: #993F3E;
   --color-destructive-foreground: #FAFAFA;
-  --color-border: #2C2C30;
-  --color-input: #27272A;
+  --color-border: #262E30;
+  --color-input: #21292B;
   --color-ring: #16C3DD;
-  --color-surface: #18181B;
+  --color-surface: #121A1C;
   --color-success: #61CB7C;
   --color-warning: #F0B135;
   --color-danger: #F75D59;
-  --color-icon: #A1A1AA;
+  --color-icon: #98A5A8;
   --color-icon-active: #16C3DD;
   --color-icon-danger: #F75D59;
 }

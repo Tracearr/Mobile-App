@@ -7,7 +7,7 @@
     "icon": "./assets/icon.png",
     "scheme": "tracearr",
     "userInterfaceStyle": "dark",
-    "backgroundColor": "#09090B",
+    "backgroundColor": "#050B0C",
     "ios": {
       "icon": "./assets/ios-icon.png",
       "supportsTablet": true,
@@ -116,7 +116,7 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#09090B",
+          "backgroundColor": "#050B0C",
           "image": "./assets/splash-icon-transparent.png",
           "imageWidth": 200
         }

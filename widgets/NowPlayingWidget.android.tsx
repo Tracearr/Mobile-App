@@ -40,15 +40,15 @@ import {
 const NowPlayingWidget = (props: NowPlayingWidgetProps, environment: WidgetEnvironment) => {
   'widget';
   const dark = environment.colorScheme !== 'light';
-  const surface = dark ? '#09090B' : '#FFFFFF';
-  const tileFill = dark ? '#18181B' : '#F4F4F5';
-  const primary = dark ? '#FAFAFA' : '#09090B';
-  const secondary = dark ? '#A1A1AA' : '#71717A';
-  const tertiary = dark ? '#71717A' : '#A1A1AA';
+  const surface = dark ? '#050B0C' : '#FFFFFF';
+  const tileFill = dark ? '#121A1C' : '#F3F8F9';
+  const primary = dark ? '#F6FBFC' : '#070A0B';
+  const secondary = dark ? '#98A5A8' : '#5A6568';
+  const tertiary = dark ? '#687577' : '#99A5A7';
   const accent = dark ? '#16C3DD' : '#09707F';
   const warning = dark ? '#F0B135' : '#8D5406';
   const direct = dark ? '#61CB7C' : '#067132';
-  const track = dark ? '#2C2C30' : '#DFDFE2';
+  const track = dark ? '#262E30' : '#D8DDDF';
   const now = Date.now();
   const signedOut = props.status === 'signedOut';
   const stale = props.asOfMs > 0 && now >= props.staleAtMs;

@@ -19,14 +19,14 @@ export const ACCENT_FOREGROUND = '#071417'; // oklch(0.18 0.02 212)
 // global.css is canonical for palette values; keep these in sync with it.
 export const colors = {
   background: {
-    dark: '#09090B', // hsl(240 10% 4%)
+    dark: '#050B0C', // oklch(0.142 0.012 212)
   },
   card: {
-    dark: '#111113', // hsl(240 6% 7%)
+    dark: '#0B1314', // oklch(0.178 0.012 212)
   },
   // web --card-raised: anything nested in a card or sheet
   surface: {
-    dark: '#18181B', // hsl(240 5% 10%)
+    dark: '#121A1C', // oklch(0.211 0.012 212)
   },
 
   // Status colors, never chart series
@@ -38,34 +38,34 @@ export const colors = {
 
   // Switch/toggle colors
   switch: {
-    trackOff: '#27272A', // matches muted
+    trackOff: '#21292B', // matches muted
     trackOn: '#0891B2',
     thumbOn: ACCENT_COLOR,
-    thumbOff: '#71717A', // zinc-500
+    thumbOff: '#687577', // oklch(0.552 0.016 212), zinc-500's lightness
   },
 
   text: {
     // --color-foreground / --color-card-foreground
     primary: {
-      dark: '#FAFAFA', // hsl(0 0% 98%)
+      dark: '#F6FBFC', // oklch(0.985 0.005 212)
     },
     // --color-muted-foreground
     secondary: {
-      dark: '#A1A1AA', // hsl(240 5% 65%)
+      dark: '#98A5A8', // oklch(0.713 0.016 212)
     },
     muted: {
-      dark: '#A1A1AA', // alias for secondary
+      dark: '#98A5A8', // alias for secondary
     },
   },
 
   icon: {
-    default: '#A1A1AA', // matches muted-foreground
+    default: '#98A5A8', // matches muted-foreground
     active: ACCENT_COLOR,
     danger: '#F75D59',
   },
 
   border: {
-    dark: '#2C2C30', // hsl(240 4% 18%)
+    dark: '#262E30', // oklch(0.295 0.012 212)
   },
 
   // Categorical --color-chart-1 through --color-chart-8; one-series charts use ACCENT_COLOR

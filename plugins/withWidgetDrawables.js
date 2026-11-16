@@ -114,8 +114,8 @@ const CARD_DARK = `<?xml version="1.0" encoding="utf-8"?>
     <gradient
         android:angle="315"
         android:startColor="#FF0B1A2E"
-        android:centerColor="#FF09090B"
-        android:endColor="#FF09090B" />
+        android:centerColor="#FF050B0C"
+        android:endColor="#FF050B0C" />
 </shape>
 `;
 
