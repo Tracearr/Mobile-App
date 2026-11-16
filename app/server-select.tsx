@@ -1,7 +1,6 @@
 /**
- * Server switcher, presented as a form sheet from the tab headers.
- * Replaces the drawer's server section. Always multi-select, with an
- * explicit All row above the per-server rows.
+ * Android's server switcher, a form sheet from the tab header. iOS uses the
+ * toolbar menu in TabHeaderButtons instead.
  */
 import { View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -18,7 +17,7 @@ export default function ServerSelectScreen() {
       <View className="border-border border-b px-6 py-4">
         <Text className="text-lg font-semibold">{t('mobile:navigation.server')}</Text>
       </View>
-      <View className="py-2">
+      <View className="flex-1 py-2">
         <ServerSelector />
       </View>
     </SafeAreaView>

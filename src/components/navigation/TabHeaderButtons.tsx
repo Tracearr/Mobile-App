@@ -1,8 +1,8 @@
 /**
  * Header controls for the four tab root screens, defined once.
  * Android: HeaderLeft / HeaderRight for the shared stack layout.
- * iOS: TabToolbar renders the same three actions as native Stack.Toolbar
- * buttons; each tab screen mounts it with one line.
+ * iOS: TabToolbar renders the same three as native Stack.Toolbar items, the
+ * server picker as a menu; each tab screen mounts it with one line.
  */
 import { View, Pressable, Platform } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
@@ -11,6 +11,8 @@ import { useUnacknowledgedAlertsCount } from '@/hooks';
 import { Text } from '@/components/ui/text';
 import { colors } from '@/lib/theme';
 import { ROUTES } from '@/lib/routes';
+import { serverSubtitle } from '@/lib/utils';
+import { useMediaServer } from '@/providers/MediaServerProvider';
 import { useTranslation } from '@tracearr/translations/mobile';
 
 // Header icons sit in the native toolbar, which only delivers touches inside a
@@ -35,6 +37,8 @@ function useAlertsButton() {
 export function HeaderLeft() {
   const { t } = useTranslation(['mobile']);
   const router = useRouter();
+  const { servers } = useMediaServer();
+  if (servers.length < 2) return null;
   return (
     <Pressable
       onPress={() => router.push(ROUTES.SERVER_SELECT)}
@@ -112,9 +116,11 @@ export const androidHeaderOptions =
     : {};
 
 export function TabToolbar() {
-  const { t } = useTranslation(['mobile']);
+  const { t } = useTranslation(['mobile', 'common']);
   const router = useRouter();
   const { hasAlerts, displayCount, label } = useAlertsButton();
+  const { servers, selectedServerIds, isAllServersSelected, toggleServer, selectAllServers } =
+    useMediaServer();
 
   if (Platform.OS !== 'ios') {
     return null;
@@ -122,13 +128,40 @@ export function TabToolbar() {
 
   return (
     <>
-      <Stack.Toolbar placement="left">
-        <Stack.Toolbar.Button
-          icon="server.rack"
-          accessibilityLabel={t('mobile:a11y.selectServer')}
-          onPress={() => router.push(ROUTES.SERVER_SELECT)}
-        />
-      </Stack.Toolbar>
+      {servers.length > 1 && (
+        <Stack.Toolbar placement="left">
+          <Stack.Toolbar.Menu
+            icon="server.rack"
+            title={t('mobile:serverSelector.selectServers')}
+            accessibilityLabel={t('mobile:a11y.selectServer')}
+          >
+            <Stack.Toolbar.MenuAction
+              isOn={isAllServersSelected}
+              unstable_keepPresented
+              onPress={selectAllServers}
+            >
+              {t('mobile:serverSelector.allServers')}
+            </Stack.Toolbar.MenuAction>
+            <Stack.Toolbar.Menu inline>
+              {servers.map((server) => {
+                const isOn = selectedServerIds.includes(server.id);
+                return (
+                  <Stack.Toolbar.MenuAction
+                    key={server.id}
+                    isOn={isOn}
+                    disabled={isOn && selectedServerIds.length === 1}
+                    subtitle={serverSubtitle(server, t('common:serverSelector.historical'))}
+                    unstable_keepPresented
+                    onPress={() => toggleServer(server.id)}
+                  >
+                    {server.name}
+                  </Stack.Toolbar.MenuAction>
+                );
+              })}
+            </Stack.Toolbar.Menu>
+          </Stack.Toolbar.Menu>
+        </Stack.Toolbar>
+      )}
       <Stack.Toolbar placement="right">
         <Stack.Toolbar.Button
           icon="bell"

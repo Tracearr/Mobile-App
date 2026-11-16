@@ -1,6 +1,6 @@
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import type { TranscodeInfo } from '@tracearr/shared';
+import { SERVER_PROFILES, type Server, type TranscodeInfo } from '@tracearr/shared';
 
 export function getBufferedPercent(session: {
   transcodeInfo: TranscodeInfo | null;
@@ -76,4 +76,12 @@ export function isInternalUrl(url: string): boolean {
   } catch {
     return false;
   }
+}
+
+export function serverSubtitle(
+  server: Pick<Server, 'type' | 'historicalAt'>,
+  historicalLabel: string
+): string {
+  const name = SERVER_PROFILES[server.type].displayName;
+  return server.historicalAt ? `${name} · ${historicalLabel}` : name;
 }
