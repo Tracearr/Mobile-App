@@ -12,7 +12,7 @@
 # eas-cli is installed locally.
 set -euo pipefail
 
-EAS_CLI_VERSION="27.2.0"
+EAS_CLI_VERSION="27.9.0"
 
 TAG=""
 PROFILE="auto"
