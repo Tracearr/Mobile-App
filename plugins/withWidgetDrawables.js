@@ -20,18 +20,26 @@ const ICONS = {
   triangle_alert: 'triangle-alert',
 };
 
-// Reads the icon's node list from the installed lucide-react-native, with
-// createLucideIcon stubbed so React Native never loads in Node.
-function lucideNodes(icon) {
-  const file = require.resolve(`lucide-react-native/icons/${icon}`);
+// Runs a lucide icon module with createLucideIcon stubbed so React Native never
+// loads in Node. Renamed icons are alias files that require the new icon file,
+// so relative requires load through here too.
+function loadIconModule(file) {
   const module = { exports: {} };
   vm.runInNewContext(fs.readFileSync(file, 'utf8'), {
     module,
     exports: module.exports,
-    require: () => (iconData) => iconData.node,
+    require: (id) =>
+      id.startsWith('./')
+        ? loadIconModule(path.join(path.dirname(file), id))
+        : (iconData) => iconData.node,
   });
+  return module.exports;
+}
+
+function lucideNodes(icon) {
+  const exports = loadIconModule(require.resolve(`lucide-react-native/icons/${icon}`));
   // lucide 1.59 moved from `module.exports = icon` to `exports.__iconData` and `exports.default`
-  return module.exports.__iconData?.node ?? module.exports.default ?? module.exports;
+  return exports.__iconData?.node ?? exports.default ?? exports;
 }
 
 function rectPath({ x = 0, y = 0, width, height, rx = 0 }) {
