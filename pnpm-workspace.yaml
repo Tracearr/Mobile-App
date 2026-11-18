@@ -38,6 +38,7 @@ minimumReleaseAgeExclude:
   - expo-updates@58.0.20
   - expo-widgets@58.0.26
   - expo@58.0.22
+  - i18next@27.1.5
 patchedDependencies:
   '@shopify/react-native-skia@2.14.0': patches/@shopify__react-native-skia@2.14.0.patch
   expo-widgets@58.0.28: patches/expo-widgets@58.0.28.patch
