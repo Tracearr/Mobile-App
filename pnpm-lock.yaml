@@ -41,11 +41,11 @@ importers:
         specifier: ^5.107.1
         version: 5.107.1(@types/react@19.3.0)(react@19.3.0)
       '@tracearr/shared':
-        specifier: 3.2.0
-        version: 3.2.0
+        specifier: 3.2.1
+        version: 3.2.1
       '@tracearr/translations':
-        specifier: 3.2.0
-        version: 3.2.0(@types/react@19.3.0)(react@19.3.0)(typescript@7.0.2)
+        specifier: 3.2.1
+        version: 3.2.1(@types/react@19.3.0)(react@19.3.0)(typescript@7.0.2)
       axios:
         specifier: ^1.21.1
         version: 1.21.1(debug@4.4.3(supports-color@8.1.1))(supports-color@8.1.1)
@@ -1897,11 +1897,11 @@ packages:
       jest:
         optional: true
 
-  '@tracearr/shared@3.2.0':
-    resolution: {integrity: sha512-Q6rz8l8oPcY2DFnaOkNEMsNfSt0sIlYaY3EmwhsL+eiWBfCkcgsockdR4VzaGwvrZGG9jAoICjappsNqCXyoLQ==}
+  '@tracearr/shared@3.2.1':
+    resolution: {integrity: sha512-AW52ELtIUL9LBssIefZGujb2yz3W0+vUxpnI4+phCemy1aJmcV79k8RAEiebX+plksJOF3giXSigQCFHIs3Lkw==}
 
-  '@tracearr/translations@3.2.0':
-    resolution: {integrity: sha512-htShK9Y4Eej1WllaWfzldQZbtmzLPcYWrfT7h7gMX7iygGsXUS2LErLaWS88gofe1lFjNuj3l9RJ/2hu/noqFA==}
+  '@tracearr/translations@3.2.1':
+    resolution: {integrity: sha512-FMuvlybk/8DOmslMlSQwvUNjewb6tEJyhnoFw1qfjxQvmN8A5DNjCuL2u6q+WZ5Q8rZR3f2W981Ds44pQCR4Cw==}
     peerDependencies:
       react: '>=18.0.0'
 
@@ -7595,11 +7595,11 @@ snapshots:
     optionalDependencies:
       jest: 30.5.2(@types/node@24.19.2)(supports-color@8.1.1)
 
-  '@tracearr/shared@3.2.0':
+  '@tracearr/shared@3.2.1':
     dependencies:
       zod: 4.6.7
 
-  '@tracearr/translations@3.2.0(@types/react@19.3.0)(react@19.3.0)(typescript@7.0.2)':
+  '@tracearr/translations@3.2.1(@types/react@19.3.0)(react@19.3.0)(typescript@7.0.2)':
     dependencies:
       i18next: 27.1.5(typescript@7.0.2)
       react: 19.3.0
