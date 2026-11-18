@@ -1,0 +1,12 @@
+# Snyk (https://snyk.io) policy file, patches or ignores known vulnerabilities.
+version: v1.25.0
+# ignores vulnerabilities until expiry date; change duration by modifying expiry date
+ignore:
+  SNYK-JS-OPEN-22112123:
+    - '*':
+        reason: >-
+          Windows-only debugger launch in @react-native/dev-middleware, which
+          pins open ^8.4.2; no fix reachable until React Native moves to open 11
+        expires: 2027-05-17T00:00:00.000Z
+        created: 2026-11-18T03:23:07.673Z
+patch: {}
