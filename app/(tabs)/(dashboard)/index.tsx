@@ -42,7 +42,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { SectionHeader } from '@/components/ui/section-header';
 import { spacing, ACCENT_COLOR } from '@/lib/theme';
-import { SERVER_PROFILES } from '@tracearr/shared';
+import { SERVER_PROFILES, isServerType } from '@tracearr/shared';
 import { useTranslation } from '@tracearr/translations/mobile';
 
 const TILE_GAP = spacing.sm;
@@ -136,11 +136,12 @@ export default function DashboardScreen() {
     });
   }, [activeSessions, serverOrderMap]);
 
+  // A server type this build has no profile for has no stats source it can read.
   const resourceServers = useMemo(
     () =>
-      [...selectedServers].sort(
-        (a, b) => (serverOrderMap.get(a.id) ?? 0) - (serverOrderMap.get(b.id) ?? 0)
-      ),
+      selectedServers
+        .filter((s) => isServerType(s.type))
+        .sort((a, b) => (serverOrderMap.get(a.id) ?? 0) - (serverOrderMap.get(b.id) ?? 0)),
     [selectedServers, serverOrderMap]
   );
   const liveStats = useServerLiveStats(resourceServers);

@@ -52,7 +52,7 @@ import { useStackRoutes } from '@/hooks/useOpenInTabs';
 import { scrollKey } from '@/lib/detailMemory';
 import type { DetailScreenProps } from './detail-props';
 import { ACCENT_COLOR, colors, spacing, withAlpha } from '@/lib/theme';
-import { cn } from '@/lib/utils';
+import { cn, serverProfile } from '@/lib/utils';
 import { Text } from '@/components/ui/text';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -64,7 +64,6 @@ import { StreamDetailsPanel } from '@/components/session';
 import { QualityBadge } from '@/components/sessions/QualityBadge';
 import { TerminateSessionDialog } from '@/components/sessions';
 import {
-  SERVER_PROFILES,
   SERVER_TYPE_BRAND_COLORS,
   formatEpisodeLabel,
   type SessionWithDetails,
@@ -429,7 +428,7 @@ export function SessionDetail({ id, mem, embedded = false, onBack }: DetailScree
                   style={{ backgroundColor: SERVER_TYPE_BRAND_COLORS[session.server.type] }}
                 />
                 <Text className="text-foreground text-[13px] font-medium">
-                  {SERVER_PROFILES[session.server.type].displayName}
+                  {serverProfile(session.server.type)?.displayName ?? session.server.type}
                 </Text>
                 <Text className="text-muted-foreground text-[13px]">·</Text>
                 <Text className="text-foreground text-[13px] font-medium">

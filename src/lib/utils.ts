@@ -1,6 +1,12 @@
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import { SERVER_PROFILES, type Server, type TranscodeInfo } from '@tracearr/shared';
+import {
+  SERVER_PROFILES,
+  isServerType,
+  type Server,
+  type ServerProfile,
+  type TranscodeInfo,
+} from '@tracearr/shared';
 
 export function getBufferedPercent(session: {
   transcodeInfo: TranscodeInfo | null;
@@ -78,10 +84,15 @@ export function isInternalUrl(url: string): boolean {
   }
 }
 
+// A server newer than the pinned @tracearr/shared can report a type this build has no profile for.
+export function serverProfile(type: string): ServerProfile | undefined {
+  return isServerType(type) ? SERVER_PROFILES[type] : undefined;
+}
+
 export function serverSubtitle(
   server: Pick<Server, 'type' | 'historicalAt'>,
   historicalLabel: string
 ): string {
-  const name = SERVER_PROFILES[server.type].displayName;
+  const name = serverProfile(server.type)?.displayName ?? server.type;
   return server.historicalAt ? `${name} · ${historicalLabel}` : name;
 }

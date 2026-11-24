@@ -8,12 +8,11 @@ import { ArrowRight, Video, AudioLines, Subtitles, Cpu, ChevronDown } from 'luci
 import { useTranslation } from '@tracearr/translations/mobile';
 import { Text } from '@/components/ui/text';
 import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
+import { cn, serverProfile } from '@/lib/utils';
 import { formatDuration } from '@/lib/dateFormat';
 import { colors, withAlpha, ACCENT_COLOR } from '@/lib/theme';
 import {
   PLAYBACK_DECISION_LABEL_KEYS,
-  SERVER_PROFILES,
   formatMediaTech,
   formatResolutionDisplay,
   type SourceVideoDetails,
@@ -352,7 +351,7 @@ export function StreamDetailsPanel({
                 // N/A for servers whose transcodes report only a total bitrate
                 videoDecision === 'transcode' &&
                 !streamVideoDetails?.bitrate &&
-                !SERVER_PROFILES[serverType].reportsTranscodeTrackBitrates
+                !serverProfile(serverType)?.reportsTranscodeTrackBitrates
                   ? notAvailable
                   : formatBitrate(streamVideoDetails?.bitrate ?? sourceVideoDetails?.bitrate)
               }
@@ -436,7 +435,7 @@ export function StreamDetailsPanel({
                 // N/A for servers whose transcodes report only a total bitrate
                 audioDecision === 'transcode' &&
                 !streamAudioDetails?.bitrate &&
-                !SERVER_PROFILES[serverType].reportsTranscodeTrackBitrates
+                !serverProfile(serverType)?.reportsTranscodeTrackBitrates
                   ? notAvailable
                   : formatBitrate(streamAudioDetails?.bitrate ?? sourceAudioDetails?.bitrate)
               }
