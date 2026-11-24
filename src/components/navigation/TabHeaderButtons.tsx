@@ -11,6 +11,7 @@ import { useUnacknowledgedAlertsCount } from '@/hooks';
 import { Text } from '@/components/ui/text';
 import { colors } from '@/lib/theme';
 import { ROUTES } from '@/lib/routes';
+import { serverLogo } from '@/lib/serverLogos';
 import { serverSubtitle } from '@/lib/utils';
 import { useMediaServer } from '@/providers/MediaServerProvider';
 import { useTranslation } from '@tracearr/translations/mobile';
@@ -151,6 +152,8 @@ export function TabToolbar() {
                     isOn={isOn}
                     disabled={isOn && selectedServerIds.length === 1}
                     subtitle={serverSubtitle(server, t('common:serverSelector.historical'))}
+                    icon={serverLogo(server.type)}
+                    iconRenderingMode="original"
                     unstable_keepPresented
                     onPress={() => toggleServer(server.id)}
                   >

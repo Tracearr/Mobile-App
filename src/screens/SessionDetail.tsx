@@ -53,6 +53,7 @@ import { scrollKey } from '@/lib/detailMemory';
 import type { DetailScreenProps } from './detail-props';
 import { ACCENT_COLOR, colors, spacing, withAlpha } from '@/lib/theme';
 import { cn, serverProfile } from '@/lib/utils';
+import { serverLogo } from '@/lib/serverLogos';
 import { Text } from '@/components/ui/text';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -64,7 +65,6 @@ import { StreamDetailsPanel } from '@/components/session';
 import { QualityBadge } from '@/components/sessions/QualityBadge';
 import { TerminateSessionDialog } from '@/components/sessions';
 import {
-  SERVER_TYPE_BRAND_COLORS,
   formatEpisodeLabel,
   type SessionWithDetails,
   type SessionState,
@@ -295,6 +295,7 @@ export function SessionDetail({ id, mem, embedded = false, onBack }: DetailScree
   const startedAt = safeParseDate(session.startedAt);
   const stoppedAt = safeParseDate(session.stoppedAt);
   const displayName = session.user.identityName ?? session.user.username;
+  const serverLogoAsset = serverLogo(session.server.type);
 
   return (
     <>
@@ -423,10 +424,15 @@ export function SessionDetail({ id, mem, embedded = false, onBack }: DetailScree
             <View className="flex-row items-center justify-between">
               <Text className="text-muted-foreground text-[13px]">{t('common:labels.server')}</Text>
               <View className="flex-row items-center gap-1">
-                <View
-                  className="mr-0.5 h-2 w-2 rounded-full"
-                  style={{ backgroundColor: SERVER_TYPE_BRAND_COLORS[session.server.type] }}
-                />
+                {serverLogoAsset !== undefined && (
+                  <Image
+                    source={serverLogoAsset}
+                    contentFit="contain"
+                    accessible={false}
+                    className="mr-0.5"
+                    style={{ width: 14, height: 14 }}
+                  />
+                )}
                 <Text className="text-foreground text-[13px] font-medium">
                   {serverProfile(session.server.type)?.displayName ?? session.server.type}
                 </Text>

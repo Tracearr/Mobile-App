@@ -1,6 +1,7 @@
 import {
   Box,
   Host,
+  Image,
   LazyColumn,
   ListItem,
   Text,
@@ -10,6 +11,7 @@ import {
 } from '@expo/ui/jetpack-compose';
 import { background, clip, Shapes, size, toggleable } from '@expo/ui/jetpack-compose/modifiers';
 import { ACCENT_COLOR, colors } from '../lib/theme';
+import { serverLogo } from '../lib/serverLogos';
 import { serverSubtitle } from '../lib/utils';
 import { useMediaServer } from '../providers/MediaServerProvider';
 import { useTranslation } from '@tracearr/translations/mobile';
@@ -27,6 +29,7 @@ function CheckRow({
   title,
   subtitle,
   color,
+  logo,
 }: {
   state: ToggleableState;
   enabled?: boolean;
@@ -34,13 +37,18 @@ function CheckRow({
   title: string;
   subtitle?: string;
   color?: string | null;
+  logo?: number;
 }) {
   return (
     <ListItem
       colors={ROW_COLORS}
       modifiers={[toggleable(state === 'on', onToggle, { role: 'checkbox', enabled })]}
     >
-      {color ? (
+      {logo !== undefined ? (
+        <ListItem.LeadingContent>
+          <Image source={logo} contentDescription={null} modifiers={[size(20, 20)]} />
+        </ListItem.LeadingContent>
+      ) : color ? (
         <ListItem.LeadingContent>
           <Box modifiers={[size(12, 12), clip(Shapes.Circle), background(color)]} />
         </ListItem.LeadingContent>
@@ -88,6 +96,7 @@ export function ServerSelector() {
               title={server.name}
               subtitle={serverSubtitle(server, t('common:serverSelector.historical'))}
               color={server.color}
+              logo={serverLogo(server.type)}
             />
           );
         })}
