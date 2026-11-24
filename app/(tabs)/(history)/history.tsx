@@ -28,6 +28,8 @@ import {
   HistoryRowSeparator,
   HistoryAggregates,
   FilterBottomSheet,
+  EMPTY_FILTERS,
+  countActiveFilters,
   type TimePeriod,
   type FilterBottomSheetRef,
   type FilterState,
@@ -69,22 +71,9 @@ export default function HistoryScreen() {
 
   const [period, setPeriod] = useState<TimePeriod>('month');
   const [search, setSearch] = useState('');
-  const [advancedFilters, setAdvancedFilters] = useState<FilterState>({
-    serverUserIds: [],
-    platforms: [],
-    geoCountries: [],
-    mediaTypes: [],
-    transcodeDecisions: [],
-    subtitleBurnIn: false,
-  });
+  const [advancedFilters, setAdvancedFilters] = useState<FilterState>(EMPTY_FILTERS);
 
-  const activeFilterCount =
-    advancedFilters.serverUserIds.length +
-    advancedFilters.platforms.length +
-    advancedFilters.geoCountries.length +
-    advancedFilters.mediaTypes.length +
-    advancedFilters.transcodeDecisions.length +
-    (advancedFilters.subtitleBurnIn ? 1 : 0);
+  const activeFilterCount = countActiveFilters(advancedFilters);
 
   const { data: filterOptions } = useQuery({
     queryKey: queryKeys.sessions.filterOptions(scope),
@@ -98,6 +87,7 @@ export default function HistoryScreen() {
       startDate: getStartDate(period),
       search: search.trim() || undefined,
       serverUserIds: nonEmpty(advancedFilters.serverUserIds),
+      profileIds: nonEmpty(advancedFilters.profileIds),
       platforms: nonEmpty(advancedFilters.platforms),
       geoCountries: nonEmpty(advancedFilters.geoCountries),
       mediaTypes: nonEmpty(advancedFilters.mediaTypes),

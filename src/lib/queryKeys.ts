@@ -13,6 +13,7 @@ export interface HistoryQueryFilters {
   endDate?: Date;
   search?: string;
   serverUserIds?: string[];
+  profileIds?: string[];
   platforms?: string[];
   geoCountries?: string[];
   mediaTypes?: string[];

@@ -56,6 +56,7 @@ import type {
 export interface HistoryFilterParams {
   scope: ServerScope;
   serverUserIds?: string[];
+  profileIds?: string[];
   state?: 'playing' | 'paused' | 'stopped';
   mediaTypes?: ('movie' | 'episode' | 'track' | 'live' | 'trailer')[];
   startDate?: Date;
@@ -113,6 +114,7 @@ function scopeBody(scope: ServerScope): { serverId?: string; serverIds?: string[
 function appendHistoryFilters(searchParams: URLSearchParams, params: HistoryFilterParams): void {
   if (params.serverUserIds?.length)
     searchParams.set('serverUserIds', params.serverUserIds.join(','));
+  if (params.profileIds?.length) searchParams.set('profileIds', params.profileIds.join(','));
   appendScope(searchParams, params.scope);
   if (params.state) searchParams.set('state', params.state);
   if (params.mediaTypes?.length) searchParams.set('mediaTypes', params.mediaTypes.join(','));

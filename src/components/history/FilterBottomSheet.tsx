@@ -14,6 +14,7 @@ import {
   X,
   Check,
   User,
+  UserRound,
   Monitor,
   Globe,
   Film,
@@ -35,6 +36,8 @@ import { useResponsive } from '@/hooks/useResponsive';
 import { Text } from '@/components/ui/text';
 import { Button } from '@/components/ui/button';
 import { UserAvatar } from '@/components/ui/user-avatar';
+import { useProfileLabels } from '@/hooks/useProfileLabels';
+import { showsProfiles } from '@/lib/profiles';
 import { cn } from '@/lib/utils';
 import { ACCENT_COLOR, colors } from '@/lib/theme';
 import { haptics } from '@/lib/haptics';
@@ -42,6 +45,7 @@ import {
   PLAYBACK_DECISION_LABEL_KEYS,
   type HistoryFilterOptions,
   type PlaybackDecision,
+  type ProfileFilterOption,
 } from '@tracearr/shared';
 
 export type MediaType = 'movie' | 'episode' | 'track' | 'live' | 'trailer';
@@ -49,6 +53,7 @@ export type TranscodeDecision = PlaybackDecision;
 
 export interface FilterState {
   serverUserIds: string[];
+  profileIds: string[];
   platforms: string[];
   geoCountries: string[];
   mediaTypes: MediaType[];
@@ -68,17 +73,19 @@ export interface FilterBottomSheetRef {
 }
 
 type ListFilterKey = Exclude<keyof FilterState, 'subtitleBurnIn'>;
-type ListSection = 'users' | 'platforms' | 'countries';
+type ListSection = 'users' | 'profiles' | 'platforms' | 'countries';
 type FilterSection = 'main' | ListSection;
 
 const SECTION_FILTER_KEY = {
   users: 'serverUserIds',
+  profiles: 'profileIds',
   platforms: 'platforms',
   countries: 'geoCountries',
 } as const satisfies Record<ListSection, keyof FilterState>;
 
-const EMPTY_FILTERS: FilterState = {
+export const EMPTY_FILTERS: FilterState = {
   serverUserIds: [],
+  profileIds: [],
   platforms: [],
   geoCountries: [],
   mediaTypes: [],
@@ -100,6 +107,43 @@ const TRANSCODE_OPTIONS = [
   { value: 'audio_transcode', icon: AudioLines },
   { value: 'transcode', icon: Zap },
 ] as const satisfies readonly { value: TranscodeDecision; icon: LucideIcon }[];
+
+export function countActiveFilters({ subtitleBurnIn, ...lists }: FilterState): number {
+  return (
+    Object.values(lists).reduce((total, values) => total + values.length, 0) +
+    (subtitleBurnIn ? 1 : 0)
+  );
+}
+
+interface ProfileGroup {
+  serverUserId: string;
+  title: string;
+  options: ProfileFilterOption[];
+}
+
+/**
+ * Only accounts with a profile besides the main one, as web's Profiles filter lists them: the
+ * main profile first, the server named when the accounts span more than one.
+ */
+function groupProfiles(profiles: ProfileFilterOption[]): ProfileGroup[] {
+  const byAccount = new Map<string, ProfileFilterOption[]>();
+  for (const profile of profiles) {
+    byAccount.set(profile.serverUserId, [...(byAccount.get(profile.serverUserId) ?? []), profile]);
+  }
+  const groups = [...byAccount.values()].filter(showsProfiles);
+  const spansServers = new Set(groups.map((group) => group[0].serverName)).size > 1;
+  return groups
+    .map((group) => ({
+      serverUserId: group[0].serverUserId,
+      title: spansServers
+        ? `${group[0].accountUsername} · ${group[0].serverName}`
+        : group[0].accountUsername,
+      options: [...group].sort(
+        (a, b) => Number(b.main) - Number(a.main) || a.name.localeCompare(b.name)
+      ),
+    }))
+    .sort((a, b) => a.title.localeCompare(b.title));
+}
 
 // Selecting any of `values` selects all of them, and deselecting removes all of them.
 function toggleValues<T>(current: readonly T[], values: readonly T[]): T[] {
@@ -253,9 +297,12 @@ export const FilterBottomSheet = forwardRef<FilterBottomSheetRef, FilterBottomSh
       onFiltersChange(next);
     };
 
-    const activeFilterCount = Object.values(filters).reduce(
-      (total, values: string[]) => total + values.length,
-      0
+    const activeFilterCount = countActiveFilters(filters);
+    const { profileOptionLabel } = useProfileLabels();
+    // A 3.2 server sends no profiles
+    const profileGroups = useMemo(
+      () => groupProfiles(filterOptions?.profiles ?? []),
+      [filterOptions?.profiles]
     );
 
     const users = filterOptions?.users;
@@ -270,6 +317,7 @@ export const FilterBottomSheet = forwardRef<FilterBottomSheetRef, FilterBottomSh
 
     const sectionTitles: Record<ListSection, string> = {
       users: t('nav:users'),
+      profiles: t('common:labels.profiles'),
       platforms: t('mobile:activity.platforms'),
       countries: t('mobile:history.filters.countries', { defaultValue: 'Countries' }),
     };
@@ -343,6 +391,9 @@ export const FilterBottomSheet = forwardRef<FilterBottomSheetRef, FilterBottomSh
               {t('mobile:history.filters.filterBy', { defaultValue: 'Filter by' })}
             </GroupLabel>
             {renderNavRow('users', User)}
+            {/* A pick from another server scope stays visible so it can be cleared */}
+            {(profileGroups.length > 0 || filters.profileIds.length > 0) &&
+              renderNavRow('profiles', UserRound)}
             {renderNavRow('platforms', Monitor)}
             {renderNavRow('countries', Globe)}
           </View>
@@ -414,6 +465,22 @@ export const FilterBottomSheet = forwardRef<FilterBottomSheetRef, FilterBottomSh
         });
       }
 
+      if (section === 'profiles') {
+        return profileGroups.map((group) => (
+          <View key={group.serverUserId} className="pt-3">
+            <GroupLabel>{group.title}</GroupLabel>
+            {group.options.map((option) => (
+              <OptionRow
+                key={option.id}
+                label={profileOptionLabel(option)}
+                isSelected={filters.profileIds.includes(option.id)}
+                onPress={() => toggle('profileIds', [option.id])}
+              />
+            ))}
+          </View>
+        ));
+      }
+
       const key = SECTION_FILTER_KEY[section];
       return filterOptions?.[section]?.map((item) => (
         <OptionRow
@@ -428,6 +495,7 @@ export const FilterBottomSheet = forwardRef<FilterBottomSheetRef, FilterBottomSh
 
     const emptyLabels: Record<ListSection, string> = {
       users: t('mobile:history.filters.noUsers', { defaultValue: 'No users available' }),
+      profiles: '',
       platforms: t('mobile:history.filters.noPlatforms', {
         defaultValue: 'No platforms available',
       }),
@@ -440,7 +508,11 @@ export const FilterBottomSheet = forwardRef<FilterBottomSheetRef, FilterBottomSh
       const key = SECTION_FILTER_KEY[section];
       const count = filters[key].length;
       const isEmpty =
-        section === 'users' ? sortedUsers.length === 0 : !filterOptions?.[section]?.length;
+        section === 'users'
+          ? sortedUsers.length === 0
+          : section === 'profiles'
+            ? profileGroups.length === 0
+            : !filterOptions?.[section]?.length;
 
       return (
         <View className="flex-1">
