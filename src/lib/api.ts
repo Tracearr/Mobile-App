@@ -48,6 +48,7 @@ import type {
   RunCounts,
   RunListQuery,
   ServerUserFullDetail,
+  UserRangeStats,
   UserRequestsResponse,
   UserSortField,
   ViolationSeverity,
@@ -815,6 +816,13 @@ export const api = {
       signal?: AbortSignal
     ) => {
       return apiGet<PaginatedResponse<Session>>(`/users/${id}/sessions`, { params, signal });
+    },
+    /** The last 30 days, web's default window; 3.2 servers send no `profiles` */
+    stats: async (id: string, scope: UserDetailScope, signal?: AbortSignal) => {
+      return apiGet<UserRangeStats>(`/users/${id}/stats`, {
+        params: { period: 'month', scope: scope === 'identity' ? scope : undefined },
+        signal,
+      });
     },
     terminations: async (
       id: string,

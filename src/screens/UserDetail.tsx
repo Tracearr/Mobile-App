@@ -19,12 +19,12 @@ import { useEffect, useState } from 'react';
 import { View, ScrollView, RefreshControl, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useRouter } from 'expo-router';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { isAxiosError } from 'axios';
 import { Play, Clock, AlertTriangle, Activity, User } from 'lucide-react-native';
 import type { ServerUserFullDetail, Session } from '@tracearr/shared';
 import { useTranslation } from '@tracearr/translations/mobile';
-import type { UserDetailScope } from '@/lib/api';
+import { api, type UserDetailScope } from '@/lib/api';
 import { queryKeys } from '@/lib/queryKeys';
 import { profilesInView } from '@/lib/profiles';
 import { useAuthStateStore } from '@/lib/authStateStore';
@@ -44,6 +44,7 @@ import { SectionTabs } from '@/components/ui/section-tabs';
 import { UserHeaderCard } from '@/components/users/UserHeaderCard';
 import { UserStatsGrid } from '@/components/users/UserStatsGrid';
 import { LinkedAccountsCard } from '@/components/users/LinkedAccountsCard';
+import { ProfilesCard } from '@/components/users/ProfilesCard';
 import { UserRequestsCard } from '@/components/users/UserRequestsCard';
 import { UserLocationsCard, UserDevicesCard } from '@/components/users/UserPlacesCards';
 import { UserSessionsCard } from '@/components/users/UserSessionsCard';
@@ -149,6 +150,18 @@ export function UserDetail({
     setEditTarget(null);
   }
 
+  // Follows the account on screen, which stays put while a scope switch loads. Only people
+  // with more than one profile can have a per-profile split; 3.2 servers list none.
+  const statsId = shown?.id ?? effectiveId;
+  const statsScope = shown?.scope ?? scope;
+  const profileStats = useQuery({
+    queryKey: queryKeys.users.stats(statsId, statsScope),
+    queryFn: ({ signal }) => api.users.stats(statsId, statsScope, signal),
+    enabled: (shown?.detail.profiles?.length ?? 0) > 1,
+    staleTime: 1000 * 60,
+  });
+  const splitProfiles = profileStats.data?.profiles ?? [];
+
   const identity = person.data?.identity;
   const identityUserId = identity?.userId;
 
@@ -157,6 +170,7 @@ export function UserDetail({
       person.refetch(),
       isAllScope ? undefined : account.refetch(),
       queryClient.invalidateQueries({ queryKey: queryKeys.requests.user(effectiveId, scope) }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.users.stats(effectiveId, scope) }),
     ]);
     queryClient.removeQueries({ queryKey: queryKeys.users.sessions(effectiveId, scope) });
     queryClient.removeQueries({ queryKey: queryKeys.users.terminations(effectiveId, scope) });
@@ -321,6 +335,8 @@ export function UserDetail({
                       {formatWatchTime(identity.stats.totalWatchTime)}
                     </Text>
                   )}
+
+                  {splitProfiles.length > 1 && <ProfilesCard profiles={splitProfiles} />}
 
                   {isMergedIdentity && (
                     <LinkedAccountsCard

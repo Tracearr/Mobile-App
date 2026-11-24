@@ -87,6 +87,7 @@ export const queryKeys = {
       profileId
         ? (['user', id, 'sessions', scope, profileId] as const)
         : (['user', id, 'sessions', scope] as const),
+    stats: (id: string, scope: 'account' | 'identity') => ['user', id, 'stats', scope] as const,
     terminations: (id: string, scope: 'account' | 'identity') =>
       ['user', id, 'terminations', scope] as const,
   },
