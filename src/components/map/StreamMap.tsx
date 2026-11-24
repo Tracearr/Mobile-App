@@ -10,10 +10,11 @@ import React, { Component, type ReactNode } from 'react';
 import { View, Platform } from 'react-native';
 import { AppleMaps, GoogleMaps } from 'expo-maps';
 import { Map as MapIcon } from 'lucide-react-native';
-import type { ActiveSession } from '@tracearr/shared';
+import type { ActiveSession, NonMainProfile } from '@tracearr/shared';
 import { ACCENT_COLOR, colors } from '@/lib/theme';
 import { countryName } from '@/lib/regionNames';
 import { Text } from '@/components/ui/text';
+import { useProfileLabels } from '@/hooks/useProfileLabels';
 import { useTranslation } from '@tracearr/translations/mobile';
 
 class MapErrorBoundary extends Component<
@@ -79,6 +80,7 @@ interface MarkerData {
 
 function buildMarkers(
   sessions: SessionWithLocation[],
+  profileLabel: (profile: NonMainProfile) => string,
   serverColor?: (serverId: string) => string | null
 ): MarkerData[] {
   return sessions.map((session) => {
@@ -95,7 +97,9 @@ function buildMarkers(
       id: session.sessionKey || session.id,
       latitude: session.geoLat,
       longitude: session.geoLon,
-      title: displayName,
+      title: session.nonMainProfile
+        ? `${displayName} · ${profileLabel(session.nonMainProfile)}`
+        : displayName,
       snippet: [truncatedTitle, location].filter(Boolean).join('\n'),
       color: serverColor?.(session.server.id) ?? ACCENT_COLOR,
     };
@@ -122,6 +126,7 @@ function calculateZoom(sessions: SessionWithLocation[]): number {
 
 export function StreamMap({ sessions, height = 300, serverColor }: StreamMapProps) {
   const { t } = useTranslation(['mobile']);
+  const { profileLabel } = useProfileLabels();
   const sessionsWithLocation = sessions.filter(hasLocation);
 
   if (sessionsWithLocation.length === 0) {
@@ -135,7 +140,7 @@ export function StreamMap({ sessions, height = 300, serverColor }: StreamMapProp
     );
   }
 
-  const markers = buildMarkers(sessionsWithLocation, serverColor);
+  const markers = buildMarkers(sessionsWithLocation, profileLabel, serverColor);
   const avgLat =
     sessionsWithLocation.reduce((sum, s) => sum + s.geoLat, 0) / sessionsWithLocation.length;
   const avgLon =

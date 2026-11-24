@@ -28,6 +28,7 @@ import { useTranslation } from '@tracearr/translations/mobile';
 import { Card } from '@/components/ui/card';
 import { Text } from '@/components/ui/text';
 import { UserAvatar } from '@/components/ui/user-avatar';
+import { AvatarWithProfile } from '@/components/ui/avatar-with-profile';
 import { ServerTag } from '@/components/server/ServerTag';
 import { useImageUrl } from '@/hooks/useImageUrl';
 import { useEstimatedProgress } from '@/hooks/useEstimatedProgress';
@@ -269,12 +270,19 @@ export function NowPlayingCard({
 
             {/* User row */}
             <View className="flex-row items-center gap-1">
-              <UserAvatar
-                thumbUrl={userThumbUrl}
+              <AvatarWithProfile
                 serverId={session.serverId}
-                name={displayName}
-                size={avatarSize}
-              />
+                profile={session.nonMainProfile}
+                avatarSize={avatarSize}
+                initials="two"
+              >
+                <UserAvatar
+                  thumbUrl={userThumbUrl}
+                  serverId={session.serverId}
+                  name={displayName}
+                  size={avatarSize}
+                />
+              </AvatarWithProfile>
               <Text className="text-secondary-foreground flex-1 text-xs" numberOfLines={1}>
                 {displayName}
               </Text>

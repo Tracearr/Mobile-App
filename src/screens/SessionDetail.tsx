@@ -54,6 +54,7 @@ import type { DetailScreenProps } from './detail-props';
 import { ACCENT_COLOR, colors, spacing, withAlpha } from '@/lib/theme';
 import { cn, serverProfile } from '@/lib/utils';
 import { serverLogo } from '@/lib/serverLogos';
+import { useProfileLabels } from '@/hooks/useProfileLabels';
 import { Text } from '@/components/ui/text';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -61,6 +62,7 @@ import { Card } from '@/components/ui/card';
 import { ErrorState } from '@/components/ui/error-state';
 import { SectionHeader } from '@/components/ui/section-header';
 import { UserAvatar } from '@/components/ui/user-avatar';
+import { AvatarWithProfile } from '@/components/ui/avatar-with-profile';
 import { StreamDetailsPanel } from '@/components/session';
 import { QualityBadge } from '@/components/sessions/QualityBadge';
 import { TerminateSessionDialog } from '@/components/sessions';
@@ -199,6 +201,7 @@ export function SessionDetail({ id, mem, embedded = false, onBack }: DetailScree
   const scrollProps = useScrollMemory(scrollKey(mem));
   useDateConventions();
   const { t } = useTranslation(['mobile', 'common', 'pages', 'settings']);
+  const { profileLabel } = useProfileLabels();
   const router = useRouter();
   const routes = useStackRoutes();
   const { selectedServerId, servers } = useMediaServer();
@@ -402,12 +405,18 @@ export function SessionDetail({ id, mem, embedded = false, onBack }: DetailScree
             onPress={() => router.push(routes.user(session.serverUserId))}
           >
             <Card padding="compact" className="flex-row items-center gap-3">
-              <UserAvatar
-                thumbUrl={session.user.thumbUrl}
+              <AvatarWithProfile
                 serverId={session.serverId}
-                name={displayName}
-                size={36}
-              />
+                profile={session.nonMainProfile}
+                avatarSize={36}
+              >
+                <UserAvatar
+                  thumbUrl={session.user.thumbUrl}
+                  serverId={session.serverId}
+                  name={displayName}
+                  size={36}
+                />
+              </AvatarWithProfile>
               <View className="min-w-0 flex-1">
                 <Text className="text-foreground text-[15px] font-medium" numberOfLines={1}>
                   {displayName}
@@ -442,6 +451,14 @@ export function SessionDetail({ id, mem, embedded = false, onBack }: DetailScree
                 </Text>
               </View>
             </View>
+            {session.nonMainProfile && (
+              <View className="mt-1.5">
+                <InfoRow
+                  label={t('common:labels.profile')}
+                  value={profileLabel(session.nonMainProfile)}
+                />
+              </View>
+            )}
           </Section>
 
           <Section

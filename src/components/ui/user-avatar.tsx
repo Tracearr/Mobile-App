@@ -28,7 +28,7 @@ interface UserAvatarProps {
  * - Already-constructed proxy URLs (start with /api/) - just prepend server URL
  * - Raw media server paths - construct full proxy URL
  */
-function buildAvatarUrl(
+export function buildAvatarUrl(
   thumbUrl: string,
   serverId: string | null | undefined,
   size: number

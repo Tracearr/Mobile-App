@@ -8,6 +8,7 @@ import type { UserDetailScope } from '@/lib/api';
 import { pageMetaOf } from '@/lib/listPage';
 import { Text } from '@/components/ui/text';
 import { Badge } from '@/components/ui/badge';
+import { AvatarWithProfile } from '@/components/ui/avatar-with-profile';
 import { ErrorState } from '@/components/ui/error-state';
 import { DATE_OPTIONS, formatDuration, safeFormatDate } from '@/lib/dateFormat';
 import { useDateConventions } from '@/lib/dateSettings';
@@ -114,7 +115,13 @@ function RequestRow({ request, isFirst }: { request: UserRequestEntry; isFirst: 
   return (
     <SectionRow isFirst={isFirst} className="gap-1">
       <View className="flex-row items-center gap-2">
-        <MediaIcon size={16} color={colors.text.muted.dark} />
+        <AvatarWithProfile
+          serverId={request.serverId}
+          profile={request.nonMainProfile}
+          avatarSize={16}
+        >
+          <MediaIcon size={16} color={colors.text.muted.dark} />
+        </AvatarWithProfile>
         <Text
           numberOfLines={1}
           className={cn('flex-1 text-sm font-medium', isDeleted && 'line-through')}

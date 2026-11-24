@@ -10,6 +10,7 @@ import { useTranslation } from '@tracearr/translations/mobile';
 import { Text } from '@/components/ui/text';
 import { QualityBadge } from '@/components/sessions/QualityBadge';
 import { useImageUrl } from '@/hooks/useImageUrl';
+import { useProfileLabels } from '@/hooks/useProfileLabels';
 import { borderRadius, colors } from '@/lib/theme';
 import { cn } from '@/lib/utils';
 import { formatDuration, formatListTimestamp } from '@/lib/dateFormat';
@@ -85,6 +86,7 @@ const POSTER_HEIGHT = 60;
 export function HistoryRow({ session, onPress, selected = false }: HistoryRowProps) {
   useDateConventions();
   const { t } = useTranslation(['common']);
+  const { profileLabel } = useProfileLabels();
   const getImageUrl = useImageUrl();
   const displayName =
     session.user?.identityName ?? session.user?.username ?? t('common:labels.unknown');
@@ -93,6 +95,7 @@ export function HistoryRow({ session, onPress, selected = false }: HistoryRowPro
   const dateTimeStr = formatListTimestamp(session.startedAt);
   const duration = formatDuration(session.durationMs);
   const platform = session.platform || session.product;
+  const profile = session.nonMainProfile ? profileLabel(session.nonMainProfile) : null;
 
   const posterUrl = getImageUrl({
     serverId: session.serverId,
@@ -105,7 +108,7 @@ export function HistoryRow({ session, onPress, selected = false }: HistoryRowPro
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={[title.primary, title.secondary, displayName, dateTimeStr]
+      accessibilityLabel={[title.primary, title.secondary, displayName, profile, dateTimeStr]
         .filter(Boolean)
         .join(', ')}
       className={cn(
@@ -152,6 +155,7 @@ export function HistoryRow({ session, onPress, selected = false }: HistoryRowPro
 
             <Text numberOfLines={1} className="text-muted-foreground ml-5 text-[11px]">
               {displayName}
+              {profile ? ` · ${profile}` : ''}
               {platform ? ` · ${platform}` : ''}
             </Text>
           </View>
