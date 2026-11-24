@@ -811,7 +811,7 @@ export const api = {
     },
     sessions: async (
       id: string,
-      params?: { page?: number; pageSize?: number; scope?: 'identity' },
+      params?: { page?: number; pageSize?: number; scope?: 'identity'; profileIds?: string },
       signal?: AbortSignal
     ) => {
       return apiGet<PaginatedResponse<Session>>(`/users/${id}/sessions`, { params, signal });

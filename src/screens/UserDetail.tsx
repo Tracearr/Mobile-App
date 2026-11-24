@@ -26,6 +26,7 @@ import type { ServerUserFullDetail, Session } from '@tracearr/shared';
 import { useTranslation } from '@tracearr/translations/mobile';
 import type { UserDetailScope } from '@/lib/api';
 import { queryKeys } from '@/lib/queryKeys';
+import { profilesInView } from '@/lib/profiles';
 import { useAuthStateStore } from '@/lib/authStateStore';
 import { useUserFull, useRequestsStatus } from '@/hooks';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
@@ -38,7 +39,7 @@ import type { UserDetailProps } from './detail-props';
 import { Text } from '@/components/ui/text';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
-import { SegmentedControl } from '@/components/ui/segmented-control';
+import { ScrollingSegments } from '@/components/users/ScrollingSegments';
 import { SectionTabs } from '@/components/ui/section-tabs';
 import { UserHeaderCard } from '@/components/users/UserHeaderCard';
 import { UserStatsGrid } from '@/components/users/UserStatsGrid';
@@ -52,11 +53,9 @@ import type { TrustEditTarget } from '@/components/users/TrustScoreEditor';
 import { violationsPageFilter } from '@/components/users/identity';
 import { DATE_OPTIONS, formatWatchTime, safeFormatDate } from '@/lib/dateFormat';
 import { useDateConventions } from '@/lib/dateSettings';
-import { haptics } from '@/lib/haptics';
 import { colors, spacing, ACCENT_COLOR } from '@/lib/theme';
 
 const ALL_ACCOUNTS = 'all';
-const SEGMENTS_THAT_FIT = 3;
 
 function ScopePicker({
   accounts,
@@ -68,36 +67,16 @@ function ScopePicker({
   onChange: (value: string) => void;
 }) {
   const { t } = useTranslation(['pages']);
-  const options = [
-    { value: ALL_ACCOUNTS, label: t('pages:userDetail.allServers') },
-    ...accounts.map((account) => ({ value: account.id, label: account.serverName })),
-  ];
-  const fits = options.length <= SEGMENTS_THAT_FIT;
-
-  const control = (
-    <SegmentedControl
-      accessibilityLabel={t('pages:userDetail.serverScope')}
-      options={options}
-      value={value}
-      fullWidth={fits}
-      onChange={(next) => {
-        if (next === value) return;
-        haptics.selection();
-        onChange(next);
-      }}
-    />
-  );
-
   return (
-    <View className="mb-4">
-      {fits ? (
-        control
-      ) : (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          {control}
-        </ScrollView>
-      )}
-    </View>
+    <ScrollingSegments
+      accessibilityLabel={t('pages:userDetail.serverScope')}
+      options={[
+        { value: ALL_ACCOUNTS, label: t('pages:userDetail.allServers') },
+        ...accounts.map((account) => ({ value: account.id, label: account.serverName })),
+      ]}
+      value={value}
+      onChange={onChange}
+    />
   );
 }
 
@@ -378,6 +357,7 @@ export function UserDetail({
                   first={shown.detail.sessions}
                   scope={shown.scope}
                   showServer={showServer}
+                  profiles={profilesInView(shown.detail.profiles, shown.scope, shown.id)}
                   onSessionPress={handleSessionPress}
                 />
               )}

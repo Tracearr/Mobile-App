@@ -1,22 +1,29 @@
-import { View, Pressable } from 'react-native';
+import { useState } from 'react';
+import { View, Pressable, ActivityIndicator } from 'react-native';
 import { Image } from 'expo-image';
 import { Play, Clock, Tv, Globe, Film, Music } from 'lucide-react-native';
-import { formatEpisodeLabel, type Session } from '@tracearr/shared';
+import { formatEpisodeLabel, type ProfileFilterOption, type Session } from '@tracearr/shared';
 import { useTranslation } from '@tracearr/translations/mobile';
 import { api, type UserDetailScope } from '@/lib/api';
 import { queryKeys } from '@/lib/queryKeys';
 import { useImageUrl } from '@/hooks/useImageUrl';
 import { Text } from '@/components/ui/text';
 import { Badge } from '@/components/ui/badge';
+import { ErrorState } from '@/components/ui/error-state';
 import { ServerTag } from '@/components/server/ServerTag';
 import { useMediaServer } from '@/providers/MediaServerProvider';
 import { formatDuration } from '@/lib/dateFormat';
 import { countryName } from '@/lib/regionNames';
-import { colors } from '@/lib/theme';
+import { ACCENT_COLOR, colors } from '@/lib/theme';
+import { sessionProfileLabel } from '@/lib/profiles';
+import { useProfileLabels } from '@/hooks/useProfileLabels';
 import { UserSection, SectionRow, SectionEmptyText } from './UserSection';
 import { LoadMoreButton } from './LoadMoreButton';
 import { useMoreRows, SECTION_PAGE_SIZE } from './useMoreRows';
 import { mediaTypeLabelKey } from './mediaTypeLabel';
+import { ScrollingSegments } from './ScrollingSegments';
+
+const ALL_PROFILES = 'all';
 
 function mediaIcon(mediaType: Session['mediaType']) {
   if (mediaType === 'episode') return Tv;
@@ -39,11 +46,14 @@ function SessionRow({
   session,
   isFirst,
   showServer,
+  profile,
   onPress,
 }: {
   session: Session;
   isFirst: boolean;
   showServer: boolean;
+  /** The profile that played, named on every row once the profiles in view include a non-main one */
+  profile: string | null;
   onPress: () => void;
 }) {
   const { t } = useTranslation(['common', 'pages']);
@@ -103,6 +113,11 @@ function SessionRow({
             <Badge variant={state.variant}>{state.label}</Badge>
           </View>
           <View className="mt-1 flex-row flex-wrap items-center gap-x-4 gap-y-1">
+            {profile !== null && (
+              <Text className="text-muted-foreground text-xs" numberOfLines={1}>
+                {profile}
+              </Text>
+            )}
             <View className="flex-row items-center gap-1">
               <Clock size={12} color={colors.text.muted.dark} />
               <Text className="text-muted-foreground text-xs">
@@ -136,6 +151,8 @@ interface UserSessionsCardProps {
   first: { data: Session[]; total: number; hasMore: boolean };
   scope: UserDetailScope;
   showServer: boolean;
+  /** The profiles in view; empty when none of them is a non-main one */
+  profiles: ProfileFilterOption[];
   onSessionPress: (session: Session) => void;
 }
 
@@ -144,28 +161,60 @@ export function UserSessionsCard({
   first,
   scope,
   showServer,
+  profiles,
   onSessionPress,
 }: UserSessionsCardProps) {
-  const { t } = useTranslation(['common', 'mobile']);
-  const { rows, canLoadMore, isLoadingMore, loadMore } = useMoreRows({
-    queryKey: queryKeys.users.sessions(userId, scope),
-    first,
-    fetchPage: (page, signal) =>
-      api.users.sessions(
-        userId,
-        { page, pageSize: SECTION_PAGE_SIZE, scope: scope === 'identity' ? scope : undefined },
-        signal
-      ),
-  });
+  const { t } = useTranslation(['common', 'mobile', 'pages']);
+  const { profileOptionLabel } = useProfileLabels();
+  const [profileId, setProfileId] = useState<string>();
+  const { rows, total, isLoading, error, retry, canLoadMore, isLoadingMore, loadMore } =
+    useMoreRows({
+      queryKey: queryKeys.users.sessions(userId, scope, profileId),
+      first: profileId ? undefined : first,
+      fetchPage: (page, signal) =>
+        api.users.sessions(
+          userId,
+          {
+            page,
+            pageSize: SECTION_PAGE_SIZE,
+            scope: scope === 'identity' ? scope : undefined,
+            profileIds: profileId,
+          },
+          signal
+        ),
+    });
+  const profileNames = new Map(
+    profiles.map((profile) => [profile.id, profileOptionLabel(profile)])
+  );
 
   return (
     <UserSection
       icon={Play}
       title={t('common:labels.recentSessions')}
-      meta={`${first.total} ${t('common:labels.total')}`}
+      meta={total === undefined ? undefined : `${total} ${t('common:labels.total')}`}
       className="mb-4"
     >
-      {rows.length === 0 && (
+      {profiles.length > 0 && (
+        <ScrollingSegments
+          accessibilityLabel={t('common:labels.profiles')}
+          options={[
+            { value: ALL_PROFILES, label: t('pages:userDetail.allProfiles') },
+            ...profiles.map((profile) => ({
+              value: profile.id,
+              label: profileNames.get(profile.id) ?? profile.name,
+            })),
+          ]}
+          value={profileId ?? ALL_PROFILES}
+          onChange={(next) => setProfileId(next === ALL_PROFILES ? undefined : next)}
+        />
+      )}
+      {isLoading && (
+        <View className="items-center py-6">
+          <ActivityIndicator color={ACCENT_COLOR} />
+        </View>
+      )}
+      {error && <ErrorState compact message={error.message} onRetry={retry} />}
+      {!isLoading && !error && rows.length === 0 && (
         <SectionEmptyText>{t('common:empty.noSessionsFound')}</SectionEmptyText>
       )}
       {rows.map((session, index) => (
@@ -174,6 +223,7 @@ export function UserSessionsCard({
           session={session}
           isFirst={index === 0}
           showServer={showServer}
+          profile={profiles.length > 0 ? sessionProfileLabel(session, profileNames) : null}
           onPress={() => onSessionPress(session)}
         />
       ))}

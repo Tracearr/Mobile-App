@@ -82,8 +82,11 @@ export const queryKeys = {
     one: (id: string) => ['user', id] as const,
     fullPrefix: () => ['user-full'] as const,
     full: (id: string, scope: 'account' | 'identity') => ['user-full', id, scope] as const,
-    sessions: (id: string, scope: 'account' | 'identity') =>
-      ['user', id, 'sessions', scope] as const,
+    /** Without a profile the key is also the prefix of every profile's, so one removal clears all */
+    sessions: (id: string, scope: 'account' | 'identity', profileId?: string) =>
+      profileId
+        ? (['user', id, 'sessions', scope, profileId] as const)
+        : (['user', id, 'sessions', scope] as const),
     terminations: (id: string, scope: 'account' | 'identity') =>
       ['user', id, 'terminations', scope] as const,
   },
