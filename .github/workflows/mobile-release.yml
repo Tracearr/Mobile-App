@@ -103,7 +103,7 @@ jobs:
       - name: Setup Expo
         uses: expo/expo-github-action@5273c2136bd09c2a341fe3340d3e767ce5a13015 # v9
         with:
-          eas-version: 27.9.0
+          eas-version: 27.11.0
           token: ${{ secrets.EXPO_TOKEN }}
 
       - name: Deploy with fingerprint
@@ -224,7 +224,7 @@ jobs:
       - name: Setup Expo
         uses: expo/expo-github-action@5273c2136bd09c2a341fe3340d3e767ce5a13015 # v9
         with:
-          eas-version: 27.9.0
+          eas-version: 27.11.0
           token: ${{ secrets.EXPO_TOKEN }}
 
       - name: Publish update
