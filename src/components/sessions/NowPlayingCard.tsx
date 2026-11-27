@@ -293,7 +293,7 @@ export function NowPlayingCard({
             </View>
 
             {/* Footer - server name (multi-server) and/or location */}
-            {(isMultiServer || (isTablet && location)) && (
+            {(isMultiServer || location) && (
               <View className="flex-row items-center gap-1">
                 {isMultiServer && <ServerTag name={session.server.name} color={serverColor} />}
                 {isMultiServer && location && (

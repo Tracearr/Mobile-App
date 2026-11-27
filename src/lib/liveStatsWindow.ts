@@ -1,6 +1,7 @@
 import {
   liveStatsRetentionSeconds,
   SERVER_STATS_CONFIG,
+  type ServerBandwidthDataPoint,
   type ServerResourceDataPoint,
 } from '@tracearr/shared';
 
@@ -51,4 +52,66 @@ export function latestLivePoint(
   const last = statistics[statistics.length - 1];
   if (!last || nowSeconds - last.at > gapSeconds) return null;
   return last;
+}
+
+const BANDWIDTH_RATE_SECONDS = 30;
+
+/**
+ * Bits per second over the last 30 s, ending where web's charts hold their right edge so
+ * seconds Plex has not reported yet are not counted as idle. Rows are sparse: an absent
+ * second moved nothing. Per-row rate as web computes it (bytes / timespan).
+ */
+export function recentBandwidth(
+  points: ServerBandwidthDataPoint[],
+  nowSeconds: number
+): { local: number; remote: number } {
+  const end = nowSeconds - SERVER_STATS_CONFIG.NOW_DELAY_SECONDS;
+  const start = end - BANDWIDTH_RATE_SECONDS;
+  let local = 0;
+  let remote = 0;
+  for (const p of points) {
+    if (p.at <= start || p.at > end) continue;
+    local += p.lanBytes / p.timespan;
+    remote += p.wanBytes / p.timespan;
+  }
+  return {
+    local: Math.round((local * 8) / BANDWIDTH_RATE_SECONDS),
+    remote: Math.round((remote * 8) / BANDWIDTH_RATE_SECONDS),
+  };
+}
+
+const round1 = (n: number) => Math.round(n * 10) / 10;
+
+/**
+ * SVG path for a percentage over the live window, oldest first. Fixed 0-100 scale so an idle
+ * server reads flat; the line restarts past gapSeconds, liveStatsGapSeconds(type) as on web.
+ */
+export function sparklinePath(
+  points: { at: number; value: number }[],
+  nowSeconds: number,
+  width: number,
+  height: number,
+  gapSeconds: number
+): string {
+  const windowSeconds = SERVER_STATS_CONFIG.WINDOW_SECONDS;
+  const start = nowSeconds - windowSeconds;
+  let path = '';
+  let prevAt: number | null = null;
+  for (const { at, value } of points) {
+    const x = round1(((at - start) / windowSeconds) * width);
+    const y = round1(height - (Math.min(100, Math.max(0, value)) / 100) * height);
+    const move = prevAt === null || at - prevAt > gapSeconds;
+    path += `${move ? 'M' : 'L'}${x},${y}`;
+    prevAt = at;
+  }
+  return path;
+}
+
+// Plex's units, as web's bandwidth chart shows them
+export function formatBitsPerSecond(bps: number): string {
+  if (bps <= 0) return '0 bps';
+  const units = ['bps', 'Kbps', 'Mbps', 'Gbps'];
+  const i = Math.min(Math.floor(Math.log10(bps) / 3), units.length - 1);
+  const value = bps / 1000 ** i;
+  return `${value.toFixed(value < 10 ? 1 : 0)} ${units[i]}`;
 }

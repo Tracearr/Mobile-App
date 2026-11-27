@@ -10,9 +10,9 @@
  * Now Playing columns follow the screen's own width, not the window's, so the
  * iPad sidebar and Android split windows get the columns that actually fit.
  */
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { View, ScrollView, RefreshControl, ActivityIndicator, Pressable } from 'react-native';
-import { useRouter, Stack } from 'expo-router';
+import { useIsFocused, useRouter, Stack } from 'expo-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Activity,
@@ -35,17 +35,29 @@ import { cardColumns, useResponsive } from '@/hooks/useResponsive';
 import { TabToolbar, androidHeaderOptions } from '@/components/navigation/TabHeaderButtons';
 import { StreamMap } from '@/components/map/StreamMap';
 import { NowPlayingCard } from '@/components/sessions';
-import { ServerResourceCard } from '@/components/server/ServerResourceCard';
+import { ServerLoadCard, cpuValue, formatUtilization } from '@/components/server/ServerLoadCard';
 import { Text } from '@/components/ui/text';
 import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { SectionHeader } from '@/components/ui/section-header';
-import { spacing, ACCENT_COLOR } from '@/lib/theme';
+import { spacing, ACCENT_COLOR, colors } from '@/lib/theme';
 import { SERVER_PROFILES, isServerType } from '@tracearr/shared';
 import { useTranslation } from '@tracearr/translations/mobile';
 
 const TILE_GAP = spacing.sm;
+
+function TileRow({ compact, children }: { compact: boolean; children: ReactNode }) {
+  return compact ? (
+    <Card padding="compact" className="flex-row gap-3">
+      {children}
+    </Card>
+  ) : (
+    <View style={{ flexDirection: 'row', flexWrap: 'wrap', margin: -TILE_GAP / 2 }}>
+      {children}
+    </View>
+  );
+}
 
 /**
  * Web's StatCard: tinted icon, value over label, and the whole tile opens the matching screen
@@ -55,21 +67,55 @@ function StatTile({
   label,
   value,
   subValue,
-  width,
+  compact,
   onPress,
 }: {
   icon: LucideIcon;
   label: string;
   value: string | number;
   subValue?: string;
-  width: `${number}%`;
+  // Phones show the four tiles as cells of one card, in a single row
+  compact: boolean;
   onPress: () => void;
 }) {
-  return (
-    <View style={{ width, padding: TILE_GAP / 2 }}>
+  const a11yLabel = [label, value, subValue].filter(Boolean).join(', ');
+  if (compact) {
+    return (
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={`${label}, ${value}`}
+        accessibilityLabel={a11yLabel}
+        onPress={onPress}
+        hitSlop={{ top: 8, bottom: 8 }}
+        style={({ pressed }) => ({ flex: 1, minWidth: 0, opacity: pressed ? 0.7 : 1 })}
+      >
+        <View className="flex-row items-center gap-1">
+          <Icon size={13} color={ACCENT_COLOR} />
+          <Text
+            className="text-base font-semibold"
+            style={{ fontVariant: ['tabular-nums'] }}
+            numberOfLines={1}
+          >
+            {value}
+          </Text>
+        </View>
+        {/* The sessions count stays in the accessibility label; a cell this narrow cuts it off */}
+        <Text
+          className="text-muted-foreground text-[11px]"
+          numberOfLines={2}
+          adjustsFontSizeToFit
+          minimumFontScale={0.85}
+        >
+          {label}
+        </Text>
+      </Pressable>
+    );
+  }
+
+  return (
+    <View style={{ width: '25%', padding: TILE_GAP / 2 }}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={a11yLabel}
         onPress={onPress}
         style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
       >
@@ -92,7 +138,7 @@ function StatTile({
 }
 
 export default function DashboardScreen() {
-  const { t } = useTranslation(['pages', 'common', 'nav']);
+  const { t } = useTranslation(['pages', 'common', 'nav', 'mobile']);
   const router = useRouter();
   const queryClient = useQueryClient();
   const { servers, selectedServers, isMultiServer, scope, serverColor } = useMediaServer();
@@ -136,25 +182,53 @@ export default function DashboardScreen() {
     });
   }, [activeSessions, serverOrderMap]);
 
-  // A server type this build has no profile for has no stats source it can read.
+  // A server type this build has no profile for has no stats source it can read, and a
+  // historical server has no live stats at all.
   const resourceServers = useMemo(
     () =>
       selectedServers
-        .filter((s) => isServerType(s.type))
+        .filter((s) => isServerType(s.type) && !s.historicalAt)
         .sort((a, b) => (serverOrderMap.get(a.id) ?? 0) - (serverOrderMap.get(b.id) ?? 0)),
     [selectedServers, serverOrderMap]
   );
-  const liveStats = useServerLiveStats(resourceServers);
-  // Plex always has a stats source, so its card always shows. Any other card
-  // shows only while its source (SSE plugin, tofa metrics) is reporting: keying on the retained
-  // window instead would park an empty card on screen until the window drains.
+  const isFocused = useIsFocused();
+  const liveStats = useServerLiveStats(resourceServers, isFocused);
+  // Plex always has a stats source, so its card always shows. Any other card shows once its
+  // source (SSE plugin, tofa or Silo metrics) has reported, and stays with "no data" when it goes
+  // quiet: a card that vanished would read as fine when the load is unknown.
   const resourceCards = resourceServers.flatMap((server, index) => {
     const stats = liveStats[index];
     if (!stats) return [];
-    return SERVER_PROFILES[server.type].hostStats === 'plexStatistics' || stats.latest !== null
+    return SERVER_PROFILES[server.type].hostStats === 'plexStatistics' || stats.reported
       ? [{ server, stats }]
       : [];
   });
+  const showNetwork = resourceCards.some(
+    ({ server }) => SERVER_PROFILES[server.type].reportsBandwidth
+  );
+  // The busiest server's CPU, shown beside the stream count so load stays in view however many
+  // cards Now Playing holds. Across servers only process CPU compares like with like: Silo's
+  // host-only figure counts everything on its box. A failed poll keeps old data, so it is skipped.
+  const busiest = resourceCards.reduce<{
+    cpu: number;
+    server: (typeof resourceServers)[number];
+  } | null>((top, { server, stats }) => {
+    const cpu =
+      stats.latest && !stats.error
+        ? isMultiServer
+          ? stats.latest.processCpu
+          : cpuValue(stats.latest)
+        : null;
+    return cpu !== null && (top === null || cpu > top.cpu) ? { cpu, server } : top;
+  }, null);
+  const loadColumns = Math.min(nowPlayingColumns, resourceCards.length);
+  const streamCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const session of activeSessions ?? []) {
+      counts.set(session.server.id, (counts.get(session.server.id) ?? 0) + 1);
+    }
+    return counts;
+  }, [activeSessions]);
 
   // Live stats are included so a server on the empty backoff is polled now, not in 30s.
   const { controlKey, refreshControlProps } = usePullToRefresh(() =>
@@ -168,7 +242,6 @@ export default function DashboardScreen() {
   );
 
   const mapHeight = select({ compact: 200, medium: 280, expanded: 320 });
-  const tileWidth = isTablet ? '25%' : '50%';
 
   const loadError = (!stats && statsError) || (!activeSessions && sessionsError) || null;
   const hasActiveStreams = !!sortedSessions && sortedSessions.length > 0;
@@ -203,12 +276,12 @@ export default function DashboardScreen() {
               }}
             >
               <SectionHeader icon={Calendar} title={t('common:time.today')} />
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', margin: -TILE_GAP / 2 }}>
+              <TileRow compact={!isTablet}>
                 <StatTile
                   icon={TriangleAlert}
                   label={t('pages:dashboard.alerts')}
                   value={stats?.alertsLast24h ?? '-'}
-                  width={tileWidth}
+                  compact={!isTablet}
                   onPress={() => router.push(ROUTES.ALERTS)}
                 />
                 <StatTile
@@ -220,24 +293,24 @@ export default function DashboardScreen() {
                       ? t('common:count.session', { count: stats.todaySessions })
                       : undefined
                   }
-                  width={tileWidth}
+                  compact={!isTablet}
                   onPress={() => router.push(ROUTES.HISTORY)}
                 />
                 <StatTile
                   icon={Clock}
                   label={t('pages:dashboard.watchTime')}
                   value={stats ? `${stats.watchTimeHours}h` : '-'}
-                  width={tileWidth}
+                  compact={!isTablet}
                   onPress={() => router.push(ROUTES.ACTIVITY)}
                 />
                 <StatTile
                   icon={Users}
                   label={t('pages:dashboard.activeUsers')}
                   value={stats?.activeUsersToday ?? '-'}
-                  width={tileWidth}
+                  compact={!isTablet}
                   onPress={() => router.push(ROUTES.USERS)}
                 />
-              </View>
+              </TileRow>
             </View>
 
             {/* Now Playing - Active Streams */}
@@ -247,10 +320,42 @@ export default function DashboardScreen() {
                 title={t('pages:dashboard.nowPlaying')}
                 right={
                   hasActiveStreams ? (
-                    <View className="bg-muted rounded-full px-2 py-0.5">
-                      <Text className="text-xs font-medium">
-                        {t('common:count.stream', { count: sortedSessions.length })}
-                      </Text>
+                    <View className="flex-row items-center gap-2">
+                      {busiest ? (
+                        <View
+                          className="flex-row items-center gap-1"
+                          accessible
+                          accessibilityLabel={[
+                            isMultiServer ? busiest.server.name : null,
+                            `${t('mobile:resources.cpu')} ${formatUtilization(busiest.cpu)}`,
+                          ]
+                            .filter(Boolean)
+                            .join(', ')}
+                        >
+                          {isMultiServer ? (
+                            <View
+                              style={{
+                                width: 6,
+                                height: 6,
+                                borderRadius: 3,
+                                backgroundColor:
+                                  serverColor(busiest.server.id) ?? colors.icon.default,
+                              }}
+                            />
+                          ) : null}
+                          <Text
+                            className="text-muted-foreground text-xs"
+                            style={{ fontVariant: ['tabular-nums'] }}
+                          >
+                            {`${t('mobile:resources.cpu')} ${formatUtilization(busiest.cpu)}`}
+                          </Text>
+                        </View>
+                      ) : null}
+                      <View className="bg-muted rounded-full px-2 py-0.5">
+                        <Text className="text-xs font-medium">
+                          {t('common:count.stream', { count: sortedSessions.length })}
+                        </Text>
+                      </View>
                     </View>
                   ) : undefined
                 }
@@ -298,6 +403,40 @@ export default function DashboardScreen() {
               )}
             </View>
 
+            {/* Server load - under Now Playing, above the map, one card per server */}
+            {resourceCards.length > 0 && (
+              <View style={{ marginBottom: spacing.md, paddingHorizontal: horizontalPadding }}>
+                <SectionHeader icon={Activity} title={t('pages:dashboard.serverResources')} />
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    flexWrap: 'wrap',
+                    marginHorizontal: loadColumns > 1 ? -spacing.sm / 2 : 0,
+                    rowGap: spacing.sm,
+                  }}
+                >
+                  {resourceCards.map(({ server, stats }) => (
+                    <View
+                      key={server.id}
+                      style={{
+                        width: `${100 / loadColumns}%`,
+                        paddingHorizontal: loadColumns > 1 ? spacing.sm / 2 : 0,
+                      }}
+                    >
+                      <ServerLoadCard
+                        stats={stats}
+                        showNetwork={showNetwork}
+                        showSystem={!isMultiServer}
+                        serverName={isMultiServer ? server.name : undefined}
+                        serverColor={isMultiServer ? serverColor(server.id) : undefined}
+                        streamCount={isMultiServer ? streamCounts.get(server.id) : undefined}
+                      />
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+
             {/* Stream Map - only show when there are active streams */}
             {hasActiveStreams && (
               <View style={{ marginBottom: spacing.md, paddingHorizontal: horizontalPadding }}>
@@ -307,27 +446,6 @@ export default function DashboardScreen() {
                   height={mapHeight}
                   serverColor={isMultiServer ? serverColor : undefined}
                 />
-              </View>
-            )}
-
-            {/* Server Resources - one card per server with a stats source */}
-            {resourceCards.length > 0 && (
-              <View style={{ paddingHorizontal: horizontalPadding }}>
-                <SectionHeader icon={Activity} title={t('pages:dashboard.serverResources')} />
-                <View style={{ gap: spacing.sm }}>
-                  {resourceCards.map(({ server, stats }) => (
-                    <ServerResourceCard
-                      key={server.id}
-                      serverType={server.type}
-                      latest={stats.latest}
-                      isLoading={stats.isLoading}
-                      error={stats.error}
-                      serverName={isMultiServer ? server.name : undefined}
-                      serverColor={isMultiServer ? serverColor(server.id) : undefined}
-                      showSystem={!isMultiServer}
-                    />
-                  ))}
-                </View>
               </View>
             )}
           </>
