@@ -280,8 +280,8 @@ export function SessionDetail({ id, mem, embedded = false, onBack }: DetailScree
   const posterUrl = getImageUrl({
     serverId: session.serverId,
     path: session.thumbPath,
-    width: POSTER_WIDTH * 2,
-    height: POSTER_HEIGHT * 2,
+    width: POSTER_WIDTH,
+    height: POSTER_HEIGHT,
   });
 
   // Build location string

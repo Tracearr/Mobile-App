@@ -169,12 +169,11 @@ export function NowPlayingCard({
   const posterHeight = select({ compact: 70, medium: 95 });
   const avatarSize = select({ compact: 16, medium: 20 });
 
-  // Build poster URL using image proxy (request larger size for tablets)
   const posterUrl = getImageUrl({
     serverId: session.serverId,
     path: session.thumbPath,
-    width: posterWidth * 2,
-    height: posterHeight * 2,
+    width: posterWidth,
+    height: posterHeight,
   });
 
   const isPaused = session.state === 'paused';

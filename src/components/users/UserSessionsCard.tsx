@@ -62,8 +62,8 @@ function SessionRow({
   const posterUrl = getImageUrl({
     serverId: session.serverId,
     path: session.thumbPath,
-    width: 80,
-    height: 120,
+    width: 40,
+    height: 60,
   });
   const MediaIcon = mediaIcon(session.mediaType);
   const title = sessionTitle(session);

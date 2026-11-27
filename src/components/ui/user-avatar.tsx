@@ -2,7 +2,7 @@
  * User avatar component with image and fallback to initials
  */
 import React from 'react';
-import { View } from 'react-native';
+import { PixelRatio, View } from 'react-native';
 import { Image } from 'expo-image';
 import { Text } from './text';
 import { isDirectAvatarUrl, isProxiableAvatarUrl } from '@tracearr/shared';
@@ -52,8 +52,8 @@ export function buildAvatarUrl(
   const params = new URLSearchParams({
     server: serverId,
     url: thumbUrl,
-    width: String(size),
-    height: String(size),
+    width: String(PixelRatio.getPixelSizeForLayoutSize(size)),
+    height: String(PixelRatio.getPixelSizeForLayoutSize(size)),
     fallback: 'avatar',
   });
 

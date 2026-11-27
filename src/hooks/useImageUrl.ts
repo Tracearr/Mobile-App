@@ -3,11 +3,13 @@
  * Keeps serverUrl access in one place instead of scattered across components
  */
 import { useCallback } from 'react';
+import { PixelRatio } from 'react-native';
 import { useAuthStateStore } from '../lib/authStateStore';
 
 interface ImageUrlOptions {
   serverId: string;
   path: string | null;
+  /** Size drawn on screen, in points; the request is scaled to the screen's density */
   width: number;
   height: number;
 }
@@ -22,7 +24,7 @@ export function useImageUrl() {
   return useCallback(
     ({ serverId, path, width, height }: ImageUrlOptions): string | null => {
       if (!serverUrl || !path) return null;
-      return `${serverUrl}/api/v1/images/proxy?server=${serverId}&url=${encodeURIComponent(path)}&width=${width}&height=${height}`;
+      return `${serverUrl}/api/v1/images/proxy?server=${serverId}&url=${encodeURIComponent(path)}&width=${PixelRatio.getPixelSizeForLayoutSize(width)}&height=${PixelRatio.getPixelSizeForLayoutSize(height)}`;
     },
     [serverUrl]
   );
